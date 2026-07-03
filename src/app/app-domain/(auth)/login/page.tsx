@@ -8,7 +8,7 @@ import { Mail, Lock, Loader2, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { useRouter } from "next/navigation";
-
+import Image from "next/image";
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -216,10 +216,17 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="mt-8 pt-6 border-t border-border/50 flex flex-col items-center space-y-2">
-            <p className="text-xs text-muted-foreground text-center">
-              Tecnologia desenvolvida por <span className="font-semibold text-foreground/80">Robonuvem</span>
+          <div className="mt-8 pt-6 border-t border-border/50 flex flex-col items-center justify-center gap-2">
+            <p className="text-xs text-muted-foreground text-center uppercase tracking-widest font-medium">
+              Developed by
             </p>
+            <Image 
+              src="/logo_robonuvem.png" 
+              alt="Robonuvem" 
+              width={120} 
+              height={40}
+              className="opacity-80 hover:opacity-100 transition-opacity"
+            />
           </div>
         </div>
       </div>
