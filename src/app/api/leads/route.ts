@@ -26,7 +26,8 @@ export async function POST(req: Request) {
     const parsedData = leadSchema.parse(body);
 
     // Importação dinâmica do Prisma — só carrega quando a rota é chamada em runtime
-    const { prisma } = await import("@/lib/prisma");
+    const { getPrisma } = await import("@/lib/prisma");
+    const prisma = getPrisma();
 
     const lead = await prisma.lead.create({
       data: {
