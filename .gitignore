@@ -41,5 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 .agent/
+docs/doc_extracted/
+docs/doc.zip
 
 /src/generated/prisma
