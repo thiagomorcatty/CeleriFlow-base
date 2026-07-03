@@ -45,3 +45,8 @@ docs/doc_extracted/
 docs/doc.zip
 
 /src/generated/prisma
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!components.json
