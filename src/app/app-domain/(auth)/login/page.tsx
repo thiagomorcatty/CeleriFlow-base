@@ -60,15 +60,17 @@ export default function LoginPage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-secondary/20 blur-[120px] mix-blend-screen" style={{ animationDelay: '2s' }} />
 
       <div className="relative z-10 w-full max-w-md px-4">
-        <div className="bg-background/80 backdrop-blur-xl border border-border/50 shadow-2xl rounded-2xl p-8 transition-all duration-300">
+        <div className="bg-background/60 backdrop-blur-2xl border border-white/10 shadow-[0_8px_40px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_40px_rgb(0,0,0,0.3)] rounded-3xl p-8 sm:p-10 transition-all duration-300">
           <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-primary to-primary/60 flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
-              <span className="text-2xl font-bold text-white tracking-tighter">CF</span>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
-              CeleriFlow App
-            </h1>
-            <p className="text-sm text-muted-foreground mt-2 text-center">
+            <Image 
+              src="/logo1.png" 
+              alt="CeleriFlow" 
+              width={200} 
+              height={60}
+              className="object-contain mx-auto mb-2 drop-shadow-sm"
+              priority
+            />
+            <p className="text-sm text-muted-foreground mt-2 text-center font-medium">
               {view === "login" && "Acesse a plataforma de gestão integrada"}
               {view === "reset" && "Redefina sua senha de acesso"}
               {view === "reset-success" && "Pronto!"}
@@ -228,16 +230,16 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="mt-8 pt-6 border-t border-border/50 flex flex-col items-center justify-center gap-2">
-            <p className="text-xs text-muted-foreground text-center uppercase tracking-widest font-medium">
+          <div className="mt-8 pt-5 border-t border-border/40 flex flex-col items-center justify-center gap-1.5">
+            <p className="text-[9px] text-muted-foreground/60 text-center uppercase tracking-[0.2em] font-medium">
               Developed by
             </p>
             <Image 
               src="/logo_robonuvem.png" 
               alt="Robonuvem" 
-              width={70} 
-              height={20}
-              className="object-contain opacity-80 hover:opacity-100 transition-opacity"
+              width={50} 
+              height={14}
+              className="object-contain opacity-50 hover:opacity-100 transition-opacity"
             />
           </div>
         </div>
