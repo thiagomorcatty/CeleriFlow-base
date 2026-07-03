@@ -1,84 +1,55 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Clock, FileText, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { 
+  Files, 
+  HeadphonesIcon, 
+  FileText, 
+  ShoppingCart, 
+  Eye, 
+  BarChart3, 
+  Building2, 
+  Settings
+} from "lucide-react";
+
+const menuItems = [
+  { name: "Processos", description: "Gestão e acompanhamento", href: "/app-domain/processos", icon: Files, color: "text-blue-500", bg: "bg-blue-500/10" },
+  { name: "Atendimento", description: "Suporte e chamados", href: "/app-domain/atendimento", icon: HeadphonesIcon, color: "text-green-500", bg: "bg-green-500/10" },
+  { name: "Documentos", description: "Emissão e controle", href: "/app-domain/documentos", icon: FileText, color: "text-amber-500", bg: "bg-amber-500/10" },
+  { name: "Compras", description: "Licitações e contratos", href: "/app-domain/compras", icon: ShoppingCart, color: "text-purple-500", bg: "bg-purple-500/10" },
+  { name: "Transparência", description: "Acesso à informação", href: "/app-domain/transparencia", icon: Eye, color: "text-cyan-500", bg: "bg-cyan-500/10" },
+  { name: "Indicadores", description: "Relatórios e metas", href: "/app-domain/indicadores", icon: BarChart3, color: "text-rose-500", bg: "bg-rose-500/10" },
+  { name: "Administração", description: "Gestão interna", href: "/app-domain/administracao", icon: Building2, color: "text-indigo-500", bg: "bg-indigo-500/10" },
+  { name: "Configurações", description: "Ajustes do sistema", href: "/app-domain/configuracoes", icon: Settings, color: "text-slate-500", bg: "bg-slate-500/10" },
+];
 
 export default function PainelPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 max-w-5xl mx-auto w-full pb-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Painel de Controle</h1>
-        <p className="text-muted-foreground mt-2">Visão geral e indicadores do sistema.</p>
+        <p className="text-muted-foreground mt-2">
+          Selecione a área que deseja acessar.
+        </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Processos Ativos</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+12.450</div>
-            <p className="text-xs text-muted-foreground">+18% em relação ao mês passado</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pendências</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">45</div>
-            <p className="text-xs text-muted-foreground">Requerem sua atenção imediata</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Documentos Emitidos</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+3.200</div>
-            <p className="text-xs text-muted-foreground">Nesta semana</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Concluídos</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">98%</div>
-            <p className="text-xs text-muted-foreground">Taxa de resolução no prazo</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-4">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Últimos Acessos e Atividades</CardTitle>
-            <CardDescription>Um resumo das movimentações mais recentes no seu setor.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex h-[300px] items-center justify-center border border-dashed rounded-md bg-muted/20">
-              <span className="text-muted-foreground">Gráfico ou lista em desenvolvimento</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Alertas Importantes</CardTitle>
-            <CardDescription>Avisos do sistema e de prazos.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex h-[300px] items-center justify-center border border-dashed rounded-md bg-muted/20">
-              <span className="text-muted-foreground">Sem alertas no momento</span>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {menuItems.map((item) => (
+          <Link key={item.name} href={item.href} className="block group">
+            <Card className="h-full transition-all duration-200 hover:shadow-md hover:border-primary/50">
+              <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
+                <div className={`p-3 rounded-xl ${item.bg}`}>
+                  <item.icon className={`h-6 w-6 ${item.color}`} />
+                </div>
+                <div>
+                  <CardTitle className="text-base group-hover:text-primary transition-colors">{item.name}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="pt-2">{item.description}</CardDescription>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
       </div>
     </div>
   );
