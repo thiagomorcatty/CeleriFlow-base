@@ -16,11 +16,7 @@ export default function AppLayout({
   const isLoginPage = pathname === "/app-domain/login" || pathname === "/";
 
   if (isLoginPage) {
-    return (
-      <div className="flex min-h-screen w-full bg-background items-center justify-center">
-        {children}
-      </div>
-    );
+    return <>{children}</>;
   }
 
   return (
