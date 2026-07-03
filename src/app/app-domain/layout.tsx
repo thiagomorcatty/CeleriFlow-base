@@ -13,7 +13,7 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isLoginPage = pathname === "/app-domain/login";
+  const isLoginPage = pathname === "/app-domain/login" || pathname === "/";
 
   if (isLoginPage) {
     return (
