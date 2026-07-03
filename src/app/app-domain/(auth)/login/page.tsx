@@ -31,7 +31,9 @@ export default function LoginPage() {
       router.push("/app-domain");
     } catch (error: any) {
       console.error(error);
-      setErrorMsg("E-mail ou senha incorretos. Tente novamente.");
+      // Extrair a mensagem do Firebase para sabermos se é erro de API KEY ou de senha
+      const errorMessage = error?.message || "E-mail ou senha incorretos. Tente novamente.";
+      setErrorMsg(`Erro: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
