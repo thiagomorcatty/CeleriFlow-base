@@ -6,16 +6,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const leadSchema = z.object({
   name: z.string().min(2, "Informe seu nome"),
@@ -27,8 +19,8 @@ const leadSchema = z.object({
   phone: z.string().optional(),
   moduleInterest: z.string().optional(),
   message: z.string().optional(),
-  consent: z.literal(true, {
-    errorMap: () => ({ message: "É necessário aceitar a política de privacidade" }),
+  consent: z.boolean().refine((val) => val === true, {
+    message: "É necessário aceitar a política de privacidade",
   }),
 });
 
@@ -38,7 +30,12 @@ export function Contact() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const form = useForm<LeadFormValues>({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
     defaultValues: {
       name: "",
@@ -64,7 +61,7 @@ export function Contact() {
       
       if (response.ok) {
         setIsSuccess(true);
-        form.reset();
+        reset();
       }
     } catch (error) {
       console.error("Erro ao enviar form:", error);
@@ -96,139 +93,72 @@ export function Contact() {
               <Button onClick={() => setIsSuccess(false)}>Enviar nova solicitação</Button>
             </div>
           ) : (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome Completo *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Seu nome" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cargo (Opcional)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: Secretário de Finanças" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome Completo *</Label>
+                  <Input id="name" placeholder="Seu nome" {...register("name")} />
+                  {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
                 </div>
-                
-                <FormField
-                  control={form.control}
-                  name="organization"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Órgão Público / Prefeitura *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: Prefeitura de São Paulo" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                <div className="space-y-2">
+                  <Label htmlFor="role">Cargo (Opcional)</Label>
+                  <Input id="role" placeholder="Ex: Secretário de Finanças" {...register("role")} />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="organization">Órgão Público / Prefeitura *</Label>
+                <Input id="organization" placeholder="Ex: Prefeitura de São Paulo" {...register("organization")} />
+                {errors.organization && <p className="text-sm text-destructive">{errors.organization.message}</p>}
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="email">E-mail Institucional *</Label>
+                  <Input id="email" type="email" placeholder="seu@email.gov.br" {...register("email")} />
+                  {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone (Opcional)</Label>
+                  <Input id="phone" placeholder="(00) 00000-0000" {...register("phone")} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="city">Cidade *</Label>
+                  <Input id="city" placeholder="Sua cidade" {...register("city")} />
+                  {errors.city && <p className="text-sm text-destructive">{errors.city.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">Estado *</Label>
+                  <Input id="state" placeholder="UF" {...register("state")} />
+                  {errors.state && <p className="text-sm text-destructive">{errors.state.message}</p>}
+                </div>
+              </div>
+
+              <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <input 
+                  type="checkbox"
+                  id="consent"
+                  className="mt-1"
+                  {...register("consent")} 
                 />
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>E-mail Institucional *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="seu@email.gov.br" type="email" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Telefone (Opcional)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="(00) 00000-0000" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <div className="space-y-1 leading-none">
+                  <Label htmlFor="consent">
+                    Aceito a política de privacidade
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Você concorda com nossos termos e políticas de LGPD.
+                  </p>
+                  {errors.consent && <p className="text-sm text-destructive mt-2">{errors.consent.message}</p>}
                 </div>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cidade *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Sua cidade" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Estado *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="UF" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="consent"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <input 
-                          type="checkbox"
-                          className="mt-1"
-                          checked={field.value}
-                          onChange={field.onChange} 
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          Aceito a política de privacidade
-                        </FormLabel>
-                        <FormDescription>
-                          Você concorda com nossos termos e políticas de LGPD.
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <Button type="submit" className="w-full h-12 text-base" disabled={isSubmitting}>
-                  {isSubmitting ? "Enviando..." : "Solicitar Demonstração"}
-                </Button>
-              </form>
-            </Form>
+              <Button type="submit" className="w-full h-12 text-base" disabled={isSubmitting}>
+                {isSubmitting ? "Enviando..." : "Solicitar Demonstração"}
+              </Button>
+            </form>
           )}
         </div>
       </div>

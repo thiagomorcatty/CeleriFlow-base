@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 
@@ -23,18 +23,16 @@ export function Header() {
           <Link href="#faq" className="text-sm font-medium hover:text-primary transition-colors">
             FAQ
           </Link>
-          <Button asChild>
-            <Link href="#contato">Solicitar Demonstração</Link>
-          </Button>
+          <Link href="#contato" className={buttonVariants()}>
+            Solicitar Demonstração
+          </Link>
         </nav>
 
         {/* Mobile Navigation */}
         <div className="md:hidden">
           <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Abrir menu">
-                <Menu className="h-6 w-6" />
-              </Button>
+            <SheetTrigger className={buttonVariants({ variant: "ghost", size: "icon" })} aria-label="Abrir menu">
+              <Menu className="h-6 w-6" />
             </SheetTrigger>
             <SheetContent side="right">
               <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
@@ -48,9 +46,9 @@ export function Header() {
                 <Link href="#faq" className="text-sm font-medium p-2 hover:bg-muted rounded-md">
                   FAQ
                 </Link>
-                <Button asChild className="mt-4">
-                  <Link href="#contato">Solicitar Demonstração</Link>
-                </Button>
+                <Link href="#contato" className={buttonVariants({ className: "mt-4" })}>
+                  Solicitar Demonstração
+                </Link>
               </div>
             </SheetContent>
           </Sheet>

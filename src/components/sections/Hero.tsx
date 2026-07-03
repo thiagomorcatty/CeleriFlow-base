@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, Zap } from "lucide-react";
 
@@ -24,17 +24,13 @@ export function Hero() {
         </p>
         
         <div className="mt-10 flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-          <Button size="lg" asChild className="w-full sm:w-auto h-12 px-8 text-base">
-            <Link href="#contato">
-              Solicitar Demonstração
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-          <Button size="lg" variant="outline" asChild className="w-full sm:w-auto h-12 px-8 text-base">
-            <Link href="#modulos">
-              Conhecer Módulos
-            </Link>
-          </Button>
+          <Link href="#contato" className={buttonVariants({ size: "lg", className: "w-full sm:w-auto h-12 px-8 text-base" })}>
+            Solicitar Demonstração
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+          <Link href="#modulos" className={buttonVariants({ size: "lg", variant: "outline", className: "w-full sm:w-auto h-12 px-8 text-base" })}>
+            Conhecer Módulos
+          </Link>
         </div>
 
         {/* Feature quick points */}
