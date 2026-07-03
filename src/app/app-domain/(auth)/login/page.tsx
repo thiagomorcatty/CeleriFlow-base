@@ -60,17 +60,20 @@ export default function LoginPage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-secondary/20 blur-[120px] mix-blend-screen" style={{ animationDelay: '2s' }} />
 
       <div className="relative z-10 w-full max-w-md px-4">
-        <div className="bg-background/60 backdrop-blur-2xl border border-white/10 shadow-[0_8px_40px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_40px_rgb(0,0,0,0.3)] rounded-3xl p-8 sm:p-10 transition-all duration-300">
-          <div className="flex flex-col items-center mb-8">
+        <div className="bg-background/70 backdrop-blur-2xl border border-primary/20 shadow-[0_0_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_0_60px_-15px_rgba(255,255,255,0.1)] rounded-3xl p-6 sm:p-8 transition-all duration-300 relative overflow-hidden">
+          {/* Subtle top highlight */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+          
+          <div className="flex flex-col items-center mb-6">
             <Image 
               src="/logo1.png" 
               alt="CeleriFlow" 
-              width={200} 
-              height={60}
+              width={180} 
+              height={50}
               className="object-contain mx-auto mb-2 drop-shadow-sm"
               priority
             />
-            <p className="text-sm text-muted-foreground mt-2 text-center font-medium">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 text-center font-medium">
               {view === "login" && "Acesse a plataforma de gestão integrada"}
               {view === "reset" && "Redefina sua senha de acesso"}
               {view === "reset-success" && "Pronto!"}
@@ -78,16 +81,16 @@ export default function LoginPage() {
           </div>
 
           {errorMsg && (
-            <div className="mb-6 p-3 rounded-lg bg-destructive/15 border border-destructive/30 text-destructive text-sm text-center font-medium">
+            <div className="mb-5 p-3 rounded-lg bg-destructive/15 border border-destructive/30 text-destructive text-sm text-center font-medium">
               {errorMsg}
             </div>
           )}
 
           {view === "login" && (
-            <form onSubmit={handleLogin} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            <form onSubmit={handleLogin} className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
                     E-mail Institucional
                   </Label>
                   <div className="relative group">
@@ -96,7 +99,7 @@ export default function LoginPage() {
                       id="email"
                       type="email"
                       placeholder="voce@prefeitura.gov.br"
-                      className="pl-10 h-12 bg-muted/50 border-transparent transition-all focus:bg-background focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
+                      className="pl-9 h-11 bg-muted/50 border-transparent transition-all focus:bg-background focus:border-primary/50 focus:ring-1 focus:ring-primary/50 text-sm"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -104,16 +107,16 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                    <Label htmlFor="password" className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
                       Senha
                     </Label>
                     <Button 
                       type="button"
                       variant="link" 
                       onClick={() => { setView("reset"); setErrorMsg(""); }}
-                      className="px-0 font-normal h-auto text-xs text-primary/70 hover:text-primary"
+                      className="px-0 font-normal h-auto text-[11px] text-primary/70 hover:text-primary"
                     >
                       Esqueceu a senha?
                     </Button>
@@ -124,7 +127,7 @@ export default function LoginPage() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      className="pl-10 pr-10 h-12 bg-muted/50 border-transparent transition-all focus:bg-background focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
+                      className="pl-9 pr-9 h-11 bg-muted/50 border-transparent transition-all focus:bg-background focus:border-primary/50 focus:ring-1 focus:ring-primary/50 text-sm"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
@@ -146,11 +149,11 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full h-12 text-base font-medium transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary/25"
+                className="w-full h-11 text-sm font-medium transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-primary/20"
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
                     Entrar no Sistema
@@ -162,13 +165,13 @@ export default function LoginPage() {
           )}
 
           {view === "reset" && (
-            <form onSubmit={handleResetPassword} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="reset-email" className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            <form onSubmit={handleResetPassword} className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="reset-email" className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
                     Seu E-mail
                   </Label>
-                  <p className="text-xs text-muted-foreground pb-2">
+                  <p className="text-xs text-muted-foreground pb-1">
                     Enviaremos um link para você cadastrar uma nova senha.
                   </p>
                   <div className="relative group">
@@ -177,7 +180,7 @@ export default function LoginPage() {
                       id="reset-email"
                       type="email"
                       placeholder="voce@prefeitura.gov.br"
-                      className="pl-10 h-12 bg-muted/50 border-transparent transition-all focus:bg-background focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
+                      className="pl-9 h-11 bg-muted/50 border-transparent transition-all focus:bg-background focus:border-primary/50 focus:ring-1 focus:ring-primary/50 text-sm"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -186,36 +189,36 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col space-y-3">
+              <div className="flex flex-col space-y-2.5">
                 <Button
                   type="submit"
-                  className="w-full h-12 text-base font-medium"
+                  className="w-full h-11 text-sm font-medium shadow-md shadow-primary/20"
                   disabled={isLoading}
                 >
-                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Enviar Link de Recuperação"}
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar Link de Recuperação"}
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
                   onClick={() => { setView("login"); setErrorMsg(""); }}
-                  className="w-full h-12 text-sm text-muted-foreground"
+                  className="w-full h-11 text-xs text-muted-foreground"
                   disabled={isLoading}
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Voltar para o Login
+                  Voltar
                 </Button>
               </div>
             </form>
           )}
 
           {view === "reset-success" && (
-            <div className="flex flex-col items-center space-y-6 animate-in zoom-in-95 duration-500 py-4">
-              <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8 text-green-500" />
+            <div className="flex flex-col items-center space-y-5 animate-in zoom-in-95 duration-500 py-2">
+              <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6 text-green-500" />
               </div>
-              <div className="text-center space-y-2">
-                <h3 className="font-semibold text-lg">E-mail Enviado!</h3>
-                <p className="text-sm text-muted-foreground">
+              <div className="text-center space-y-1.5">
+                <h3 className="font-semibold text-base">E-mail Enviado!</h3>
+                <p className="text-xs text-muted-foreground">
                   Verifique a caixa de entrada de <strong className="text-foreground">{email}</strong>.
                 </p>
               </div>
@@ -223,14 +226,14 @@ export default function LoginPage() {
                 type="button"
                 variant="outline"
                 onClick={() => setView("login")}
-                className="w-full h-12"
+                className="w-full h-11 text-sm"
               >
                 Voltar para o Login
               </Button>
             </div>
           )}
 
-          <div className="mt-8 pt-5 border-t border-border/40 flex flex-col items-center justify-center gap-1.5">
+          <div className="mt-6 pt-4 border-t border-border/40 flex flex-col items-center justify-center gap-1.5">
             <p className="text-[9px] text-muted-foreground/60 text-center uppercase tracking-[0.2em] font-medium">
               Developed by
             </p>
