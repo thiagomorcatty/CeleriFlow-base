@@ -223,8 +223,8 @@ export default function LoginPage() {
             <Image 
               src="/logo_robonuvem.png" 
               alt="Robonuvem" 
-              width={140} 
-              height={40}
+              width={70} 
+              height={20}
               className="object-contain opacity-80 hover:opacity-100 transition-opacity"
             />
           </div>
