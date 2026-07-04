@@ -56,17 +56,17 @@ export default function PainelPage() {
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {menuItems.map((item) => (
           <Link key={item.name} href={item.href} className="block group">
-            <Card className="h-full transition-all duration-200 hover:shadow-md hover:border-primary/50 flex flex-col justify-between">
-              <CardHeader className="flex flex-col items-start gap-3 space-y-0 p-4 pb-2">
-                <div className={`p-2.5 rounded-lg ${item.bg}`}>
+            <Card className="h-full transition-all duration-200 hover:shadow-md hover:border-primary/50 flex flex-col justify-center text-center py-4 px-2">
+              <CardHeader className="flex flex-col items-center gap-2 space-y-0 p-0 pb-1">
+                <div className={`p-2.5 rounded-xl ${item.bg}`}>
                   <item.icon className={`h-5 w-5 ${item.color}`} />
                 </div>
                 <CardTitle className="text-sm font-semibold leading-tight group-hover:text-primary transition-colors">
                   {item.name}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <CardDescription className="text-xs leading-snug line-clamp-2">
+              <CardContent className="p-0">
+                <CardDescription className="text-[11px] leading-tight line-clamp-1 px-1">
                   {item.description}
                 </CardDescription>
               </CardContent>
