@@ -12,14 +12,14 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  { name: "Processos", description: "Gestão e acompanhamento", href: "/app-domain/processos", icon: Files, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { name: "Atendimento", description: "Suporte e chamados", href: "/app-domain/atendimento", icon: HeadphonesIcon, color: "text-green-500", bg: "bg-green-500/10" },
-  { name: "Documentos", description: "Emissão e controle", href: "/app-domain/documentos", icon: FileText, color: "text-amber-500", bg: "bg-amber-500/10" },
-  { name: "Compras", description: "Licitações e contratos", href: "/app-domain/compras", icon: ShoppingCart, color: "text-purple-500", bg: "bg-purple-500/10" },
-  { name: "Transparência", description: "Acesso à informação", href: "/app-domain/transparencia", icon: Eye, color: "text-cyan-500", bg: "bg-cyan-500/10" },
-  { name: "Indicadores", description: "Relatórios e metas", href: "/app-domain/indicadores", icon: BarChart3, color: "text-rose-500", bg: "bg-rose-500/10" },
-  { name: "Administração", description: "Gestão interna", href: "/app-domain/administracao", icon: Building2, color: "text-indigo-500", bg: "bg-indigo-500/10" },
-  { name: "Configurações", description: "Ajustes do sistema", href: "/app-domain/configuracoes", icon: Settings, color: "text-slate-500", bg: "bg-slate-500/10" },
+  { name: "Processos", description: "Gestão e acompanhamento", href: "/processos", icon: Files, color: "text-blue-500", bg: "bg-blue-500/10" },
+  { name: "Atendimento", description: "Suporte e chamados", href: "/atendimento", icon: HeadphonesIcon, color: "text-green-500", bg: "bg-green-500/10" },
+  { name: "Documentos", description: "Emissão e controle", href: "/documentos", icon: FileText, color: "text-amber-500", bg: "bg-amber-500/10" },
+  { name: "Compras", description: "Licitações e contratos", href: "/compras", icon: ShoppingCart, color: "text-purple-500", bg: "bg-purple-500/10" },
+  { name: "Transparência", description: "Acesso à informação", href: "/transparencia", icon: Eye, color: "text-cyan-500", bg: "bg-cyan-500/10" },
+  { name: "Indicadores", description: "Relatórios e metas", href: "/indicadores", icon: BarChart3, color: "text-rose-500", bg: "bg-rose-500/10" },
+  { name: "Administração", description: "Gestão interna", href: "/administracao", icon: Building2, color: "text-indigo-500", bg: "bg-indigo-500/10" },
+  { name: "Configurações", description: "Ajustes do sistema", href: "/configuracoes", icon: Settings, color: "text-slate-500", bg: "bg-slate-500/10" },
 ];
 
 export default function PainelPage() {
