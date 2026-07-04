@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase/client";
 import { 
   LogOut,
   Landmark
@@ -15,7 +17,17 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const isLoginPage = pathname === "/app-domain/login" || pathname === "/";
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push("/");
+    } catch (error) {
+      console.error("Erro ao sair:", error);
+    }
+  };
 
   if (isLoginPage) {
     return <>{children}</>;
@@ -52,17 +64,24 @@ export default function AppLayout({
 
         {/* Right: User Menu */}
         <div className="w-1/3 flex justify-end items-center gap-2 sm:gap-4">
-          <Button variant="ghost" size="sm" className="hidden sm:flex text-muted-foreground hover:text-destructive">
+          <div className="hidden lg:flex flex-col text-right mr-1">
+            <span className="text-sm font-semibold text-slate-800 leading-tight">Admin Principal</span>
+            <span className="text-[11px] text-muted-foreground leading-tight">Gestor do Sistema</span>
+          </div>
+          
+          <div className="h-9 w-9 shrink-0 rounded-full bg-gradient-to-tr from-primary to-primary/40 flex items-center justify-center text-white font-bold shadow-sm ring-2 ring-primary/20">
+            AD
+          </div>
+
+          <div className="h-6 w-px bg-border hidden sm:block mx-1"></div>
+
+          <Button onClick={handleLogout} variant="ghost" size="sm" className="hidden sm:flex text-muted-foreground hover:text-destructive">
             <LogOut className="mr-2 h-4 w-4" />
             Sair
           </Button>
-          <Button variant="ghost" size="icon" className="sm:hidden text-muted-foreground hover:text-destructive shrink-0">
+          <Button onClick={handleLogout} variant="ghost" size="icon" className="sm:hidden text-muted-foreground hover:text-destructive shrink-0">
             <LogOut className="h-5 w-5" />
           </Button>
-          
-          <div className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-tr from-primary to-primary/40 flex items-center justify-center text-white font-bold shadow-sm ring-2 ring-primary/20">
-            AD
-          </div>
         </div>
       </header>
       
