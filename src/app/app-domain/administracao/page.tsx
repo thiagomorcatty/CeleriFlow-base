@@ -1,4 +1,4 @@
-import { Building2, Network, Users, ClipboardList } from "lucide-react";
+import { Building2, Network, Users, ClipboardList, MapPin, Briefcase } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
