@@ -15,6 +15,7 @@ export function InstitutionForm({ institution }: { institution: any }) {
   
   const [cnpj, setCnpj] = useState(institution?.cnpj || "");
   const [phone, setPhone] = useState(institution?.phone || "");
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -155,15 +156,37 @@ export function InstitutionForm({ institution }: { institution: any }) {
             </div>
           )}
 
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-600 block">Selecione o arquivo no seu computador</label>
-            <input 
-              type="file" 
-              name="logoFile" 
-              accept="image/*"
-              className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all text-slate-700 text-sm cursor-pointer"
-            />
-            <p className="text-xs text-slate-500 mt-1">Formatos aceitos: PNG, JPG, JPEG.</p>
+          <div className="flex gap-6 items-start">
+            <div className="flex-1 space-y-2">
+              <label className="text-xs font-semibold text-slate-600 block">Selecione o arquivo no seu computador</label>
+              <input 
+                type="file" 
+                name="logoFile" 
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const url = URL.createObjectURL(file);
+                    setPreviewImage(url);
+                  } else {
+                    setPreviewImage(null);
+                  }
+                }}
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all text-slate-700 text-sm cursor-pointer"
+              />
+              <p className="text-xs text-slate-500 mt-1">Formatos aceitos: PNG, JPG, JPEG. Máximo de 2MB.</p>
+            </div>
+            
+            <div className="shrink-0 flex flex-col items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500">Preview</span>
+              <div className="w-20 h-20 rounded-lg border border-slate-300 bg-white shadow-inner flex items-center justify-center overflow-hidden relative">
+                {(previewImage || institution?.logoUrl) ? (
+                  <img src={previewImage || institution?.logoUrl} alt="Preview" className="w-full h-full object-contain p-1" />
+                ) : (
+                  <span className="text-xs text-slate-400 text-center px-2">Sem imagem</span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 

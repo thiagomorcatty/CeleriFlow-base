@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import ClientLayout from "./ClientLayout";
 
+export const dynamic = "force-dynamic";
+
 export default async function AppDomainLayout({
   children,
 }: {
