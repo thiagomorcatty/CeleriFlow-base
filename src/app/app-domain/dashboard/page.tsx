@@ -45,15 +45,8 @@ const menuItems = [
 
 export default function PainelPage() {
   return (
-    <div className="space-y-8 w-full max-w-[1600px] mx-auto pb-8 px-2 md:px-4">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Painel de Controle</h1>
-        <p className="text-muted-foreground mt-2">
-          Selecione a área que deseja acessar.
-        </p>
-      </div>
-
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+    <div className="w-full max-w-[1600px] mx-auto pb-4 px-2 md:px-4 flex flex-col justify-center min-h-[calc(100vh-8rem)]">
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 w-full">
         {menuItems.map((item) => (
           <Link key={item.name} href={item.href} className="block group">
             <Card className="h-full transition-all duration-200 hover:shadow-md hover:border-primary/50 flex flex-col justify-center text-center py-4 px-2">

@@ -35,17 +35,17 @@ export default function AppLayout({
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/80 backdrop-blur-md px-4 sm:h-[72px] sm:px-6 shadow-sm">
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/80 backdrop-blur-md px-4 sm:px-6 shadow-sm">
         
         {/* Left: CeleriFlow Logo */}
         <div className="w-1/3 flex justify-start">
-          <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity">
+          <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity py-1">
             <Image 
-              src="/logo1.png" 
+              src="/favicon.png" 
               alt="CeleriFlow" 
-              width={120} 
-              height={40} 
-              className="object-contain h-8 sm:h-10 w-auto"
+              width={160} 
+              height={50} 
+              className="object-contain h-10 sm:h-11 w-auto"
               priority
             />
           </Link>
