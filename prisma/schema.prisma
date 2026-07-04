@@ -72,8 +72,15 @@ model Department {
   secretariat   Secretariat      @relation(fields: [secretariatId], references: [id], onDelete: Cascade)
   employees     Employee[]
   demands       InternalDemand[]
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+
+  // Mod 3
+  currentProcesses Process[]         @relation("CurrentDepartment")
+  movementsFrom    ProcessMovement[] @relation("MovementFrom")
+  movementsTo      ProcessMovement[] @relation("MovementTo")
+  dispatches       ProcessDispatch[] @relation("DispatchDepartment")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Unidades Administrativas (Escolas, UBS, CRAS, Almoxarifados)
@@ -127,6 +134,11 @@ model Employee {
 
   demands        InternalDemand[] @relation("DemandAssignee")
   createdDemands InternalDemand[] @relation("DemandCreator")
+
+  // Mod 3
+  processMovements  ProcessMovement[] @relation("MovementEmployee")
+  processDocuments  ProcessDocument[] @relation("DocumentEmployee")
+  processDispatches ProcessDispatch[] @relation("DispatchEmployee")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -205,6 +217,9 @@ model Person {
   representedBy        LegalRepresentative[] @relation("RepresentativePerson")
   documents            Document[]
 
+  // Mod 3
+  processes Process[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -239,6 +254,9 @@ model Company {
   supplierInfo    Supplier?
   representatives LegalRepresentative[] @relation("RepresentedCompany")
   documents       Document[]
+
+  // Mod 3
+  processes Process[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -416,6 +434,124 @@ model Document {
 
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --- Módulo 3: Protocolos e Processos ---
+
+// Tipo de Processo
+model ProcessType {
+  id          String  @id @default(cuid())
+  name        String // Alvará, Licença, Certidão, Ofício...
+  description String?
+  isActive    Boolean @default(true)
+
+  subjects  Subject[]
+  processes Process[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Assunto do Processo (vinculado a um Tipo)
+model Subject {
+  id            String      @id @default(cuid())
+  name          String
+  description   String?
+  processTypeId String
+  processType   ProcessType @relation(fields: [processTypeId], references: [id], onDelete: Cascade)
+  slaDays       Int? // Prazo padrão em dias para conclusão
+  isActive      Boolean     @default(true)
+
+  processes Process[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Processo / Protocolo Principal
+model Process {
+  id             String  @id @default(cuid())
+  protocolNumber String  @unique // ex: 2026/00001
+  status         String  @default("Aberto") // Aberto, Em Análise, Concluído, Arquivado
+  description    String?
+  priority       String  @default("Normal") // Normal, Alta, Urgente
+
+  processTypeId String
+  processType   ProcessType @relation(fields: [processTypeId], references: [id])
+
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id])
+
+  // Interessado (Cidadão ou Empresa)
+  personId  String?
+  person    Person?  @relation(fields: [personId], references: [id])
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  // Setor atual onde o processo está
+  currentDepartmentId String?
+  currentDepartment   Department? @relation("CurrentDepartment", fields: [currentDepartmentId], references: [id])
+
+  movements  ProcessMovement[]
+  documents  ProcessDocument[]
+  dispatches ProcessDispatch[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Tramitação entre setores
+model ProcessMovement {
+  id        String  @id @default(cuid())
+  processId String
+  process   Process @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  fromDepartmentId String?
+  fromDepartment   Department? @relation("MovementFrom", fields: [fromDepartmentId], references: [id])
+
+  toDepartmentId String
+  toDepartment   Department @relation("MovementTo", fields: [toDepartmentId], references: [id])
+
+  employeeId String?
+  employee   Employee? @relation("MovementEmployee", fields: [employeeId], references: [id]) // Quem encaminhou
+
+  reason  String?
+  movedAt DateTime @default(now())
+}
+
+// Documentos/Anexos do Processo
+model ProcessDocument {
+  id        String  @id @default(cuid())
+  processId String
+  process   Process @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  title        String
+  fileUrl      String
+  documentType String?
+
+  employeeId String?
+  employee   Employee? @relation("DocumentEmployee", fields: [employeeId], references: [id]) // Quem anexou
+
+  createdAt DateTime @default(now())
+}
+
+// Despachos e Pareceres
+model ProcessDispatch {
+  id        String  @id @default(cuid())
+  processId String
+  process   Process @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  content      String
+  dispatchType String @default("Despacho") // Despacho, Parecer, Decisão
+
+  employeeId String
+  employee   Employee @relation("DispatchEmployee", fields: [employeeId], references: [id]) // Quem despachou
+
+  departmentId String?
+  department   Department? @relation("DispatchDepartment", fields: [departmentId], references: [id]) // Setor no momento do despacho
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
