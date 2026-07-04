@@ -10,7 +10,7 @@ export async function saveInstitution(formData: FormData) {
     let logoUrl: string | null = null;
     const logoFile = formData.get("logoFile") as File | null;
 
-    if (logoFile && logoFile.size > 0) {
+    if (logoFile && logoFile.size > 0 && logoFile.name) {
       const buffer = Buffer.from(await logoFile.arrayBuffer());
       const filename = `logo-${Date.now()}${path.extname(logoFile.name)}`;
       const filepath = path.join(process.cwd(), "public", "uploads", filename);
@@ -58,8 +58,8 @@ export async function saveInstitution(formData: FormData) {
     revalidatePath("/administracao/instituicao");
     
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error saving institution:", error);
-    return { error: "Erro ao salvar os dados da instituição." };
+    return { error: error.message || "Erro desconhecido ao salvar os dados da instituição." };
   }
 }
