@@ -48,22 +48,22 @@ export default function PainelPage() {
     <div className="w-full max-w-[1600px] mx-auto pt-2 pb-4 px-2 md:px-4 flex flex-col">
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 w-full">
         {menuItems.map((item) => (
-          <Link key={item.name} href={item.href} className="block group">
-            <Card className="h-full transition-all duration-200 hover:shadow-md hover:border-primary/50 flex flex-col justify-center text-center py-4 px-2">
-              <CardHeader className="flex flex-col items-center gap-2 space-y-0 p-0 pb-1">
-                <div className={`p-2.5 rounded-xl ${item.bg}`}>
-                  <item.icon className={`h-5 w-5 ${item.color}`} />
+          <Link key={item.name} href={item.href} className="block group outline-none">
+            <div className="h-full bg-card border border-border/40 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md hover:border-primary/30 hover:bg-accent/20 hover:-translate-y-1 active:scale-95 active:shadow-sm active:translate-y-0 flex flex-col justify-center text-center py-5 px-2 cursor-pointer">
+              <div className="flex flex-col items-center gap-3">
+                <div className={`p-3 rounded-2xl ${item.bg} shadow-sm ring-1 ring-inset ring-black/5 transition-transform duration-300 group-hover:scale-110`}>
+                  <item.icon className={`h-6 w-6 ${item.color}`} />
                 </div>
-                <CardTitle className="text-sm font-semibold leading-tight group-hover:text-primary transition-colors">
-                  {item.name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <CardDescription className="text-[11px] leading-tight line-clamp-1 px-1">
-                  {item.description}
-                </CardDescription>
-              </CardContent>
-            </Card>
+                <div>
+                  <h3 className="text-sm font-semibold leading-tight text-foreground/90 group-hover:text-primary transition-colors">
+                    {item.name}
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground leading-tight line-clamp-1 mt-1.5 px-2">
+                    {item.description}
+                  </p>
+                </div>
+              </div>
+            </div>
           </Link>
         ))}
       </div>
