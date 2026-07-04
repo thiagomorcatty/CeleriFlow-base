@@ -11,7 +11,8 @@ import {
   Users, 
   ClipboardList, 
   CalendarDays,
-  LayoutDashboard
+  LayoutDashboard,
+  ArrowLeft
 } from "lucide-react";
 
 const sidebarNavItems = [
@@ -65,6 +66,14 @@ export default function AdministracaoLayout({ children }: { children: React.Reac
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-h-0 bg-slate-50/50">
         <div className="flex-1 p-6 md:p-8 overflow-y-auto">
+          {pathname !== "/administracao" && (
+            <div className="mb-6">
+              <Link href="/administracao" className="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors bg-white border border-slate-200 shadow-sm px-3 py-1.5 rounded-lg hover:border-blue-300">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar para o Painel
+              </Link>
+            </div>
+          )}
           {children}
         </div>
       </main>
