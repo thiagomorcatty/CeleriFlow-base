@@ -26,3 +26,144 @@ model Lead {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+// --- Módulo 1: Administração Geral ---
+
+// Cadastro único da Prefeitura/Entidade Principal
+model Institution {
+  id           String   @id @default(cuid())
+  name         String
+  cnpj         String?
+  legalName    String?
+  address      String?
+  city         String?
+  state        String?
+  zipCode      String?
+  phone        String?
+  email        String?
+  website      String?
+  logoUrl      String?
+  mayorName    String?
+  managerName  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Secretarias, Autarquias e Fundos
+model Secretariat {
+  id          String   @id @default(cuid())
+  name        String
+  acronym     String?
+  managerName String?
+  departments Department[]
+  units       AdministrativeUnit[]
+  employees   Employee[]
+  demands     InternalDemand[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Departamentos / Setores
+model Department {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  secretariatId String
+  secretariat   Secretariat @relation(fields: [secretariatId], references: [id], onDelete: Cascade)
+  employees     Employee[]
+  demands       InternalDemand[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Unidades Administrativas (Escolas, UBS, CRAS, Almoxarifados)
+model AdministrativeUnit {
+  id            String   @id @default(cuid())
+  name          String
+  type          String   // e.g., 'Escola', 'UBS', 'CRAS', 'Almoxarifado'
+  address       String?
+  managerName   String?
+  secretariatId String
+  secretariat   Secretariat @relation(fields: [secretariatId], references: [id], onDelete: Cascade)
+  employees     Employee[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Cargos e Funções
+model Role {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  level       String?  // 'Diretor', 'Coordenador', 'Servidor', etc.
+  canSign     Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  employees   Employee[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Servidores Básicos (Base para RH e vinculação de responsáveis)
+model Employee {
+  id            String   @id @default(cuid())
+  name          String
+  cpf           String?  @unique
+  registration  String?  // Matrícula
+  email         String?
+  phone         String?
+  isActive      Boolean  @default(true)
+  
+  roleId        String?
+  role          Role?    @relation(fields: [roleId], references: [id])
+  
+  secretariatId String?
+  secretariat   Secretariat? @relation(fields: [secretariatId], references: [id])
+  
+  departmentId  String?
+  department    Department? @relation(fields: [departmentId], references: [id])
+  
+  unitId        String?
+  unit          AdministrativeUnit? @relation(fields: [unitId], references: [id])
+
+  demands       InternalDemand[] @relation("DemandAssignee")
+  createdDemands InternalDemand[] @relation("DemandCreator")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Demandas Administrativas Internas
+model InternalDemand {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  status        String   @default("Aberta") // Aberta, Em andamento, Concluída, etc.
+  priority      String   @default("Normal") // Baixa, Normal, Alta, Urgente
+  deadline      DateTime?
+  
+  secretariatId String?
+  secretariat   Secretariat? @relation(fields: [secretariatId], references: [id])
+  
+  departmentId  String?
+  department    Department? @relation(fields: [departmentId], references: [id])
+  
+  assigneeId    String?
+  assignee      Employee? @relation("DemandAssignee", fields: [assigneeId], references: [id])
+  
+  creatorId     String?
+  creator       Employee? @relation("DemandCreator", fields: [creatorId], references: [id])
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Calendário Institucional
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  isHoliday   Boolean  @default(false)
+  type        String   // 'Feriado Nacional', 'Ponto Facultativo', 'Expediente Especial'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
