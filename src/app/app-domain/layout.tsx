@@ -29,7 +29,7 @@ export default function AppLayout({
         <div className="w-1/3 flex justify-start">
           <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity">
             <Image 
-              src="/Logo1.png" 
+              src="/logo1.png" 
               alt="CeleriFlow" 
               width={120} 
               height={40} 
