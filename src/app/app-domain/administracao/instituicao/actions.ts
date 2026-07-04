@@ -2,10 +2,23 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { writeFile } from "fs/promises";
+import path from "path";
 
 export async function saveInstitution(formData: FormData) {
   try {
-    const data = {
+    let logoUrl = formData.get("logoUrl") as string | null;
+    const logoFile = formData.get("logoFile") as File | null;
+
+    if (logoFile && logoFile.size > 0) {
+      const buffer = Buffer.from(await logoFile.arrayBuffer());
+      const filename = `logo-${Date.now()}${path.extname(logoFile.name)}`;
+      const filepath = path.join(process.cwd(), "public", "uploads", filename);
+      await writeFile(filepath, buffer);
+      logoUrl = `/uploads/${filename}`;
+    }
+
+    const data: any = {
       name: formData.get("name") as string,
       cnpj: formData.get("cnpj") as string,
       legalName: formData.get("legalName") as string,
@@ -19,6 +32,10 @@ export async function saveInstitution(formData: FormData) {
       mayorName: formData.get("mayorName") as string,
       managerName: formData.get("managerName") as string,
     };
+
+    if (logoUrl) {
+      data.logoUrl = logoUrl;
+    }
 
     if (!data.name) {
       return { error: "O nome da prefeitura é obrigatório." };

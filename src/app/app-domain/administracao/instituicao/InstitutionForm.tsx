@@ -143,15 +143,40 @@ export function InstitutionForm({ institution }: { institution: any }) {
           />
         </div>
 
-        <div className="space-y-2 col-span-full">
-          <label className="text-sm font-semibold text-slate-700">URL do Brasão / Logo</label>
-          <input 
-            type="url" 
-            name="logoUrl" 
-            defaultValue={institution?.logoUrl || ""}
-            placeholder="https://exemplo.com/brasao.png"
-            className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-700 text-sm"
-          />
+        <div className="space-y-4 col-span-full bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <label className="text-sm font-bold text-slate-700 block">Brasão / Logo da Prefeitura</label>
+          
+          {institution?.logoUrl && (
+            <div className="mb-4 flex items-center gap-4">
+              <div className="w-16 h-16 rounded-lg border border-slate-200 bg-white overflow-hidden flex items-center justify-center shadow-sm">
+                <img src={institution.logoUrl} alt="Logo Atual" className="w-full h-full object-contain" />
+              </div>
+              <span className="text-xs text-slate-500 font-medium">Logo atual em uso</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-600 block">Opção 1: Fazer Upload (Recomendado)</label>
+              <input 
+                type="file" 
+                name="logoFile" 
+                accept="image/*"
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all text-slate-700 text-sm cursor-pointer"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-600 block">Opção 2: Usar URL Externa</label>
+              <input 
+                type="url" 
+                name="logoUrl" 
+                defaultValue={institution?.logoUrl || ""}
+                placeholder="https://exemplo.com/brasao.png"
+                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-700 text-sm bg-white"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-slate-500">O upload de arquivo substituirá a URL externa se ambos forem preenchidos.</p>
         </div>
 
         <div className="col-span-full h-px bg-slate-200 my-2" />
