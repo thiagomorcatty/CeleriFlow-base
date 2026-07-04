@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { InstitutionForm } from "./InstitutionForm";
 
+export const dynamic = "force-dynamic";
+
 export default async function InstituicaoPage() {
   const institution = await prisma.institution.findFirst();
 

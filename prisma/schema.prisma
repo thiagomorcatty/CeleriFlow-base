@@ -26,9 +26,9 @@ model Lead {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
-// --- Módulo 1: Administração Geral ---
+// --- MÃ³dulo 1: AdministraÃ§Ã£o Geral ---
 
-// Cadastro único da Prefeitura/Entidade Principal
+// Cadastro Ãºnico da Prefeitura/Entidade Principal
 model Institution {
   id           String   @id @default(cuid())
   name         String
@@ -89,7 +89,7 @@ model AdministrativeUnit {
   updatedAt     DateTime @updatedAt
 }
 
-// Cargos e Funções
+// Cargos e FunÃ§Ãµes
 model Role {
   id          String   @id @default(cuid())
   name        String
@@ -102,12 +102,12 @@ model Role {
   updatedAt   DateTime @updatedAt
 }
 
-// Servidores Básicos (Base para RH e vinculação de responsáveis)
+// Servidores BÃ¡sicos (Base para RH e vinculaÃ§Ã£o de responsÃ¡veis)
 model Employee {
   id            String   @id @default(cuid())
   name          String
   cpf           String?  @unique
-  registration  String?  // Matrícula
+  registration  String?  // MatrÃ­cula
   email         String?
   phone         String?
   isActive      Boolean  @default(true)
@@ -136,7 +136,7 @@ model InternalDemand {
   id            String   @id @default(cuid())
   title         String
   description   String?
-  status        String   @default("Aberta") // Aberta, Em andamento, Concluída, etc.
+  status        String   @default("Aberta") // Aberta, Em andamento, ConcluÃ­da, etc.
   priority      String   @default("Normal") // Baixa, Normal, Alta, Urgente
   deadline      DateTime?
   
@@ -156,7 +156,7 @@ model InternalDemand {
   updatedAt     DateTime @updatedAt
 }
 
-// Calendário Institucional
+// CalendÃ¡rio Institucional
 model CalendarEvent {
   id          String   @id @default(cuid())
   title       String
