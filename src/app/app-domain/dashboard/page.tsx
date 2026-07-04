@@ -45,7 +45,7 @@ const menuItems = [
 
 export default function PainelPage() {
   return (
-    <div className="w-full max-w-[1600px] mx-auto pb-4 px-2 md:px-4 flex flex-col justify-center min-h-[calc(100vh-8rem)]">
+    <div className="w-full max-w-[1600px] mx-auto pt-2 pb-4 px-2 md:px-4 flex flex-col">
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 w-full">
         {menuItems.map((item) => (
           <Link key={item.name} href={item.href} className="block group">

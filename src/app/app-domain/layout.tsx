@@ -85,7 +85,7 @@ export default function AppLayout({
         </div>
       </header>
       
-      <main className="flex-1 p-4 sm:px-6 sm:py-6 lg:p-8 flex flex-col">
+      <main className="flex-1 p-4 sm:px-6 sm:py-4 lg:px-8 lg:py-6 flex flex-col">
         {children}
       </main>
 
