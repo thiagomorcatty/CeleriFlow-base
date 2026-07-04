@@ -2,8 +2,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { writeFile } from "fs/promises";
-import path from "path";
 
 export async function saveInstitution(formData: FormData) {
   try {
@@ -11,11 +9,17 @@ export async function saveInstitution(formData: FormData) {
     const logoFile = formData.get("logoFile") as File | null;
 
     if (logoFile && logoFile.size > 0 && logoFile.name) {
+      // Limite de segurança para MVP (evitar travar o banco com arquivos gigantes)
+      if (logoFile.size > 2 * 1024 * 1024) { 
+        return { error: "O arquivo da logo deve ter no máximo 2MB." };
+      }
+      
       const buffer = Buffer.from(await logoFile.arrayBuffer());
-      const filename = `logo-${Date.now()}${path.extname(logoFile.name)}`;
-      const filepath = path.join(process.cwd(), "public", "uploads", filename);
-      await writeFile(filepath, buffer);
-      logoUrl = `/uploads/${filename}`;
+      const base64 = buffer.toString("base64");
+      const mimeType = logoFile.type || "image/png";
+      
+      // Armazenando em Base64 para garantir compatibilidade com servidor Vercel (read-only filesystem)
+      logoUrl = `data:${mimeType};base64,${base64}`;
     }
 
     const data: any = {
