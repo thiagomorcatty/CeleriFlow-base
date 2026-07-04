@@ -21,8 +21,9 @@ export async function createEmployee(formData: FormData) {
     await prisma.employee.create({
       data: { name, cpf, email, phone, registration, roleId, secretariatId, departmentId, unitId }
     });
-  } catch (error) {
-    return { error: "Erro ao cadastrar servidor (verifique se o CPF já existe)" };
+  } catch (error: any) {
+    console.error("Error creating employee:", error);
+    return { error: error.message || "Erro desconhecido ao cadastrar servidor." };
   }
 
   revalidatePath("/app-domain/administracao/servidores");
