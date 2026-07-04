@@ -26,31 +26,32 @@ model Lead {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
 // --- Módulo 1: Administração Geral ---
 
 // Cadastro único da Prefeitura/Entidade Principal
 model Institution {
-  id           String   @id @default(cuid())
-  name         String
-  cnpj         String?
-  legalName    String?
-  address      String?
-  city         String?
-  state        String?
-  zipCode      String?
-  phone        String?
-  email        String?
-  website      String?
-  logoUrl      String?
-  mayorName    String?
-  managerName  String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(cuid())
+  name        String
+  cnpj        String?
+  legalName   String?
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String?
+  phone       String?
+  email       String?
+  website     String?
+  logoUrl     String?
+  mayorName   String?
+  managerName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // Secretarias, Autarquias e Fundos
 model Secretariat {
-  id          String   @id @default(cuid())
+  id          String               @id @default(cuid())
   name        String
   acronym     String?
   managerName String?
@@ -58,102 +59,102 @@ model Secretariat {
   units       AdministrativeUnit[]
   employees   Employee[]
   demands     InternalDemand[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
 }
 
 // Departamentos / Setores
 model Department {
-  id            String   @id @default(cuid())
+  id            String           @id @default(cuid())
   name          String
   description   String?
   secretariatId String
-  secretariat   Secretariat @relation(fields: [secretariatId], references: [id], onDelete: Cascade)
+  secretariat   Secretariat      @relation(fields: [secretariatId], references: [id], onDelete: Cascade)
   employees     Employee[]
   demands       InternalDemand[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 }
 
 // Unidades Administrativas (Escolas, UBS, CRAS, Almoxarifados)
 model AdministrativeUnit {
-  id            String   @id @default(cuid())
+  id            String      @id @default(cuid())
   name          String
-  type          String   // e.g., 'Escola', 'UBS', 'CRAS', 'Almoxarifado'
+  type          String // e.g., 'Escola', 'UBS', 'CRAS', 'Almoxarifado'
   address       String?
   managerName   String?
   secretariatId String
   secretariat   Secretariat @relation(fields: [secretariatId], references: [id], onDelete: Cascade)
   employees     Employee[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 // Cargos e Funções
 model Role {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   name        String
   description String?
-  level       String?  // 'Diretor', 'Coordenador', 'Servidor', etc.
-  canSign     Boolean  @default(false)
-  isActive    Boolean  @default(true)
+  level       String? // 'Diretor', 'Coordenador', 'Servidor', etc.
+  canSign     Boolean    @default(false)
+  isActive    Boolean    @default(true)
   employees   Employee[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
 
 // Servidores Básicos (Base para RH e vinculação de responsáveis)
 model Employee {
-  id            String   @id @default(cuid())
-  name          String
-  cpf           String?  @unique
-  registration  String?  // Matrícula
-  email         String?
-  phone         String?
-  isActive      Boolean  @default(true)
-  
-  roleId        String?
-  role          Role?    @relation(fields: [roleId], references: [id])
-  
+  id           String  @id @default(cuid())
+  name         String
+  cpf          String? @unique
+  registration String? // Matrícula
+  email        String?
+  phone        String?
+  isActive     Boolean @default(true)
+
+  roleId String?
+  role   Role?   @relation(fields: [roleId], references: [id])
+
   secretariatId String?
   secretariat   Secretariat? @relation(fields: [secretariatId], references: [id])
-  
-  departmentId  String?
-  department    Department? @relation(fields: [departmentId], references: [id])
-  
-  unitId        String?
-  unit          AdministrativeUnit? @relation(fields: [unitId], references: [id])
 
-  demands       InternalDemand[] @relation("DemandAssignee")
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  unitId String?
+  unit   AdministrativeUnit? @relation(fields: [unitId], references: [id])
+
+  demands        InternalDemand[] @relation("DemandAssignee")
   createdDemands InternalDemand[] @relation("DemandCreator")
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Demandas Administrativas Internas
 model InternalDemand {
-  id            String   @id @default(cuid())
-  title         String
-  description   String?
-  status        String   @default("Aberta") // Aberta, Em andamento, Concluída, etc.
-  priority      String   @default("Normal") // Baixa, Normal, Alta, Urgente
-  deadline      DateTime?
-  
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("Aberta") // Aberta, Em andamento, Concluída, etc.
+  priority    String    @default("Normal") // Baixa, Normal, Alta, Urgente
+  deadline    DateTime?
+
   secretariatId String?
   secretariat   Secretariat? @relation(fields: [secretariatId], references: [id])
-  
-  departmentId  String?
-  department    Department? @relation(fields: [departmentId], references: [id])
-  
-  assigneeId    String?
-  assignee      Employee? @relation("DemandAssignee", fields: [assigneeId], references: [id])
-  
-  creatorId     String?
-  creator       Employee? @relation("DemandCreator", fields: [creatorId], references: [id])
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  assigneeId String?
+  assignee   Employee? @relation("DemandAssignee", fields: [assigneeId], references: [id])
+
+  creatorId String?
+  creator   Employee? @relation("DemandCreator", fields: [creatorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Calendário Institucional
@@ -163,7 +164,259 @@ model CalendarEvent {
   description String?
   date        DateTime
   isHoliday   Boolean  @default(false)
-  type        String   // 'Feriado Nacional', 'Ponto Facultativo', 'Expediente Especial'
+  type        String // 'Feriado Nacional', 'Ponto Facultativo', 'Expediente Especial'
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// --- Módulo 2: Cadastros Gerais ---
+
+// Pessoas Físicas
+model Person {
+  id             String    @id @default(cuid())
+  fullName       String
+  socialName     String?
+  cpf            String    @unique
+  rg             String?
+  rgIssuer       String?
+  birthDate      DateTime?
+  gender         String?
+  nationality    String?
+  birthPlace     String?
+  maritalStatus  String?
+  profession     String?
+  educationLevel String?
+  motherName     String?
+  fatherName     String?
+  status         String    @default("Ativo") // Ativo, Inativo
+
+  // Contatos
+  phonePrimary   String?
+  phoneSecondary String?
+  whatsapp       String?
+  email          String?
+  emailSecondary String?
+
+  // Relacionamentos
+  addresses            Address[]
+  taxpayerInfo         Taxpayer?
+  supplierInfo         Supplier?
+  legalRepresentations LegalRepresentative[] @relation("RepresentedPerson")
+  representedBy        LegalRepresentative[] @relation("RepresentativePerson")
+  documents            Document[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Pessoas Jurídicas
+model Company {
+  id             String    @id @default(cuid())
+  corporateName  String
+  tradeName      String?
+  cnpj           String    @unique
+  municipalInsc  String?
+  stateInsc      String?
+  companyType    String? // MEI, ME, EPP, LTDA, SA, etc.
+  legalNature    String?
+  primaryCnae    String?
+  secondaryCnaes String?
+  openingDate    DateTime?
+  taxRegime      String?
+  status         String    @default("Ativo") // Ativo, Inativo
+
+  // Contatos
+  phone         String?
+  whatsapp      String?
+  emailPrimary  String?
+  emailFiscal   String?
+  website       String?
+  contactPerson String?
+
+  // Relacionamentos
+  addresses       Address[]
+  taxpayerInfo    Taxpayer?
+  supplierInfo    Supplier?
+  representatives LegalRepresentative[] @relation("RepresentedCompany")
+  documents       Document[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Contribuintes
+model Taxpayer {
+  id                 String  @id @default(cuid())
+  taxpayerType       String // PF ou PJ
+  municipalInsc      String? @unique
+  status             String  @default("Ativo")
+  economicActivities String?
+  fiscalNotes        String?
+
+  personId String? @unique
+  person   Person? @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  companyId String?  @unique
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  realEstates RealEstate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Fornecedores
+model Supplier {
+  id                       String    @id @default(cuid())
+  category                 String?
+  businessBranch           String?
+  bankData                 String?
+  certificationsValidUntil DateTime?
+  status                   String    @default("Ativo") // Ativo, Suspenso, Inativo
+  notes                    String?
+
+  personId String? @unique
+  person   Person? @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  companyId String?  @unique
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Representantes Legais
+model LegalRepresentative {
+  id                 String    @id @default(cuid())
+  representationType String // Procurador, Sócio, Contador, Pai, Mãe
+  startDate          DateTime?
+  endDate            DateTime?
+  grantedPowers      String?
+  status             String    @default("Ativo")
+  notes              String?
+
+  // Quem está sendo representado
+  representedPersonId String?
+  representedPerson   Person? @relation("RepresentedPerson", fields: [representedPersonId], references: [id])
+
+  representedCompanyId String?
+  representedCompany   Company? @relation("RepresentedCompany", fields: [representedCompanyId], references: [id])
+
+  // Quem é o representante (sempre uma pessoa física na maioria dos casos)
+  representativeId String
+  representative   Person @relation("RepresentativePerson", fields: [representativeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Endereços
+model Address {
+  id             String  @id @default(cuid())
+  zipCode        String?
+  streetName     String?
+  number         String?
+  complement     String?
+  referencePoint String?
+  addressType    String? // Residencial, Comercial, Correspondência
+  zone           String? // Urbana, Rural
+  latitude       Float?
+  longitude      Float?
+
+  neighborhoodId String?
+  neighborhood   Neighborhood? @relation(fields: [neighborhoodId], references: [id])
+
+  personId String?
+  person   Person? @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Bairros / Localidades
+model Neighborhood {
+  id          String  @id @default(cuid())
+  name        String
+  type        String // Bairro, Distrito, Povoado
+  city        String
+  state       String
+  adminRegion String?
+  notes       String?
+
+  addresses   Address[]
+  streets     Street[]
+  realEstates RealEstate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Logradouros
+model Street {
+  id      String  @id @default(cuid())
+  name    String
+  type    String // Rua, Avenida, Praça
+  zipCode String?
+  city    String
+  state   String
+  status  String  @default("Ativo")
+
+  neighborhoodId String?
+  neighborhood   Neighborhood? @relation(fields: [neighborhoodId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Imóveis
+model RealEstate {
+  id            String  @id @default(cuid())
+  municipalInsc String? @unique
+  registration  String? // Matrícula
+  propertyType  String? // Casa, Terreno, Apartamento, Galpão
+  status        String  @default("Regular")
+
+  // Endereço do imóvel (pode ser diferente do endereço do contribuinte)
+  streetName String?
+  number     String?
+  complement String?
+  lot        String?
+  block      String?
+
+  landArea    Float?
+  builtArea   Float?
+  propertyUse String? // Residencial, Comercial, Misto
+  fiscalZone  String?
+
+  neighborhoodId String?
+  neighborhood   Neighborhood? @relation(fields: [neighborhoodId], references: [id])
+
+  taxpayerId String?
+  taxpayer   Taxpayer? @relation(fields: [taxpayerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Documentos e Anexos
+model Document {
+  id           String    @id @default(cuid())
+  title        String
+  documentType String // RG, CPF, CNPJ, Contrato, Comprovante
+  fileUrl      String
+  validUntil   DateTime?
+  status       String    @default("Válido") // Válido, Vencido, Pendente
+  notes        String?
+
+  personId String?
+  person   Person? @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
