@@ -28,7 +28,7 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       // Redireciona para o dashboard pós-login
-      router.push("/app-domain");
+      router.push("/dashboard");
     } catch (error: any) {
       console.error(error);
       // Extrair a mensagem do Firebase para sabermos se é erro de API KEY ou de senha
