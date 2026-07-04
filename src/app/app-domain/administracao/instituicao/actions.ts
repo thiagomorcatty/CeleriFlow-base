@@ -7,7 +7,7 @@ import path from "path";
 
 export async function saveInstitution(formData: FormData) {
   try {
-    let logoUrl = formData.get("logoUrl") as string | null;
+    let logoUrl: string | null = null;
     const logoFile = formData.get("logoFile") as File | null;
 
     if (logoFile && logoFile.size > 0) {
