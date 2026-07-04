@@ -45,7 +45,7 @@ const menuItems = [
 
 export default function PainelPage() {
   return (
-    <div className="space-y-8 max-w-5xl mx-auto w-full pb-8">
+    <div className="space-y-8 w-full max-w-[1600px] mx-auto pb-8 px-2 md:px-4">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Painel de Controle</h1>
         <p className="text-muted-foreground mt-2">
@@ -53,20 +53,22 @@ export default function PainelPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {menuItems.map((item) => (
           <Link key={item.name} href={item.href} className="block group">
-            <Card className="h-full transition-all duration-200 hover:shadow-md hover:border-primary/50">
-              <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
-                <div className={`p-3 rounded-xl ${item.bg}`}>
-                  <item.icon className={`h-6 w-6 ${item.color}`} />
+            <Card className="h-full transition-all duration-200 hover:shadow-md hover:border-primary/50 flex flex-col justify-between">
+              <CardHeader className="flex flex-col items-start gap-3 space-y-0 p-4 pb-2">
+                <div className={`p-2.5 rounded-lg ${item.bg}`}>
+                  <item.icon className={`h-5 w-5 ${item.color}`} />
                 </div>
-                <div>
-                  <CardTitle className="text-base group-hover:text-primary transition-colors">{item.name}</CardTitle>
-                </div>
+                <CardTitle className="text-sm font-semibold leading-tight group-hover:text-primary transition-colors">
+                  {item.name}
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <CardDescription className="pt-2">{item.description}</CardDescription>
+              <CardContent className="p-4 pt-0">
+                <CardDescription className="text-xs leading-snug line-clamp-2">
+                  {item.description}
+                </CardDescription>
               </CardContent>
             </Card>
           </Link>
