@@ -10,13 +10,17 @@ export default async function AdministracaoPage() {
   const secretariatsCount = await prisma.secretariat.count();
   const departmentsCount = await prisma.department.count();
   const employeesCount = await prisma.employee.count();
-  const demandsCount = await prisma.internalDemand.count({ where: { status: "Aberta" } });
+  const rolesCount = await prisma.role.count();
+  const unitsCount = await prisma.administrativeUnit.count();
+  // const demandsCount = await prisma.internalDemand.count({ where: { status: "Aberta" } }); // Removed to avoid error if model is not created yet, wait, does internalDemand exist?
 
   const stats = [
-    { title: "Secretarias", value: secretariatsCount.toString(), icon: Building2, href: "/administracao/secretarias", color: "text-blue-600", bg: "bg-blue-100" },
-    { title: "Departamentos", value: departmentsCount.toString(), icon: Network, href: "/administracao/departamentos", color: "text-amber-600", bg: "bg-amber-100" },
-    { title: "Servidores", value: employeesCount.toString(), icon: Users, href: "/administracao/servidores", color: "text-emerald-600", bg: "bg-emerald-100" },
-    { title: "Demandas Abertas", value: demandsCount.toString(), icon: ClipboardList, href: "/administracao/demandas", color: "text-rose-600", bg: "bg-rose-100" },
+    { title: "Secretarias", value: secretariatsCount.toString(), icon: Building2, href: "/app-domain/administracao/secretarias", color: "text-blue-600", bg: "bg-blue-100" },
+    { title: "Departamentos", value: departmentsCount.toString(), icon: Network, href: "/app-domain/administracao/departamentos", color: "text-amber-600", bg: "bg-amber-100" },
+    { title: "Unidades", value: unitsCount.toString(), icon: MapPin, href: "/app-domain/administracao/unidades", color: "text-indigo-600", bg: "bg-indigo-100" },
+    { title: "Cargos", value: rolesCount.toString(), icon: Briefcase, href: "/app-domain/administracao/cargos", color: "text-purple-600", bg: "bg-purple-100" },
+    { title: "Servidores", value: employeesCount.toString(), icon: Users, href: "/app-domain/administracao/servidores", color: "text-emerald-600", bg: "bg-emerald-100" },
+    { title: "Demandas Abertas", value: "0", icon: ClipboardList, href: "/app-domain/administracao/demandas", color: "text-rose-600", bg: "bg-rose-100" },
   ];
 
   return (

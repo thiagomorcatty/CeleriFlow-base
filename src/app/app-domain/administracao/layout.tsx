@@ -19,23 +19,24 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel Administrativo", href: "/administracao", icon: LayoutDashboard },
-  { title: "Dados da Prefeitura", href: "/administracao/instituicao", icon: Landmark },
-  { title: "Secretarias", href: "/administracao/secretarias", icon: Building2 },
-  { title: "Departamentos", href: "/administracao/departamentos", icon: Network },
-  { title: "Unidades Administrativas", href: "/administracao/unidades", icon: MapPin },
-  { title: "Cargos e Funções", href: "/administracao/cargos", icon: Briefcase },
-  { title: "Servidores", href: "/administracao/servidores", icon: Users },
-  { title: "Demandas Internas", href: "/administracao/demandas", icon: ClipboardList },
-  { title: "Calendário", href: "/administracao/calendario", icon: CalendarDays },
+  { title: "Painel Administrativo", href: "/app-domain/administracao", icon: LayoutDashboard },
+  { title: "Dados da Prefeitura", href: "/app-domain/administracao/instituicao", icon: Landmark },
+  { title: "Secretarias", href: "/app-domain/administracao/secretarias", icon: Building2 },
+  { title: "Departamentos", href: "/app-domain/administracao/departamentos", icon: Network },
+  { title: "Unidades Administrativas", href: "/app-domain/administracao/unidades", icon: MapPin },
+  { title: "Cargos e Funções", href: "/app-domain/administracao/cargos", icon: Briefcase },
+  { title: "Servidores", href: "/app-domain/administracao/servidores", icon: Users },
+  { title: "Demandas Internas", href: "/app-domain/administracao/demandas", icon: ClipboardList },
+  { title: "Calendário", href: "/app-domain/administracao/calendario", icon: CalendarDays },
 ];
 
 export default function AdministracaoLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen w-full max-w-[1600px] mx-auto bg-slate-50/30">
+    <div className="flex flex-col md:flex-row min-h-screen w-full max-w-[1600px] mx-auto bg-slate-50/30 relative">
       
       {/* Mobile Header with Hamburger */}
       <div className="md:hidden flex items-center justify-between bg-white border-b border-slate-200 p-4">
@@ -52,12 +53,29 @@ export default function AdministracaoLayout({ children }: { children: React.Reac
 
       {/* Sidebar */}
       <aside className={`
-        w-full md:w-[260px] md:shrink-0 md:border-r border-slate-200 bg-white py-6 px-4 md:px-5 shadow-[2px_0_8px_rgba(0,0,0,0.02)] z-10 relative flex flex-col
+        ${isDesktopCollapsed ? 'md:w-[80px]' : 'md:w-[260px]'} 
+        w-full md:shrink-0 md:border-r border-slate-200 bg-white py-6 px-4 shadow-[2px_0_8px_rgba(0,0,0,0.02)] z-10 relative flex flex-col transition-all duration-300
         ${isSidebarOpen ? 'block' : 'hidden md:flex'}
       `}>
-        <div className="mb-8 px-2 hidden md:block">
-          <h2 className="text-lg font-bold text-slate-800 tracking-tight leading-tight">Administração Geral</h2>
-          <p className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">Gestão Institucional</p>
+        <div className="absolute top-4 right-[-14px] hidden md:flex items-center justify-center">
+          <button 
+            onClick={() => setIsDesktopCollapsed(!isDesktopCollapsed)}
+            className="p-1 bg-white border border-slate-200 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-50 shadow-sm"
+          >
+            {isDesktopCollapsed ? <Menu className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          </button>
+        </div>
+
+        <div className={`mb-8 px-2 hidden md:block ${isDesktopCollapsed ? 'text-center' : ''}`}>
+          {!isDesktopCollapsed && (
+            <>
+              <h2 className="text-lg font-bold text-slate-800 tracking-tight leading-tight">Administração Geral</h2>
+              <p className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">Gestão Institucional</p>
+            </>
+          )}
+          {isDesktopCollapsed && (
+            <LayoutDashboard className="w-6 h-6 mx-auto text-slate-700" />
+          )}
         </div>
         
         <nav className="flex flex-col gap-1.5 flex-1">
@@ -78,8 +96,8 @@ export default function AdministracaoLayout({ children }: { children: React.Reac
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-blue-600/50"
                 }`}
               >
-                <item.icon className={`h-[18px] w-[18px] ${isActive ? "text-white" : "text-slate-400"}`} strokeWidth={isActive ? 2.5 : 2} />
-                {item.title}
+                <item.icon className={`shrink-0 h-[18px] w-[18px] ${isActive ? "text-white" : "text-slate-400"}`} strokeWidth={isActive ? 2.5 : 2} />
+                {!isDesktopCollapsed && <span>{item.title}</span>}
               </Link>
             );
           })}
@@ -92,8 +110,8 @@ export default function AdministracaoLayout({ children }: { children: React.Reac
             onClick={() => setIsSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200"
           >
-            <ArrowLeft className="h-[18px] w-[18px] text-slate-400" strokeWidth={2} />
-            Voltar ao Dashboard
+            <ArrowLeft className="shrink-0 h-[18px] w-[18px] text-slate-400" strokeWidth={2} />
+            {!isDesktopCollapsed && <span>Voltar ao Dashboard</span>}
           </Link>
         </div>
       </aside>
