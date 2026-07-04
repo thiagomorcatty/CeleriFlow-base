@@ -58,8 +58,8 @@ export async function saveInstitution(formData: FormData) {
       });
     }
 
-    revalidatePath("/administracao");
-    revalidatePath("/administracao/instituicao");
+    revalidatePath("/app-domain/administracao");
+    revalidatePath("/app-domain/administracao/instituicao");
     
     return { success: true };
   } catch (error: any) {
