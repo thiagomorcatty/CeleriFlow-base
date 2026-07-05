@@ -61,7 +61,7 @@ export default function CadastrosLayout({ children }: { children: React.ReactNod
         
         <nav className="flex flex-col gap-1.5 flex-1">
           {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/app-domain/cadastros" 
+            const isActive = item.href === "/cadastros" 
               ? pathname === "/cadastros" 
               : pathname.startsWith(item.href);
 
