@@ -36,7 +36,7 @@ export default async function AdministracaoPage() {
             <h3 className="text-amber-800 font-semibold text-lg">Dados da Prefeitura Incompletos</h3>
             <p className="text-amber-700 mt-1 text-sm">Você precisa configurar os dados principais da instituição para liberar algumas funcionalidades.</p>
           </div>
-          <Link href="/administracao/instituicao" className="shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
+          <Link href="/app-domain/administracao/instituicao" className="shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
             Configurar Agora
           </Link>
         </div>
