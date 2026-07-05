@@ -22,5 +22,5 @@ export async function createUnit(formData: FormData) {
 
   revalidatePath("/app-domain/administracao/unidades");
   revalidatePath("/app-domain/administracao"); 
-  redirect("/app-domain/administracao/unidades");
+  redirect("/administracao/unidades");
 }

@@ -11,10 +11,10 @@ export default async function ProtocolosDashboardPage() {
   const totalProcesses = await prisma.process.count();
 
   const stats = [
-    { title: "Total de Processos", value: totalProcesses.toString(), icon: ClipboardList, href: "/app-domain/protocolos/processos", color: "text-indigo-600", bg: "bg-indigo-100" },
-    { title: "Na Caixa do Setor (Em Análise)", value: inProgressProcesses.toString(), icon: FileBox, href: "/app-domain/protocolos/processos", color: "text-emerald-600", bg: "bg-emerald-100" },
-    { title: "Novos Protocolos", value: openProcesses.toString(), icon: FileText, href: "/app-domain/protocolos/processos", color: "text-amber-600", bg: "bg-amber-100" },
-    { title: "Arquivados", value: archivedProcesses.toString(), icon: Archive, href: "/app-domain/protocolos/arquivados", color: "text-slate-600", bg: "bg-slate-100" },
+    { title: "Total de Processos", value: totalProcesses.toString(), icon: ClipboardList, href: "/protocolos/processos", color: "text-indigo-600", bg: "bg-indigo-100" },
+    { title: "Na Caixa do Setor (Em Análise)", value: inProgressProcesses.toString(), icon: FileBox, href: "/protocolos/processos", color: "text-emerald-600", bg: "bg-emerald-100" },
+    { title: "Novos Protocolos", value: openProcesses.toString(), icon: FileText, href: "/protocolos/processos", color: "text-amber-600", bg: "bg-amber-100" },
+    { title: "Arquivados", value: archivedProcesses.toString(), icon: Archive, href: "/protocolos/arquivados", color: "text-slate-600", bg: "bg-slate-100" },
   ];
 
   return (

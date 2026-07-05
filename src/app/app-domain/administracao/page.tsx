@@ -15,12 +15,12 @@ export default async function AdministracaoPage() {
   // const demandsCount = await prisma.internalDemand.count({ where: { status: "Aberta" } }); // Removed to avoid error if model is not created yet, wait, does internalDemand exist?
 
   const stats = [
-    { title: "Secretarias", value: secretariatsCount.toString(), icon: Building2, href: "/app-domain/administracao/secretarias", color: "text-blue-600", bg: "bg-blue-100" },
-    { title: "Departamentos", value: departmentsCount.toString(), icon: Network, href: "/app-domain/administracao/departamentos", color: "text-amber-600", bg: "bg-amber-100" },
-    { title: "Unidades", value: unitsCount.toString(), icon: MapPin, href: "/app-domain/administracao/unidades", color: "text-indigo-600", bg: "bg-indigo-100" },
-    { title: "Cargos", value: rolesCount.toString(), icon: Briefcase, href: "/app-domain/administracao/cargos", color: "text-purple-600", bg: "bg-purple-100" },
-    { title: "Servidores", value: employeesCount.toString(), icon: Users, href: "/app-domain/administracao/servidores", color: "text-emerald-600", bg: "bg-emerald-100" },
-    { title: "Demandas Abertas", value: "0", icon: ClipboardList, href: "/app-domain/administracao/demandas", color: "text-rose-600", bg: "bg-rose-100" },
+    { title: "Secretarias", value: secretariatsCount.toString(), icon: Building2, href: "/administracao/secretarias", color: "text-blue-600", bg: "bg-blue-100" },
+    { title: "Departamentos", value: departmentsCount.toString(), icon: Network, href: "/administracao/departamentos", color: "text-amber-600", bg: "bg-amber-100" },
+    { title: "Unidades", value: unitsCount.toString(), icon: MapPin, href: "/administracao/unidades", color: "text-indigo-600", bg: "bg-indigo-100" },
+    { title: "Cargos", value: rolesCount.toString(), icon: Briefcase, href: "/administracao/cargos", color: "text-purple-600", bg: "bg-purple-100" },
+    { title: "Servidores", value: employeesCount.toString(), icon: Users, href: "/administracao/servidores", color: "text-emerald-600", bg: "bg-emerald-100" },
+    { title: "Demandas Abertas", value: "0", icon: ClipboardList, href: "/administracao/demandas", color: "text-rose-600", bg: "bg-rose-100" },
   ];
 
   return (
@@ -36,7 +36,7 @@ export default async function AdministracaoPage() {
             <h3 className="text-amber-800 font-semibold text-lg">Dados da Prefeitura Incompletos</h3>
             <p className="text-amber-700 mt-1 text-sm">Você precisa configurar os dados principais da instituição para liberar algumas funcionalidades.</p>
           </div>
-          <Link href="/app-domain/administracao/instituicao" className="shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
+          <Link href="/administracao/instituicao" className="shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
             Configurar Agora
           </Link>
         </div>

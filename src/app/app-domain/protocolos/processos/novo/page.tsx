@@ -19,7 +19,7 @@ export default async function NovoProtocoloPage() {
   return (
     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-6">
-        <Link href="/app-domain/protocolos/processos" className="text-emerald-600 hover:text-emerald-700 text-sm font-semibold flex items-center gap-2 mb-4 w-fit transition-colors">
+        <Link href="/protocolos/processos" className="text-emerald-600 hover:text-emerald-700 text-sm font-semibold flex items-center gap-2 mb-4 w-fit transition-colors">
           <ArrowLeft className="w-4 h-4" />
           Voltar para a Caixa do Setor
         </Link>
@@ -102,7 +102,7 @@ export default async function NovoProtocoloPage() {
         </div>
 
         <div className="bg-slate-50 border-t border-slate-200 p-6 flex items-center justify-end gap-3">
-          <Link href="/app-domain/protocolos/processos" className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg transition-colors">
+          <Link href="/protocolos/processos" className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg transition-colors">
             Cancelar
           </Link>
           <button className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">

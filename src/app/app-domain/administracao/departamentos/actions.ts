@@ -20,5 +20,5 @@ export async function createDepartment(formData: FormData) {
 
   revalidatePath("/app-domain/administracao/departamentos");
   revalidatePath("/app-domain/administracao"); 
-  redirect("/app-domain/administracao/departamentos");
+  redirect("/administracao/departamentos");
 }

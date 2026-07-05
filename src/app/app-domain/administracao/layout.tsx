@@ -19,15 +19,15 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel Administrativo", href: "/app-domain/administracao", icon: LayoutDashboard },
-  { title: "Dados da Prefeitura", href: "/app-domain/administracao/instituicao", icon: Landmark },
-  { title: "Secretarias", href: "/app-domain/administracao/secretarias", icon: Building2 },
-  { title: "Departamentos", href: "/app-domain/administracao/departamentos", icon: Network },
-  { title: "Unidades Administrativas", href: "/app-domain/administracao/unidades", icon: MapPin },
-  { title: "Cargos e Funções", href: "/app-domain/administracao/cargos", icon: Briefcase },
-  { title: "Servidores", href: "/app-domain/administracao/servidores", icon: Users },
-  { title: "Demandas Internas", href: "/app-domain/administracao/demandas", icon: ClipboardList },
-  { title: "Calendário", href: "/app-domain/administracao/calendario", icon: CalendarDays },
+  { title: "Painel Administrativo", href: "/administracao", icon: LayoutDashboard },
+  { title: "Dados da Prefeitura", href: "/administracao/instituicao", icon: Landmark },
+  { title: "Secretarias", href: "/administracao/secretarias", icon: Building2 },
+  { title: "Departamentos", href: "/administracao/departamentos", icon: Network },
+  { title: "Unidades Administrativas", href: "/administracao/unidades", icon: MapPin },
+  { title: "Cargos e Funções", href: "/administracao/cargos", icon: Briefcase },
+  { title: "Servidores", href: "/administracao/servidores", icon: Users },
+  { title: "Demandas Internas", href: "/administracao/demandas", icon: ClipboardList },
+  { title: "Calendário", href: "/administracao/calendario", icon: CalendarDays },
 ];
 
 export default function AdministracaoLayout({ children }: { children: React.ReactNode }) {

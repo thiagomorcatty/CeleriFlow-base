@@ -19,14 +19,14 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel de Cadastros", href: "/app-domain/cadastros", icon: LayoutDashboard },
-  { title: "Pessoas Físicas", href: "/app-domain/cadastros/pessoas-fisicas", icon: Users },
-  { title: "Pessoas Jurídicas", href: "/app-domain/cadastros/pessoas-juridicas", icon: Building2 },
-  { title: "Contribuintes", href: "/app-domain/cadastros/contribuintes", icon: FileText },
-  { title: "Fornecedores", href: "/app-domain/cadastros/fornecedores", icon: Truck },
-  { title: "Imóveis", href: "/app-domain/cadastros/imoveis", icon: Home },
-  { title: "Endereços", href: "/app-domain/cadastros/enderecos", icon: MapPin },
-  { title: "Documentos", href: "/app-domain/cadastros/documentos", icon: FileBox },
+  { title: "Painel de Cadastros", href: "/cadastros", icon: LayoutDashboard },
+  { title: "Pessoas Físicas", href: "/cadastros/pessoas-fisicas", icon: Users },
+  { title: "Pessoas Jurídicas", href: "/cadastros/pessoas-juridicas", icon: Building2 },
+  { title: "Contribuintes", href: "/cadastros/contribuintes", icon: FileText },
+  { title: "Fornecedores", href: "/cadastros/fornecedores", icon: Truck },
+  { title: "Imóveis", href: "/cadastros/imoveis", icon: Home },
+  { title: "Endereços", href: "/cadastros/enderecos", icon: MapPin },
+  { title: "Documentos", href: "/cadastros/documentos", icon: FileBox },
 ];
 
 export default function CadastrosLayout({ children }: { children: React.ReactNode }) {
@@ -62,7 +62,7 @@ export default function CadastrosLayout({ children }: { children: React.ReactNod
         <nav className="flex flex-col gap-1.5 flex-1">
           {sidebarNavItems.map((item) => {
             const isActive = item.href === "/app-domain/cadastros" 
-              ? pathname === "/app-domain/cadastros" 
+              ? pathname === "/cadastros" 
               : pathname.startsWith(item.href);
 
             return (
@@ -86,7 +86,7 @@ export default function CadastrosLayout({ children }: { children: React.ReactNod
         {/* Bottom Menu items */}
         <div className="mt-6 pt-6 border-t border-slate-100">
           <Link
-            href="/app-domain/dashboard"
+            href="/dashboard"
             onClick={() => setIsSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200"
           >

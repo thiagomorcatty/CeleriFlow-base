@@ -15,11 +15,11 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel de Protocolos", href: "/app-domain/protocolos", icon: LayoutDashboard },
-  { title: "Caixa do Setor", href: "/app-domain/protocolos/processos", icon: FileBox },
-  { title: "Buscar Processo", href: "/app-domain/protocolos/busca", icon: FileSearch },
-  { title: "Assinaturas", href: "/app-domain/protocolos/assinaturas", icon: FileSignature },
-  { title: "Arquivados", href: "/app-domain/protocolos/arquivados", icon: Archive },
+  { title: "Painel de Protocolos", href: "/protocolos", icon: LayoutDashboard },
+  { title: "Caixa do Setor", href: "/protocolos/processos", icon: FileBox },
+  { title: "Buscar Processo", href: "/protocolos/busca", icon: FileSearch },
+  { title: "Assinaturas", href: "/protocolos/assinaturas", icon: FileSignature },
+  { title: "Arquivados", href: "/protocolos/arquivados", icon: Archive },
 ];
 
 export default function ProtocolosLayout({ children }: { children: React.ReactNode }) {
@@ -55,7 +55,7 @@ export default function ProtocolosLayout({ children }: { children: React.ReactNo
         <nav className="flex flex-col gap-1.5 flex-1">
           {sidebarNavItems.map((item) => {
             const isActive = item.href === "/app-domain/protocolos" 
-              ? pathname === "/app-domain/protocolos" 
+              ? pathname === "/protocolos" 
               : pathname.startsWith(item.href);
 
             return (
@@ -79,7 +79,7 @@ export default function ProtocolosLayout({ children }: { children: React.ReactNo
         {/* Bottom Menu items */}
         <div className="mt-6 pt-6 border-t border-slate-100">
           <Link
-            href="/app-domain/dashboard"
+            href="/dashboard"
             onClick={() => setIsSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200"
           >

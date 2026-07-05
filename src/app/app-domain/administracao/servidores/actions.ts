@@ -28,5 +28,5 @@ export async function createEmployee(formData: FormData) {
 
   revalidatePath("/app-domain/administracao/servidores");
   revalidatePath("/app-domain/administracao"); 
-  redirect("/app-domain/administracao/servidores");
+  redirect("/administracao/servidores");
 }

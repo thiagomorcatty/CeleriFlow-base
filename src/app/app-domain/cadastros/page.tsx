@@ -11,10 +11,10 @@ export default async function CadastrosDashboardPage() {
   const realEstatesCount = await prisma.realEstate.count();
 
   const stats = [
-    { title: "Pessoas Físicas", value: personsCount.toString(), icon: Users, href: "/app-domain/cadastros/pessoas-fisicas", color: "text-indigo-600", bg: "bg-indigo-100" },
-    { title: "Pessoas Jurídicas", value: companiesCount.toString(), icon: Building2, href: "/app-domain/cadastros/pessoas-juridicas", color: "text-emerald-600", bg: "bg-emerald-100" },
-    { title: "Contribuintes", value: taxpayersCount.toString(), icon: FileText, href: "/app-domain/cadastros/contribuintes", color: "text-amber-600", bg: "bg-amber-100" },
-    { title: "Imóveis", value: realEstatesCount.toString(), icon: Home, href: "/app-domain/cadastros/imoveis", color: "text-sky-600", bg: "bg-sky-100" },
+    { title: "Pessoas Físicas", value: personsCount.toString(), icon: Users, href: "/cadastros/pessoas-fisicas", color: "text-indigo-600", bg: "bg-indigo-100" },
+    { title: "Pessoas Jurídicas", value: companiesCount.toString(), icon: Building2, href: "/cadastros/pessoas-juridicas", color: "text-emerald-600", bg: "bg-emerald-100" },
+    { title: "Contribuintes", value: taxpayersCount.toString(), icon: FileText, href: "/cadastros/contribuintes", color: "text-amber-600", bg: "bg-amber-100" },
+    { title: "Imóveis", value: realEstatesCount.toString(), icon: Home, href: "/cadastros/imoveis", color: "text-sky-600", bg: "bg-sky-100" },
   ];
 
   return (
@@ -49,11 +49,11 @@ export default async function CadastrosDashboardPage() {
             <h3 className="font-bold text-slate-800 text-lg">Acesso Rápido</h3>
           </div>
           <div className="space-y-3">
-            <Link href="/app-domain/cadastros/pessoas-fisicas/novo" className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition-colors">
+            <Link href="/cadastros/pessoas-fisicas/novo" className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition-colors">
               <span className="text-sm font-medium text-slate-700">Nova Pessoa Física</span>
               <span className="text-xs text-indigo-600 font-semibold bg-indigo-100 px-2 py-1 rounded-md">Adicionar</span>
             </Link>
-            <Link href="/app-domain/cadastros/pessoas-juridicas/novo" className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/50 transition-colors">
+            <Link href="/cadastros/pessoas-juridicas/novo" className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/50 transition-colors">
               <span className="text-sm font-medium text-slate-700">Nova Empresa / Entidade</span>
               <span className="text-xs text-emerald-600 font-semibold bg-emerald-100 px-2 py-1 rounded-md">Adicionar</span>
             </Link>

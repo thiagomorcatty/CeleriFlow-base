@@ -21,5 +21,5 @@ export async function createRole(formData: FormData) {
 
   revalidatePath("/app-domain/administracao/cargos");
   revalidatePath("/app-domain/administracao"); 
-  redirect("/app-domain/administracao/cargos");
+  redirect("/administracao/cargos");
 }

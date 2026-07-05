@@ -17,7 +17,7 @@ export default async function UnidadesPage() {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Unidades Administrativas</h1>
           <p className="text-slate-500 mt-1">Escolas, UBS, CRAS, Almoxarifados, etc.</p>
         </div>
-        <Link href="/app-domain/administracao/unidades/novo" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
+        <Link href="/administracao/unidades/novo" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
           Adicionar Nova
         </Link>
       </div>

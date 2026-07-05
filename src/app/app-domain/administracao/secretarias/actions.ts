@@ -20,5 +20,5 @@ export async function createSecretariat(formData: FormData) {
 
   revalidatePath("/app-domain/administracao/secretarias");
   revalidatePath("/app-domain/administracao"); 
-  redirect("/app-domain/administracao/secretarias");
+  redirect("/administracao/secretarias");
 }

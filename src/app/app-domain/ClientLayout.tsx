@@ -20,7 +20,7 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const isLoginPage = pathname === "/app-domain/login" || pathname === "/";
+  const isLoginPage = pathname === "/login" || pathname === "/";
 
   const handleLogout = async () => {
     try {

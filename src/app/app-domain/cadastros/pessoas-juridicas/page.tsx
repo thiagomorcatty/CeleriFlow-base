@@ -20,7 +20,7 @@ export default async function PessoasJuridicasPage() {
           </h1>
           <p className="text-slate-500 mt-1">Gerencie as empresas, entidades, fornecedores e instituições cadastradas.</p>
         </div>
-        <Link href="/app-domain/cadastros/pessoas-juridicas/novo" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+        <Link href="/cadastros/pessoas-juridicas/novo" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
           <Plus className="w-4 h-4" />
           Adicionar Nova Empresa
         </Link>
