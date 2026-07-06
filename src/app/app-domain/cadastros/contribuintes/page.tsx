@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { FileText, Search, Plus } from "lucide-react";
+import { FileText, Search, Plus, Upload, Download } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -24,10 +24,20 @@ export default async function ContribuintesPage() {
           </h1>
           <p className="text-slate-500 mt-1">Gerencie os contribuintes (Pessoas Físicas e Jurídicas) do município.</p>
         </div>
-        <Link href="/cadastros/contribuintes/novo" className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
-          <Plus className="w-4 h-4" />
-          Adicionar Novo Contribuinte
-        </Link>
+        <div className="flex items-center gap-2">
+          <button className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+            <Upload className="w-4 h-4" />
+            Importar
+          </button>
+          <button className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+            <Download className="w-4 h-4" />
+            Exportar
+          </button>
+          <Link href="/cadastros/contribuintes/novo" className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+            <Plus className="w-4 h-4" />
+            Adicionar Novo Contribuinte
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
