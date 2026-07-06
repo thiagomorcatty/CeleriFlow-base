@@ -79,10 +79,14 @@ model Department {
   movementsTo      ProcessMovement[] @relation("MovementTo")
   dispatches       ProcessDispatch[] @relation("DispatchDepartment")
 
+  // Mod 4 e 5
+  folders       Folder[]          @relation("FolderDepartment")
+  tickets       Ticket[]          @relation("TicketDepartment")
+  ombudsmans    Ombudsman[]       @relation("OmbudsmanDepartment")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-
 // Unidades Administrativas (Escolas, UBS, CRAS, Almoxarifados)
 model AdministrativeUnit {
   id            String      @id @default(cuid())
@@ -139,6 +143,10 @@ model Employee {
   processMovements  ProcessMovement[] @relation("MovementEmployee")
   processDocuments  ProcessDocument[] @relation("DocumentEmployee")
   processDispatches ProcessDispatch[] @relation("DispatchEmployee")
+  
+  // Mod 4 e 5
+  tickets            Ticket[]            @relation("TicketAssignee")
+  ticketInteractions TicketInteraction[] @relation("InteractionEmployee")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -219,6 +227,10 @@ model Person {
 
   // Mod 3
   processes Process[]
+  
+  // Mod 4 e 5
+  tickets    Ticket[]
+  ombudsmans Ombudsman[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -257,6 +269,9 @@ model Company {
 
   // Mod 3
   processes Process[]
+  
+  // Mod 4 e 5
+  tickets Ticket[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -434,6 +449,9 @@ model Document {
 
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  folderId  String?
+  folder    Folder?  @relation("DocumentFolder", fields: [folderId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -555,4 +573,116 @@ model ProcessDispatch {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// --- Módulo 4: GED (Gerenciamento Eletrônico de Documentos) ---
+
+model Folder {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  
+  parentId    String?
+  parent      Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children    Folder[] @relation("FolderHierarchy")
+  
+  departmentId String?
+  department   Department? @relation("FolderDepartment", fields: [departmentId], references: [id])
+  
+  documents   Document[] @relation("DocumentFolder")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --- Módulo 5: Atendimento e Ouvidoria ---
+
+model SupportChannel {
+  id          String   @id @default(cuid())
+  name        String   // e.g., 'Portal', 'Presencial', 'WhatsApp', 'Telefone'
+  description String?
+  isActive    Boolean  @default(true)
+  
+  tickets     Ticket[]
+  ombudsmans  Ombudsman[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Ticket {
+  id              String   @id @default(cuid())
+  ticketNumber    String   @unique // e.g., TKT-2026-0001
+  subject         String
+  description     String
+  status          String   @default("Aberto") // Aberto, Em Atendimento, Resolvido, Fechado
+  priority        String   @default("Normal")
+  
+  channelId       String
+  channel         SupportChannel @relation(fields: [channelId], references: [id])
+
+  personId        String?
+  person          Person?  @relation(fields: [personId], references: [id])
+  companyId       String?
+  company         Company? @relation(fields: [companyId], references: [id])
+
+  departmentId    String?
+  department      Department? @relation("TicketDepartment", fields: [departmentId], references: [id])
+  
+  assigneeId      String?
+  assignee        Employee?   @relation("TicketAssignee", fields: [assigneeId], references: [id])
+
+  interactions    TicketInteraction[]
+  satisfaction    SatisfactionSurvey?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Ombudsman {
+  id              String   @id @default(cuid())
+  protocolNumber  String   @unique
+  type            String   // Denúncia, Reclamação, Elogio, Sugestão
+  subject         String
+  description     String
+  isAnonymous     Boolean  @default(false)
+  isConfidential  Boolean  @default(false)
+  status          String   @default("Recebida")
+  
+  channelId       String
+  channel         SupportChannel @relation(fields: [channelId], references: [id])
+
+  personId        String?
+  person          Person?  @relation(fields: [personId], references: [id])
+  
+  departmentId    String?
+  department      Department? @relation("OmbudsmanDepartment", fields: [departmentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TicketInteraction {
+  id          String   @id @default(cuid())
+  ticketId    String
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  message     String
+  isInternal  Boolean  @default(false)
+
+  employeeId  String?
+  employee    Employee? @relation("InteractionEmployee", fields: [employeeId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model SatisfactionSurvey {
+  id          String   @id @default(cuid())
+  ticketId    String   @unique
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  rating      Int      // 1 to 5
+  comments    String?
+
+  createdAt DateTime @default(now())
 }
