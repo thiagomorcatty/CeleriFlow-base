@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Input, InputProps } from "@/components/ui/input";
 
-export interface MaskedInputProps extends InputProps {
+export interface MaskedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   maskType: "cnpj" | "cpf" | "phone" | "cep";
 }
 
