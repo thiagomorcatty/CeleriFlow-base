@@ -63,6 +63,11 @@ model Secretariat {
   // Mod 6
   portalNews  PortalNews[] @relation("NewsSecretariat")
 
+  // Mod 8
+  budgetUnits BudgetUnit[] @relation("SecretariatBudgetUnits")
+  revenues    Revenue[]    @relation("SecretariatRevenues")
+  expenses    Expense[]    @relation("SecretariatExpenses")
+
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 }
@@ -157,6 +162,10 @@ model Employee {
   portalPages        PortalPage[]        @relation("PageAuthor")
   portalNews         PortalNews[]        @relation("NewsAuthor")
   officialDiaries    OfficialDiary[]     @relation("DiaryAuthor")
+
+  // Mod 8
+  settlements        Settlement[]        @relation("SettlementAuthor")
+  accountingEntries  AccountingEntry[]   @relation("AccountingEntryAuthor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -332,6 +341,10 @@ model Supplier {
 
   companyId String?  @unique
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Mod 8
+  commitments Commitment[] @relation("SupplierCommitments")
+  payments    Payment[]    @relation("SupplierPayments")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1017,7 +1030,241 @@ model Invoice {
 }
 
 // --- Módulo 8: Financeiro e Contábil ---
-// Modelos em construção...
+
+model FinancialYear {
+  id        String   @id @default(cuid())
+  year      Int      @unique
+  status    String   @default("Aberto") // Aberto, Encerrado
+  startDate DateTime
+  endDate   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  budgetAppropriations BudgetAppropriation[]
+}
+
+model BudgetUnit {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  name          String
+  secretariatId String
+  secretariat   Secretariat  @relation("SecretariatBudgetUnits", fields: [secretariatId], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  appropriations BudgetAppropriation[]
+}
+
+model ResourceSource {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appropriations BudgetAppropriation[]
+  bankAccounts   BankAccount[]
+  revenues       Revenue[]
+}
+
+model RevenueNature {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  revenues Revenue[]
+}
+
+model ExpenseNature {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appropriations BudgetAppropriation[]
+}
+
+model BudgetAppropriation {
+  id              String         @id @default(cuid())
+  code            String         @unique
+  financialYearId String
+  financialYear   FinancialYear  @relation(fields: [financialYearId], references: [id])
+  budgetUnitId    String
+  budgetUnit      BudgetUnit     @relation(fields: [budgetUnitId], references: [id])
+  expenseNatureId String
+  expenseNature   ExpenseNature  @relation(fields: [expenseNatureId], references: [id])
+  resourceSourceId String
+  resourceSource  ResourceSource @relation(fields: [resourceSourceId], references: [id])
+  initialValue    Float          @default(0)
+  updatedValue    Float          @default(0)
+  committedValue  Float          @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  reservations BudgetReservation[]
+  commitments  Commitment[]
+  expenses     Expense[]
+}
+
+model Revenue {
+  id              String         @id @default(cuid())
+  date            DateTime       @default(now())
+  value           Float
+  revenueNatureId String
+  revenueNature   RevenueNature  @relation(fields: [revenueNatureId], references: [id])
+  resourceSourceId String
+  resourceSource  ResourceSource @relation(fields: [resourceSourceId], references: [id])
+  bankAccountId   String?
+  bankAccount     BankAccount?   @relation(fields: [bankAccountId], references: [id])
+  secretariatId   String?
+  secretariat     Secretariat?   @relation("SecretariatRevenues", fields: [secretariatId], references: [id])
+  status          String         @default("Arrecadada")
+  history         String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model Expense {
+  id              String               @id @default(cuid())
+  date            DateTime             @default(now())
+  description     String
+  value           Float
+  appropriationId String
+  appropriation   BudgetAppropriation  @relation(fields: [appropriationId], references: [id])
+  secretariatId   String
+  secretariat     Secretariat          @relation("SecretariatExpenses", fields: [secretariatId], references: [id])
+  status          String               @default("Solicitada") // Solicitada, Reservada, Empenhada
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+model BudgetReservation {
+  id              String               @id @default(cuid())
+  number          String               @unique
+  date            DateTime             @default(now())
+  value           Float
+  appropriationId String
+  appropriation   BudgetAppropriation  @relation(fields: [appropriationId], references: [id])
+  justification   String?
+  status          String               @default("Ativa") // Ativa, Cancelada, Empenhada
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+model Commitment {
+  id              String               @id @default(cuid())
+  number          String               @unique
+  date            DateTime             @default(now())
+  value           Float
+  type            String               @default("Ordinário") // Ordinário, Estimativo, Global
+  history         String
+  appropriationId String
+  appropriation   BudgetAppropriation  @relation(fields: [appropriationId], references: [id])
+  supplierId      String
+  supplier        Supplier             @relation("SupplierCommitments", fields: [supplierId], references: [id])
+  status          String               @default("Emitido") // Emitido, Liquidado, Pago, Anulado
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  settlements     Settlement[]
+  payments        Payment[]
+}
+
+model Settlement {
+  id           String      @id @default(cuid())
+  date         DateTime    @default(now())
+  value        Float
+  documentRef  String?     // NF, Recibo, etc
+  commitmentId String
+  commitment   Commitment  @relation(fields: [commitmentId], references: [id])
+  authorId     String
+  author       Employee    @relation("SettlementAuthor", fields: [authorId], references: [id])
+  status       String      @default("Liquidado") // Liquidado, Cancelado
+  notes        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  payments     Payment[]
+}
+
+model Payment {
+  id            String      @id @default(cuid())
+  orderNumber   String      @unique
+  date          DateTime    @default(now())
+  value         Float
+  commitmentId  String
+  commitment    Commitment  @relation(fields: [commitmentId], references: [id])
+  settlementId  String?
+  settlement    Settlement? @relation(fields: [settlementId], references: [id])
+  bankAccountId String
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
+  supplierId    String
+  supplier      Supplier    @relation("SupplierPayments", fields: [supplierId], references: [id])
+  paymentMethod String      @default("Transferência")
+  status        String      @default("Pago") // Pago, Cancelado
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model BankAccount {
+  id               String          @id @default(cuid())
+  bankName         String
+  agency           String
+  accountNumber    String
+  accountType      String          @default("Movimento")
+  currentBalance   Float           @default(0)
+  resourceSourceId String?
+  resourceSource   ResourceSource? @relation(fields: [resourceSourceId], references: [id])
+  isActive         Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  revenues         Revenue[]
+  payments         Payment[]
+  reconciliations  BankReconciliation[]
+}
+
+model BankReconciliation {
+  id            String      @id @default(cuid())
+  date          DateTime    @default(now())
+  periodStart   DateTime
+  periodEnd     DateTime
+  bankAccountId String
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
+  systemBalance Float
+  bankBalance   Float
+  status        String      @default("Pendente") // Pendente, Conciliado, Divergente
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model AccountingPlan {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  type      String   // Receita, Despesa, Ativo, Passivo
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries   AccountingEntry[]
+}
+
+model AccountingEntry {
+  id            String         @id @default(cuid())
+  date          DateTime       @default(now())
+  value         Float
+  type          String         // Débito, Crédito
+  history       String
+  accountId     String
+  account       AccountingPlan @relation(fields: [accountId], references: [id])
+  authorId      String
+  author        Employee       @relation("AccountingEntryAuthor", fields: [authorId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
 
 // --- Módulo 9: Compras e Contratos ---
 // Modelos em construção...
