@@ -80,13 +80,14 @@ model Department {
   dispatches       ProcessDispatch[] @relation("DispatchDepartment")
 
   // Mod 4 e 5
-  folders       Folder[]          @relation("FolderDepartment")
-  tickets       Ticket[]          @relation("TicketDepartment")
-  ombudsmans    Ombudsman[]       @relation("OmbudsmanDepartment")
+  folders    Folder[]    @relation("FolderDepartment")
+  tickets    Ticket[]    @relation("TicketDepartment")
+  ombudsmans Ombudsman[] @relation("OmbudsmanDepartment")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
 // Unidades Administrativas (Escolas, UBS, CRAS, Almoxarifados)
 model AdministrativeUnit {
   id            String      @id @default(cuid())
@@ -143,7 +144,7 @@ model Employee {
   processMovements  ProcessMovement[] @relation("MovementEmployee")
   processDocuments  ProcessDocument[] @relation("DocumentEmployee")
   processDispatches ProcessDispatch[] @relation("DispatchEmployee")
-  
+
   // Mod 4 e 5
   tickets            Ticket[]            @relation("TicketAssignee")
   ticketInteractions TicketInteraction[] @relation("InteractionEmployee")
@@ -227,7 +228,7 @@ model Person {
 
   // Mod 3
   processes Process[]
-  
+
   // Mod 4 e 5
   tickets    Ticket[]
   ombudsmans Ombudsman[]
@@ -269,7 +270,7 @@ model Company {
 
   // Mod 3
   processes Process[]
-  
+
   // Mod 4 e 5
   tickets Ticket[]
 
@@ -292,7 +293,9 @@ model Taxpayer {
   companyId String?  @unique
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  realEstates RealEstate[]
+  realEstates           RealEstate[]
+  economicRegistrations EconomicRegistration[]
+  taxAssessments        TaxAssessment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -430,6 +433,8 @@ model RealEstate {
   taxpayerId String?
   taxpayer   Taxpayer? @relation(fields: [taxpayerId], references: [id])
 
+  taxAssessments TaxAssessment[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -449,9 +454,9 @@ model Document {
 
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
-  folderId  String?
-  folder    Folder?  @relation("DocumentFolder", fields: [folderId], references: [id])
+
+  folderId String?
+  folder   Folder? @relation("DocumentFolder", fields: [folderId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -578,18 +583,18 @@ model ProcessDispatch {
 // --- Módulo 4: GED (Gerenciamento Eletrônico de Documentos) ---
 
 model Folder {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
   description String?
-  
-  parentId    String?
-  parent      Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
-  children    Folder[] @relation("FolderHierarchy")
-  
+
+  parentId String?
+  parent   Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children Folder[] @relation("FolderHierarchy")
+
   departmentId String?
   department   Department? @relation("FolderDepartment", fields: [departmentId], references: [id])
-  
-  documents   Document[] @relation("DocumentFolder")
+
+  documents Document[] @relation("DocumentFolder")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -598,91 +603,182 @@ model Folder {
 // --- Módulo 5: Atendimento e Ouvidoria ---
 
 model SupportChannel {
-  id          String   @id @default(cuid())
-  name        String   // e.g., 'Portal', 'Presencial', 'WhatsApp', 'Telefone'
+  id          String  @id @default(cuid())
+  name        String // e.g., 'Portal', 'Presencial', 'WhatsApp', 'Telefone'
   description String?
-  isActive    Boolean  @default(true)
-  
-  tickets     Ticket[]
-  ombudsmans  Ombudsman[]
+  isActive    Boolean @default(true)
+
+  tickets    Ticket[]
+  ombudsmans Ombudsman[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Ticket {
-  id              String   @id @default(cuid())
-  ticketNumber    String   @unique // e.g., TKT-2026-0001
-  subject         String
-  description     String
-  status          String   @default("Aberto") // Aberto, Em Atendimento, Resolvido, Fechado
-  priority        String   @default("Normal")
-  
-  channelId       String
-  channel         SupportChannel @relation(fields: [channelId], references: [id])
+  id           String @id @default(cuid())
+  ticketNumber String @unique // e.g., TKT-2026-0001
+  subject      String
+  description  String
+  status       String @default("Aberto") // Aberto, Em Atendimento, Resolvido, Fechado
+  priority     String @default("Normal")
 
-  personId        String?
-  person          Person?  @relation(fields: [personId], references: [id])
-  companyId       String?
-  company         Company? @relation(fields: [companyId], references: [id])
+  channelId String
+  channel   SupportChannel @relation(fields: [channelId], references: [id])
 
-  departmentId    String?
-  department      Department? @relation("TicketDepartment", fields: [departmentId], references: [id])
-  
-  assigneeId      String?
-  assignee        Employee?   @relation("TicketAssignee", fields: [assigneeId], references: [id])
+  personId  String?
+  person    Person?  @relation(fields: [personId], references: [id])
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
 
-  interactions    TicketInteraction[]
-  satisfaction    SatisfactionSurvey?
+  departmentId String?
+  department   Department? @relation("TicketDepartment", fields: [departmentId], references: [id])
+
+  assigneeId String?
+  assignee   Employee? @relation("TicketAssignee", fields: [assigneeId], references: [id])
+
+  interactions TicketInteraction[]
+  satisfaction SatisfactionSurvey?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Ombudsman {
-  id              String   @id @default(cuid())
-  protocolNumber  String   @unique
-  type            String   // Denúncia, Reclamação, Elogio, Sugestão
-  subject         String
-  description     String
-  isAnonymous     Boolean  @default(false)
-  isConfidential  Boolean  @default(false)
-  status          String   @default("Recebida")
-  
-  channelId       String
-  channel         SupportChannel @relation(fields: [channelId], references: [id])
+  id             String  @id @default(cuid())
+  protocolNumber String  @unique
+  type           String // Denúncia, Reclamação, Elogio, Sugestão
+  subject        String
+  description    String
+  isAnonymous    Boolean @default(false)
+  isConfidential Boolean @default(false)
+  status         String  @default("Recebida")
 
-  personId        String?
-  person          Person?  @relation(fields: [personId], references: [id])
-  
-  departmentId    String?
-  department      Department? @relation("OmbudsmanDepartment", fields: [departmentId], references: [id])
+  channelId String
+  channel   SupportChannel @relation(fields: [channelId], references: [id])
+
+  personId String?
+  person   Person? @relation(fields: [personId], references: [id])
+
+  departmentId String?
+  department   Department? @relation("OmbudsmanDepartment", fields: [departmentId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model TicketInteraction {
-  id          String   @id @default(cuid())
-  ticketId    String
-  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  
-  message     String
-  isInternal  Boolean  @default(false)
+  id       String @id @default(cuid())
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
-  employeeId  String?
-  employee    Employee? @relation("InteractionEmployee", fields: [employeeId], references: [id])
+  message    String
+  isInternal Boolean @default(false)
+
+  employeeId String?
+  employee   Employee? @relation("InteractionEmployee", fields: [employeeId], references: [id])
 
   createdAt DateTime @default(now())
 }
 
 model SatisfactionSurvey {
-  id          String   @id @default(cuid())
-  ticketId    String   @unique
-  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  
-  rating      Int      // 1 to 5
-  comments    String?
+  id       String @id @default(cuid())
+  ticketId String @unique
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  rating   Int // 1 to 5
+  comments String?
 
   createdAt DateTime @default(now())
+}
+
+// --- Módulo 6: Tributação ---
+
+// Cadastro Econômico (Inscrição Municipal de Empresas e Autônomos)
+model EconomicRegistration {
+  id            String    @id @default(cuid())
+  municipalInsc String    @unique
+  primaryCnae   String?
+  taxRegime     String? // Simples Nacional, Lucro Presumido, etc.
+  status        String    @default("Ativo")
+  startDate     DateTime?
+
+  taxpayerId String
+  taxpayer   Taxpayer @relation(fields: [taxpayerId], references: [id])
+
+  taxAssessments TaxAssessment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Tabela de Parametrização de Tributos (Ex: IPTU, ISS, Taxa de Alvará)
+model Tax {
+  id       String  @id @default(cuid())
+  name     String // IPTU, ITBI, ISS, Taxa de Coleta de Lixo
+  taxType  String // Imposto, Taxa, Contribuição
+  isActive Boolean @default(true)
+
+  assessments TaxAssessment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Lançamento Tributário (Dívida gerada para um contribuinte/imóvel/empresa)
+model TaxAssessment {
+  id            String @id @default(cuid())
+  year          Int // Exercício (Ex: 2026)
+  originalValue Float
+  status        String @default("Lançado") // Lançado, Emitido, Pago, Dívida Ativa, Cancelado
+
+  taxId String
+  tax   Tax    @relation(fields: [taxId], references: [id])
+
+  taxpayerId String
+  taxpayer   Taxpayer @relation(fields: [taxpayerId], references: [id])
+
+  // Pode estar vinculado a um Imóvel (IPTU) ou a um Cadastro Econômico (ISS/Taxas)
+  realEstateId String?
+  realEstate   RealEstate? @relation(fields: [realEstateId], references: [id])
+
+  economicRegistrationId String?
+  economicRegistration   EconomicRegistration? @relation(fields: [economicRegistrationId], references: [id])
+
+  guides TaxGuide[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Guia de Arrecadação (Boleto/DAM emitido)
+model TaxGuide {
+  id         String   @id @default(cuid())
+  barcode    String?  @unique
+  totalValue Float
+  dueDate    DateTime
+  status     String   @default("Emitida") // Emitida, Paga, Vencida, Cancelada
+
+  assessmentId String
+  assessment   TaxAssessment @relation(fields: [assessmentId], references: [id])
+
+  payments TaxPayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Pagamento / Baixa
+model TaxPayment {
+  id            String   @id @default(cuid())
+  amountPaid    Float
+  paymentDate   DateTime
+  clearanceDate DateTime @default(now()) // Data da baixa no sistema
+  paymentMethod String // PIX, Boleto, Manual
+
+  guideId String
+  guide   TaxGuide @relation(fields: [guideId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
