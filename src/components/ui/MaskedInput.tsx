@@ -4,6 +4,7 @@ import React, { useState } from "react";
 
 export interface MaskedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   maskType: "cnpj" | "cpf" | "phone" | "cep";
+  type?: string;
 }
 
 export function MaskedInput({ maskType, onChange, defaultValue, ...props }: MaskedInputProps) {
