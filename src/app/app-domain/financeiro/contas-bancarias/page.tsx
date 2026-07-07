@@ -80,7 +80,7 @@ export default async function ContasBancariasPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                accounts.map((account) => (
+                accounts.map((account: any) => (
                   <TableRow key={account.id}>
                     <TableCell className="font-medium">{account.bankName}</TableCell>
                     <TableCell>{account.agency} / {account.accountNumber}</TableCell>

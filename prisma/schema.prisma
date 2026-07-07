@@ -68,6 +68,11 @@ model Secretariat {
   revenues    Revenue[]    @relation("SecretariatRevenues")
   expenses    Expense[]    @relation("SecretariatExpenses")
 
+  // Mod 9
+  purchaseRequests  PurchaseRequest[] @relation("SecretariatPurchaseRequests")
+  purchaseProcesses PurchaseProcess[] @relation("SecretariatPurchaseProcesses")
+  contracts         Contract[]        @relation("SecretariatContracts")
+
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 }
@@ -92,6 +97,9 @@ model Department {
   folders    Folder[]    @relation("FolderDepartment")
   tickets    Ticket[]    @relation("TicketDepartment")
   ombudsmans Ombudsman[] @relation("OmbudsmanDepartment")
+
+  // Mod 9
+  purchaseRequests PurchaseRequest[] @relation("DepartmentPurchaseRequests")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -166,6 +174,11 @@ model Employee {
   // Mod 8
   settlements        Settlement[]        @relation("SettlementAuthor")
   accountingEntries  AccountingEntry[]   @relation("AccountingEntryAuthor")
+
+  // Mod 9
+  purchaseRequests    PurchaseRequest[] @relation("EmployeePurchaseRequests")
+  managedContracts    Contract[]        @relation("ContractManager")
+  inspectedContracts  Contract[]        @relation("ContractInspector")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -345,6 +358,11 @@ model Supplier {
   // Mod 8
   commitments Commitment[] @relation("SupplierCommitments")
   payments    Payment[]    @relation("SupplierPayments")
+
+  // Mod 9
+  priceQuotes       PriceQuote[]        @relation("SupplierPriceQuotes")
+  contracts         Contract[]          @relation("SupplierContracts")
+  directContracting DirectContracting[] @relation("SupplierDirectContracting")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1267,4 +1285,202 @@ model AccountingEntry {
 }
 
 // --- Módulo 9: Compras e Contratos ---
-// Modelos em construção...
+
+model CatalogItem {
+  id             String   @id @default(cuid())
+  code           String?  @unique
+  name           String
+  description    String?
+  unit           String   @default("UN")
+  category       String?
+  estimatedValue Float?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model PurchaseRequest {
+  id             String   @id @default(cuid())
+  number         String   @unique
+  object         String
+  justification  String
+  estimatedValue Float?
+  status         String   @default("Rascunho") // Rascunho, Enviada, Aprovada, Rejeitada, etc.
+  priority       String   @default("Normal")
+  
+  secretariatId  String
+  secretariat    Secretariat @relation("SecretariatPurchaseRequests", fields: [secretariatId], references: [id])
+  
+  departmentId   String
+  department     Department  @relation("DepartmentPurchaseRequests", fields: [departmentId], references: [id])
+  
+  requesterId    String
+  requester      Employee    @relation("EmployeePurchaseRequests", fields: [requesterId], references: [id])
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model PurchaseProcess {
+  id             String   @id @default(cuid())
+  number         String   @unique
+  object         String
+  type           String   // Comum, Registro de Preços
+  modality       String?  // Pregão, Concorrência, Dispensa, Inexigibilidade
+  estimatedValue Float?
+  status         String   @default("Em Planejamento")
+  
+  secretariatId  String
+  secretariat    Secretariat @relation("SecretariatPurchaseProcesses", fields: [secretariatId], references: [id])
+  
+  preliminaryStudies PreliminaryTechnicalStudy[]
+  termsOfReference   TermOfReference[]
+  priceResearches    PriceResearch[]
+  biddings           Bidding[]
+  directContractings DirectContracting[]
+  contracts          Contract[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model PreliminaryTechnicalStudy {
+  id               String   @id @default(cuid())
+  description      String
+  justification    String
+  estimatedValue   Float?
+  status           String   @default("Em Elaboração") // Em Elaboração, Aprovado
+  
+  processId        String
+  process          PurchaseProcess @relation(fields: [processId], references: [id])
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model TermOfReference {
+  id               String   @id @default(cuid())
+  object           String
+  justification    String
+  scope            String
+  estimatedValue   Float?
+  status           String   @default("Em Elaboração") // Em Elaboração, Aprovado
+  
+  processId        String
+  process          PurchaseProcess @relation(fields: [processId], references: [id])
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model PriceResearch {
+  id             String   @id @default(cuid())
+  date           DateTime @default(now())
+  estimatedValue Float?
+  status         String   @default("Em Andamento") // Em Andamento, Concluída
+  
+  processId      String
+  process        PurchaseProcess @relation(fields: [processId], references: [id])
+  
+  quotes         PriceQuote[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model PriceQuote {
+  id             String   @id @default(cuid())
+  value          Float
+  date           DateTime @default(now())
+  status         String   @default("Ativa")
+  
+  researchId     String
+  research       PriceResearch @relation(fields: [researchId], references: [id])
+  
+  supplierId     String
+  supplier       Supplier @relation("SupplierPriceQuotes", fields: [supplierId], references: [id])
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Bidding {
+  id              String   @id @default(cuid())
+  number          String
+  modality        String
+  status          String   @default("Em Elaboração")
+  publicationDate DateTime?
+  sessionDate     DateTime?
+  
+  processId       String
+  process         PurchaseProcess @relation(fields: [processId], references: [id])
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model DirectContracting {
+  id             String   @id @default(cuid())
+  type           String   // Dispensa, Inexigibilidade
+  justification  String
+  value          Float
+  status         String   @default("Em Elaboração")
+  
+  processId      String
+  process        PurchaseProcess @relation(fields: [processId], references: [id])
+  
+  supplierId     String
+  supplier       Supplier @relation("SupplierDirectContracting", fields: [supplierId], references: [id])
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Contract {
+  id             String   @id @default(cuid())
+  number         String   @unique
+  object         String
+  initialValue   Float
+  updatedValue   Float
+  startDate      DateTime
+  endDate        DateTime
+  status         String   @default("Minuta") // Minuta, Vigente, Encerrado, etc.
+  
+  processId      String
+  process        PurchaseProcess @relation(fields: [processId], references: [id])
+  
+  supplierId     String
+  supplier       Supplier @relation("SupplierContracts", fields: [supplierId], references: [id])
+  
+  secretariatId  String
+  secretariat    Secretariat @relation("SecretariatContracts", fields: [secretariatId], references: [id])
+  
+  managerId      String?
+  manager        Employee? @relation("ContractManager", fields: [managerId], references: [id])
+  
+  inspectorId    String?
+  inspector      Employee? @relation("ContractInspector", fields: [inspectorId], references: [id])
+  
+  amendments     ContractAmendment[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ContractAmendment {
+  id               String   @id @default(cuid())
+  type             String   // Prazo, Valor, Ambos
+  justification    String
+  previousValue    Float?
+  newValue         Float?
+  previousEndDate  DateTime?
+  newEndDate       DateTime?
+  status           String   @default("Minuta")
+  
+  contractId       String
+  contract         Contract @relation(fields: [contractId], references: [id])
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
