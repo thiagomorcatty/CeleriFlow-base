@@ -59,6 +59,10 @@ model Secretariat {
   units       AdministrativeUnit[]
   employees   Employee[]
   demands     InternalDemand[]
+
+  // Mod 6
+  portalNews  PortalNews[] @relation("NewsSecretariat")
+
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 }
@@ -148,6 +152,11 @@ model Employee {
   // Mod 4 e 5
   tickets            Ticket[]            @relation("TicketAssignee")
   ticketInteractions TicketInteraction[] @relation("InteractionEmployee")
+
+  // Mod 6
+  portalPages        PortalPage[]        @relation("PageAuthor")
+  portalNews         PortalNews[]        @relation("NewsAuthor")
+  officialDiaries    OfficialDiary[]     @relation("DiaryAuthor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -699,7 +708,120 @@ model SatisfactionSurvey {
   createdAt DateTime @default(now())
 }
 
-// --- Módulo 6: Tributação ---
+// --- Módulo 6: Portal e Transparência ---
+
+model PortalPage {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  content   String
+  status    String   @default("Rascunho") // Publicado, Rascunho, Inativo
+  authorId  String?
+  author    Employee? @relation("PageAuthor", fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PortalMenu {
+  id        String   @id @default(cuid())
+  name      String
+  url       String?
+  parentId  String?
+  parent    PortalMenu?  @relation("MenuHierarchy", fields: [parentId], references: [id])
+  children  PortalMenu[] @relation("MenuHierarchy")
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PortalNews {
+  id            String   @id @default(cuid())
+  title         String
+  subtitle      String?
+  slug          String   @unique
+  content       String
+  imageUrl      String?
+  status        String   @default("Rascunho")
+  publishedAt   DateTime?
+  authorId      String?
+  author        Employee? @relation("NewsAuthor", fields: [authorId], references: [id])
+  secretariatId String?
+  secretariat   Secretariat? @relation("NewsSecretariat", fields: [secretariatId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PortalBanner {
+  id        String   @id @default(cuid())
+  title     String
+  imageUrl  String
+  linkUrl   String?
+  position  String   @default("Principal")
+  order     Int      @default(0)
+  status    String   @default("Ativo")
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OfficialPublication {
+  id          String   @id @default(cuid())
+  title       String
+  category    String // Edital, Comunicado, Resultado, etc
+  description String?
+  fileUrl     String?
+  linkUrl     String?
+  status      String   @default("Publicado")
+  publishDate DateTime @default(now())
+  validUntil  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model OfficialDiary {
+  id             String   @id @default(cuid())
+  editionNumber  Int      @unique
+  publishDate    DateTime
+  pdfUrl         String
+  status         String   @default("Rascunho") // Publicado, Rascunho
+  authorId       String?
+  author         Employee? @relation("DiaryAuthor", fields: [authorId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model PublicService {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  target      String // Cidadão, Empresa, Servidor
+  requirements String?
+  steps       String?
+  deadline    String?
+  cost        String?
+  linkUrl     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model InformationRequest {
+  id             String   @id @default(cuid())
+  protocolNumber String   @unique
+  subject        String
+  description    String
+  status         String   @default("Recebido") // Em análise, Respondido, Prorrogado
+  answer         String?
+  requesterName  String
+  requesterEmail String
+  requesterDoc   String // CPF ou CNPJ
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// --- Módulo 7: Tributação ---
 
 // Cadastro Econômico (Inscrição Municipal de Empresas e Autônomos)
 model EconomicRegistration {
@@ -893,3 +1015,9 @@ model Invoice {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// --- Módulo 8: Financeiro e Contábil ---
+// Modelos em construção...
+
+// --- Módulo 9: Compras e Contratos ---
+// Modelos em construção...
