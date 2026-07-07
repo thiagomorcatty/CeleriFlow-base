@@ -296,6 +296,13 @@ model Taxpayer {
   realEstates           RealEstate[]
   economicRegistrations EconomicRegistration[]
   taxAssessments        TaxAssessment[]
+  licenses              License[]
+  debtInstallments      DebtInstallment[]
+  activeDebts           ActiveDebt[]
+  taxCertificates       TaxCertificate[]
+  infractions           Infraction[]
+  providedInvoices      Invoice[]              @relation("InvoiceProvider")
+  takenInvoices         Invoice[]              @relation("InvoiceTaker")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -708,8 +715,9 @@ model EconomicRegistration {
 
   taxAssessments TaxAssessment[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  licenses  License[]
 }
 
 // Tabela de Parametrização de Tributos (Ex: IPTU, ISS, Taxa de Alvará)
@@ -778,6 +786,109 @@ model TaxPayment {
 
   guideId String
   guide   TaxGuide @relation(fields: [guideId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Alvarás e Licenças
+model License {
+  id          String    @id @default(cuid())
+  licenseType String // Alvará de Funcionamento, Licença Sanitária, etc.
+  status      String    @default("Solicitado") // Solicitado, Emitido, Vencido, Suspenso
+  issueDate   DateTime?
+  validUntil  DateTime?
+  qrCode      String?
+
+  taxpayerId String
+  taxpayer   Taxpayer @relation(fields: [taxpayerId], references: [id])
+
+  economicRegistrationId String?
+  economicRegistration   EconomicRegistration? @relation(fields: [economicRegistrationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Parcelamentos de Débitos
+model DebtInstallment {
+  id                String @id @default(cuid())
+  totalValue        Float
+  downPayment       Float? // Entrada
+  installmentsCount Int
+  status            String @default("Ativo") // Ativo, Pago, Rescindido
+
+  taxpayerId String
+  taxpayer   Taxpayer @relation(fields: [taxpayerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Dívida Ativa e CDA
+model ActiveDebt {
+  id             String  @id @default(cuid())
+  originDebtType String // Ex: IPTU, ISS
+  year           Int
+  originalValue  Float
+  updatedValue   Float
+  cdaNumber      String? @unique
+  status         String  @default("Inscrita") // Inscrita, Em Cobrança, Parcelada, Protestada, Ajuizada, Paga
+
+  taxpayerId String
+  taxpayer   Taxpayer @relation(fields: [taxpayerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Certidões Tributárias
+model TaxCertificate {
+  id              String   @id @default(cuid())
+  certificateType String // CND, Positiva com efeito de Negativa, Valor Venal
+  authCode        String   @unique
+  validUntil      DateTime
+  status          String   @default("Emitida") // Emitida, Revogada
+
+  taxpayerId String
+  taxpayer   Taxpayer @relation(fields: [taxpayerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Autos de Infração e Fiscalização
+model Infraction {
+  id              String    @id @default(cuid())
+  infractionType  String // Omissão de ISS, Falta de Alvará
+  penaltyValue    Float
+  defenseDeadline DateTime?
+  status          String    @default("Emitido") // Emitido, Cientificado, Em Defesa, Pago, Inscrito em Dívida Ativa
+
+  taxpayerId String
+  taxpayer   Taxpayer @relation(fields: [taxpayerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Nota Fiscal de Serviço Eletrônica (NFS-e)
+model Invoice {
+  id               String  @id @default(cuid())
+  invoiceNumber    Int     @default(autoincrement())
+  verificationCode String  @unique
+  serviceValue     Float
+  deductions       Float   @default(0)
+  issRetained      Boolean @default(false)
+  issValue         Float
+  competence       String // Ex: "07/2026"
+  status           String  @default("Emitida") // Emitida, Cancelada, Substituída
+
+  providerId String
+  provider   Taxpayer @relation("InvoiceProvider", fields: [providerId], references: [id])
+
+  takerId String?
+  taker   Taxpayer? @relation("InvoiceTaker", fields: [takerId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

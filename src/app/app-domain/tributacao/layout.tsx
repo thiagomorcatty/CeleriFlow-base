@@ -11,15 +11,23 @@ import {
   X,
   MapPin,
   Banknote,
-  Receipt
+  Receipt,
+  FileCheck,
+  FileText,
+  FileBadge,
+  ShieldAlert
 } from "lucide-react";
 
 const sidebarNavItems = [
   { title: "Painel Tributário", href: "/app-domain/tributacao", icon: LayoutDashboard },
   { title: "Cadastro Econômico", href: "/app-domain/tributacao/economico", icon: Building2 },
   { title: "Imóveis Fiscais (IPTU)", href: "/app-domain/tributacao/imoveis", icon: MapPin },
+  { title: "Alvarás e Licenças", href: "/app-domain/tributacao/alvaras", icon: FileCheck },
+  { title: "NFS-e", href: "/app-domain/tributacao/nfse", icon: FileText },
   { title: "Guias e Arrecadação", href: "/app-domain/tributacao/guias", icon: Receipt },
-  { title: "Lançamentos e Dívida", href: "/app-domain/tributacao/lancamentos", icon: Banknote },
+  { title: "Dívida Ativa", href: "/app-domain/tributacao/divida", icon: Banknote },
+  { title: "Certidões", href: "/app-domain/tributacao/certidoes", icon: FileBadge },
+  { title: "Fiscalização", href: "/app-domain/tributacao/fiscalizacao", icon: ShieldAlert },
 ];
 
 export default function TributacaoLayout({ children }: { children: React.ReactNode }) {

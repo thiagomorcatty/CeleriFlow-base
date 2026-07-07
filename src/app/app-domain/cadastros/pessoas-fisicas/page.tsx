@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { Users, Search, Plus, Upload, Download } from "lucide-react";
+import { Users, Search, Plus } from "lucide-react";
+import { ImportExportDropdown } from "@/components/ui/ImportExportDropdown";
 
 export const dynamic = "force-dynamic";
 
@@ -21,14 +22,7 @@ export default async function PessoasFisicasPage() {
           <p className="text-slate-500 mt-1">Gerencie os cidadãos, servidores e pessoas físicas da base única.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
-            <Upload className="w-4 h-4" />
-            Importar
-          </button>
-          <button className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
-            <Download className="w-4 h-4" />
-            Exportar
-          </button>
+          <ImportExportDropdown />
           <Link href="/cadastros/pessoas-fisicas/novo" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
             <Plus className="w-4 h-4" />
             Adicionar Nova Pessoa
