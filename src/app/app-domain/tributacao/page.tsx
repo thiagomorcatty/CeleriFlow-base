@@ -31,7 +31,7 @@ export default async function TributacaoDashboardPage() {
           <p className="text-slate-500 mt-2">Acompanhe a arrecadação, emissão de guias e inscrições municipais.</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/app-domain/tributacao/guias" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-2">
+          <Link href="/tributacao/guias" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-2">
             <PlusCircle className="w-4 h-4" />
             Nova Guia Rápida
           </Link>
@@ -63,7 +63,7 @@ export default async function TributacaoDashboardPage() {
               <Receipt className="w-5 h-5 text-emerald-600" />
               Últimas Guias Emitidas
             </h3>
-            <Link href="/app-domain/tributacao/guias" className="text-sm text-emerald-600 hover:text-emerald-700 font-semibold">Ver Todas</Link>
+            <Link href="/tributacao/guias" className="text-sm text-emerald-600 hover:text-emerald-700 font-semibold">Ver Todas</Link>
           </div>
           <div className="p-8 text-center flex flex-col items-center justify-center flex-1">
             <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-3">
@@ -81,12 +81,12 @@ export default async function TributacaoDashboardPage() {
             </h3>
           </div>
           <div className="p-5 grid grid-cols-2 gap-4 flex-1">
-            <Link href="/app-domain/tributacao/economico" className="p-4 border border-slate-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors group">
+            <Link href="/tributacao/economico" className="p-4 border border-slate-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors group">
               <Building2 className="w-6 h-6 text-indigo-500 mb-2 group-hover:scale-110 transition-transform" />
               <span className="font-semibold text-sm text-slate-800 block">Cadastro Econômico</span>
               <span className="text-xs text-slate-500">Empresas e Autônomos</span>
             </Link>
-            <Link href="/app-domain/tributacao/imoveis" className="p-4 border border-slate-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors group">
+            <Link href="/tributacao/imoveis" className="p-4 border border-slate-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors group">
               <MapPin className="w-6 h-6 text-emerald-500 mb-2 group-hover:scale-110 transition-transform" />
               <span className="font-semibold text-sm text-slate-800 block">Imóveis Fiscais</span>
               <span className="text-xs text-slate-500">Consulta de IPTU</span>

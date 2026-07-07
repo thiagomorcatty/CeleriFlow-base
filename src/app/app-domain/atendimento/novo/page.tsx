@@ -50,7 +50,7 @@ export default async function NovoChamadoPage() {
   return (
     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-6">
-        <Link href="/app-domain/atendimento" className="text-violet-600 hover:text-violet-700 text-sm font-semibold flex items-center gap-2 mb-4 w-fit transition-colors">
+        <Link href="/atendimento" className="text-violet-600 hover:text-violet-700 text-sm font-semibold flex items-center gap-2 mb-4 w-fit transition-colors">
           <ArrowLeft className="w-4 h-4" />
           Voltar para o Painel
         </Link>
@@ -131,7 +131,7 @@ export default async function NovoChamadoPage() {
         </div>
 
         <div className="bg-slate-50 border-t border-slate-200 p-6 flex items-center justify-end gap-3">
-          <Link href="/app-domain/atendimento" className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg transition-colors">
+          <Link href="/atendimento" className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg transition-colors">
             Cancelar
           </Link>
           <button type="submit" className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">

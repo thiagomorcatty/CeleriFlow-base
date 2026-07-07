@@ -87,7 +87,7 @@ export default function TributacaoLayout({ children }: { children: React.ReactNo
         {/* Bottom Menu items */}
         <div className="mt-6 pt-6 border-t border-slate-100">
           <Link
-            href="/app-domain/dashboard"
+            href="/dashboard"
             onClick={() => setIsSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200"
           >

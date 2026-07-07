@@ -23,7 +23,7 @@ export default async function AtendimentoDashboardPage() {
           <p className="text-slate-500 mt-2">Visão geral dos chamados, serviços rápidos e manifestações de ouvidoria.</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/app-domain/atendimento/novo" className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
+          <Link href="/atendimento/novo" className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
             Novo Chamado Rápido
           </Link>
         </div>

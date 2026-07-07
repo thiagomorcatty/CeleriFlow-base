@@ -45,7 +45,7 @@ export default async function DocumentosDashboardPage() {
         <p className="text-indigo-700 mt-2 max-w-lg mx-auto">
           O CeleriFlow armazena os arquivos de forma segura, mantendo rastreabilidade e versionamento para auditorias e acessos rápidos.
         </p>
-        <Link href="/app-domain/documentos/ged" className="inline-block mt-6 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-colors">
+        <Link href="/documentos/ged" className="inline-block mt-6 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-colors">
           Acessar o GED
         </Link>
       </div>
