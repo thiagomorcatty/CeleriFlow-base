@@ -26,7 +26,7 @@ export default async function ProcessosPage() {
           </h1>
           <p className="text-slate-500 mt-1">Gerencie os processos e protocolos que estão sob responsabilidade do seu setor.</p>
         </div>
-        <Link href="/protocolos/processos/novo" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+        <Link href="/app-domain/protocolos/processos/novo" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
           <Plus className="w-4 h-4" />
           Novo Protocolo
         </Link>

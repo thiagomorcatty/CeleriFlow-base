@@ -33,7 +33,7 @@ export default async function FornecedoresPage() {
             <Download className="w-4 h-4" />
             Exportar
           </button>
-          <Link href="/cadastros/fornecedores/novo" className="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+          <Link href="/app-domain/cadastros/fornecedores/novo" className="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
             <Plus className="w-4 h-4" />
             Adicionar Novo Fornecedor
           </Link>

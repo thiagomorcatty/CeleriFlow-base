@@ -22,7 +22,7 @@ export default function NovoServidorForm({ roles, secretariats, departments, uni
   return (
     <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-6">
-        <Link href="/administracao/servidores" className="text-emerald-600 hover:text-emerald-700 text-sm font-semibold flex items-center gap-2 w-fit mb-4">
+        <Link href="/app-domain/administracao/servidores" className="text-emerald-600 hover:text-emerald-700 text-sm font-semibold flex items-center gap-2 w-fit mb-4">
           <ArrowLeft className="w-4 h-4" /> Voltar
         </Link>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Novo Servidor</h1>

@@ -34,7 +34,7 @@ export default async function EnderecosPage() {
             <Download className="w-4 h-4" />
             Exportar
           </button>
-          <Link href="/cadastros/enderecos/novo" className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+          <Link href="/app-domain/cadastros/enderecos/novo" className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
             <Plus className="w-4 h-4" />
             Adicionar Novo Endereço
           </Link>

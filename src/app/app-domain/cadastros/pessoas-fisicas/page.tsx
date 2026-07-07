@@ -23,7 +23,7 @@ export default async function PessoasFisicasPage() {
         </div>
         <div className="flex items-center gap-2">
           <ImportExportDropdown />
-          <Link href="/cadastros/pessoas-fisicas/novo" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+          <Link href="/app-domain/cadastros/pessoas-fisicas/novo" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
             <Plus className="w-4 h-4" />
             Adicionar Nova Pessoa
           </Link>

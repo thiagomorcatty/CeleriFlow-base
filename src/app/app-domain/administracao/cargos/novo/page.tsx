@@ -22,7 +22,7 @@ export default function NovoCargoPage() {
   return (
     <div className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-6">
-        <Link href="/administracao/cargos" className="text-purple-600 hover:text-purple-700 text-sm font-semibold flex items-center gap-2 w-fit mb-4">
+        <Link href="/app-domain/administracao/cargos" className="text-purple-600 hover:text-purple-700 text-sm font-semibold flex items-center gap-2 w-fit mb-4">
           <ArrowLeft className="w-4 h-4" /> Voltar
         </Link>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Novo Cargo/Função</h1>

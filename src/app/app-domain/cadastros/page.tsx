@@ -49,11 +49,11 @@ export default async function CadastrosDashboardPage() {
             <h3 className="font-bold text-slate-800 text-lg">Acesso Rápido</h3>
           </div>
           <div className="space-y-3">
-            <Link href="/cadastros/pessoas-fisicas/novo" className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition-colors">
+            <Link href="/app-domain/cadastros/pessoas-fisicas/novo" className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition-colors">
               <span className="text-sm font-medium text-slate-700">Nova Pessoa Física</span>
               <span className="text-xs text-indigo-600 font-semibold bg-indigo-100 px-2 py-1 rounded-md">Adicionar</span>
             </Link>
-            <Link href="/cadastros/pessoas-juridicas/novo" className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/50 transition-colors">
+            <Link href="/app-domain/cadastros/pessoas-juridicas/novo" className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/50 transition-colors">
               <span className="text-sm font-medium text-slate-700">Nova Empresa / Entidade</span>
               <span className="text-xs text-emerald-600 font-semibold bg-emerald-100 px-2 py-1 rounded-md">Adicionar</span>
             </Link>

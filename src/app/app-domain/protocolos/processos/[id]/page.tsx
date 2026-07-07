@@ -40,7 +40,7 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
     <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <Link href="/protocolos/processos" className="text-emerald-600 hover:text-emerald-700 text-sm font-semibold flex items-center gap-2 mb-4 w-fit transition-colors">
+          <Link href="/app-domain/protocolos/processos" className="text-emerald-600 hover:text-emerald-700 text-sm font-semibold flex items-center gap-2 mb-4 w-fit transition-colors">
             <ArrowLeft className="w-4 h-4" />
             Voltar para a Caixa do Setor
           </Link>
