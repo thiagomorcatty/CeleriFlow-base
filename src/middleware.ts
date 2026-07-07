@@ -14,7 +14,7 @@ export const config = {
   ],
 };
 
-export function proxy(req: NextRequest) {
+export function middleware(req: NextRequest) {
   const url = req.nextUrl;
 
   // Obter o host da requisição (ex: app.celeriflow.com.br ou app.localhost:3000)
