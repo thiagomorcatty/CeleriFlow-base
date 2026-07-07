@@ -54,7 +54,7 @@ export default function ProtocolosLayout({ children }: { children: React.ReactNo
         
         <nav className="flex flex-col gap-1.5 flex-1">
           {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/app-domain/protocolos" 
+            const isActive = item.href === "/protocolos" 
               ? pathname === "/protocolos" 
               : pathname.startsWith(item.href);
 

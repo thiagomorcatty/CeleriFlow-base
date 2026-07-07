@@ -14,10 +14,10 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel", href: "/app-domain/documentos", icon: LayoutDashboard },
-  { title: "GED (Arquivos)", href: "/app-domain/documentos/ged", icon: Folder },
-  { title: "Modelos", href: "/app-domain/documentos/modelos", icon: FileText },
-  { title: "Assinaturas", href: "/app-domain/documentos/assinaturas", icon: FileSignature },
+  { title: "Painel", href: "/documentos", icon: LayoutDashboard },
+  { title: "GED (Arquivos)", href: "/documentos/ged", icon: Folder },
+  { title: "Modelos", href: "/documentos/modelos", icon: FileText },
+  { title: "Assinaturas", href: "/documentos/assinaturas", icon: FileSignature },
 ];
 
 export default function DocumentosLayout({ children }: { children: React.ReactNode }) {
@@ -52,8 +52,8 @@ export default function DocumentosLayout({ children }: { children: React.ReactNo
         
         <nav className="flex flex-col gap-1.5 flex-1">
           {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/app-domain/documentos" 
-              ? pathname === "/app-domain/documentos" 
+            const isActive = item.href === "/documentos" 
+              ? pathname === "/documentos" 
               : pathname.startsWith(item.href);
 
             return (

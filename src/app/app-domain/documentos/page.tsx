@@ -9,9 +9,9 @@ export default async function DocumentosDashboardPage() {
   const totalFolders = await prisma.folder.count();
 
   const stats = [
-    { title: "Total de Documentos", value: totalDocuments.toString(), icon: FileText, href: "/app-domain/documentos/ged", color: "text-indigo-600", bg: "bg-indigo-100" },
-    { title: "Pastas Criadas", value: totalFolders.toString(), icon: Folder, href: "/app-domain/documentos/ged", color: "text-emerald-600", bg: "bg-emerald-100" },
-    { title: "Assinaturas Pendentes", value: "0", icon: FileSignature, href: "/app-domain/documentos/assinaturas", color: "text-amber-600", bg: "bg-amber-100" },
+    { title: "Total de Documentos", value: totalDocuments.toString(), icon: FileText, href: "/documentos/ged", color: "text-indigo-600", bg: "bg-indigo-100" },
+    { title: "Pastas Criadas", value: totalFolders.toString(), icon: Folder, href: "/documentos/ged", color: "text-emerald-600", bg: "bg-emerald-100" },
+    { title: "Assinaturas Pendentes", value: "0", icon: FileSignature, href: "/documentos/assinaturas", color: "text-amber-600", bg: "bg-amber-100" },
   ];
 
   return (

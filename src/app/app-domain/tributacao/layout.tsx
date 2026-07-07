@@ -19,15 +19,15 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel Tributário", href: "/app-domain/tributacao", icon: LayoutDashboard },
-  { title: "Cadastro Econômico", href: "/app-domain/tributacao/economico", icon: Building2 },
-  { title: "Imóveis Fiscais (IPTU)", href: "/app-domain/tributacao/imoveis", icon: MapPin },
-  { title: "Alvarás e Licenças", href: "/app-domain/tributacao/alvaras", icon: FileCheck },
-  { title: "NFS-e", href: "/app-domain/tributacao/nfse", icon: FileText },
-  { title: "Guias e Arrecadação", href: "/app-domain/tributacao/guias", icon: Receipt },
-  { title: "Dívida Ativa", href: "/app-domain/tributacao/divida", icon: Banknote },
-  { title: "Certidões", href: "/app-domain/tributacao/certidoes", icon: FileBadge },
-  { title: "Fiscalização", href: "/app-domain/tributacao/fiscalizacao", icon: ShieldAlert },
+  { title: "Painel Tributário", href: "/tributacao", icon: LayoutDashboard },
+  { title: "Cadastro Econômico", href: "/tributacao/economico", icon: Building2 },
+  { title: "Imóveis Fiscais (IPTU)", href: "/tributacao/imoveis", icon: MapPin },
+  { title: "Alvarás e Licenças", href: "/tributacao/alvaras", icon: FileCheck },
+  { title: "NFS-e", href: "/tributacao/nfse", icon: FileText },
+  { title: "Guias e Arrecadação", href: "/tributacao/guias", icon: Receipt },
+  { title: "Dívida Ativa", href: "/tributacao/divida", icon: Banknote },
+  { title: "Certidões", href: "/tributacao/certidoes", icon: FileBadge },
+  { title: "Fiscalização", href: "/tributacao/fiscalizacao", icon: ShieldAlert },
 ];
 
 export default function TributacaoLayout({ children }: { children: React.ReactNode }) {
@@ -62,8 +62,8 @@ export default function TributacaoLayout({ children }: { children: React.ReactNo
         
         <nav className="flex flex-col gap-1.5 flex-1">
           {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/app-domain/tributacao" 
-              ? pathname === "/app-domain/tributacao" 
+            const isActive = item.href === "/tributacao" 
+              ? pathname === "/tributacao" 
               : pathname.startsWith(item.href);
 
             return (

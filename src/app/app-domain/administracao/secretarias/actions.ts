@@ -18,7 +18,7 @@ export async function createSecretariat(formData: FormData) {
     return { error: "Erro ao criar secretaria" };
   }
 
-  revalidatePath("/app-domain/administracao/secretarias");
-  revalidatePath("/app-domain/administracao"); 
+  revalidatePath("/administracao/secretarias");
+  revalidatePath("/administracao"); 
   redirect("/administracao/secretarias");
 }

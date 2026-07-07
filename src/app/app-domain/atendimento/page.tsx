@@ -10,9 +10,9 @@ export default async function AtendimentoDashboardPage() {
   const openOmbudsman = await prisma.ombudsman.count({ where: { status: "Recebida" } });
 
   const stats = [
-    { title: "Chamados Abertos", value: openTickets.toString(), icon: Headphones, href: "/app-domain/atendimento/novo", color: "text-violet-600", bg: "bg-violet-100" },
-    { title: "Em Atendimento", value: inProgressTickets.toString(), icon: CheckCircle2, href: "/app-domain/atendimento", color: "text-blue-600", bg: "bg-blue-100" },
-    { title: "Denúncias Pendentes", value: openOmbudsman.toString(), icon: MessageSquareWarning, href: "/app-domain/atendimento/ouvidoria", color: "text-amber-600", bg: "bg-amber-100" },
+    { title: "Chamados Abertos", value: openTickets.toString(), icon: Headphones, href: "/atendimento/novo", color: "text-violet-600", bg: "bg-violet-100" },
+    { title: "Em Atendimento", value: inProgressTickets.toString(), icon: CheckCircle2, href: "/atendimento", color: "text-blue-600", bg: "bg-blue-100" },
+    { title: "Denúncias Pendentes", value: openOmbudsman.toString(), icon: MessageSquareWarning, href: "/atendimento/ouvidoria", color: "text-amber-600", bg: "bg-amber-100" },
   ];
 
   return (

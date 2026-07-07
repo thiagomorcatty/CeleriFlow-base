@@ -20,7 +20,7 @@ export async function createUnit(formData: FormData) {
     return { error: "Erro ao criar unidade" };
   }
 
-  revalidatePath("/app-domain/administracao/unidades");
-  revalidatePath("/app-domain/administracao"); 
+  revalidatePath("/administracao/unidades");
+  revalidatePath("/administracao"); 
   redirect("/administracao/unidades");
 }

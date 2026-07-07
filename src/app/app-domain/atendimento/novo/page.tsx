@@ -13,7 +13,7 @@ export default async function NovoChamadoPage() {
     await prisma.supportChannel.create({
       data: { name: "Balcão Presencial", description: "Atendimento direto na prefeitura" }
     });
-    return redirect("/app-domain/atendimento/novo");
+    return redirect("/atendimento/novo");
   }
 
   const pessoas = await prisma.person.findMany({
@@ -44,7 +44,7 @@ export default async function NovoChamadoPage() {
       }
     });
 
-    redirect("/app-domain/atendimento");
+    redirect("/atendimento");
   }
 
   return (

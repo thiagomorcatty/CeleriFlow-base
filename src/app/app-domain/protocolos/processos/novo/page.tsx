@@ -41,7 +41,7 @@ export default async function NovoProtocoloPage() {
       }
     });
 
-    redirect("/app-domain/protocolos/processos");
+    redirect("/protocolos/processos");
   }
 
   return (

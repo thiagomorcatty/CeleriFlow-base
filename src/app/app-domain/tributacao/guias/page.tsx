@@ -40,7 +40,7 @@ export default async function GuiasPage() {
       }
     });
 
-    revalidatePath("/app-domain/tributacao/guias");
+    revalidatePath("/tributacao/guias");
   }
 
   // Server Action to generate a mock guide for demonstration purposes
@@ -86,7 +86,7 @@ export default async function GuiasPage() {
       }
     });
 
-    revalidatePath("/app-domain/tributacao/guias");
+    revalidatePath("/tributacao/guias");
   }
 
   return (

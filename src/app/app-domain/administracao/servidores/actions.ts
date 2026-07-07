@@ -26,7 +26,7 @@ export async function createEmployee(formData: FormData) {
     return { error: error.message || "Erro desconhecido ao cadastrar servidor." };
   }
 
-  revalidatePath("/app-domain/administracao/servidores");
-  revalidatePath("/app-domain/administracao"); 
+  revalidatePath("/administracao/servidores");
+  revalidatePath("/administracao"); 
   redirect("/administracao/servidores");
 }

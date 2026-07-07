@@ -14,9 +14,9 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel Geral", href: "/app-domain/atendimento", icon: LayoutDashboard },
-  { title: "Novo Chamado", href: "/app-domain/atendimento/novo", icon: Plus },
-  { title: "Ouvidoria (Denúncias)", href: "/app-domain/atendimento/ouvidoria", icon: MessageSquareWarning },
+  { title: "Painel Geral", href: "/atendimento", icon: LayoutDashboard },
+  { title: "Novo Chamado", href: "/atendimento/novo", icon: Plus },
+  { title: "Ouvidoria (Denúncias)", href: "/atendimento/ouvidoria", icon: MessageSquareWarning },
 ];
 
 export default function AtendimentoLayout({ children }: { children: React.ReactNode }) {
@@ -51,8 +51,8 @@ export default function AtendimentoLayout({ children }: { children: React.ReactN
         
         <nav className="flex flex-col gap-1.5 flex-1">
           {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/app-domain/atendimento" 
-              ? pathname === "/app-domain/atendimento" 
+            const isActive = item.href === "/atendimento" 
+              ? pathname === "/atendimento" 
               : pathname.startsWith(item.href);
 
             return (

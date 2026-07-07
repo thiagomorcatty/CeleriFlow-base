@@ -19,7 +19,7 @@ export async function createRole(formData: FormData) {
     return { error: "Erro ao criar cargo" };
   }
 
-  revalidatePath("/app-domain/administracao/cargos");
-  revalidatePath("/app-domain/administracao"); 
+  revalidatePath("/administracao/cargos");
+  revalidatePath("/administracao"); 
   redirect("/administracao/cargos");
 }

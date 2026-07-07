@@ -18,7 +18,7 @@ export async function createDepartment(formData: FormData) {
     return { error: "Erro ao criar departamento" };
   }
 
-  revalidatePath("/app-domain/administracao/departamentos");
-  revalidatePath("/app-domain/administracao"); 
+  revalidatePath("/administracao/departamentos");
+  revalidatePath("/administracao"); 
   redirect("/administracao/departamentos");
 }
