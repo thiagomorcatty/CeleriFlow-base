@@ -17,7 +17,7 @@ export default async function ServidoresPage() {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Servidores</h1>
           <p className="text-slate-500 mt-1">Gerencie os servidores da prefeitura e seus acessos.</p>
         </div>
-        <Link href="/app-domain/administracao/servidores/novo" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
+        <Link href="/administracao/servidores/novo" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
           Adicionar Novo
         </Link>
       </div>

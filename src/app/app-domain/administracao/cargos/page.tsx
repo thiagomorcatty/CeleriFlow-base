@@ -17,7 +17,7 @@ export default async function CargosPage() {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Cargos e Funções</h1>
           <p className="text-slate-500 mt-1">Gerencie os cargos disponíveis na prefeitura.</p>
         </div>
-        <Link href="/app-domain/administracao/cargos/novo" className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
+        <Link href="/administracao/cargos/novo" className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
           Adicionar Novo
         </Link>
       </div>

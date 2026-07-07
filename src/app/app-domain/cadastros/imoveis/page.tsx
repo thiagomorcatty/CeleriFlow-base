@@ -38,7 +38,7 @@ export default async function ImoveisPage() {
             <Download className="w-4 h-4" />
             Exportar
           </button>
-          <Link href="/app-domain/cadastros/imoveis/novo" className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+          <Link href="/cadastros/imoveis/novo" className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
             <Plus className="w-4 h-4" />
             Adicionar Novo Imóvel
           </Link>

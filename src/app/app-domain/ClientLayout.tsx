@@ -41,7 +41,7 @@ export default function ClientLayout({
         
         {/* Left: CeleriFlow Logo */}
         <div className="w-1/3 flex justify-start">
-          <Link href="/app-domain/dashboard" className="flex items-center hover:opacity-80 transition-opacity py-1">
+          <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity py-1">
             <Image 
               src="/favicon.png" 
               alt="CeleriFlow" 
