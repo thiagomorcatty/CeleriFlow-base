@@ -1,0 +1,185 @@
+// --- Modulo 14: Assistencia Social ---
+
+model SocialUnit {
+  id              String   @id @default(cuid())
+  name            String
+  type            String   // CRAS, CREAS, Centro POP, Acolhimento
+  phone           String?
+  email           String?
+  isActive        Boolean  @default(true)
+
+  addressId       String?  @unique
+  address         Address? @relation("SocialUnitAddress", fields: [addressId], references: [id])
+
+  managerId       String?
+  manager         Employee? @relation("SocialUnitManager", fields: [managerId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  attendances     SocialAttendance[]
+  records         SocialRecord[]
+}
+
+model SocialFamily {
+  id              String   @id @default(cuid())
+  familyCode      String?  @unique // Código Familiar CadÚnico
+  nis             String?  
+  income          Float?   // Renda Familiar
+  perCapitaIncome Float?   
+  vulnerabilities String?  // Principais vulnerabilidades identificadas
+  status          String   @default("Ativo") // Ativo, Inativo
+
+  representativeId String  @unique
+  representative  Person   @relation("FamilyRepresentative", fields: [representativeId], references: [id])
+
+  addressId       String?
+  address         Address? @relation("FamilyAddress", fields: [addressId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  members         SocialFamilyMember[]
+  records         SocialRecord[]
+  attendances     SocialAttendance[]
+  visits          SocialVisit[]
+  concessions     SocialBenefitConcession[]
+  programs        SocialProgramParticipation[]
+}
+
+model SocialFamilyMember {
+  id              String   @id @default(cuid())
+  kinship         String   // Filho, Cônjuge, etc.
+  isDependent     Boolean  @default(true)
+
+  familyId        String
+  family          SocialFamily @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  personId        String   @unique
+  person          Person   @relation("FamilyMemberPerson", fields: [personId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SocialRecord {
+  id              String   @id @default(cuid())
+  history         String   // Evolução social, pareceres da família
+  secrecyLevel    String   @default("Normal") // Normal, Restrito, CREAS
+
+  familyId        String
+  family          SocialFamily @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  unitId          String?
+  unit            SocialUnit? @relation(fields: [unitId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SocialAttendance {
+  id              String   @id @default(cuid())
+  date            DateTime @default(now())
+  type            String   // PAIF, PAEFI, Acolhimento, etc.
+  description     String
+  referrals       String?  // Encaminhamentos realizados
+  secrecyLevel    String   @default("Normal") // Normal, Restrito (CREAS)
+
+  familyId        String
+  family          SocialFamily @relation(fields: [familyId], references: [id])
+
+  personId        String?  // Opcional, caso o atendimento seja focado num indivíduo
+  person          Person?  @relation(fields: [personId], references: [id])
+
+  unitId          String
+  unit            SocialUnit @relation(fields: [unitId], references: [id])
+
+  professionalId  String
+  professional    Employee @relation("SocialAttendanceProfessional", fields: [professionalId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SocialVisit {
+  id              String   @id @default(cuid())
+  scheduledDate   DateTime
+  realizedDate    DateTime?
+  objective       String
+  report          String?
+  status          String   @default("Agendada") // Agendada, Realizada, Não Localizado
+
+  familyId        String
+  family          SocialFamily @relation(fields: [familyId], references: [id])
+
+  professionalId  String
+  professional    Employee @relation("SocialVisitProfessional", fields: [professionalId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SocialBenefit {
+  id              String   @id @default(cuid())
+  name            String   // Cesta Básica, Aluguel Social, Auxílio Funeral
+  description     String?
+  isRecurrent     Boolean  @default(false)
+  isActive        Boolean  @default(true)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  concessions     SocialBenefitConcession[]
+}
+
+model SocialBenefitConcession {
+  id              String   @id @default(cuid())
+  date            DateTime @default(now())
+  quantity        Int      @default(1)
+  value           Float?   // Valor caso seja benefício financeiro
+  status          String   @default("Concedido") // Concedido, Entregue, Cancelado
+
+  benefitId       String
+  benefit         SocialBenefit @relation(fields: [benefitId], references: [id])
+
+  familyId        String
+  family          SocialFamily @relation(fields: [familyId], references: [id])
+
+  personId        String?  // Opcional caso entregue a um indivíduo que não o responsável
+  person          Person?  @relation(fields: [personId], references: [id])
+
+  professionalId  String
+  professional    Employee @relation("SocialConcessionProfessional", fields: [professionalId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SocialProgram {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  sphere          String   @default("Municipal") // Federal, Estadual, Municipal
+  isActive        Boolean  @default(true)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  participations  SocialProgramParticipation[]
+}
+
+model SocialProgramParticipation {
+  id              String   @id @default(cuid())
+  entryDate       DateTime @default(now())
+  exitDate        DateTime?
+  status          String   @default("Ativo") // Ativo, Inativo, Suspenso
+
+  programId       String
+  program         SocialProgram @relation(fields: [programId], references: [id])
+
+  familyId        String
+  family          SocialFamily @relation(fields: [familyId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
