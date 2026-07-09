@@ -205,6 +205,10 @@ model Employee {
   assetTransfersTo      AssetTransfer[]   @relation("TransferToResp")
   materialRequests      MaterialRequest[] @relation("MaterialRequester")
 
+  // Mod 12
+  directedSchools       School[]          @relation("SchoolDirector")
+  teacher               Teacher?          @relation("EmployeeTeacher")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -292,6 +296,10 @@ model Person {
   // Mod 10
   dependents Dependent[] @relation("PersonDependent")
   employee   Employee?   @relation("PersonEmployee")
+
+  // Mod 12
+  studentInfo      Student?              @relation("StudentPerson")
+  guardianFor      EducationalGuardian[] @relation("GuardianPerson")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -448,6 +456,9 @@ model Address {
 
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Mod 12
+  school    School?  @relation("SchoolAddress")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1765,6 +1776,8 @@ model Warehouse {
 
   stocks     MaterialStock[]
   movements  MaterialMovement[]
+
+  schoolMeals SchoolMeal[]
 }
 
 model MaterialCategory {
@@ -1876,4 +1889,232 @@ model MaterialRequestItem {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// --- Módulo 12: Educação ---
+
+model School {
+  id              String   @id @default(cuid())
+  name            String
+  inepCode        String?  @unique
+  cnpj            String?
+  phone           String?
+  email           String?
+  capacity        Int      @default(0)
+  isActive        Boolean  @default(true)
+
+  directorId      String?
+  director        Employee? @relation("SchoolDirector", fields: [directorId], references: [id])
+  
+  addressId       String?   @unique
+  address         Address?  @relation("SchoolAddress", fields: [addressId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  classes         SchoolClass[]
+  enrollments     Enrollment[]
+  preEnrollments  PreEnrollment[]
+  meals           SchoolMeal[]
+}
+
+model Student {
+  id                    String   @id @default(cuid())
+  studentCode           String   @unique
+  specialNeeds          String?
+  usesSchoolTransport   Boolean  @default(false)
+  needsSpecialMeal      Boolean  @default(false)
+  status                String   @default("Ativo") // Ativo, Inativo, Transferido
+  
+  personId              String   @unique
+  person                Person   @relation("StudentPerson", fields: [personId], references: [id])
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  guardians             EducationalGuardian[]
+  enrollments           Enrollment[]
+  preEnrollments        PreEnrollment[]
+  attendances           Attendance[]
+  grades                Grade[]
+}
+
+model EducationalGuardian {
+  id          String   @id @default(cuid())
+  kinship     String   // Pai, Mãe, Avô, Tutor
+  isFinancial Boolean  @default(false)
+  isAcademic  Boolean  @default(true)
+  canPickUp   Boolean  @default(true)
+  
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id])
+
+  personId    String
+  person      Person   @relation("GuardianPerson", fields: [personId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Teacher {
+  id              String   @id @default(cuid())
+  
+  employeeId      String   @unique
+  employee        Employee @relation("EmployeeTeacher", fields: [employeeId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  taughtClasses   SchoolClass[] @relation("ClassTeacher")
+  diaries         ClassDiary[]  @relation("DiaryTeacher")
+  gradesGiven     Grade[]       @relation("GradeTeacher")
+}
+
+model SchoolClass {
+  id              String   @id @default(cuid())
+  name            String
+  year            Int      // 2026
+  stage           String   // Ensino Fundamental, Educação Infantil
+  grade           String   // 1º Ano, Creche II
+  shift           String   // Manhã, Tarde, Integral, Noite
+  room            String?
+  capacity        Int      @default(30)
+  status          String   @default("Aberta") // Aberta, Fechada
+
+  schoolId        String
+  school          School   @relation(fields: [schoolId], references: [id])
+
+  teacherId       String?
+  teacher         Teacher? @relation("ClassTeacher", fields: [teacherId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  enrollments     Enrollment[]
+  diaries         ClassDiary[]
+}
+
+model SchoolSubject {
+  id              String   @id @default(cuid())
+  name            String
+  code            String?  @unique
+  description     String?
+  isActive        Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  diaries         ClassDiary[]
+  grades          Grade[]
+}
+
+model PreEnrollment {
+  id              String   @id @default(cuid())
+  year            Int
+  stage           String
+  grade           String
+  shift           String
+  status          String   @default("Pendente") // Pendente, Deferida, Indeferida
+
+  studentId       String
+  student         Student  @relation(fields: [studentId], references: [id])
+
+  schoolId        String
+  school          School   @relation(fields: [schoolId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Enrollment {
+  id              String   @id @default(cuid())
+  year            Int
+  status          String   @default("Matriculado") // Matriculado, Transferido, Evadido, Concluído
+  enrollmentDate  DateTime @default(now())
+  
+  studentId       String
+  student         Student  @relation(fields: [studentId], references: [id])
+
+  schoolId        String
+  school          School   @relation(fields: [schoolId], references: [id])
+
+  classId         String?
+  schoolClass     SchoolClass? @relation(fields: [classId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ClassDiary {
+  id              String   @id @default(cuid())
+  date            DateTime
+  contentTaught   String?
+  observations    String?
+  status          String   @default("Aberto") // Aberto, Fechado
+
+  classId         String
+  schoolClass     SchoolClass @relation(fields: [classId], references: [id])
+
+  subjectId       String?
+  schoolSubject   SchoolSubject? @relation(fields: [subjectId], references: [id])
+
+  teacherId       String
+  teacher         Teacher @relation("DiaryTeacher", fields: [teacherId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  attendances     Attendance[]
+}
+
+model Attendance {
+  id              String   @id @default(cuid())
+  isPresent       Boolean  @default(true)
+  justification   String?
+
+  diaryId         String
+  diary           ClassDiary @relation(fields: [diaryId], references: [id])
+
+  studentId       String
+  student         Student  @relation(fields: [studentId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Grade {
+  id              String   @id @default(cuid())
+  period          String   // 1º Bimestre, 2º Bimestre, Final
+  value           Float?
+  concept         String?  // A, B, C ou Excelente, Bom (se não for nota numérica)
+  type            String   @default("Avaliação") // Avaliação, Recuperação
+
+  studentId       String
+  student         Student  @relation(fields: [studentId], references: [id])
+
+  subjectId       String
+  schoolSubject   SchoolSubject  @relation(fields: [subjectId], references: [id])
+
+  teacherId       String
+  teacher         Teacher @relation("GradeTeacher", fields: [teacherId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SchoolMeal {
+  id              String   @id @default(cuid())
+  date            DateTime @default(now())
+  menu            String
+  servedQuantity  Int
+  notes           String?
+
+  schoolId        String
+  school          School   @relation(fields: [schoolId], references: [id])
+
+  warehouseId     String?
+  warehouse       Warehouse? @relation(fields: [warehouseId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
