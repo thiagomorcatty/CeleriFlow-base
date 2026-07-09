@@ -21,7 +21,7 @@ export default async function EducacaoDashboardPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
           <GraduationCap className="h-8 w-8 text-blue-600" />
-          Módulo 12 - Educação
+          Educação
         </h1>
         <p className="text-gray-500 mt-2">
           Gestão Escolar integrada à rede municipal de ensino.

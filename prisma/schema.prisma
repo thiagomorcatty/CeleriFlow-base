@@ -61,7 +61,7 @@ model Secretariat {
   demands     InternalDemand[]
 
   // Mod 6
-  portalNews  PortalNews[] @relation("NewsSecretariat")
+  portalNews PortalNews[] @relation("NewsSecretariat")
 
   // Mod 8
   budgetUnits BudgetUnit[] @relation("SecretariatBudgetUnits")
@@ -73,8 +73,8 @@ model Secretariat {
   purchaseProcesses PurchaseProcess[] @relation("SecretariatPurchaseProcesses")
   contracts         Contract[]        @relation("SecretariatContracts")
 
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Departamentos / Setores
@@ -103,8 +103,8 @@ model Department {
 
   // Mod 11
   assets           Asset[]
-  transfersFrom    AssetTransfer[]   @relation("TransferFromDept")
-  transfersTo      AssetTransfer[]   @relation("TransferToDept")
+  transfersFrom    AssetTransfer[]    @relation("TransferFromDept")
+  transfersTo      AssetTransfer[]    @relation("TransferToDept")
   materialMoves    MaterialMovement[] @relation("MovementDepartment")
   materialRequests MaterialRequest[]  @relation("MaterialRequestDepartment")
 
@@ -174,40 +174,44 @@ model Employee {
   ticketInteractions TicketInteraction[] @relation("InteractionEmployee")
 
   // Mod 6
-  portalPages        PortalPage[]        @relation("PageAuthor")
-  portalNews         PortalNews[]        @relation("NewsAuthor")
-  officialDiaries    OfficialDiary[]     @relation("DiaryAuthor")
+  portalPages     PortalPage[]    @relation("PageAuthor")
+  portalNews      PortalNews[]    @relation("NewsAuthor")
+  officialDiaries OfficialDiary[] @relation("DiaryAuthor")
 
   // Mod 8
-  settlements        Settlement[]        @relation("SettlementAuthor")
-  accountingEntries  AccountingEntry[]   @relation("AccountingEntryAuthor")
+  settlements       Settlement[]      @relation("SettlementAuthor")
+  accountingEntries AccountingEntry[] @relation("AccountingEntryAuthor")
 
   // Mod 9
-  purchaseRequests    PurchaseRequest[] @relation("EmployeePurchaseRequests")
-  managedContracts    Contract[]        @relation("ContractManager")
-  inspectedContracts  Contract[]        @relation("ContractInspector")
+  purchaseRequests   PurchaseRequest[] @relation("EmployeePurchaseRequests")
+  managedContracts   Contract[]        @relation("ContractManager")
+  inspectedContracts Contract[]        @relation("ContractInspector")
 
   // Mod 10
-  personId           String?            @unique
-  person             Person?            @relation("PersonEmployee", fields: [personId], references: [id])
-  payrolls           PayrollItem[]      @relation("EmployeePayrollItem")
-  vacations          Vacation[]         @relation("EmployeeVacation")
-  leaves             Leave[]            @relation("EmployeeLeave")
-  attendances        AttendanceRecord[] @relation("EmployeeAttendance")
-  dependents         Dependent[]        @relation("EmployeeDependent")
-  benefits           PayrollBenefit[]   @relation("EmployeeBenefit")
-  personnelActs      PersonnelAct[]     @relation("EmployeePersonnelAct")
+  personId      String?            @unique
+  person        Person?            @relation("PersonEmployee", fields: [personId], references: [id])
+  payrolls      PayrollItem[]      @relation("EmployeePayrollItem")
+  vacations     Vacation[]         @relation("EmployeeVacation")
+  leaves        Leave[]            @relation("EmployeeLeave")
+  attendances   AttendanceRecord[] @relation("EmployeeAttendance")
+  dependents    Dependent[]        @relation("EmployeeDependent")
+  benefits      PayrollBenefit[]   @relation("EmployeeBenefit")
+  personnelActs PersonnelAct[]     @relation("EmployeePersonnelAct")
 
   // Mod 11
-  managedWarehouses     Warehouse[]       @relation("WarehouseManager")
-  responsibleAssets     Asset[]           @relation("AssetResponsible")
-  assetTransfersFrom    AssetTransfer[]   @relation("TransferFromResp")
-  assetTransfersTo      AssetTransfer[]   @relation("TransferToResp")
-  materialRequests      MaterialRequest[] @relation("MaterialRequester")
+  managedWarehouses  Warehouse[]       @relation("WarehouseManager")
+  responsibleAssets  Asset[]           @relation("AssetResponsible")
+  assetTransfersFrom AssetTransfer[]   @relation("TransferFromResp")
+  assetTransfersTo   AssetTransfer[]   @relation("TransferToResp")
+  materialRequests   MaterialRequest[] @relation("MaterialRequester")
 
   // Mod 12
-  directedSchools       School[]          @relation("SchoolDirector")
-  teacher               Teacher?          @relation("EmployeeTeacher")
+  directedSchools School[] @relation("SchoolDirector")
+  teacher         Teacher? @relation("EmployeeTeacher")
+
+  // Mod 13
+  healthProfessional HealthProfessional? @relation("EmployeeHealthProfessional")
+  managedHealthUnits HealthUnit[]        @relation("HealthUnitManager")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -298,8 +302,11 @@ model Person {
   employee   Employee?   @relation("PersonEmployee")
 
   // Mod 12
-  studentInfo      Student?              @relation("StudentPerson")
-  guardianFor      EducationalGuardian[] @relation("GuardianPerson")
+  studentInfo Student?              @relation("StudentPerson")
+  guardianFor EducationalGuardian[] @relation("GuardianPerson")
+
+  // Mod 13
+  patientInfo Patient? @relation("PersonPatient")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -402,9 +409,9 @@ model Supplier {
   directContracting DirectContracting[] @relation("SupplierDirectContracting")
 
   // Mod 11
-  assets            Asset[]             @relation("AssetSupplier")
-  assetMaintenances AssetMaintenance[]  @relation("AssetMaintenanceSupplier")
-  materialMovements MaterialMovement[]  @relation("MaterialMovementSupplier")
+  assets            Asset[]            @relation("AssetSupplier")
+  assetMaintenances AssetMaintenance[] @relation("AssetMaintenanceSupplier")
+  materialMovements MaterialMovement[] @relation("MaterialMovementSupplier")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -458,7 +465,10 @@ model Address {
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   // Mod 12
-  school    School?  @relation("SchoolAddress")
+  school School? @relation("SchoolAddress")
+
+  // Mod 13
+  healthUnit HealthUnit? @relation("HealthUnitAddress")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -787,100 +797,100 @@ model SatisfactionSurvey {
 // --- Módulo 6: Portal e Transparência ---
 
 model PortalPage {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   title     String
-  slug      String   @unique
+  slug      String    @unique
   content   String
-  status    String   @default("Rascunho") // Publicado, Rascunho, Inativo
+  status    String    @default("Rascunho") // Publicado, Rascunho, Inativo
   authorId  String?
   author    Employee? @relation("PageAuthor", fields: [authorId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model PortalMenu {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   name      String
   url       String?
   parentId  String?
   parent    PortalMenu?  @relation("MenuHierarchy", fields: [parentId], references: [id])
   children  PortalMenu[] @relation("MenuHierarchy")
-  order     Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  order     Int          @default(0)
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 }
 
 model PortalNews {
-  id            String   @id @default(cuid())
+  id            String       @id @default(cuid())
   title         String
   subtitle      String?
-  slug          String   @unique
+  slug          String       @unique
   content       String
   imageUrl      String?
-  status        String   @default("Rascunho")
+  status        String       @default("Rascunho")
   publishedAt   DateTime?
   authorId      String?
-  author        Employee? @relation("NewsAuthor", fields: [authorId], references: [id])
+  author        Employee?    @relation("NewsAuthor", fields: [authorId], references: [id])
   secretariatId String?
   secretariat   Secretariat? @relation("NewsSecretariat", fields: [secretariatId], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 }
 
 model PortalBanner {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   title     String
   imageUrl  String
   linkUrl   String?
-  position  String   @default("Principal")
-  order     Int      @default(0)
-  status    String   @default("Ativo")
+  position  String    @default("Principal")
+  order     Int       @default(0)
+  status    String    @default("Ativo")
   startDate DateTime?
   endDate   DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model OfficialPublication {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   category    String // Edital, Comunicado, Resultado, etc
   description String?
   fileUrl     String?
   linkUrl     String?
-  status      String   @default("Publicado")
-  publishDate DateTime @default(now())
+  status      String    @default("Publicado")
+  publishDate DateTime  @default(now())
   validUntil  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model OfficialDiary {
-  id             String   @id @default(cuid())
-  editionNumber  Int      @unique
-  publishDate    DateTime
-  pdfUrl         String
-  status         String   @default("Rascunho") // Publicado, Rascunho
-  authorId       String?
-  author         Employee? @relation("DiaryAuthor", fields: [authorId], references: [id])
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            String    @id @default(cuid())
+  editionNumber Int       @unique
+  publishDate   DateTime
+  pdfUrl        String
+  status        String    @default("Rascunho") // Publicado, Rascunho
+  authorId      String?
+  author        Employee? @relation("DiaryAuthor", fields: [authorId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model PublicService {
-  id          String   @id @default(cuid())
-  name        String
-  description String
-  target      String // Cidadão, Empresa, Servidor
+  id           String   @id @default(cuid())
+  name         String
+  description  String
+  target       String // Cidadão, Empresa, Servidor
   requirements String?
-  steps       String?
-  deadline    String?
-  cost        String?
-  linkUrl     String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  steps        String?
+  deadline     String?
+  cost         String?
+  linkUrl      String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model InformationRequest {
@@ -1107,13 +1117,13 @@ model FinancialYear {
 }
 
 model BudgetUnit {
-  id            String       @id @default(cuid())
-  code          String       @unique
+  id            String      @id @default(cuid())
+  code          String      @unique
   name          String
   secretariatId String
-  secretariat   Secretariat  @relation("SecretariatBudgetUnits", fields: [secretariatId], references: [id])
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  secretariat   Secretariat @relation("SecretariatBudgetUnits", fields: [secretariatId], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   appropriations BudgetAppropriation[]
 }
@@ -1151,21 +1161,21 @@ model ExpenseNature {
 }
 
 model BudgetAppropriation {
-  id              String         @id @default(cuid())
-  code            String         @unique
-  financialYearId String
-  financialYear   FinancialYear  @relation(fields: [financialYearId], references: [id])
-  budgetUnitId    String
-  budgetUnit      BudgetUnit     @relation(fields: [budgetUnitId], references: [id])
-  expenseNatureId String
-  expenseNature   ExpenseNature  @relation(fields: [expenseNatureId], references: [id])
+  id               String         @id @default(cuid())
+  code             String         @unique
+  financialYearId  String
+  financialYear    FinancialYear  @relation(fields: [financialYearId], references: [id])
+  budgetUnitId     String
+  budgetUnit       BudgetUnit     @relation(fields: [budgetUnitId], references: [id])
+  expenseNatureId  String
+  expenseNature    ExpenseNature  @relation(fields: [expenseNatureId], references: [id])
   resourceSourceId String
-  resourceSource  ResourceSource @relation(fields: [resourceSourceId], references: [id])
-  initialValue    Float          @default(0)
-  updatedValue    Float          @default(0)
-  committedValue  Float          @default(0)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  resourceSource   ResourceSource @relation(fields: [resourceSourceId], references: [id])
+  initialValue     Float          @default(0)
+  updatedValue     Float          @default(0)
+  committedValue   Float          @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   reservations BudgetReservation[]
   commitments  Commitment[]
@@ -1173,84 +1183,84 @@ model BudgetAppropriation {
 }
 
 model Revenue {
-  id              String         @id @default(cuid())
-  date            DateTime       @default(now())
-  value           Float
-  revenueNatureId String
-  revenueNature   RevenueNature  @relation(fields: [revenueNatureId], references: [id])
+  id               String         @id @default(cuid())
+  date             DateTime       @default(now())
+  value            Float
+  revenueNatureId  String
+  revenueNature    RevenueNature  @relation(fields: [revenueNatureId], references: [id])
   resourceSourceId String
-  resourceSource  ResourceSource @relation(fields: [resourceSourceId], references: [id])
-  bankAccountId   String?
-  bankAccount     BankAccount?   @relation(fields: [bankAccountId], references: [id])
-  secretariatId   String?
-  secretariat     Secretariat?   @relation("SecretariatRevenues", fields: [secretariatId], references: [id])
-  status          String         @default("Arrecadada")
-  history         String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  resourceSource   ResourceSource @relation(fields: [resourceSourceId], references: [id])
+  bankAccountId    String?
+  bankAccount      BankAccount?   @relation(fields: [bankAccountId], references: [id])
+  secretariatId    String?
+  secretariat      Secretariat?   @relation("SecretariatRevenues", fields: [secretariatId], references: [id])
+  status           String         @default("Arrecadada")
+  history          String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 }
 
 model Expense {
-  id              String               @id @default(cuid())
-  date            DateTime             @default(now())
+  id              String              @id @default(cuid())
+  date            DateTime            @default(now())
   description     String
   value           Float
   appropriationId String
-  appropriation   BudgetAppropriation  @relation(fields: [appropriationId], references: [id])
+  appropriation   BudgetAppropriation @relation(fields: [appropriationId], references: [id])
   secretariatId   String
-  secretariat     Secretariat          @relation("SecretariatExpenses", fields: [secretariatId], references: [id])
-  status          String               @default("Solicitada") // Solicitada, Reservada, Empenhada
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  secretariat     Secretariat         @relation("SecretariatExpenses", fields: [secretariatId], references: [id])
+  status          String              @default("Solicitada") // Solicitada, Reservada, Empenhada
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 }
 
 model BudgetReservation {
-  id              String               @id @default(cuid())
-  number          String               @unique
-  date            DateTime             @default(now())
+  id              String              @id @default(cuid())
+  number          String              @unique
+  date            DateTime            @default(now())
   value           Float
   appropriationId String
-  appropriation   BudgetAppropriation  @relation(fields: [appropriationId], references: [id])
+  appropriation   BudgetAppropriation @relation(fields: [appropriationId], references: [id])
   justification   String?
-  status          String               @default("Ativa") // Ativa, Cancelada, Empenhada
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  status          String              @default("Ativa") // Ativa, Cancelada, Empenhada
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 }
 
 model Commitment {
-  id              String               @id @default(cuid())
-  number          String               @unique
-  date            DateTime             @default(now())
+  id              String              @id @default(cuid())
+  number          String              @unique
+  date            DateTime            @default(now())
   value           Float
-  type            String               @default("Ordinário") // Ordinário, Estimativo, Global
+  type            String              @default("Ordinário") // Ordinário, Estimativo, Global
   history         String
   appropriationId String
-  appropriation   BudgetAppropriation  @relation(fields: [appropriationId], references: [id])
+  appropriation   BudgetAppropriation @relation(fields: [appropriationId], references: [id])
   supplierId      String
-  supplier        Supplier             @relation("SupplierCommitments", fields: [supplierId], references: [id])
-  status          String               @default("Emitido") // Emitido, Liquidado, Pago, Anulado
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  supplier        Supplier            @relation("SupplierCommitments", fields: [supplierId], references: [id])
+  status          String              @default("Emitido") // Emitido, Liquidado, Pago, Anulado
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
-  settlements     Settlement[]
-  payments        Payment[]
+  settlements Settlement[]
+  payments    Payment[]
 }
 
 model Settlement {
-  id           String      @id @default(cuid())
-  date         DateTime    @default(now())
+  id           String     @id @default(cuid())
+  date         DateTime   @default(now())
   value        Float
-  documentRef  String?     // NF, Recibo, etc
+  documentRef  String? // NF, Recibo, etc
   commitmentId String
-  commitment   Commitment  @relation(fields: [commitmentId], references: [id])
+  commitment   Commitment @relation(fields: [commitmentId], references: [id])
   authorId     String
-  author       Employee    @relation("SettlementAuthor", fields: [authorId], references: [id])
-  status       String      @default("Liquidado") // Liquidado, Cancelado
+  author       Employee   @relation("SettlementAuthor", fields: [authorId], references: [id])
+  status       String     @default("Liquidado") // Liquidado, Cancelado
   notes        String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  payments     Payment[]
+  payments Payment[]
 }
 
 model Payment {
@@ -1285,9 +1295,9 @@ model BankAccount {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
-  revenues         Revenue[]
-  payments         Payment[]
-  reconciliations  BankReconciliation[]
+  revenues        Revenue[]
+  payments        Payment[]
+  reconciliations BankReconciliation[]
 }
 
 model BankReconciliation {
@@ -1308,118 +1318,118 @@ model AccountingPlan {
   id        String   @id @default(cuid())
   code      String   @unique
   name      String
-  type      String   // Receita, Despesa, Ativo, Passivo
+  type      String // Receita, Despesa, Ativo, Passivo
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  entries   AccountingEntry[]
+  entries AccountingEntry[]
 }
 
 model AccountingEntry {
-  id            String         @id @default(cuid())
-  date          DateTime       @default(now())
-  value         Float
-  type          String         // Débito, Crédito
-  history       String
-  accountId     String
-  account       AccountingPlan @relation(fields: [accountId], references: [id])
-  authorId      String
-  author        Employee       @relation("AccountingEntryAuthor", fields: [authorId], references: [id])
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id        String         @id @default(cuid())
+  date      DateTime       @default(now())
+  value     Float
+  type      String // Débito, Crédito
+  history   String
+  accountId String
+  account   AccountingPlan @relation(fields: [accountId], references: [id])
+  authorId  String
+  author    Employee       @relation("AccountingEntryAuthor", fields: [authorId], references: [id])
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 }
 
 // --- Módulo 9: Compras e Contratos ---
 
 model CatalogItem {
-  id             String   @id @default(cuid())
-  code           String?  @unique
+  id             String  @id @default(cuid())
+  code           String? @unique
   name           String
   description    String?
-  unit           String   @default("UN")
+  unit           String  @default("UN")
   category       String?
   estimatedValue Float?
-  isActive       Boolean  @default(true)
-  
-  // Mod 11
-  materials      Material[]
+  isActive       Boolean @default(true)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  // Mod 11
+  materials Material[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PurchaseRequest {
-  id             String   @id @default(cuid())
-  number         String   @unique
+  id             String @id @default(cuid())
+  number         String @unique
   object         String
   justification  String
   estimatedValue Float?
-  status         String   @default("Rascunho") // Rascunho, Enviada, Aprovada, Rejeitada, etc.
-  priority       String   @default("Normal")
-  
-  secretariatId  String
-  secretariat    Secretariat @relation("SecretariatPurchaseRequests", fields: [secretariatId], references: [id])
-  
-  departmentId   String
-  department     Department  @relation("DepartmentPurchaseRequests", fields: [departmentId], references: [id])
-  
-  requesterId    String
-  requester      Employee    @relation("EmployeePurchaseRequests", fields: [requesterId], references: [id])
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  status         String @default("Rascunho") // Rascunho, Enviada, Aprovada, Rejeitada, etc.
+  priority       String @default("Normal")
+
+  secretariatId String
+  secretariat   Secretariat @relation("SecretariatPurchaseRequests", fields: [secretariatId], references: [id])
+
+  departmentId String
+  department   Department @relation("DepartmentPurchaseRequests", fields: [departmentId], references: [id])
+
+  requesterId String
+  requester   Employee @relation("EmployeePurchaseRequests", fields: [requesterId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PurchaseProcess {
-  id             String   @id @default(cuid())
-  number         String   @unique
+  id             String  @id @default(cuid())
+  number         String  @unique
   object         String
-  type           String   // Comum, Registro de Preços
-  modality       String?  // Pregão, Concorrência, Dispensa, Inexigibilidade
+  type           String // Comum, Registro de Preços
+  modality       String? // Pregão, Concorrência, Dispensa, Inexigibilidade
   estimatedValue Float?
-  status         String   @default("Em Planejamento")
-  
-  secretariatId  String
-  secretariat    Secretariat @relation("SecretariatPurchaseProcesses", fields: [secretariatId], references: [id])
-  
+  status         String  @default("Em Planejamento")
+
+  secretariatId String
+  secretariat   Secretariat @relation("SecretariatPurchaseProcesses", fields: [secretariatId], references: [id])
+
   preliminaryStudies PreliminaryTechnicalStudy[]
   termsOfReference   TermOfReference[]
   priceResearches    PriceResearch[]
   biddings           Bidding[]
   directContractings DirectContracting[]
   contracts          Contract[]
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PreliminaryTechnicalStudy {
-  id               String   @id @default(cuid())
-  description      String
-  justification    String
-  estimatedValue   Float?
-  status           String   @default("Em Elaboração") // Em Elaboração, Aprovado
-  
-  processId        String
-  process          PurchaseProcess @relation(fields: [processId], references: [id])
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id             String @id @default(cuid())
+  description    String
+  justification  String
+  estimatedValue Float?
+  status         String @default("Em Elaboração") // Em Elaboração, Aprovado
+
+  processId String
+  process   PurchaseProcess @relation(fields: [processId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model TermOfReference {
-  id               String   @id @default(cuid())
-  object           String
-  justification    String
-  scope            String
-  estimatedValue   Float?
-  status           String   @default("Em Elaboração") // Em Elaboração, Aprovado
-  
-  processId        String
-  process          PurchaseProcess @relation(fields: [processId], references: [id])
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id             String @id @default(cuid())
+  object         String
+  justification  String
+  scope          String
+  estimatedValue Float?
+  status         String @default("Em Elaboração") // Em Elaboração, Aprovado
+
+  processId String
+  process   PurchaseProcess @relation(fields: [processId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PriceResearch {
@@ -1427,179 +1437,178 @@ model PriceResearch {
   date           DateTime @default(now())
   estimatedValue Float?
   status         String   @default("Em Andamento") // Em Andamento, Concluída
-  
-  processId      String
-  process        PurchaseProcess @relation(fields: [processId], references: [id])
-  
-  quotes         PriceQuote[]
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+
+  processId String
+  process   PurchaseProcess @relation(fields: [processId], references: [id])
+
+  quotes PriceQuote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PriceQuote {
-  id             String   @id @default(cuid())
-  value          Float
-  date           DateTime @default(now())
-  status         String   @default("Ativa")
-  
-  researchId     String
-  research       PriceResearch @relation(fields: [researchId], references: [id])
-  
-  supplierId     String
-  supplier       Supplier @relation("SupplierPriceQuotes", fields: [supplierId], references: [id])
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id     String   @id @default(cuid())
+  value  Float
+  date   DateTime @default(now())
+  status String   @default("Ativa")
+
+  researchId String
+  research   PriceResearch @relation(fields: [researchId], references: [id])
+
+  supplierId String
+  supplier   Supplier @relation("SupplierPriceQuotes", fields: [supplierId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Bidding {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   number          String
   modality        String
-  status          String   @default("Em Elaboração")
+  status          String    @default("Em Elaboração")
   publicationDate DateTime?
   sessionDate     DateTime?
-  
-  processId       String
-  process         PurchaseProcess @relation(fields: [processId], references: [id])
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+
+  processId String
+  process   PurchaseProcess @relation(fields: [processId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model DirectContracting {
-  id             String   @id @default(cuid())
-  type           String   // Dispensa, Inexigibilidade
-  justification  String
-  value          Float
-  status         String   @default("Em Elaboração")
-  
-  processId      String
-  process        PurchaseProcess @relation(fields: [processId], references: [id])
-  
-  supplierId     String
-  supplier       Supplier @relation("SupplierDirectContracting", fields: [supplierId], references: [id])
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            String @id @default(cuid())
+  type          String // Dispensa, Inexigibilidade
+  justification String
+  value         Float
+  status        String @default("Em Elaboração")
+
+  processId String
+  process   PurchaseProcess @relation(fields: [processId], references: [id])
+
+  supplierId String
+  supplier   Supplier @relation("SupplierDirectContracting", fields: [supplierId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Contract {
-  id             String   @id @default(cuid())
-  number         String   @unique
-  object         String
-  initialValue   Float
-  updatedValue   Float
-  startDate      DateTime
-  endDate        DateTime
-  status         String   @default("Minuta") // Minuta, Vigente, Encerrado, etc.
-  
-  processId      String
-  process        PurchaseProcess @relation(fields: [processId], references: [id])
-  
-  supplierId     String
-  supplier       Supplier @relation("SupplierContracts", fields: [supplierId], references: [id])
-  
-  secretariatId  String
-  secretariat    Secretariat @relation("SecretariatContracts", fields: [secretariatId], references: [id])
-  
-  managerId      String?
-  manager        Employee? @relation("ContractManager", fields: [managerId], references: [id])
-  
-  inspectorId    String?
-  inspector      Employee? @relation("ContractInspector", fields: [inspectorId], references: [id])
-  
-  amendments     ContractAmendment[]
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           String   @id @default(cuid())
+  number       String   @unique
+  object       String
+  initialValue Float
+  updatedValue Float
+  startDate    DateTime
+  endDate      DateTime
+  status       String   @default("Minuta") // Minuta, Vigente, Encerrado, etc.
+
+  processId String
+  process   PurchaseProcess @relation(fields: [processId], references: [id])
+
+  supplierId String
+  supplier   Supplier @relation("SupplierContracts", fields: [supplierId], references: [id])
+
+  secretariatId String
+  secretariat   Secretariat @relation("SecretariatContracts", fields: [secretariatId], references: [id])
+
+  managerId String?
+  manager   Employee? @relation("ContractManager", fields: [managerId], references: [id])
+
+  inspectorId String?
+  inspector   Employee? @relation("ContractInspector", fields: [inspectorId], references: [id])
+
+  amendments ContractAmendment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ContractAmendment {
-  id               String   @id @default(cuid())
-  type             String   // Prazo, Valor, Ambos
-  justification    String
-  previousValue    Float?
-  newValue         Float?
-  previousEndDate  DateTime?
-  newEndDate       DateTime?
-  status           String   @default("Minuta")
-  
-  contractId       String
-  contract         Contract @relation(fields: [contractId], references: [id])
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-}
+  id              String    @id @default(cuid())
+  type            String // Prazo, Valor, Ambos
+  justification   String
+  previousValue   Float?
+  newValue        Float?
+  previousEndDate DateTime?
+  newEndDate      DateTime?
+  status          String    @default("Minuta")
 
+  contractId String
+  contract   Contract @relation(fields: [contractId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
 // --- Módulo 10: RH e Folha ---
 
 model Payroll {
-  id          String   @id @default(cuid())
-  competence  String   // "07/2026"
-  type        String   @default("Mensal") // Mensal, Férias, 13º, Rescisão
-  status      String   @default("Aberta") // Aberta, Fechada, Paga
-  totalValue  Float    @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  competence String // "07/2026"
+  type       String   @default("Mensal") // Mensal, Férias, 13º, Rescisão
+  status     String   @default("Aberta") // Aberta, Fechada, Paga
+  totalValue Float    @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  items       PayrollItem[]
+  items PayrollItem[]
 }
 
 model PayrollEvent {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  name        String
-  type        String   // Vencimento, Desconto, Base
-  formula     String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  type      String // Vencimento, Desconto, Base
+  formula   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  items       PayrollItem[]
+  items PayrollItem[]
 }
 
 model PayrollItem {
-  id          String       @id @default(cuid())
-  payrollId   String
-  payroll     Payroll      @relation(fields: [payrollId], references: [id], onDelete: Cascade)
-  employeeId  String
-  employee    Employee     @relation("EmployeePayrollItem", fields: [employeeId], references: [id])
-  eventId     String
-  event       PayrollEvent @relation(fields: [eventId], references: [id])
-  value       Float
-  reference   String?      // "10", "220h"
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id         String       @id @default(cuid())
+  payrollId  String
+  payroll    Payroll      @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   Employee     @relation("EmployeePayrollItem", fields: [employeeId], references: [id])
+  eventId    String
+  event      PayrollEvent @relation(fields: [eventId], references: [id])
+  value      Float
+  reference  String? // "10", "220h"
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 }
 
 model Vacation {
-  id              String    @id @default(cuid())
-  employeeId      String
-  employee        Employee  @relation("EmployeeVacation", fields: [employeeId], references: [id])
+  id               String    @id @default(cuid())
+  employeeId       String
+  employee         Employee  @relation("EmployeeVacation", fields: [employeeId], references: [id])
   acquisitionStart DateTime
   acquisitionEnd   DateTime
   enjoymentStart   DateTime?
   enjoymentEnd     DateTime?
-  days            Int       @default(30)
-  status          String    @default("A vencer") // A vencer, Disponível, Programada, Em gozo, Concluída
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  days             Int       @default(30)
+  status           String    @default("A vencer") // A vencer, Disponível, Programada, Em gozo, Concluída
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
 
 model Leave {
-  id          String    @id @default(cuid())
-  employeeId  String
-  employee    Employee  @relation("EmployeeLeave", fields: [employeeId], references: [id])
-  type        String    // Licença médica, Maternidade, Sem vencimento
-  startDate   DateTime
-  endDate     DateTime
-  reason      String?
-  status      String    @default("Ativa")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation("EmployeeLeave", fields: [employeeId], references: [id])
+  type       String // Licença médica, Maternidade, Sem vencimento
+  startDate  DateTime
+  endDate    DateTime
+  reason     String?
+  status     String   @default("Ativa")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model AttendanceRecord {
@@ -1616,42 +1625,42 @@ model AttendanceRecord {
 }
 
 model Dependent {
-  id             String    @id @default(cuid())
-  employeeId     String
-  employee       Employee  @relation("EmployeeDependent", fields: [employeeId], references: [id])
-  personId       String?
-  person         Person?   @relation("PersonDependent", fields: [personId], references: [id])
-  name           String
-  cpf            String?
-  birthDate      DateTime?
-  relationship   String    // Filho, Cônjuge
-  irrfDependent  Boolean   @default(false)
-  familyWage     Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  employeeId    String
+  employee      Employee  @relation("EmployeeDependent", fields: [employeeId], references: [id])
+  personId      String?
+  person        Person?   @relation("PersonDependent", fields: [personId], references: [id])
+  name          String
+  cpf           String?
+  birthDate     DateTime?
+  relationship  String // Filho, Cônjuge
+  irrfDependent Boolean   @default(false)
+  familyWage    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model PayrollBenefit {
-  id          String    @id @default(cuid())
-  employeeId  String
-  employee    Employee  @relation("EmployeeBenefit", fields: [employeeId], references: [id])
-  type        String    // Vale Transporte, Vale Alimentação
-  value       Float
-  status      String    @default("Ativo")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation("EmployeeBenefit", fields: [employeeId], references: [id])
+  type       String // Vale Transporte, Vale Alimentação
+  value      Float
+  status     String   @default("Ativo")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model PersonnelAct {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   employeeId  String
-  employee    Employee  @relation("EmployeePersonnelAct", fields: [employeeId], references: [id])
-  type        String    // Nomeação, Exoneração, Férias
+  employee    Employee @relation("EmployeePersonnelAct", fields: [employeeId], references: [id])
+  type        String // Nomeação, Exoneração, Férias
   actNumber   String?
-  date        DateTime  @default(now())
+  date        DateTime @default(now())
   documentUrl String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // --- Módulo 11: Patrimônio e Almoxarifado ---
@@ -1670,35 +1679,35 @@ model AssetCategory {
 }
 
 model Asset {
-  id               String   @id @default(cuid())
-  patrimonyNumber  String   @unique // Número do Tombamento
-  name             String
-  description      String?
-  brand            String?
-  model            String?
-  serialNumber     String?
-  status           String   @default("Ativo") // Ativo, Em uso, Ocioso, Em manutenção, Baixado
-  acquisitionDate  DateTime
-  acquisitionValue Float
-  currentValue     Float
+  id                String    @id @default(cuid())
+  patrimonyNumber   String    @unique // Número do Tombamento
+  name              String
+  description       String?
+  brand             String?
+  model             String?
+  serialNumber      String?
+  status            String    @default("Ativo") // Ativo, Em uso, Ocioso, Em manutenção, Baixado
+  acquisitionDate   DateTime
+  acquisitionValue  Float
+  currentValue      Float
   incorporationDate DateTime?
 
-  categoryId       String
-  category         AssetCategory @relation(fields: [categoryId], references: [id])
+  categoryId String
+  category   AssetCategory @relation(fields: [categoryId], references: [id])
 
-  departmentId     String?
-  department       Department? @relation(fields: [departmentId], references: [id])
-  
-  responsibleId    String?
-  responsible      Employee? @relation("AssetResponsible", fields: [responsibleId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
 
-  supplierId       String?
-  supplier         Supplier? @relation("AssetSupplier", fields: [supplierId], references: [id])
-  
-  invoiceNumber    String?
+  responsibleId String?
+  responsible   Employee? @relation("AssetResponsible", fields: [responsibleId], references: [id])
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  supplierId String?
+  supplier   Supplier? @relation("AssetSupplier", fields: [supplierId], references: [id])
+
+  invoiceNumber String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   transfers    AssetTransfer[]
   maintenances AssetMaintenance[]
@@ -1706,13 +1715,13 @@ model Asset {
 }
 
 model AssetTransfer {
-  id              String   @id @default(cuid())
-  date            DateTime @default(now())
-  reason          String?
-  status          String   @default("Aprovada")
+  id     String   @id @default(cuid())
+  date   DateTime @default(now())
+  reason String?
+  status String   @default("Aprovada")
 
-  assetId         String
-  asset           Asset    @relation(fields: [assetId], references: [id])
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id])
 
   fromDepartmentId String?
   fromDepartment   Department? @relation("TransferFromDept", fields: [fromDepartmentId], references: [id])
@@ -1729,18 +1738,18 @@ model AssetTransfer {
 }
 
 model AssetMaintenance {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   description String
   cost        Float?
-  status      String   @default("Solicitada") // Solicitada, Em manutenção, Concluída
-  startDate   DateTime @default(now())
+  status      String    @default("Solicitada") // Solicitada, Em manutenção, Concluída
+  startDate   DateTime  @default(now())
   endDate     DateTime?
-  
-  assetId     String
-  asset       Asset    @relation(fields: [assetId], references: [id])
-  
-  supplierId  String?
-  supplier    Supplier? @relation("AssetMaintenanceSupplier", fields: [supplierId], references: [id])
+
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id])
+
+  supplierId String?
+  supplier   Supplier? @relation("AssetMaintenanceSupplier", fields: [supplierId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1749,12 +1758,12 @@ model AssetMaintenance {
 model AssetWriteOff {
   id            String   @id @default(cuid())
   date          DateTime @default(now())
-  reason        String   // Inservível, Roubo, Doação
+  reason        String // Inservível, Roubo, Doação
   justification String
   status        String   @default("Aprovada")
 
-  assetId       String
-  asset         Asset    @relation(fields: [assetId], references: [id])
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1762,20 +1771,20 @@ model AssetWriteOff {
 
 // Almoxarifado
 model Warehouse {
-  id          String   @id @default(cuid())
-  name        String
-  type        String   @default("Central") // Central, Setorial
-  address     String?
-  isActive    Boolean  @default(true)
-  
-  managerId   String?
-  manager     Employee? @relation("WarehouseManager", fields: [managerId], references: [id])
+  id       String  @id @default(cuid())
+  name     String
+  type     String  @default("Central") // Central, Setorial
+  address  String?
+  isActive Boolean @default(true)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  managerId String?
+  manager   Employee? @relation("WarehouseManager", fields: [managerId], references: [id])
 
-  stocks     MaterialStock[]
-  movements  MaterialMovement[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stocks    MaterialStock[]
+  movements MaterialMovement[]
 
   schoolMeals SchoolMeal[]
 }
@@ -1792,62 +1801,62 @@ model MaterialCategory {
 }
 
 model Material {
-  id             String   @id @default(cuid())
-  code           String   @unique
-  name           String
-  description    String?
-  unitOfMeasure  String   @default("UN") // UN, KG, CX, PCT
-  minStock       Float    @default(0)
-  maxStock       Float    @default(0)
-  isPerishable   Boolean  @default(false)
-  
-  categoryId     String
-  category       MaterialCategory @relation(fields: [categoryId], references: [id])
-  
-  catalogItemId  String?
-  catalogItem    CatalogItem? @relation(fields: [catalogItemId], references: [id])
+  id            String  @id @default(cuid())
+  code          String  @unique
+  name          String
+  description   String?
+  unitOfMeasure String  @default("UN") // UN, KG, CX, PCT
+  minStock      Float   @default(0)
+  maxStock      Float   @default(0)
+  isPerishable  Boolean @default(false)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  categoryId String
+  category   MaterialCategory @relation(fields: [categoryId], references: [id])
 
-  stocks     MaterialStock[]
-  movements  MaterialMovement[]
-  requests   MaterialRequestItem[]
+  catalogItemId String?
+  catalogItem   CatalogItem? @relation(fields: [catalogItemId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stocks    MaterialStock[]
+  movements MaterialMovement[]
+  requests  MaterialRequestItem[]
 }
 
 model MaterialStock {
-  id           String   @id @default(cuid())
-  quantity     Float    @default(0)
-  batchNumber  String?
+  id             String    @id @default(cuid())
+  quantity       Float     @default(0)
+  batchNumber    String?
   expirationDate DateTime?
-  unitCost     Float?
-  
-  warehouseId  String
-  warehouse    Warehouse @relation(fields: [warehouseId], references: [id])
-  
-  materialId   String
-  material     Material @relation(fields: [materialId], references: [id])
+  unitCost       Float?
+
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  materialId String
+  material   Material @relation(fields: [materialId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model MaterialMovement {
-  id           String   @id @default(cuid())
-  type         String   // Entrada, Saída, Ajuste
-  quantity     Float
-  unitValue    Float?
-  date         DateTime @default(now())
-  reason       String?  // Compra, Consumo, Vencimento
-  
-  warehouseId  String
-  warehouse    Warehouse @relation(fields: [warehouseId], references: [id])
-  
-  materialId   String
-  material     Material @relation(fields: [materialId], references: [id])
-  
-  supplierId   String?
-  supplier     Supplier? @relation("MaterialMovementSupplier", fields: [supplierId], references: [id])
+  id        String   @id @default(cuid())
+  type      String // Entrada, Saída, Ajuste
+  quantity  Float
+  unitValue Float?
+  date      DateTime @default(now())
+  reason    String? // Compra, Consumo, Vencimento
+
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  materialId String
+  material   Material @relation(fields: [materialId], references: [id])
+
+  supplierId String?
+  supplier   Supplier? @relation("MaterialMovementSupplier", fields: [supplierId], references: [id])
 
   departmentId String?
   department   Department? @relation("MovementDepartment", fields: [departmentId], references: [id])
@@ -1863,11 +1872,11 @@ model MaterialRequest {
   date          DateTime @default(now())
   justification String?
 
-  departmentId  String
-  department    Department @relation("MaterialRequestDepartment", fields: [departmentId], references: [id])
-  
-  requesterId   String
-  requester     Employee @relation("MaterialRequester", fields: [requesterId], references: [id])
+  departmentId String
+  department   Department @relation("MaterialRequestDepartment", fields: [departmentId], references: [id])
+
+  requesterId String
+  requester   Employee @relation("MaterialRequester", fields: [requesterId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1876,16 +1885,16 @@ model MaterialRequest {
 }
 
 model MaterialRequestItem {
-  id                 String   @id @default(cuid())
-  quantityRequested  Float
-  quantityApproved   Float    @default(0)
-  quantityDelivered  Float    @default(0)
-  
-  requestId          String
-  request            MaterialRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  
-  materialId         String
-  material           Material @relation(fields: [materialId], references: [id])
+  id                String @id @default(cuid())
+  quantityRequested Float
+  quantityApproved  Float  @default(0)
+  quantityDelivered Float  @default(0)
+
+  requestId String
+  request   MaterialRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  materialId String
+  material   Material @relation(fields: [materialId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1894,227 +1903,468 @@ model MaterialRequestItem {
 // --- Módulo 12: Educação ---
 
 model School {
-  id              String   @id @default(cuid())
-  name            String
-  inepCode        String?  @unique
-  cnpj            String?
-  phone           String?
-  email           String?
-  capacity        Int      @default(0)
-  isActive        Boolean  @default(true)
+  id       String  @id @default(cuid())
+  name     String
+  inepCode String? @unique
+  cnpj     String?
+  phone    String?
+  email    String?
+  capacity Int     @default(0)
+  isActive Boolean @default(true)
 
-  directorId      String?
-  director        Employee? @relation("SchoolDirector", fields: [directorId], references: [id])
-  
-  addressId       String?   @unique
-  address         Address?  @relation("SchoolAddress", fields: [addressId], references: [id])
+  directorId String?
+  director   Employee? @relation("SchoolDirector", fields: [directorId], references: [id])
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  addressId String?  @unique
+  address   Address? @relation("SchoolAddress", fields: [addressId], references: [id])
 
-  classes         SchoolClass[]
-  enrollments     Enrollment[]
-  preEnrollments  PreEnrollment[]
-  meals           SchoolMeal[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  classes        SchoolClass[]
+  enrollments    Enrollment[]
+  preEnrollments PreEnrollment[]
+  meals          SchoolMeal[]
 }
 
 model Student {
-  id                    String   @id @default(cuid())
-  studentCode           String   @unique
-  specialNeeds          String?
-  usesSchoolTransport   Boolean  @default(false)
-  needsSpecialMeal      Boolean  @default(false)
-  status                String   @default("Ativo") // Ativo, Inativo, Transferido
-  
-  personId              String   @unique
-  person                Person   @relation("StudentPerson", fields: [personId], references: [id])
+  id                  String  @id @default(cuid())
+  studentCode         String  @unique
+  specialNeeds        String?
+  usesSchoolTransport Boolean @default(false)
+  needsSpecialMeal    Boolean @default(false)
+  status              String  @default("Ativo") // Ativo, Inativo, Transferido
 
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  personId String @unique
+  person   Person @relation("StudentPerson", fields: [personId], references: [id])
 
-  guardians             EducationalGuardian[]
-  enrollments           Enrollment[]
-  preEnrollments        PreEnrollment[]
-  attendances           Attendance[]
-  grades                Grade[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guardians      EducationalGuardian[]
+  enrollments    Enrollment[]
+  preEnrollments PreEnrollment[]
+  attendances    Attendance[]
+  grades         Grade[]
 }
 
 model EducationalGuardian {
-  id          String   @id @default(cuid())
-  kinship     String   // Pai, Mãe, Avô, Tutor
-  isFinancial Boolean  @default(false)
-  isAcademic  Boolean  @default(true)
-  canPickUp   Boolean  @default(true)
-  
-  studentId   String
-  student     Student  @relation(fields: [studentId], references: [id])
+  id          String  @id @default(cuid())
+  kinship     String // Pai, Mãe, Avô, Tutor
+  isFinancial Boolean @default(false)
+  isAcademic  Boolean @default(true)
+  canPickUp   Boolean @default(true)
 
-  personId    String
-  person      Person   @relation("GuardianPerson", fields: [personId], references: [id])
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  personId String
+  person   Person @relation("GuardianPerson", fields: [personId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Teacher {
-  id              String   @id @default(cuid())
-  
-  employeeId      String   @unique
-  employee        Employee @relation("EmployeeTeacher", fields: [employeeId], references: [id])
+  id String @id @default(cuid())
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  employeeId String   @unique
+  employee   Employee @relation("EmployeeTeacher", fields: [employeeId], references: [id])
 
-  taughtClasses   SchoolClass[] @relation("ClassTeacher")
-  diaries         ClassDiary[]  @relation("DiaryTeacher")
-  gradesGiven     Grade[]       @relation("GradeTeacher")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  taughtClasses SchoolClass[] @relation("ClassTeacher")
+  diaries       ClassDiary[]  @relation("DiaryTeacher")
+  gradesGiven   Grade[]       @relation("GradeTeacher")
 }
 
 model SchoolClass {
-  id              String   @id @default(cuid())
-  name            String
-  year            Int      // 2026
-  stage           String   // Ensino Fundamental, Educação Infantil
-  grade           String   // 1º Ano, Creche II
-  shift           String   // Manhã, Tarde, Integral, Noite
-  room            String?
-  capacity        Int      @default(30)
-  status          String   @default("Aberta") // Aberta, Fechada
+  id       String  @id @default(cuid())
+  name     String
+  year     Int // 2026
+  stage    String // Ensino Fundamental, Educação Infantil
+  grade    String // 1º Ano, Creche II
+  shift    String // Manhã, Tarde, Integral, Noite
+  room     String?
+  capacity Int     @default(30)
+  status   String  @default("Aberta") // Aberta, Fechada
 
-  schoolId        String
-  school          School   @relation(fields: [schoolId], references: [id])
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
 
-  teacherId       String?
-  teacher         Teacher? @relation("ClassTeacher", fields: [teacherId], references: [id])
+  teacherId String?
+  teacher   Teacher? @relation("ClassTeacher", fields: [teacherId], references: [id])
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  enrollments     Enrollment[]
-  diaries         ClassDiary[]
+  enrollments Enrollment[]
+  diaries     ClassDiary[]
 }
 
 model SchoolSubject {
-  id              String   @id @default(cuid())
-  name            String
-  code            String?  @unique
-  description     String?
-  isActive        Boolean  @default(true)
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id          String  @id @default(cuid())
+  name        String
+  code        String? @unique
+  description String?
+  isActive    Boolean @default(true)
 
-  diaries         ClassDiary[]
-  grades          Grade[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  diaries ClassDiary[]
+  grades  Grade[]
 }
 
 model PreEnrollment {
-  id              String   @id @default(cuid())
-  year            Int
-  stage           String
-  grade           String
-  shift           String
-  status          String   @default("Pendente") // Pendente, Deferida, Indeferida
+  id     String @id @default(cuid())
+  year   Int
+  stage  String
+  grade  String
+  shift  String
+  status String @default("Pendente") // Pendente, Deferida, Indeferida
 
-  studentId       String
-  student         Student  @relation(fields: [studentId], references: [id])
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
 
-  schoolId        String
-  school          School   @relation(fields: [schoolId], references: [id])
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Enrollment {
-  id              String   @id @default(cuid())
-  year            Int
-  status          String   @default("Matriculado") // Matriculado, Transferido, Evadido, Concluído
-  enrollmentDate  DateTime @default(now())
-  
-  studentId       String
-  student         Student  @relation(fields: [studentId], references: [id])
+  id             String   @id @default(cuid())
+  year           Int
+  status         String   @default("Matriculado") // Matriculado, Transferido, Evadido, Concluído
+  enrollmentDate DateTime @default(now())
 
-  schoolId        String
-  school          School   @relation(fields: [schoolId], references: [id])
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
 
-  classId         String?
-  schoolClass     SchoolClass? @relation(fields: [classId], references: [id])
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  classId     String?
+  schoolClass SchoolClass? @relation(fields: [classId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ClassDiary {
-  id              String   @id @default(cuid())
-  date            DateTime
-  contentTaught   String?
-  observations    String?
-  status          String   @default("Aberto") // Aberto, Fechado
+  id            String   @id @default(cuid())
+  date          DateTime
+  contentTaught String?
+  observations  String?
+  status        String   @default("Aberto") // Aberto, Fechado
 
-  classId         String
-  schoolClass     SchoolClass @relation(fields: [classId], references: [id])
+  classId     String
+  schoolClass SchoolClass @relation(fields: [classId], references: [id])
 
-  subjectId       String?
-  schoolSubject   SchoolSubject? @relation(fields: [subjectId], references: [id])
+  subjectId     String?
+  schoolSubject SchoolSubject? @relation(fields: [subjectId], references: [id])
 
-  teacherId       String
-  teacher         Teacher @relation("DiaryTeacher", fields: [teacherId], references: [id])
+  teacherId String
+  teacher   Teacher @relation("DiaryTeacher", fields: [teacherId], references: [id])
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  attendances     Attendance[]
+  attendances Attendance[]
 }
 
 model Attendance {
-  id              String   @id @default(cuid())
-  isPresent       Boolean  @default(true)
-  justification   String?
+  id            String  @id @default(cuid())
+  isPresent     Boolean @default(true)
+  justification String?
 
-  diaryId         String
-  diary           ClassDiary @relation(fields: [diaryId], references: [id])
+  diaryId String
+  diary   ClassDiary @relation(fields: [diaryId], references: [id])
 
-  studentId       String
-  student         Student  @relation(fields: [studentId], references: [id])
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Grade {
-  id              String   @id @default(cuid())
-  period          String   // 1º Bimestre, 2º Bimestre, Final
-  value           Float?
-  concept         String?  // A, B, C ou Excelente, Bom (se não for nota numérica)
-  type            String   @default("Avaliação") // Avaliação, Recuperação
+  id      String  @id @default(cuid())
+  period  String // 1º Bimestre, 2º Bimestre, Final
+  value   Float?
+  concept String? // A, B, C ou Excelente, Bom (se não for nota numérica)
+  type    String  @default("Avaliação") // Avaliação, Recuperação
 
-  studentId       String
-  student         Student  @relation(fields: [studentId], references: [id])
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
 
-  subjectId       String
-  schoolSubject   SchoolSubject  @relation(fields: [subjectId], references: [id])
+  subjectId     String
+  schoolSubject SchoolSubject @relation(fields: [subjectId], references: [id])
 
-  teacherId       String
-  teacher         Teacher @relation("GradeTeacher", fields: [teacherId], references: [id])
+  teacherId String
+  teacher   Teacher @relation("GradeTeacher", fields: [teacherId], references: [id])
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SchoolMeal {
-  id              String   @id @default(cuid())
-  date            DateTime @default(now())
-  menu            String
-  servedQuantity  Int
-  notes           String?
+  id             String   @id @default(cuid())
+  date           DateTime @default(now())
+  menu           String
+  servedQuantity Int
+  notes          String?
 
-  schoolId        String
-  school          School   @relation(fields: [schoolId], references: [id])
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
 
-  warehouseId     String?
-  warehouse       Warehouse? @relation(fields: [warehouseId], references: [id])
+  warehouseId String?
+  warehouse   Warehouse? @relation(fields: [warehouseId], references: [id])
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --- Modulo 13: Saude ---
+
+model HealthUnit {
+  id       String  @id @default(cuid())
+  name     String
+  type     String // UBS, ESF, Farmácia, CAPS
+  cnes     String? @unique
+  phone    String?
+  email    String?
+  isActive Boolean @default(true)
+
+  addressId String?  @unique
+  address   Address? @relation("HealthUnitAddress", fields: [addressId], references: [id])
+
+  managerId String?
+  manager   Employee? @relation("HealthUnitManager", fields: [managerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teams         HealthTeam[]
+  professionals HealthProfessional[]
+  appointments  HealthAppointment[]
+  records       MedicalRecord[]
+  dispensations MedicineDispensation[]
+  vaccinations  VaccinationRecord[]
+  patients      Patient[]
+}
+
+model Patient {
+  id             String  @id @default(cuid())
+  cns            String? @unique
+  bloodType      String?
+  knownAllergies String?
+  specialNeeds   String?
+  status         String  @default("Ativo") // Ativo, Inativo, Falecido
+
+  personId String @unique
+  person   Person @relation("PersonPatient", fields: [personId], references: [id])
+
+  referenceUnitId String?
+  referenceUnit   HealthUnit? @relation(fields: [referenceUnitId], references: [id])
+
+  teamId String?
+  team   HealthTeam? @relation(fields: [teamId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments  HealthAppointment[]
+  records       MedicalRecord[]
+  prescriptions HealthPrescription[]
+  dispensations MedicineDispensation[]
+  vaccinations  VaccinationRecord[]
+}
+
+model HealthProfessional {
+  id            String  @id @default(cuid())
+  cbo           String?
+  councilName   String? // CRM, COREN, CRO
+  councilNumber String?
+  specialty     String?
+  isActive      Boolean @default(true)
+
+  employeeId String   @unique
+  employee   Employee @relation("EmployeeHealthProfessional", fields: [employeeId], references: [id])
+
+  unitId String?
+  unit   HealthUnit? @relation(fields: [unitId], references: [id])
+
+  teamId String?
+  team   HealthTeam? @relation(fields: [teamId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments  HealthAppointment[]
+  records       MedicalRecord[]
+  prescriptions HealthPrescription[]
+  vaccinations  VaccinationRecord[]
+}
+
+model HealthTeam {
+  id        String  @id @default(cuid())
+  name      String
+  code      String? @unique
+  microarea String?
+  isActive  Boolean @default(true)
+
+  unitId String
+  unit   HealthUnit @relation(fields: [unitId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  professionals HealthProfessional[]
+  patients      Patient[]
+}
+
+model HealthAppointment {
+  id        String   @id @default(cuid())
+  date      DateTime
+  specialty String?
+  priority  String   @default("Normal") // Normal, Prioridade, Urgência
+  status    String   @default("Agendado") // Agendado, Aguardando, Em Atendimento, Atendido, Faltou
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  unitId String
+  unit   HealthUnit @relation(fields: [unitId], references: [id])
+
+  professionalId String?
+  professional   HealthProfessional? @relation(fields: [professionalId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  medicalRecord MedicalRecord?
+}
+
+model MedicalRecord {
+  id   String   @id @default(cuid())
+  date DateTime @default(now())
+  type String   @default("Consulta") // Consulta, Triagem, Procedimento
+
+  // Triagem / Sinais vitais
+  bloodPressure String?
+  temperature   Float?
+  weight        Float?
+  height        Float?
+  heartRate     Int?
+
+  // Evolução clínica
+  chiefComplaint String?
+  evolution      String?
+  conduct        String?
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  professionalId String
+  professional   HealthProfessional @relation(fields: [professionalId], references: [id])
+
+  unitId String
+  unit   HealthUnit @relation(fields: [unitId], references: [id])
+
+  appointmentId String?            @unique
+  appointment   HealthAppointment? @relation(fields: [appointmentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Medicine {
+  id              String  @id @default(cuid())
+  name            String
+  activePrinciple String?
+  presentation    String? // Comprimido, Xarope
+  concentration   String? // 500mg
+  isControlled    Boolean @default(false)
+  currentStock    Int     @default(0)
+  minStock        Int     @default(0)
+  isActive        Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dispensations MedicineDispensation[]
+}
+
+model HealthPrescription {
+  id         String    @id @default(cuid())
+  date       DateTime  @default(now())
+  content    String // Detalhes da prescrição
+  validUntil DateTime?
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  professionalId String
+  professional   HealthProfessional @relation(fields: [professionalId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MedicineDispensation {
+  id       String   @id @default(cuid())
+  date     DateTime @default(now())
+  quantity Int
+
+  medicineId String
+  medicine   Medicine @relation(fields: [medicineId], references: [id])
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  unitId String
+  unit   HealthUnit @relation(fields: [unitId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Vaccine {
+  id            String  @id @default(cuid())
+  name          String
+  disease       String?
+  dosesRequired Int     @default(1)
+  isActive      Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  records VaccinationRecord[]
+}
+
+model VaccinationRecord {
+  id           String   @id @default(cuid())
+  date         DateTime @default(now())
+  doseNumber   Int      @default(1)
+  lotNumber    String?
+  manufacturer String?
+
+  vaccineId String
+  vaccine   Vaccine @relation(fields: [vaccineId], references: [id])
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  professionalId String
+  professional   HealthProfessional @relation(fields: [professionalId], references: [id])
+
+  unitId String
+  unit   HealthUnit @relation(fields: [unitId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

@@ -1,0 +1,239 @@
+// --- Modulo 13: Saude ---
+
+model HealthUnit {
+  id              String   @id @default(cuid())
+  name            String
+  type            String   // UBS, ESF, Farmácia, CAPS
+  cnes            String?  @unique
+  phone           String?
+  email           String?
+  isActive        Boolean  @default(true)
+
+  addressId       String?  @unique
+  address         Address? @relation("HealthUnitAddress", fields: [addressId], references: [id])
+
+  managerId       String?
+  manager         Employee? @relation("HealthUnitManager", fields: [managerId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  teams           HealthTeam[]
+  professionals   HealthProfessional[]
+  appointments    HealthAppointment[]
+  records         MedicalRecord[]
+  dispensations   MedicineDispensation[]
+  vaccinations    VaccinationRecord[]
+}
+
+model Patient {
+  id              String   @id @default(cuid())
+  cns             String?  @unique
+  bloodType       String?
+  knownAllergies  String?
+  specialNeeds    String?
+  status          String   @default("Ativo") // Ativo, Inativo, Falecido
+
+  personId        String   @unique
+  person          Person   @relation("PersonPatient", fields: [personId], references: [id])
+
+  referenceUnitId String?
+  referenceUnit   HealthUnit? @relation(fields: [referenceUnitId], references: [id])
+
+  teamId          String?
+  team            HealthTeam? @relation(fields: [teamId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  appointments    HealthAppointment[]
+  records         MedicalRecord[]
+  prescriptions   HealthPrescription[]
+  dispensations   MedicineDispensation[]
+  vaccinations    VaccinationRecord[]
+}
+
+model HealthProfessional {
+  id              String   @id @default(cuid())
+  cbo             String?
+  councilName     String?  // CRM, COREN, CRO
+  councilNumber   String?
+  specialty       String?
+  isActive        Boolean  @default(true)
+
+  employeeId      String   @unique
+  employee        Employee @relation("EmployeeHealthProfessional", fields: [employeeId], references: [id])
+
+  unitId          String?
+  unit            HealthUnit? @relation(fields: [unitId], references: [id])
+
+  teamId          String?
+  team            HealthTeam? @relation(fields: [teamId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  appointments    HealthAppointment[]
+  records         MedicalRecord[]
+  prescriptions   HealthPrescription[]
+  vaccinations    VaccinationRecord[]
+}
+
+model HealthTeam {
+  id              String   @id @default(cuid())
+  name            String
+  code            String?  @unique
+  microarea       String?
+  isActive        Boolean  @default(true)
+
+  unitId          String
+  unit            HealthUnit @relation(fields: [unitId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  professionals   HealthProfessional[]
+  patients        Patient[]
+}
+
+model HealthAppointment {
+  id              String   @id @default(cuid())
+  date            DateTime
+  specialty       String?
+  priority        String   @default("Normal") // Normal, Prioridade, Urgência
+  status          String   @default("Agendado") // Agendado, Aguardando, Em Atendimento, Atendido, Faltou
+
+  patientId       String
+  patient         Patient  @relation(fields: [patientId], references: [id])
+
+  unitId          String
+  unit            HealthUnit @relation(fields: [unitId], references: [id])
+
+  professionalId  String?
+  professional    HealthProfessional? @relation(fields: [professionalId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  medicalRecord   MedicalRecord?
+}
+
+model MedicalRecord {
+  id              String   @id @default(cuid())
+  date            DateTime @default(now())
+  type            String   @default("Consulta") // Consulta, Triagem, Procedimento
+  
+  // Triagem / Sinais vitais
+  bloodPressure   String?
+  temperature     Float?
+  weight          Float?
+  height          Float?
+  heartRate       Int?
+  
+  // Evolução clínica
+  chiefComplaint  String?
+  evolution       String?
+  conduct         String?
+
+  patientId       String
+  patient         Patient  @relation(fields: [patientId], references: [id])
+
+  professionalId  String
+  professional    HealthProfessional @relation(fields: [professionalId], references: [id])
+
+  unitId          String
+  unit            HealthUnit @relation(fields: [unitId], references: [id])
+
+  appointmentId   String?  @unique
+  appointment     HealthAppointment? @relation(fields: [appointmentId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Medicine {
+  id              String   @id @default(cuid())
+  name            String
+  activePrinciple String?
+  presentation    String?  // Comprimido, Xarope
+  concentration   String?  // 500mg
+  isControlled    Boolean  @default(false)
+  currentStock    Int      @default(0)
+  minStock        Int      @default(0)
+  isActive        Boolean  @default(true)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  dispensations   MedicineDispensation[]
+}
+
+model HealthPrescription {
+  id              String   @id @default(cuid())
+  date            DateTime @default(now())
+  content         String   // Detalhes da prescrição
+  validUntil      DateTime?
+
+  patientId       String
+  patient         Patient  @relation(fields: [patientId], references: [id])
+
+  professionalId  String
+  professional    HealthProfessional @relation(fields: [professionalId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model MedicineDispensation {
+  id              String   @id @default(cuid())
+  date            DateTime @default(now())
+  quantity        Int
+
+  medicineId      String
+  medicine        Medicine @relation(fields: [medicineId], references: [id])
+
+  patientId       String
+  patient         Patient  @relation(fields: [patientId], references: [id])
+
+  unitId          String
+  unit            HealthUnit @relation(fields: [unitId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Vaccine {
+  id              String   @id @default(cuid())
+  name            String
+  disease         String?
+  dosesRequired   Int      @default(1)
+  isActive        Boolean  @default(true)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  records         VaccinationRecord[]
+}
+
+model VaccinationRecord {
+  id              String   @id @default(cuid())
+  date            DateTime @default(now())
+  doseNumber      Int      @default(1)
+  lotNumber       String?
+  manufacturer    String?
+
+  vaccineId       String
+  vaccine         Vaccine  @relation(fields: [vaccineId], references: [id])
+
+  patientId       String
+  patient         Patient  @relation(fields: [patientId], references: [id])
+
+  professionalId  String
+  professional    HealthProfessional @relation(fields: [professionalId], references: [id])
+
+  unitId          String
+  unit            HealthUnit @relation(fields: [unitId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
