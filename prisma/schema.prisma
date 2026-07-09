@@ -101,6 +101,13 @@ model Department {
   // Mod 9
   purchaseRequests PurchaseRequest[] @relation("DepartmentPurchaseRequests")
 
+  // Mod 11
+  assets           Asset[]
+  transfersFrom    AssetTransfer[]   @relation("TransferFromDept")
+  transfersTo      AssetTransfer[]   @relation("TransferToDept")
+  materialMoves    MaterialMovement[] @relation("MovementDepartment")
+  materialRequests MaterialRequest[]  @relation("MaterialRequestDepartment")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -190,6 +197,13 @@ model Employee {
   dependents         Dependent[]        @relation("EmployeeDependent")
   benefits           PayrollBenefit[]   @relation("EmployeeBenefit")
   personnelActs      PersonnelAct[]     @relation("EmployeePersonnelAct")
+
+  // Mod 11
+  managedWarehouses     Warehouse[]       @relation("WarehouseManager")
+  responsibleAssets     Asset[]           @relation("AssetResponsible")
+  assetTransfersFrom    AssetTransfer[]   @relation("TransferFromResp")
+  assetTransfersTo      AssetTransfer[]   @relation("TransferToResp")
+  materialRequests      MaterialRequest[] @relation("MaterialRequester")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -378,6 +392,11 @@ model Supplier {
   priceQuotes       PriceQuote[]        @relation("SupplierPriceQuotes")
   contracts         Contract[]          @relation("SupplierContracts")
   directContracting DirectContracting[] @relation("SupplierDirectContracting")
+
+  // Mod 11
+  assets            Asset[]             @relation("AssetSupplier")
+  assetMaintenances AssetMaintenance[]  @relation("AssetMaintenanceSupplier")
+  materialMovements MaterialMovement[]  @relation("MaterialMovementSupplier")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1310,6 +1329,10 @@ model CatalogItem {
   category       String?
   estimatedValue Float?
   isActive       Boolean  @default(true)
+  
+  // Mod 11
+  materials      Material[]
+
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
@@ -1618,4 +1641,239 @@ model PersonnelAct {
   documentUrl String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+// --- Módulo 11: Patrimônio e Almoxarifado ---
+
+// Patrimônio
+model AssetCategory {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  lifeSpan  Int      @default(60) // Vida útil em meses
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assets Asset[]
+}
+
+model Asset {
+  id               String   @id @default(cuid())
+  patrimonyNumber  String   @unique // Número do Tombamento
+  name             String
+  description      String?
+  brand            String?
+  model            String?
+  serialNumber     String?
+  status           String   @default("Ativo") // Ativo, Em uso, Ocioso, Em manutenção, Baixado
+  acquisitionDate  DateTime
+  acquisitionValue Float
+  currentValue     Float
+  incorporationDate DateTime?
+
+  categoryId       String
+  category         AssetCategory @relation(fields: [categoryId], references: [id])
+
+  departmentId     String?
+  department       Department? @relation(fields: [departmentId], references: [id])
+  
+  responsibleId    String?
+  responsible      Employee? @relation("AssetResponsible", fields: [responsibleId], references: [id])
+
+  supplierId       String?
+  supplier         Supplier? @relation("AssetSupplier", fields: [supplierId], references: [id])
+  
+  invoiceNumber    String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  transfers    AssetTransfer[]
+  maintenances AssetMaintenance[]
+  writeOffs    AssetWriteOff[]
+}
+
+model AssetTransfer {
+  id              String   @id @default(cuid())
+  date            DateTime @default(now())
+  reason          String?
+  status          String   @default("Aprovada")
+
+  assetId         String
+  asset           Asset    @relation(fields: [assetId], references: [id])
+
+  fromDepartmentId String?
+  fromDepartment   Department? @relation("TransferFromDept", fields: [fromDepartmentId], references: [id])
+  toDepartmentId   String?
+  toDepartment     Department? @relation("TransferToDept", fields: [toDepartmentId], references: [id])
+
+  fromResponsibleId String?
+  fromResponsible   Employee? @relation("TransferFromResp", fields: [fromResponsibleId], references: [id])
+  toResponsibleId   String?
+  toResponsible     Employee? @relation("TransferToResp", fields: [toResponsibleId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AssetMaintenance {
+  id          String   @id @default(cuid())
+  description String
+  cost        Float?
+  status      String   @default("Solicitada") // Solicitada, Em manutenção, Concluída
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+  
+  assetId     String
+  asset       Asset    @relation(fields: [assetId], references: [id])
+  
+  supplierId  String?
+  supplier    Supplier? @relation("AssetMaintenanceSupplier", fields: [supplierId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AssetWriteOff {
+  id            String   @id @default(cuid())
+  date          DateTime @default(now())
+  reason        String   // Inservível, Roubo, Doação
+  justification String
+  status        String   @default("Aprovada")
+
+  assetId       String
+  asset         Asset    @relation(fields: [assetId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Almoxarifado
+model Warehouse {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   @default("Central") // Central, Setorial
+  address     String?
+  isActive    Boolean  @default(true)
+  
+  managerId   String?
+  manager     Employee? @relation("WarehouseManager", fields: [managerId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stocks     MaterialStock[]
+  movements  MaterialMovement[]
+}
+
+model MaterialCategory {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  materials Material[]
+}
+
+model Material {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  name           String
+  description    String?
+  unitOfMeasure  String   @default("UN") // UN, KG, CX, PCT
+  minStock       Float    @default(0)
+  maxStock       Float    @default(0)
+  isPerishable   Boolean  @default(false)
+  
+  categoryId     String
+  category       MaterialCategory @relation(fields: [categoryId], references: [id])
+  
+  catalogItemId  String?
+  catalogItem    CatalogItem? @relation(fields: [catalogItemId], references: [id])
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  stocks     MaterialStock[]
+  movements  MaterialMovement[]
+  requests   MaterialRequestItem[]
+}
+
+model MaterialStock {
+  id           String   @id @default(cuid())
+  quantity     Float    @default(0)
+  batchNumber  String?
+  expirationDate DateTime?
+  unitCost     Float?
+  
+  warehouseId  String
+  warehouse    Warehouse @relation(fields: [warehouseId], references: [id])
+  
+  materialId   String
+  material     Material @relation(fields: [materialId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MaterialMovement {
+  id           String   @id @default(cuid())
+  type         String   // Entrada, Saída, Ajuste
+  quantity     Float
+  unitValue    Float?
+  date         DateTime @default(now())
+  reason       String?  // Compra, Consumo, Vencimento
+  
+  warehouseId  String
+  warehouse    Warehouse @relation(fields: [warehouseId], references: [id])
+  
+  materialId   String
+  material     Material @relation(fields: [materialId], references: [id])
+  
+  supplierId   String?
+  supplier     Supplier? @relation("MaterialMovementSupplier", fields: [supplierId], references: [id])
+
+  departmentId String?
+  department   Department? @relation("MovementDepartment", fields: [departmentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MaterialRequest {
+  id            String   @id @default(cuid())
+  number        String   @unique
+  status        String   @default("Pendente") // Pendente, Aprovada, Atendida, Recusada
+  date          DateTime @default(now())
+  justification String?
+
+  departmentId  String
+  department    Department @relation("MaterialRequestDepartment", fields: [departmentId], references: [id])
+  
+  requesterId   String
+  requester     Employee @relation("MaterialRequester", fields: [requesterId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items MaterialRequestItem[]
+}
+
+model MaterialRequestItem {
+  id                 String   @id @default(cuid())
+  quantityRequested  Float
+  quantityApproved   Float    @default(0)
+  quantityDelivered  Float    @default(0)
+  
+  requestId          String
+  request            MaterialRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  
+  materialId         String
+  material           Material @relation(fields: [materialId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
