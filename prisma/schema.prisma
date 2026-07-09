@@ -180,6 +180,17 @@ model Employee {
   managedContracts    Contract[]        @relation("ContractManager")
   inspectedContracts  Contract[]        @relation("ContractInspector")
 
+  // Mod 10
+  personId           String?            @unique
+  person             Person?            @relation("PersonEmployee", fields: [personId], references: [id])
+  payrolls           PayrollItem[]      @relation("EmployeePayrollItem")
+  vacations          Vacation[]         @relation("EmployeeVacation")
+  leaves             Leave[]            @relation("EmployeeLeave")
+  attendances        AttendanceRecord[] @relation("EmployeeAttendance")
+  dependents         Dependent[]        @relation("EmployeeDependent")
+  benefits           PayrollBenefit[]   @relation("EmployeeBenefit")
+  personnelActs      PersonnelAct[]     @relation("EmployeePersonnelAct")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -263,6 +274,10 @@ model Person {
   // Mod 4 e 5
   tickets    Ticket[]
   ombudsmans Ombudsman[]
+
+  // Mod 10
+  dependents Dependent[] @relation("PersonDependent")
+  employee   Employee?   @relation("PersonEmployee")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1484,3 +1499,123 @@ model ContractAmendment {
   updatedAt        DateTime @updatedAt
 }
 
+
+// --- Módulo 10: RH e Folha ---
+
+model Payroll {
+  id          String   @id @default(cuid())
+  competence  String   // "07/2026"
+  type        String   @default("Mensal") // Mensal, Férias, 13º, Rescisão
+  status      String   @default("Aberta") // Aberta, Fechada, Paga
+  totalValue  Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       PayrollItem[]
+}
+
+model PayrollEvent {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  type        String   // Vencimento, Desconto, Base
+  formula     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       PayrollItem[]
+}
+
+model PayrollItem {
+  id          String       @id @default(cuid())
+  payrollId   String
+  payroll     Payroll      @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+  employeeId  String
+  employee    Employee     @relation("EmployeePayrollItem", fields: [employeeId], references: [id])
+  eventId     String
+  event       PayrollEvent @relation(fields: [eventId], references: [id])
+  value       Float
+  reference   String?      // "10", "220h"
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Vacation {
+  id              String    @id @default(cuid())
+  employeeId      String
+  employee        Employee  @relation("EmployeeVacation", fields: [employeeId], references: [id])
+  acquisitionStart DateTime
+  acquisitionEnd   DateTime
+  enjoymentStart   DateTime?
+  enjoymentEnd     DateTime?
+  days            Int       @default(30)
+  status          String    @default("A vencer") // A vencer, Disponível, Programada, Em gozo, Concluída
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Leave {
+  id          String    @id @default(cuid())
+  employeeId  String
+  employee    Employee  @relation("EmployeeLeave", fields: [employeeId], references: [id])
+  type        String    // Licença médica, Maternidade, Sem vencimento
+  startDate   DateTime
+  endDate     DateTime
+  reason      String?
+  status      String    @default("Ativa")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model AttendanceRecord {
+  id          String    @id @default(cuid())
+  employeeId  String
+  employee    Employee  @relation("EmployeeAttendance", fields: [employeeId], references: [id])
+  date        DateTime
+  entryTime   DateTime?
+  exitTime    DateTime?
+  status      String    @default("Presente") // Presente, Falta, Atraso, Férias, Licença
+  hoursWorked Float     @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Dependent {
+  id             String    @id @default(cuid())
+  employeeId     String
+  employee       Employee  @relation("EmployeeDependent", fields: [employeeId], references: [id])
+  personId       String?
+  person         Person?   @relation("PersonDependent", fields: [personId], references: [id])
+  name           String
+  cpf            String?
+  birthDate      DateTime?
+  relationship   String    // Filho, Cônjuge
+  irrfDependent  Boolean   @default(false)
+  familyWage     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model PayrollBenefit {
+  id          String    @id @default(cuid())
+  employeeId  String
+  employee    Employee  @relation("EmployeeBenefit", fields: [employeeId], references: [id])
+  type        String    // Vale Transporte, Vale Alimentação
+  value       Float
+  status      String    @default("Ativo")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model PersonnelAct {
+  id          String    @id @default(cuid())
+  employeeId  String
+  employee    Employee  @relation("EmployeePersonnelAct", fields: [employeeId], references: [id])
+  type        String    // Nomeação, Exoneração, Férias
+  actNumber   String?
+  date        DateTime  @default(now())
+  documentUrl String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
