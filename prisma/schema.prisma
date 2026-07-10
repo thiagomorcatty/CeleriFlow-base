@@ -2743,3 +2743,69 @@ model SanServiceOrder {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+// ----------------------------------------------------------------------------
+// MÓDULO 17: CÂMARA MUNICIPAL (MVP Legislativo)
+// ----------------------------------------------------------------------------
+
+model CamLegislatura {
+  id             String   @id @default(cuid())
+  numero         Int      @unique
+  inicio         DateTime
+  fim            DateTime
+  status         String   @default("Ativa") // Ativa, Encerrada, Futura
+
+  vereadores     CamVereador[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model CamVereador {
+  id             String   @id @default(cuid())
+  nomeCompleto   String
+  nomeParlamentar String
+  cpf            String?  @unique
+  partido        String?
+  status         String   @default("Em Exercício") // Em Exercício, Licenciado, Afastado, Suplente
+  
+  legislaturaId  String
+  legislatura    CamLegislatura @relation(fields: [legislaturaId], references: [id], onDelete: Cascade)
+  
+  proposicoes    CamProposicao[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model CamSessao {
+  id             String   @id @default(cuid())
+  numero         Int      @unique
+  tipo           String   @default("Ordinária") // Ordinária, Extraordinária, Solene, Especial, Audiência Pública
+  data           DateTime
+  local          String   @default("Plenário")
+  status         String   @default("Agendada") // Agendada, Em Preparação, Aberta, Encerrada
+  
+  proposicoes    CamProposicao[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model CamProposicao {
+  id             String   @id @default(cuid())
+  numero         String   @unique
+  tipo           String   // Projeto de Lei, Requerimento, Indicação, Moção
+  ementa         String
+  texto          String?
+  status         String   @default("Protocolada") // Protocolada, Em Pauta, Aprovada, Rejeitada, Arquivada
+
+  autorId        String
+  autor          CamVereador @relation(fields: [autorId], references: [id], onDelete: Cascade)
+
+  sessaoId       String?
+  sessao         CamSessao? @relation(fields: [sessaoId], references: [id], onDelete: SetNull)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

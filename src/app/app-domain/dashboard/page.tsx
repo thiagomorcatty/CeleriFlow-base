@@ -44,7 +44,7 @@ const menuItems = [
   { name: "Água e Saneamento", description: "Água e esgoto", href: "/saneamento", icon: Droplets, color: "text-[#0284C7]", bg: "bg-[#E0F2FE]", solid: "bg-[#0284C7]" },
   { name: "Obras e Serviços", description: "Infraestrutura e urbana", href: "/obras", icon: HardHat, color: "text-[#B45309]", bg: "bg-[#FEF3C7]", solid: "bg-[#B45309]" },
   { name: "Cultura e Lazer", description: "Cultura e esporte", href: "/cultura", icon: Palette, color: "text-[#E11D48]", bg: "bg-[#FFE4E6]", solid: "bg-[#E11D48]" },
-  { name: "Câmara Municipal", description: "Câmara e processos", href: "/legislativo", icon: Gavel, color: "text-[#525252]", bg: "bg-[#F5F5F5]", solid: "bg-[#525252]" },
+  { name: "Câmara Municipal", description: "Gestão Legislativa", href: "/camara", icon: Landmark, color: "text-[#9333EA]", bg: "bg-[#F3E8FF]", solid: "bg-[#9333EA]" },
   { name: "Sistema", description: "Painel de controle geral", href: "/sistema", icon: Monitor, color: "text-[#334155]", bg: "bg-[#F1F5F9]", solid: "bg-[#334155]" },
   { name: "Configurações e Integrações", description: "Gestão do sistema", href: "/configuracoes", icon: Settings, color: "text-[#475569]", bg: "bg-[#E2E8F0]", solid: "bg-[#475569]" },
 ];
