@@ -36,11 +36,9 @@ export function NewFamilySheet({ people }: { people: { id: string; fullName: str
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-          <UserPlus className="h-5 w-5" />
-          Nova Família
-        </button>
+      <SheetTrigger render={<button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors" />}>
+        <UserPlus className="h-5 w-5" />
+        Nova Família
       </SheetTrigger>
       <SheetContent side="right" className="w-[400px] sm:w-[540px] overflow-y-auto">
         <SheetHeader>

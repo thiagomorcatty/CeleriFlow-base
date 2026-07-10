@@ -34,11 +34,9 @@ export function NewSocialUnitSheet() {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <button className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-          <Plus className="h-5 w-5" />
-          Nova Unidade
-        </button>
+      <SheetTrigger render={<button className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors" />}>
+        <Plus className="h-5 w-5" />
+        Nova Unidade
       </SheetTrigger>
       <SheetContent side="right" className="w-[400px] sm:w-[540px] overflow-y-auto">
         <SheetHeader>
