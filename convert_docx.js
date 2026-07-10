@@ -1,10 +1,14 @@
 const mammoth = require('mammoth');
 const fs = require('fs');
+const path = require('path');
 
-mammoth.extractRawText({path: "docs/Mod 15 - Meio Ambiente.docx"})
+const inputPath = path.join(__dirname, 'docs', 'Mod 17 - Câmara Municipal.docx');
+const outputPath = path.join(__dirname, 'docs', 'mod17.md');
+
+mammoth.extractRawText({path: inputPath})
     .then(function(result){
         var text = result.value; // The raw text
-        fs.writeFileSync("docs/mod15.md", text);
+        fs.writeFileSync(outputPath, text);
         console.log("Document converted successfully.");
     })
     .catch(function(error) {

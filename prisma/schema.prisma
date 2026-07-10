@@ -2657,3 +2657,89 @@ model EnvInfraction {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+// ----------------------------------------------------------------------------
+// MÓDULO 16: ÁGUA E SANEAMENTO (Isolado em MVP)
+// ----------------------------------------------------------------------------
+
+model SanConsumerUnit {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  address        String
+  category       String   @default("Residencial") // Residencial, Comercial, Industrial, Rural, Pública
+  status         String   @default("Ativa") // Ativa, Inativa, Cortada, Suspensa
+  ownerName      String?
+  ownerDocument  String?  // CPF/CNPJ
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  meters         SanWaterMeter[]
+  readings       SanMeterReading[]
+  invoices       SanInvoice[]
+  serviceOrders  SanServiceOrder[]
+}
+
+model SanWaterMeter {
+  id             String   @id @default(cuid())
+  meterNumber    String   @unique
+  installation   DateTime?
+  status         String   @default("Instalado") // Instalado, Em Manutenção, Retirado
+  unitId         String
+  unit           SanConsumerUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  readings       SanMeterReading[]
+}
+
+model SanMeterReading {
+  id             String   @id @default(cuid())
+  competence     String   // Formato MM/YYYY
+  previousValue  Float
+  currentValue   Float
+  consumption    Float
+  readingDate    DateTime @default(now())
+  readerName     String?
+  status         String   @default("Registrada") // Registrada, Revisada, Estimada
+
+  unitId         String
+  unit           SanConsumerUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  meterId        String?
+  meter          SanWaterMeter? @relation(fields: [meterId], references: [id], onDelete: SetNull)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([unitId, competence])
+}
+
+model SanInvoice {
+  id             String   @id @default(cuid())
+  invoiceNumber  String   @unique
+  competence     String   // Formato MM/YYYY
+  totalAmount    Float
+  dueDate        DateTime
+  status         String   @default("Emitida") // Emitida, Paga, Vencida, Cancelada
+
+  unitId         String
+  unit           SanConsumerUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model SanServiceOrder {
+  id             String   @id @default(cuid())
+  orderNumber    String   @unique
+  orderType      String   // Vazamento, Religação, Corte, Manutenção
+  description    String
+  priority       String   @default("Normal") // Normal, Alta, Urgente
+  status         String   @default("Aberta") // Aberta, Em Andamento, Concluída, Cancelada
+  technician     String?
+
+  unitId         String?
+  unit           SanConsumerUnit? @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
