@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  { name: "Sistema", description: "Painel de controle geral", href: "/sistema", icon: Monitor, color: "text-[#334155]", bg: "bg-[#F1F5F9]", solid: "bg-[#334155]" },
   { name: "Administração", description: "Gestão interna e controle", href: "/administracao", icon: Building2, color: "text-[#2563EB]", bg: "bg-[#DBEAFE]", solid: "bg-[#2563EB]" },
   { name: "Cadastros", description: "Pessoas, empresas e locais", href: "/cadastros", icon: Database, color: "text-[#64748B]", bg: "bg-[#E2E8F0]", solid: "bg-[#64748B]" },
   { name: "Processos e Protocolo", description: "Gestão de trâmites", href: "/protocolos", icon: Files, color: "text-[#0EA5E9]", bg: "bg-[#E0F2FE]", solid: "bg-[#0EA5E9]" },
@@ -46,6 +45,7 @@ const menuItems = [
   { name: "Obras e Serviços", description: "Infraestrutura e urbana", href: "/obras", icon: HardHat, color: "text-[#B45309]", bg: "bg-[#FEF3C7]", solid: "bg-[#B45309]" },
   { name: "Cultura e Lazer", description: "Cultura e esporte", href: "/cultura", icon: Palette, color: "text-[#E11D48]", bg: "bg-[#FFE4E6]", solid: "bg-[#E11D48]" },
   { name: "Câmara Municipal", description: "Câmara e processos", href: "/legislativo", icon: Gavel, color: "text-[#525252]", bg: "bg-[#F5F5F5]", solid: "bg-[#525252]" },
+  { name: "Sistema", description: "Painel de controle geral", href: "/sistema", icon: Monitor, color: "text-[#334155]", bg: "bg-[#F1F5F9]", solid: "bg-[#334155]" },
   { name: "Configurações e Integrações", description: "Gestão do sistema", href: "/configuracoes", icon: Settings, color: "text-[#475569]", bg: "bg-[#E2E8F0]", solid: "bg-[#475569]" },
 ];
 
