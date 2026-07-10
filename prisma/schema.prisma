@@ -2570,3 +2570,90 @@ model SocialProgramParticipation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// --- Módulo 15: Meio Ambiente ---
+
+model EnvEnterprise {
+  id             String   @id @default(cuid())
+  name           String   // Razão social ou nome do local
+  cnpjCpf        String?  
+  activityType   String?  // Indústria, Comércio, Posto, etc
+  potentialRisk  String?  // Baixo, Médio, Alto
+  address        String?
+  status         String   @default("Ativo") // Ativo, Irregular, Embargado
+  
+  licenses       EnvLicense[]
+  inspections    EnvInspection[]
+  infractions    EnvInfraction[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model EnvLicense {
+  id             String   @id @default(cuid())
+  licenseNumber  String   @unique
+  licenseType    String   // Prévia, Instalação, Operação, Simplificada
+  issueDate      DateTime @default(now())
+  validUntil     DateTime?
+  status         String   @default("Emitida") // Em Análise, Emitida, Vencida, Suspensa
+
+  enterpriseId   String
+  enterprise     EnvEnterprise @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model EnvRequest {
+  id             String   @id @default(cuid())
+  requestType    String   // Poda, Supressão, Autorização
+  description    String
+  address        String?
+  requesterName  String?
+  status         String   @default("Solicitado") // Solicitado, Em Vistoria, Autorizado, Negado
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model EnvComplaint {
+  id             String   @id @default(cuid())
+  complaintType  String   // Descarte, Queimada, Poluição Sonora, etc
+  description    String
+  address        String?
+  isAnonymous    Boolean  @default(true)
+  status         String   @default("Recebida") // Recebida, Em Triagem, Em Vistoria, Encerrada
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model EnvInspection {
+  id             String   @id @default(cuid())
+  dateScheduled  DateTime?
+  dateExecuted   DateTime?
+  inspector      String?
+  notes          String?
+  status         String   @default("Agendada") // Agendada, Realizada, Cancelada
+
+  enterpriseId   String?
+  enterprise     EnvEnterprise? @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model EnvInfraction {
+  id             String   @id @default(cuid())
+  infractionType String   // Notificação, Auto de Infração
+  description    String
+  fineAmount     Float?
+  status         String   @default("Emitido") // Emitido, Pago, Em Recurso, Cancelado
+
+  enterpriseId   String?
+  enterprise     EnvEnterprise? @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
