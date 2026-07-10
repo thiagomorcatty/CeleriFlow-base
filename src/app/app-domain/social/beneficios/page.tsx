@@ -2,6 +2,8 @@ import React from "react";
 import { Package, Search, Gift, Heart, FileText, CheckCircle2, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
+import { NewBenefitConcessionSheet } from "../components/NewBenefitConcessionSheet";
+
 export default async function SocialBeneficiosPage() {
   const [concessions, programs] = await Promise.all([
     prisma.socialBenefitConcession.findMany({
@@ -21,6 +23,21 @@ export default async function SocialBeneficiosPage() {
     })
   ]);
 
+  const families = await prisma.socialFamily.findMany({
+    include: { representative: { select: { fullName: true } } },
+    orderBy: { representative: { fullName: "asc" } }
+  });
+
+  const benefits = await prisma.socialBenefit.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" }
+  });
+
+  const professionals = await prisma.employee.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" }
+  });
+
   return (
     <div className="flex-1 p-8">
       <div className="flex justify-between items-center mb-8">
@@ -38,10 +55,7 @@ export default async function SocialBeneficiosPage() {
             <Heart className="h-5 w-5 text-rose-500" />
             Novo Programa
           </button>
-          <button className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-            <Gift className="h-5 w-5" />
-            Conceder Benefício
-          </button>
+          <NewBenefitConcessionSheet families={families} benefits={benefits} professionals={professionals} />
         </div>
       </div>
 

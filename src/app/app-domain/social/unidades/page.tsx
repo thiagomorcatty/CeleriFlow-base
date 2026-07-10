@@ -2,6 +2,8 @@ import React from "react";
 import { Home, Plus, MapPin, Building, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
+import { NewSocialUnitSheet } from "../components/NewSocialUnitSheet";
+
 export default async function SocialUnidadesPage() {
   const units = await prisma.socialUnit.findMany({
     include: {
@@ -26,10 +28,7 @@ export default async function SocialUnidadesPage() {
             Gestão dos equipamentos da rede de assistência (CRAS, CREAS, Centros de Convivência).
           </p>
         </div>
-        <button className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-          <Plus className="h-5 w-5" />
-          Nova Unidade
-        </button>
+        <NewSocialUnitSheet />
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">

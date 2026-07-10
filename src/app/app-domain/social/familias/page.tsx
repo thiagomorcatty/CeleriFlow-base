@@ -2,6 +2,8 @@ import React from "react";
 import { Users, Search, MapPin, UserPlus, FileText } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
+import { NewFamilySheet } from "../components/NewFamilySheet";
+
 export default async function SocialFamiliasPage() {
   const families = await prisma.socialFamily.findMany({
     include: {
@@ -13,6 +15,12 @@ export default async function SocialFamiliasPage() {
     },
     orderBy: { representative: { fullName: "asc" } },
     take: 50
+  });
+
+  const people = await prisma.person.findMany({
+    select: { id: true, fullName: true },
+    orderBy: { fullName: "asc" },
+    take: 100
   });
 
   return (
@@ -27,10 +35,7 @@ export default async function SocialFamiliasPage() {
             Base unificada de acompanhamento familiar, composição e Cadastro Único (CadÚnico).
           </p>
         </div>
-        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-          <UserPlus className="h-5 w-5" />
-          Nova Família
-        </button>
+        <NewFamilySheet people={people} />
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-6">

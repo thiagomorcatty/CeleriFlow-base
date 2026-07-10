@@ -2,6 +2,8 @@ import React from "react";
 import { ClipboardList, Calendar, Clock, AlertTriangle, ShieldAlert } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
+import { NewAttendanceSheet } from "../components/NewAttendanceSheet";
+
 export default async function SocialAtendimentosPage() {
   const attendances = await prisma.socialAttendance.findMany({
     include: {
@@ -12,6 +14,21 @@ export default async function SocialAtendimentosPage() {
     },
     orderBy: { date: "desc" },
     take: 50
+  });
+
+  const families = await prisma.socialFamily.findMany({
+    include: { representative: { select: { fullName: true } } },
+    orderBy: { representative: { fullName: "asc" } }
+  });
+
+  const units = await prisma.socialUnit.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" }
+  });
+
+  const professionals = await prisma.employee.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" }
   });
 
   return (
@@ -26,10 +43,7 @@ export default async function SocialAtendimentosPage() {
             Registro de acolhimento, PAIF, PAEFI e atendimentos técnicos (Psicologia / Serviço Social).
           </p>
         </div>
-        <button className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-          <Calendar className="h-5 w-5" />
-          Registrar Atendimento
-        </button>
+        <NewAttendanceSheet families={families} units={units} professionals={professionals} />
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">

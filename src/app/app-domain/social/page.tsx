@@ -86,7 +86,7 @@ export default async function SocialDashboardPage() {
 
       {/* Acessos Rápidos */}
       <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Acesso Rápido</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Link href="/app-domain/social/unidades" className="group">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all h-full">
             <Home className="h-8 w-8 text-orange-500 mb-4 group-hover:scale-110 transition-transform" />
@@ -116,6 +116,22 @@ export default async function SocialDashboardPage() {
             <Package className="h-8 w-8 text-amber-500 mb-4 group-hover:scale-110 transition-transform" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Benefícios e Programas</h3>
             <p className="text-sm text-gray-500">Concessão de cestas básicas, auxílios e programas de renda.</p>
+          </div>
+        </Link>
+
+        <Link href="/app-domain/social/prontuario" className="group">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all h-full">
+            <ClipboardList className="h-8 w-8 text-indigo-500 mb-4 group-hover:scale-110 transition-transform" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Prontuário Social</h3>
+            <p className="text-sm text-gray-500">Histórico técnico, acompanhamento e pareceres sociais.</p>
+          </div>
+        </Link>
+
+        <Link href="/app-domain/social/visitas" className="group">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all h-full">
+            <MapPin className="h-8 w-8 text-teal-500 mb-4 group-hover:scale-110 transition-transform" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Visitas Domiciliares</h3>
+            <p className="text-sm text-gray-500">Gestão de agendamentos e registros de visitas da equipe.</p>
           </div>
         </Link>
       </div>
