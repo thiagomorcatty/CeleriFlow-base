@@ -2855,3 +2855,46 @@ model ObrasServico {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+// -----------------------------------------------------------------------------
+// MODULO 19 - CULTURA, ESPORTE E LAZER
+// -----------------------------------------------------------------------------
+
+model CulturaAgente {
+  id             String   @id @default(cuid())
+  nome           String
+  tipo           String   // Artista Individual, Grupo, Produtor, etc.
+  segmento       String   // Música, Teatro, Dança, Esporte, etc.
+  cpfCnpj        String?  @unique
+  telefone       String?
+  email          String?
+  status         String   @default("Ativo") // Ativo, Inativo
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model CulturaEspaco {
+  id             String   @id @default(cuid())
+  nome           String
+  tipo           String   // Centro Cultural, Quadra, Teatro, Praça
+  endereco       String?
+  capacidade     Int?
+  status         String   @default("Disponível") // Disponível, Em Manutenção, Reservado
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model CulturaEvento {
+  id             String   @id @default(cuid())
+  nome           String
+  tipo           String   // Oficina, Campeonato, Festival, Apresentação
+  data           DateTime
+  local          String?
+  publicoAlvo    String?
+  status         String   @default("Programado") // Programado, Em Andamento, Realizado, Cancelado
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
