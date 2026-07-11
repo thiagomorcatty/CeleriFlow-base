@@ -2809,3 +2809,49 @@ model CamProposicao {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+// -----------------------------------------------------------------------------
+// MODULO 18 - OBRAS E INFRAESTRUTURA
+// -----------------------------------------------------------------------------
+
+model ObrasObra {
+  id             String   @id @default(cuid())
+  numero         String   @unique
+  nome           String
+  descricao      String?
+  local          String?
+  tipo           String   // Construção, Reforma, Pavimentação, etc.
+  valorEstimado  Float?
+  status         String   @default("Em Planejamento") // Em Planejamento, Em Execução, Concluída, Paralisada
+
+  medicoes       ObrasMedicao[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ObrasMedicao {
+  id             String   @id @default(cuid())
+  numero         Int
+  data           DateTime
+  valorMedido    Float
+  status         String   @default("Em Análise") // Em Análise, Aprovada, Paga
+
+  obraId         String
+  obra           ObrasObra @relation(fields: [obraId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ObrasServico {
+  id             String   @id @default(cuid())
+  protocolo      String   @unique
+  tipo           String   // Tapa-buraco, Iluminação, Poda, Limpeza
+  descricao      String
+  local          String
+  status         String   @default("Aberto") // Aberto, Em Andamento, Concluído
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
