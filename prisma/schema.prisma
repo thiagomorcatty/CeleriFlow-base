@@ -2898,3 +2898,47 @@ model CulturaEvento {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+// -----------------------------------------------------------------------------
+// MODULO 20 - SEGURANÇA PÚBLICA E MOBILIDADE
+// -----------------------------------------------------------------------------
+
+model SegurancaGuarda {
+  id             String   @id @default(cuid())
+  matricula      String   @unique
+  nome           String
+  tipo           String   // Guarda Municipal, Agente de Trânsito, Defesa Civil
+  equipe         String?
+  status         String   @default("Ativo") // Ativo, Licença, Inativo
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model SegurancaOcorrencia {
+  id             String   @id @default(cuid())
+  numero         String   @unique
+  tipo           String   // Perturbação, Acidente, Furto, Risco Estrutural
+  descricao      String
+  local          String?
+  bairro         String?
+  prioridade     String   @default("Normal") // Baixa, Normal, Alta, Urgente
+  status         String   @default("Registrada") // Registrada, Em Atendimento, Resolvida, Encerrada
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model SegurancaInfracao {
+  id             String   @id @default(cuid())
+  auto           String   @unique
+  data           DateTime
+  placa          String
+  tipo           String   // Estacionamento irregular, Velocidade, etc.
+  local          String
+  valor          Float?
+  status         String   @default("Registrado") // Registrado, Notificado, Em Recurso, Pago, Cancelado
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
