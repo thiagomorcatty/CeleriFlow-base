@@ -2942,3 +2942,42 @@ model SegurancaInfracao {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+// -----------------------------------------------------------------------------
+// MODULO 21 - CONFIGURAÇÕES E INTEGRAÇÕES
+// -----------------------------------------------------------------------------
+
+model ConfiguracaoInstancia {
+  id             String   @id @default(cuid())
+  nomePrefeitura String
+  cnpj           String?
+  municipio      String
+  uf             String
+  dominio        String?
+  status         String   @default("Ativa") // Ativa, Suspensa, Manutenção
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ConfiguracaoModulo {
+  id             String   @id @default(cuid())
+  nome           String
+  codigo         String   @unique
+  ativo          Boolean  @default(false)
+  dataAtivacao   DateTime?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ConfiguracaoPerfil {
+  id             String   @id @default(cuid())
+  nome           String   // Administrador Municipal, Gestor, Operador
+  descricao      String?
+  permissoes     String   // JSON string with permissions
+  ativo          Boolean  @default(true)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
