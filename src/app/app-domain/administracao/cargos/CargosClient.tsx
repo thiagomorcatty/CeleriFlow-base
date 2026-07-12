@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Briefcase, Pencil, Trash2 } from "lucide-react";
-import { updateRole, deactivateRole } from "../actions";
+import { Briefcase, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { updateRole, deactivateRole, activateRole } from "../actions";
 
 type Role = {
   id: string;
@@ -16,6 +16,12 @@ type Role = {
 export default function CargosClient({ roles }: { roles: Role[] }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", level: "", canSign: false });
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredRoles = roles.filter(role => 
+    role.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (role.level && role.level.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   const handleEditClick = (role: Role) => {
     setEditingId(role.id);
@@ -39,6 +45,12 @@ export default function CargosClient({ roles }: { roles: Role[] }) {
     }
   };
 
+  const handleActivate = async (id: string) => {
+    if (window.confirm("Deseja REATIVAR este cargo?")) {
+      await activateRole(id);
+    }
+  };
+
   if (roles.length === 0) {
     return (
       <div className="bg-white border border-slate-200 rounded-xl p-12 text-center shadow-sm flex flex-col items-center justify-center">
@@ -52,8 +64,18 @@ export default function CargosClient({ roles }: { roles: Role[] }) {
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-      <table className="w-full text-left text-sm">
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <input 
+          type="text" 
+          placeholder="Buscar cargo..." 
+          className="border border-slate-300 rounded-lg px-4 py-2 text-sm w-full md:w-72 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <table className="w-full text-left text-sm">
         <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
           <tr>
             <th className="px-6 py-4">Nome</th>
@@ -65,7 +87,7 @@ export default function CargosClient({ roles }: { roles: Role[] }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {roles.map(role => (
+          {filteredRoles.map(role => (
             <tr key={role.id} className="hover:bg-slate-50">
               <td className="px-6 py-4 font-medium text-slate-800">
                 {editingId === role.id ? (
@@ -105,9 +127,13 @@ export default function CargosClient({ roles }: { roles: Role[] }) {
                     <button onClick={() => handleEditClick(role)} className="text-purple-600 hover:text-purple-700 p-1" title="Editar">
                       <Pencil className="w-4 h-4" />
                     </button>
-                    {role.isActive && (
+                    {role.isActive ? (
                       <button onClick={() => handleDeactivate(role.id)} className="text-red-500 hover:text-red-700 p-1" title="Inativar">
                         <Trash2 className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <button onClick={() => handleActivate(role.id)} className="text-emerald-500 hover:text-emerald-700 p-1" title="Reativar">
+                        <RefreshCw className="w-4 h-4" />
                       </button>
                     )}
                   </>
@@ -115,8 +141,16 @@ export default function CargosClient({ roles }: { roles: Role[] }) {
               </td>
             </tr>
           ))}
+          {filteredRoles.length === 0 && (
+            <tr>
+              <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                Nenhum cargo encontrado para "{searchTerm}".
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
+  </div>
   );
 }

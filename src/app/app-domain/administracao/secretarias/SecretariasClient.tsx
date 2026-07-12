@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, Pencil, Trash2 } from "lucide-react";
-import { updateSecretariat, deactivateSecretariat } from "../actions";
+import { Building2, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { updateSecretariat, deactivateSecretariat, activateSecretariat } from "../actions";
 
 type Secretariat = {
   id: string;
@@ -17,6 +17,12 @@ export default function SecretariasClient({ secretariats }: { secretariats: Secr
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", acronym: "", managerName: "" });
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredSecretariats = secretariats.filter(sec => 
+    sec.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (sec.acronym && sec.acronym.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   const handleEditClick = (sec: Secretariat) => {
     setEditingId(sec.id);
@@ -41,6 +47,12 @@ export default function SecretariasClient({ secretariats }: { secretariats: Secr
     }
   };
 
+  const handleActivate = async (id: string) => {
+    if (window.confirm("Deseja REATIVAR esta secretaria?")) {
+      await activateSecretariat(id);
+    }
+  };
+
   if (secretariats.length === 0) {
     return (
       <div className="bg-white border border-slate-200 rounded-xl p-12 text-center shadow-sm flex flex-col items-center justify-center">
@@ -54,8 +66,18 @@ export default function SecretariasClient({ secretariats }: { secretariats: Secr
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-      <table className="w-full text-left text-sm">
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <input 
+          type="text" 
+          placeholder="Buscar secretaria..." 
+          className="border border-slate-300 rounded-lg px-4 py-2 text-sm w-full md:w-72 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <table className="w-full text-left text-sm">
         <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
           <tr>
             <th className="px-6 py-4">Nome</th>
@@ -67,7 +89,7 @@ export default function SecretariasClient({ secretariats }: { secretariats: Secr
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {secretariats.map(sec => (
+          {filteredSecretariats.map(sec => (
             <tr key={sec.id} className="hover:bg-slate-50">
               <td className="px-6 py-4 font-medium text-slate-800">
                 {editingId === sec.id ? (
@@ -101,9 +123,13 @@ export default function SecretariasClient({ secretariats }: { secretariats: Secr
                     <button onClick={() => handleEditClick(sec)} className="text-blue-600 hover:text-blue-700 p-1" title="Editar">
                       <Pencil className="w-4 h-4" />
                     </button>
-                    {sec.isActive && (
+                    {sec.isActive ? (
                       <button onClick={() => handleDeactivate(sec.id)} className="text-red-500 hover:text-red-700 p-1" title="Inativar">
                         <Trash2 className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <button onClick={() => handleActivate(sec.id)} className="text-emerald-500 hover:text-emerald-700 p-1" title="Reativar">
+                        <RefreshCw className="w-4 h-4" />
                       </button>
                     )}
                   </>
@@ -111,8 +137,16 @@ export default function SecretariasClient({ secretariats }: { secretariats: Secr
               </td>
             </tr>
           ))}
+          {filteredSecretariats.length === 0 && (
+            <tr>
+              <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                Nenhuma secretaria encontrada para "{searchTerm}".
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
+  </div>
   );
 }

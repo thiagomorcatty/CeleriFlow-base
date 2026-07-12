@@ -12,6 +12,14 @@ export async function deactivateSecretariat(id: string) {
   revalidatePath("/administracao/secretarias");
 }
 
+export async function activateSecretariat(id: string) {
+  await prisma.secretariat.update({
+    where: { id },
+    data: { isActive: true }
+  });
+  revalidatePath("/administracao/secretarias");
+}
+
 export async function updateSecretariat(id: string, data: { name: string, acronym: string, managerName: string }) {
   await prisma.secretariat.update({
     where: { id },
@@ -29,7 +37,15 @@ export async function deactivateDepartment(id: string) {
   revalidatePath("/administracao/departamentos");
 }
 
-export async function updateDepartment(id: string, data: { name: string, description: string }) {
+export async function activateDepartment(id: string) {
+  await prisma.department.update({
+    where: { id },
+    data: { isActive: true }
+  });
+  revalidatePath("/administracao/departamentos");
+}
+
+export async function updateDepartment(id: string, data: { name: string, description: string, secretariatId: string }) {
   await prisma.department.update({
     where: { id },
     data
@@ -42,6 +58,14 @@ export async function deactivateRole(id: string) {
   await prisma.role.update({
     where: { id },
     data: { isActive: false }
+  });
+  revalidatePath("/administracao/cargos");
+}
+
+export async function activateRole(id: string) {
+  await prisma.role.update({
+    where: { id },
+    data: { isActive: true }
   });
   revalidatePath("/administracao/cargos");
 }
@@ -63,7 +87,22 @@ export async function deactivateEmployee(id: string) {
   revalidatePath("/administracao/servidores");
 }
 
-export async function updateEmployee(id: string, data: { name: string, email: string }) {
+export async function activateEmployee(id: string) {
+  await prisma.employee.update({
+    where: { id },
+    data: { isActive: true }
+  });
+  revalidatePath("/administracao/servidores");
+}
+
+export async function updateEmployee(id: string, data: { 
+  name: string, 
+  email: string,
+  cpf: string,
+  roleId: string | null,
+  secretariatId: string | null,
+  departmentId: string | null
+}) {
   await prisma.employee.update({
     where: { id },
     data

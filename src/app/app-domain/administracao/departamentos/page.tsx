@@ -10,6 +10,12 @@ export default async function DepartamentosPage() {
     include: { secretariat: true }
   });
 
+  const secretariats = await prisma.secretariat.findMany({
+    where: { isActive: true },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true }
+  });
+
   return (
     <div className="max-w-6xl animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-6 flex justify-between items-center">
@@ -21,7 +27,7 @@ export default async function DepartamentosPage() {
           Adicionar Novo
         </Link>
       </div>
-      <DepartamentosClient departments={departments} />
+      <DepartamentosClient departments={departments} secretariats={secretariats} />
     </div>
   );
 }

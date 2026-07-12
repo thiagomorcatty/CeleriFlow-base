@@ -7,8 +7,16 @@ export const dynamic = "force-dynamic";
 export default async function ServidoresPage() {
   const employees = await prisma.employee.findMany({
     orderBy: { name: 'asc' },
-    include: { role: true, secretariat: true, department: true }
+    include: {
+      role: true,
+      secretariat: true,
+      department: true
+    }
   });
+
+  const roles = await prisma.role.findMany({ where: { isActive: true }, select: { id: true, name: true } });
+  const secretariats = await prisma.secretariat.findMany({ where: { isActive: true }, select: { id: true, name: true } });
+  const departments = await prisma.department.findMany({ where: { isActive: true }, select: { id: true, name: true, secretariatId: true } });
 
   return (
     <div className="max-w-6xl animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -21,7 +29,12 @@ export default async function ServidoresPage() {
           Adicionar Novo
         </Link>
       </div>
-      <ServidoresClient employees={employees} />
+      <ServidoresClient 
+        employees={employees} 
+        roles={roles}
+        secretariats={secretariats}
+        departments={departments}
+      />
     </div>
   );
 }
