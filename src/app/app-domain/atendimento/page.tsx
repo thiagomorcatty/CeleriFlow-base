@@ -1,18 +1,28 @@
-import { Headphones, MessageSquareWarning, Search, CheckCircle2, AlertCircle } from "lucide-react";
+import { Headphones, MessageSquareWarning, CheckCircle2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import AtendimentoClient from "./AtendimentoClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function AtendimentoDashboardPage() {
-  const openTickets = await prisma.ticket.count({ where: { status: "Aberto" } });
-  const inProgressTickets = await prisma.ticket.count({ where: { status: "Em Atendimento" } });
-  const openOmbudsman = await prisma.ombudsman.count({ where: { status: "Recebida" } });
+  const openTicketsCount = await prisma.ticket.count({ where: { status: "Aberto" } });
+  const inProgressTicketsCount = await prisma.ticket.count({ where: { status: "Em Atendimento" } });
+  const openOmbudsmanCount = await prisma.ombudsman.count({ where: { status: "Recebida" } });
+
+  const tickets = await prisma.ticket.findMany({
+    take: 20,
+    orderBy: { createdAt: "desc" },
+    include: {
+      person: { select: { fullName: true } },
+      channel: { select: { name: true } }
+    }
+  });
 
   const stats = [
-    { title: "Chamados Abertos", value: openTickets.toString(), icon: Headphones, href: "/atendimento/novo", color: "text-violet-600", bg: "bg-violet-100" },
-    { title: "Em Atendimento", value: inProgressTickets.toString(), icon: CheckCircle2, href: "/atendimento", color: "text-blue-600", bg: "bg-blue-100" },
-    { title: "Denúncias Pendentes", value: openOmbudsman.toString(), icon: MessageSquareWarning, href: "/atendimento/ouvidoria", color: "text-amber-600", bg: "bg-amber-100" },
+    { title: "Chamados Abertos", value: openTicketsCount.toString(), icon: Headphones, href: "/atendimento/novo", color: "text-violet-600", bg: "bg-violet-100" },
+    { title: "Em Atendimento", value: inProgressTicketsCount.toString(), icon: CheckCircle2, href: "/atendimento", color: "text-blue-600", bg: "bg-blue-100" },
+    { title: "Denúncias Pendentes", value: openOmbudsmanCount.toString(), icon: MessageSquareWarning, href: "/atendimento/ouvidoria", color: "text-amber-600", bg: "bg-amber-100" },
   ];
 
   return (
@@ -46,16 +56,7 @@ export default async function AtendimentoDashboardPage() {
       </div>
       
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mt-8">
-        <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
-          <h3 className="text-sm font-semibold text-slate-800">Fila de Chamados Recentes</h3>
-        </div>
-        <div className="p-12 text-center flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-            <Search className="text-slate-400 w-8 h-8" />
-          </div>
-          <h3 className="text-lg font-bold text-slate-700">Nenhum chamado pendente</h3>
-          <p className="text-slate-500 mt-1">A caixa de entrada de serviços rápidos está vazia no momento.</p>
-        </div>
+        <AtendimentoClient initialTickets={tickets} />
       </div>
     </div>
   );

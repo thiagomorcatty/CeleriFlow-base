@@ -1,7 +1,8 @@
-import { ArrowLeft, Save, Headphones, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Headphones } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { SubmitButton } from "./SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -134,10 +135,7 @@ export default async function NovoChamadoPage() {
           <Link href="/atendimento" className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg transition-colors">
             Cancelar
           </Link>
-          <button type="submit" className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
-            <CheckCircle2 className="w-4 h-4" />
-            Abrir Chamado
-          </button>
+          <SubmitButton />
         </div>
       </form>
     </div>
