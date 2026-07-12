@@ -1,4 +1,4 @@
-import { FileSignature, Search, CheckCircle, XCircle } from "lucide-react";
+import { FileSignature, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import AssinaturasClient from "./AssinaturasClient";
 

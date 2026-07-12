@@ -1,5 +1,4 @@
 import { FileText, Plus, Search, FileEdit, Trash2 } from "lucide-react";
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";

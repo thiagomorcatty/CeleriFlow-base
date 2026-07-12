@@ -8,7 +8,7 @@ type Documento = {
   id: string;
   title: string;
   documentType: string;
-  createdAt: Date;
+  createdAt: Date | string;
   status: string;
 };
 

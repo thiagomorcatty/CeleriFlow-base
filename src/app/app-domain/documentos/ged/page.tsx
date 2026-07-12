@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export default async function GEDPage({ searchParams }: { searchParams?: { folderId?: string } }) {
-  const currentFolderId = searchParams?.folderId || null;
+export default async function GEDPage({ searchParams }: { searchParams: Promise<{ folderId?: string }> }) {
+  const resolvedParams = await searchParams;
+  const currentFolderId = resolvedParams?.folderId || null;
 
   let currentFolder = null;
   if (currentFolderId) {
