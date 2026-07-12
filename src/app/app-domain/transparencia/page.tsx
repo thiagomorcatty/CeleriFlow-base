@@ -64,31 +64,6 @@ export default async function TransparenciaPage() {
             <p className="text-xs font-medium text-slate-500 uppercase mt-1">Contratos</p>
           </div>
         </Link>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
-        <h3 className="text-lg font-bold text-slate-800 col-span-full mt-4">Acesso Rápido</h3>
-        
-        <Link href="/transparencia/banners" className="p-4 bg-white border border-slate-200 rounded-lg hover:border-slate-300 hover:bg-slate-50 flex items-center gap-3 transition-colors">
-          <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-            <Eye className="w-5 h-5 text-slate-600" />
-          </div>
-          <div>
-            <h4 className="font-semibold text-slate-800 text-sm">Banners</h4>
-            <p className="text-xs text-slate-500">Destaques da Home</p>
-          </div>
-        </Link>
-        
-        <Link href="/transparencia/legislacao" className="p-4 bg-white border border-slate-200 rounded-lg hover:border-slate-300 hover:bg-slate-50 flex items-center gap-3 transition-colors">
-          <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-            <Scale className="w-5 h-5 text-slate-600" />
-          </div>
-          <div>
-            <h4 className="font-semibold text-slate-800 text-sm">Legislação</h4>
-            <p className="text-xs text-slate-500">Leis e Decretos</p>
-          </div>
-        </Link>
-      </div>
     </div>
   );
 }

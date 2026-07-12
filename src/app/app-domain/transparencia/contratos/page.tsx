@@ -90,7 +90,14 @@ export default async function ContratosPage() {
                           {c.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-6 py-4 text-right flex justify-end gap-2">
+                        <Link 
+                          href={`/compras/contratos`}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition-colors"
+                          title="Abrir no Módulo de Compras"
+                        >
+                          Ver no Compras
+                        </Link>
                         <button className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg text-xs font-bold transition-colors">
                           <Download className="w-4 h-4" /> PDF
                         </button>

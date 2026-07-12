@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Newspaper } from "lucide-react";
+import NoticiasTable from "./NoticiasTable";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +12,12 @@ export default async function NoticiasPage() {
   });
 
   return (
-    <div className="max-w-6xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="mb-6 flex justify-between items-center">
+    <div className="max-w-6xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+      <div className="flex justify-between items-center">
         <div>
+          <Link href="/transparencia" className="text-sm font-semibold text-blue-600 hover:underline mb-2 inline-block">
+            &larr; Voltar para Transparência
+          </Link>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Notícias</h1>
           <p className="text-slate-500 mt-1">Gerencie as notícias do portal da prefeitura.</p>
         </div>
@@ -31,32 +35,7 @@ export default async function NoticiasPage() {
           <p className="text-slate-500 mt-1">Comece publicando a primeira notícia do portal.</p>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
-              <tr>
-                <th className="px-6 py-4">Título</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Autor</th>
-                <th className="px-6 py-4 text-right">Criado em</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {news.map(item => (
-                <tr key={item.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 font-medium text-slate-800">{item.title}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.status === 'Publicado' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'}`}>
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-600">{item.author?.name || "-"}</td>
-                  <td className="px-6 py-4 text-slate-600 text-right">{item.createdAt.toLocaleDateString('pt-BR')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <NoticiasTable news={news} />
       )}
     </div>
   );
