@@ -59,7 +59,7 @@ export default async function ContratosPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {contracts.map((c) => {
-                  const supplierName = c.supplier.company?.fantasyName || c.supplier.person?.fullName || "Desconhecido";
+                  const supplierName = c.supplier.company?.tradeName || c.supplier.company?.corporateName || c.supplier.person?.fullName || "Desconhecido";
                   const supplierDoc = c.supplier.company?.cnpj || c.supplier.person?.cpf || "";
 
                   return (

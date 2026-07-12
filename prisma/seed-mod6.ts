@@ -10,10 +10,10 @@ async function seedMod6() {
     company = await prisma.company.create({
       data: {
         cnpj: "12345678000199",
-        corporateReason: "Construtora CeleriFlow S.A.",
-        fantasyName: "Celeri Construções",
-        stateRegistration: "123456",
-        municipalRegistration: "7890",
+        corporateName: "Construtora CeleriFlow S.A.",
+        tradeName: "Celeri Construções",
+        stateInsc: "123456",
+        municipalInsc: "7890",
         openingDate: new Date("2010-01-01"),
         status: "Ativo"
       }
