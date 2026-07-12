@@ -225,7 +225,7 @@ export default function GEDClient({
                       {activeMenu === doc.id && (
                         <div className="absolute top-8 right-2 z-20 bg-white border border-slate-200 rounded-xl shadow-xl py-1 min-w-[160px]">
                           <a
-                            href={doc.fileUrl}
+                            href={doc.fileUrl.startsWith("http") ? `/api/download?url=${encodeURIComponent(doc.fileUrl)}` : doc.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 w-full px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"

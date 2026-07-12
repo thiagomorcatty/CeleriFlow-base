@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   }
 
   const blob = await put(`documentos/${Date.now()}_${file.name}`, file, {
-    access: "public",
+    access: "private",
   });
 
   return NextResponse.json({ url: blob.url, pathname: blob.pathname });
