@@ -1,161 +1,170 @@
-import { Folder as FolderIcon, File, MoreVertical, Plus, Search, Upload, Clock, User, ArrowLeft } from "lucide-react";
+import { Folder as FolderIcon, Clock, ArrowLeft, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import GEDClient from "./GEDClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function GEDPage({ searchParams }: { searchParams: Promise<{ folderId?: string }> }) {
-  const resolvedParams = await searchParams;
-  const currentFolderId = resolvedParams?.folderId || null;
+export default async function GEDPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ folderId?: string; view?: string }>;
+}) {
+  const resolved = await searchParams;
+  const currentFolderId = resolved?.folderId || null;
+  const view = resolved?.view || null;
 
+  // Current folder metadata
   let currentFolder = null;
   if (currentFolderId) {
     currentFolder = await prisma.folder.findUnique({
       where: { id: currentFolderId },
-      include: { parent: true }
+      include: { parent: true },
     });
   }
 
-  const folders = await prisma.folder.findMany({
-    where: { parentId: currentFolderId },
-    include: {
-      _count: { select: { documents: true, children: true } }
-    }
+  // All root folders for sidebar
+  const rootFolders = await prisma.folder.findMany({
+    where: { parentId: null },
+    include: { _count: { select: { documents: true, children: true } } },
+    orderBy: { name: "asc" },
   });
 
-  const documents = currentFolderId 
-    ? await prisma.document.findMany({ where: { folderId: currentFolderId }, orderBy: { createdAt: 'desc' } })
-    : await prisma.document.findMany({
-        take: 10,
-        where: { documentType: { not: 'Modelo' } },
-        orderBy: { createdAt: 'desc' }
-      });
+  // Folders to show in main grid
+  const displayFolders = currentFolderId
+    ? await prisma.folder.findMany({
+        where: { parentId: currentFolderId },
+        include: { _count: { select: { documents: true, children: true } } },
+        orderBy: { name: "asc" },
+      })
+    : rootFolders;
+
+  // Documents query based on view/folder
+  let documents;
+  if (currentFolderId) {
+    documents = await prisma.document.findMany({
+      where: { folderId: currentFolderId },
+      orderBy: { createdAt: "desc" },
+    });
+  } else if (view === "recentes") {
+    documents = await prisma.document.findMany({
+      where: { documentType: { not: "Modelo" } },
+      take: 30,
+      orderBy: { createdAt: "desc" },
+    });
+  } else {
+    // Root: show docs without folder
+    documents = await prisma.document.findMany({
+      where: { folderId: null, documentType: { not: "Modelo" } },
+      take: 20,
+      orderBy: { createdAt: "desc" },
+    });
+  }
 
   return (
-    <div className="max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-      
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <FolderIcon className="w-6 h-6 text-indigo-600" />
-            {currentFolder ? currentFolder.name : "Gerenciamento Eletrônico de Documentos"}
-          </h1>
-          <p className="text-slate-500 mt-1">
-            {currentFolder ? currentFolder.description || "Navegando na pasta" : "Navegue pelas pastas e arquivos da instituição."}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
-            <Plus className="w-4 h-4" />
-            Nova Pasta
-          </button>
-          <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
-            <Upload className="w-4 h-4" />
-            Upload
-          </button>
-        </div>
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <FolderIcon className="w-6 h-6 text-indigo-600" />
+          Gerenciamento Eletrônico de Documentos
+        </h1>
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1 mt-1 text-sm text-slate-400 flex-wrap">
+          <Link href="/documentos/ged" className="hover:text-indigo-600 transition-colors">GED</Link>
+          {currentFolder?.parent && (
+            <>
+              <span>/</span>
+              <Link href={`/documentos/ged?folderId=${currentFolder.parentId}`} className="hover:text-indigo-600 transition-colors">
+                {currentFolder.parent.name}
+              </Link>
+            </>
+          )}
+          {currentFolder && (
+            <>
+              <span>/</span>
+              <span className="text-slate-700 font-semibold">{currentFolder.name}</span>
+            </>
+          )}
+          {view === "recentes" && (
+            <>
+              <span>/</span>
+              <span className="text-slate-700 font-semibold">Recentes</span>
+            </>
+          )}
+        </nav>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col md:flex-row">
-        
-        {/* Sidebar GED */}
-        <div className="w-full md:w-64 border-r border-slate-200 bg-slate-50/50 p-4">
-          <div className="relative mb-4">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Buscar no GED..." 
-              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600"
-            />
-          </div>
-          
-          <nav className="space-y-1">
-            <Link href="/documentos/ged" className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-sm ${!currentFolderId ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-100 text-slate-600'}`}>
-              <FolderIcon className="w-4 h-4" />
-              Raiz do GED
+      {/* Layout: sidebar + main */}
+      <div className="flex gap-5">
+        {/* Sidebar - only on large screens */}
+        <aside className="w-52 shrink-0 hidden lg:flex flex-col gap-1">
+          <div className="bg-white border border-slate-200 rounded-xl p-2.5 sticky top-4">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">Acesso Rápido</p>
+            <Link
+              href="/documentos/ged"
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                !currentFolderId && !view ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4 shrink-0" /> Raiz
             </Link>
-            <a href="#" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 text-slate-600 font-medium text-sm">
-              <User className="w-4 h-4 text-slate-400" />
-              Compartilhados
-            </a>
-            <a href="#" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 text-slate-600 font-medium text-sm">
-              <Clock className="w-4 h-4 text-slate-400" />
-              Recentes
-            </a>
-          </nav>
-        </div>
+            <Link
+              href="/documentos/ged?view=recentes"
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                view === "recentes" ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <Clock className="w-4 h-4 shrink-0" /> Recentes
+            </Link>
 
-        {/* Conteúdo Principal */}
-        <div className="flex-1 p-6">
-          {currentFolder && (
-            <div className="mb-6">
-              <Link href={currentFolder.parentId ? `/documentos/ged?folderId=${currentFolder.parentId}` : `/documentos/ged`} className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors">
+            {rootFolders.length > 0 && (
+              <>
+                <div className="border-t border-slate-100 my-2" />
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">Pastas</p>
+                {rootFolders.map((f) => (
+                  <Link
+                    key={f.id}
+                    href={`/documentos/ged?folderId=${f.id}`}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      currentFolderId === f.id
+                        ? "bg-amber-50 text-amber-700 font-semibold"
+                        : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <FolderIcon className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                    <span className="truncate">{f.name}</span>
+                  </Link>
+                ))}
+              </>
+            )}
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <div className="flex-1 min-w-0">
+          {currentFolderId && (
+            <div className="mb-4">
+              <Link
+                href={
+                  currentFolder?.parentId
+                    ? `/documentos/ged?folderId=${currentFolder.parentId}`
+                    : "/documentos/ged"
+                }
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors"
+              >
                 <ArrowLeft className="w-4 h-4" />
-                Voltar
+                Voltar para {currentFolder?.parent?.name || "Raiz"}
               </Link>
             </div>
           )}
 
-          <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Pastas</h3>
-          
-          {folders.length === 0 ? (
-            <div className="p-6 text-center bg-slate-50 rounded-xl border border-slate-200 border-dashed mb-8">
-              <p className="text-slate-500 text-sm">Nenhuma subpasta.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-              {folders.map(folder => (
-                <Link key={folder.id} href={`/documentos/ged?folderId=${folder.id}`} className="border border-slate-200 rounded-xl p-4 flex items-start justify-between hover:border-indigo-300 hover:shadow-sm cursor-pointer transition-all bg-white group">
-                  <div className="flex gap-3">
-                    <FolderIcon className="w-8 h-8 text-indigo-400 group-hover:text-indigo-600 transition-colors" fill="currentColor" fillOpacity={0.2} />
-                    <div>
-                      <h4 className="font-semibold text-slate-800 text-sm group-hover:text-indigo-700">{folder.name}</h4>
-                      <p className="text-xs text-slate-500">{folder._count.documents} arquivos, {folder._count.children} pastas</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">{currentFolderId ? 'Arquivos na Pasta' : 'Arquivos Recentes'}</h3>
-          
-          {documents.length === 0 ? (
-            <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200 border-dashed">
-              <p className="text-slate-500 text-sm">Nenhum arquivo encontrado.</p>
-            </div>
-          ) : (
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
-              <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
-                  <tr>
-                    <th className="px-4 py-3">Nome</th>
-                    <th className="px-4 py-3">Tipo</th>
-                    <th className="px-4 py-3">Modificado em</th>
-                    <th className="px-4 py-3 w-10"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {documents.map(doc => (
-                    <tr key={doc.id} className="hover:bg-slate-50 cursor-pointer">
-                      <td className="px-4 py-3 flex items-center gap-3">
-                        <File className="w-5 h-5 text-slate-400" />
-                        <span className="font-medium text-slate-800">{doc.title}</span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-500">{doc.documentType || 'Arquivo'}</td>
-                      <td className="px-4 py-3 text-slate-500">{new Date(doc.createdAt).toLocaleDateString('pt-BR')}</td>
-                      <td className="px-4 py-3 text-right">
-                        <button className="text-slate-400 hover:text-slate-600">
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
+          {/* GEDClient renders: action buttons, folder grid, file table, and modals */}
+          <GEDClient
+            folders={displayFolders}
+            documents={documents}
+            currentFolderId={currentFolderId}
+          />
         </div>
       </div>
     </div>

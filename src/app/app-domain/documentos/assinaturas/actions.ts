@@ -6,12 +6,13 @@ import { revalidatePath } from "next/cache";
 export async function signDocument(id: string, newStatus: string) {
   const result = await prisma.document.update({
     where: { id },
-    data: { status: newStatus }
+    data: { status: newStatus },
   });
-  
+
   revalidatePath("/documentos");
   revalidatePath("/documentos/assinaturas");
   revalidatePath("/documentos/ged");
-  
+  revalidatePath("/documentos/ged?view=recentes");
+
   return result;
 }
