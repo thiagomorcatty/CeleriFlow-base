@@ -1,21 +1,34 @@
-import { Folder as FolderIcon, File, MoreVertical, Plus, Search, Upload, Clock, User } from "lucide-react";
+import { Folder as FolderIcon, File, MoreVertical, Plus, Search, Upload, Clock, User, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export default async function GEDPage() {
+export default async function GEDPage({ searchParams }: { searchParams?: { folderId?: string } }) {
+  const currentFolderId = searchParams?.folderId || null;
+
+  let currentFolder = null;
+  if (currentFolderId) {
+    currentFolder = await prisma.folder.findUnique({
+      where: { id: currentFolderId },
+      include: { parent: true }
+    });
+  }
+
   const folders = await prisma.folder.findMany({
-    where: { parentId: null },
+    where: { parentId: currentFolderId },
     include: {
       _count: { select: { documents: true, children: true } }
     }
   });
 
-  const recentDocuments = await prisma.document.findMany({
-    take: 10,
-    orderBy: { createdAt: 'desc' }
-  });
+  const documents = currentFolderId 
+    ? await prisma.document.findMany({ where: { folderId: currentFolderId }, orderBy: { createdAt: 'desc' } })
+    : await prisma.document.findMany({
+        take: 10,
+        where: { documentType: { not: 'Modelo' } },
+        orderBy: { createdAt: 'desc' }
+      });
 
   return (
     <div className="max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
@@ -24,9 +37,11 @@ export default async function GEDPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <FolderIcon className="w-6 h-6 text-indigo-600" />
-            Gerenciamento Eletrônico de Documentos
+            {currentFolder ? currentFolder.name : "Gerenciamento Eletrônico de Documentos"}
           </h1>
-          <p className="text-slate-500 mt-1">Navegue pelas pastas e arquivos da instituição.</p>
+          <p className="text-slate-500 mt-1">
+            {currentFolder ? currentFolder.description || "Navegando na pasta" : "Navegue pelas pastas e arquivos da instituição."}
+          </p>
         </div>
         <div className="flex gap-2">
           <button className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
@@ -35,7 +50,7 @@ export default async function GEDPage() {
           </button>
           <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
             <Upload className="w-4 h-4" />
-            Upload de Arquivo
+            Upload
           </button>
         </div>
       </div>
@@ -54,10 +69,10 @@ export default async function GEDPage() {
           </div>
           
           <nav className="space-y-1">
-            <a href="#" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 text-indigo-700 font-medium text-sm">
+            <Link href="/documentos/ged" className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-sm ${!currentFolderId ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-100 text-slate-600'}`}>
               <FolderIcon className="w-4 h-4" />
-              Meu Setor
-            </a>
+              Raiz do GED
+            </Link>
             <a href="#" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 text-slate-600 font-medium text-sm">
               <User className="w-4 h-4 text-slate-400" />
               Compartilhados
@@ -71,36 +86,42 @@ export default async function GEDPage() {
 
         {/* Conteúdo Principal */}
         <div className="flex-1 p-6">
-          <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Pastas Principais</h3>
+          {currentFolder && (
+            <div className="mb-6">
+              <Link href={currentFolder.parentId ? `/documentos/ged?folderId=${currentFolder.parentId}` : `/documentos/ged`} className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors">
+                <ArrowLeft className="w-4 h-4" />
+                Voltar
+              </Link>
+            </div>
+          )}
+
+          <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Pastas</h3>
           
           {folders.length === 0 ? (
-            <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200 border-dashed mb-8">
-              <p className="text-slate-500 text-sm">Nenhuma pasta criada na raiz do GED.</p>
+            <div className="p-6 text-center bg-slate-50 rounded-xl border border-slate-200 border-dashed mb-8">
+              <p className="text-slate-500 text-sm">Nenhuma subpasta.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
               {folders.map(folder => (
-                <div key={folder.id} className="border border-slate-200 rounded-xl p-4 flex items-start justify-between hover:border-indigo-300 hover:shadow-sm cursor-pointer transition-all bg-white group">
+                <Link key={folder.id} href={`/documentos/ged?folderId=${folder.id}`} className="border border-slate-200 rounded-xl p-4 flex items-start justify-between hover:border-indigo-300 hover:shadow-sm cursor-pointer transition-all bg-white group">
                   <div className="flex gap-3">
                     <FolderIcon className="w-8 h-8 text-indigo-400 group-hover:text-indigo-600 transition-colors" fill="currentColor" fillOpacity={0.2} />
                     <div>
-                      <h4 className="font-semibold text-slate-800 text-sm">{folder.name}</h4>
-                      <p className="text-xs text-slate-500">{folder._count.documents} arquivos</p>
+                      <h4 className="font-semibold text-slate-800 text-sm group-hover:text-indigo-700">{folder.name}</h4>
+                      <p className="text-xs text-slate-500">{folder._count.documents} arquivos, {folder._count.children} pastas</p>
                     </div>
                   </div>
-                  <button className="text-slate-400 hover:text-slate-600">
-                    <MoreVertical className="w-4 h-4" />
-                  </button>
-                </div>
+                </Link>
               ))}
             </div>
           )}
 
-          <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Arquivos Recentes</h3>
+          <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">{currentFolderId ? 'Arquivos na Pasta' : 'Arquivos Recentes'}</h3>
           
-          {recentDocuments.length === 0 ? (
+          {documents.length === 0 ? (
             <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200 border-dashed">
-              <p className="text-slate-500 text-sm">Nenhum arquivo feito upload recentemente.</p>
+              <p className="text-slate-500 text-sm">Nenhum arquivo encontrado.</p>
             </div>
           ) : (
             <div className="border border-slate-200 rounded-xl overflow-hidden">
@@ -114,7 +135,7 @@ export default async function GEDPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {recentDocuments.map(doc => (
+                  {documents.map(doc => (
                     <tr key={doc.id} className="hover:bg-slate-50 cursor-pointer">
                       <td className="px-4 py-3 flex items-center gap-3">
                         <File className="w-5 h-5 text-slate-400" />

@@ -5,13 +5,18 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function DocumentosDashboardPage() {
-  const totalDocuments = await prisma.document.count();
+  const totalDocuments = await prisma.document.count({
+    where: { documentType: { not: 'Modelo' } }
+  });
   const totalFolders = await prisma.folder.count();
+  const pendentesAssinatura = await prisma.document.count({
+    where: { status: 'Pendente Assinatura' }
+  });
 
   const stats = [
     { title: "Total de Documentos", value: totalDocuments.toString(), icon: FileText, href: "/documentos/ged", color: "text-indigo-600", bg: "bg-indigo-100" },
     { title: "Pastas Criadas", value: totalFolders.toString(), icon: Folder, href: "/documentos/ged", color: "text-emerald-600", bg: "bg-emerald-100" },
-    { title: "Assinaturas Pendentes", value: "0", icon: FileSignature, href: "/documentos/assinaturas", color: "text-amber-600", bg: "bg-amber-100" },
+    { title: "Assinaturas Pendentes", value: pendentesAssinatura.toString(), icon: FileSignature, href: "/documentos/assinaturas", color: "text-amber-600", bg: "bg-amber-100" },
   ];
 
   return (
