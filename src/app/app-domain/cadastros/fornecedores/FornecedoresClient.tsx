@@ -8,11 +8,23 @@ type Supplier = {
   id: string;
   category: string | null;
   businessBranch: string | null;
-  certificationsValidUntil: Date | null;
   status: string;
   person: { fullName: string } | null;
   company: { corporateName: string } | null;
 };
+
+const RAMOS_ATIVIDADE = [
+  "Tecnologia da Informação",
+  "Obras e Engenharia",
+  "Saúde e Medicamentos",
+  "Material de Escritório",
+  "Alimentação",
+  "Transporte e Frota",
+  "Limpeza e Conservação",
+  "Eventos e Cultura",
+  "Gráfica e Comunicação",
+  "Serviços Gerais"
+];
 
 export default function FornecedoresClient({ suppliers }: { suppliers: Supplier[] }) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -28,15 +40,17 @@ export default function FornecedoresClient({ suppliers }: { suppliers: Supplier[
 
   const handleSaveEdit = async () => {
     if (!editingId) return;
-    try {
-      await updateSupplier(editingId, { 
-        category: editForm.category,
-        businessBranch: editForm.businessBranch 
-      });
-      setEditingId(null);
-    } catch (e) {
-      console.error(e);
-      alert("Erro ao salvar");
+    if (confirm("Deseja salvar as alterações?")) {
+      try {
+        await updateSupplier(editingId, { 
+          category: editForm.category,
+          businessBranch: editForm.businessBranch 
+        });
+        setEditingId(null);
+      } catch (e) {
+        console.error(e);
+        alert("Erro ao salvar");
+      }
     }
   };
 
@@ -72,7 +86,6 @@ export default function FornecedoresClient({ suppliers }: { suppliers: Supplier[
             <th className="px-6 py-3">Nome / Razão Social</th>
             <th className="px-6 py-3">Categoria</th>
             <th className="px-6 py-3">Ramo de Atividade</th>
-            <th className="px-6 py-3">Validade Certidões</th>
             <th className="px-6 py-3">Status</th>
             <th className="px-6 py-3 text-right">Ações</th>
           </tr>
@@ -92,7 +105,7 @@ export default function FornecedoresClient({ suppliers }: { suppliers: Supplier[
                       type="text"
                       value={editForm.category || ""}
                       onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                      className="w-full border rounded px-2 py-1 placeholder-slate-400"
+                      className="w-full border rounded px-2 py-1 placeholder-slate-400 font-normal"
                       placeholder="Categoria"
                     />
                   ) : (
@@ -101,19 +114,19 @@ export default function FornecedoresClient({ suppliers }: { suppliers: Supplier[
                 </td>
                 <td className="px-6 py-4 text-slate-600">
                   {editingId === supplier.id ? (
-                    <input
-                      type="text"
+                    <select
                       value={editForm.businessBranch || ""}
                       onChange={(e) => setEditForm({ ...editForm, businessBranch: e.target.value })}
-                      className="w-full border rounded px-2 py-1 placeholder-slate-400"
-                      placeholder="Ramo de Atividade"
-                    />
+                      className="w-full border rounded px-2 py-1 font-normal bg-white"
+                    >
+                      <option value="">Selecione...</option>
+                      {RAMOS_ATIVIDADE.map(ramo => (
+                        <option key={ramo} value={ramo}>{ramo}</option>
+                      ))}
+                    </select>
                   ) : (
                     supplier.businessBranch || '-'
                   )}
-                </td>
-                <td className="px-6 py-4 text-slate-600">
-                  {supplier.certificationsValidUntil ? new Date(supplier.certificationsValidUntil).toLocaleDateString('pt-BR') : '-'}
                 </td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded-md text-xs font-semibold ${supplier.status === 'Ativo' ? 'bg-fuchsia-100 text-fuchsia-700' : 'bg-slate-100 text-slate-600'}`}>
@@ -124,10 +137,10 @@ export default function FornecedoresClient({ suppliers }: { suppliers: Supplier[
                   {editingId === supplier.id ? (
                     <div className="flex items-center justify-end gap-2">
                       <button onClick={handleSaveEdit} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded" title="Salvar">
-                        <CheckCircle className="w-4 h-4" />
+                        <CheckCircle className="w-5 h-5" />
                       </button>
                       <button onClick={() => setEditingId(null)} className="p-1 text-slate-400 hover:bg-slate-100 rounded" title="Cancelar">
-                        <XCircle className="w-4 h-4" />
+                        <XCircle className="w-5 h-5" />
                       </button>
                     </div>
                   ) : (

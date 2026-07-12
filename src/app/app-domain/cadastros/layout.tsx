@@ -22,10 +22,8 @@ const sidebarNavItems = [
   { title: "Painel de Cadastros", href: "/cadastros", icon: LayoutDashboard },
   { title: "Pessoas Físicas", href: "/cadastros/pessoas-fisicas", icon: Users },
   { title: "Pessoas Jurídicas", href: "/cadastros/pessoas-juridicas", icon: Building2 },
-  { title: "Contribuintes", href: "/cadastros/contribuintes", icon: FileText },
   { title: "Fornecedores", href: "/cadastros/fornecedores", icon: Truck },
   { title: "Imóveis", href: "/cadastros/imoveis", icon: Home },
-  { title: "Endereços", href: "/cadastros/enderecos", icon: MapPin },
   { title: "Documentos", href: "/cadastros/documentos", icon: FileBox },
 ];
 

@@ -27,17 +27,21 @@ export default function ImoveisClient({ realEstates }: { realEstates: RealEstate
     setEditForm({
       municipalInsc: re.municipalInsc,
       propertyType: re.propertyType,
+      streetName: re.streetName,
+      number: re.number,
     });
   };
 
   const handleSaveEdit = async () => {
     if (!editingId) return;
-    try {
-      await updateRealEstate(editingId, editForm);
-      setEditingId(null);
-    } catch (e) {
-      console.error(e);
-      alert("Erro ao salvar");
+    if (confirm("Deseja salvar as alterações?")) {
+      try {
+        await updateRealEstate(editingId, editForm);
+        setEditingId(null);
+      } catch (e) {
+        console.error(e);
+        alert("Erro ao salvar");
+      }
     }
   };
 
@@ -87,8 +91,6 @@ export default function ImoveisClient({ realEstates }: { realEstates: RealEstate
               owner = re.taxpayer.company.corporateName;
             }
 
-            const addressStr = `${re.streetName || ''}, ${re.number || 'S/N'}${re.neighborhood ? ` - ${re.neighborhood.name}` : ''}`;
-
             return (
               <tr key={re.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-4 font-medium text-slate-800">
@@ -104,7 +106,28 @@ export default function ImoveisClient({ realEstates }: { realEstates: RealEstate
                     re.municipalInsc || 'S/ Inscrição'
                   )}
                 </td>
-                <td className="px-6 py-4 text-slate-600">{addressStr || '-'}</td>
+                <td className="px-6 py-4 text-slate-600">
+                  {editingId === re.id ? (
+                    <div className="flex flex-col gap-1">
+                      <input
+                        type="text"
+                        value={editForm.streetName || ""}
+                        onChange={(e) => setEditForm({ ...editForm, streetName: e.target.value })}
+                        className="w-full border rounded px-2 py-1 placeholder-slate-400 font-normal text-xs"
+                        placeholder="Rua/Avenida"
+                      />
+                      <input
+                        type="text"
+                        value={editForm.number || ""}
+                        onChange={(e) => setEditForm({ ...editForm, number: e.target.value })}
+                        className="w-full border rounded px-2 py-1 placeholder-slate-400 font-normal text-xs"
+                        placeholder="Número"
+                      />
+                    </div>
+                  ) : (
+                    `${re.streetName || ''}, ${re.number || 'S/N'}${re.neighborhood ? ` - ${re.neighborhood.name}` : ''}` || '-'
+                  )}
+                </td>
                 <td className="px-6 py-4 text-slate-600">
                   {editingId === re.id ? (
                     <input
@@ -128,10 +151,10 @@ export default function ImoveisClient({ realEstates }: { realEstates: RealEstate
                   {editingId === re.id ? (
                     <div className="flex items-center justify-end gap-2">
                       <button onClick={handleSaveEdit} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded" title="Salvar">
-                        <CheckCircle className="w-4 h-4" />
+                        <CheckCircle className="w-5 h-5" />
                       </button>
                       <button onClick={() => setEditingId(null)} className="p-1 text-slate-400 hover:bg-slate-100 rounded" title="Cancelar">
-                        <XCircle className="w-4 h-4" />
+                        <XCircle className="w-5 h-5" />
                       </button>
                     </div>
                   ) : (

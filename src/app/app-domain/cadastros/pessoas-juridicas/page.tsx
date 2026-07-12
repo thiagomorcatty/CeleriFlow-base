@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function PessoasJuridicasPage() {
   const companies = await prisma.company.findMany({
     orderBy: { createdAt: 'desc' },
+    include: { taxpayerInfo: true },
     take: 10
   });
 

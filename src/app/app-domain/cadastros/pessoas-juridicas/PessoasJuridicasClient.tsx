@@ -4,50 +4,64 @@ import { useState } from "react";
 import { Building2, Pencil, Trash2, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { updateCompany, deactivateCompany, activateCompany } from "../actions";
 
+type TaxpayerInfo = {
+  municipalInsc: string | null;
+};
+
 type Company = {
   id: string;
   corporateName: string;
-  tradeName: string | null;
   cnpj: string;
   emailPrimary: string | null;
   phone: string | null;
   status: string;
+  taxpayerInfo?: TaxpayerInfo | null;
 };
 
 export default function PessoasJuridicasClient({ companies }: { companies: Company[] }) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Company>>({});
+  const [editForm, setEditForm] = useState<Partial<Company & { isTaxpayer: boolean; municipalInsc: string }>>({});
 
   const handleEditClick = (company: Company) => {
     setEditingId(company.id);
     setEditForm({
       corporateName: company.corporateName,
-      tradeName: company.tradeName,
       cnpj: company.cnpj,
       emailPrimary: company.emailPrimary,
       phone: company.phone,
+      isTaxpayer: !!company.taxpayerInfo,
+      municipalInsc: company.taxpayerInfo?.municipalInsc || "",
     });
   };
 
   const handleSaveEdit = async () => {
     if (!editingId) return;
-    try {
-      await updateCompany(editingId, editForm);
-      setEditingId(null);
-    } catch (e) {
-      console.error(e);
-      alert("Erro ao salvar");
+    if (confirm("Deseja salvar as alterações?")) {
+      try {
+        await updateCompany(editingId, {
+          corporateName: editForm.corporateName,
+          cnpj: editForm.cnpj,
+          emailPrimary: editForm.emailPrimary,
+          phone: editForm.phone,
+          isTaxpayer: editForm.isTaxpayer,
+          municipalInsc: editForm.municipalInsc,
+        });
+        setEditingId(null);
+      } catch (e) {
+        console.error(e);
+        alert("Erro ao salvar");
+      }
     }
   };
 
   const handleDeactivate = async (id: string) => {
-    if (confirm("Deseja realmente inativar este registro?")) {
+    if (confirm("Deseja realmente inativar esta empresa?")) {
       await deactivateCompany(id);
     }
   };
 
   const handleActivate = async (id: string) => {
-    if (confirm("Deseja realmente reativar este registro?")) {
+    if (confirm("Deseja realmente reativar esta empresa?")) {
       await activateCompany(id);
     }
   };
@@ -59,7 +73,7 @@ export default function PessoasJuridicasClient({ companies }: { companies: Compa
           <Building2 className="text-slate-400 w-8 h-8" />
         </div>
         <h3 className="text-lg font-bold text-slate-700">Nenhum registro encontrado</h3>
-        <p className="text-slate-500 mt-1">Comece adicionando a primeira pessoa jurídica na base de dados.</p>
+        <p className="text-slate-500 mt-1">Comece adicionando a primeira empresa na base de dados.</p>
       </div>
     );
   }
@@ -69,9 +83,10 @@ export default function PessoasJuridicasClient({ companies }: { companies: Compa
       <table className="w-full text-left text-sm whitespace-nowrap">
         <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
           <tr>
-            <th className="px-6 py-3">Razão Social / Nome Fantasia</th>
+            <th className="px-6 py-3">Razão Social</th>
             <th className="px-6 py-3">CNPJ</th>
             <th className="px-6 py-3">Contato</th>
+            <th className="px-6 py-3">Contribuinte</th>
             <th className="px-6 py-3">Status</th>
             <th className="px-6 py-3 text-right">Ações</th>
           </tr>
@@ -81,43 +96,88 @@ export default function PessoasJuridicasClient({ companies }: { companies: Compa
             <tr key={company.id} className="hover:bg-slate-50 transition-colors">
               <td className="px-6 py-4 font-medium text-slate-800">
                 {editingId === company.id ? (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      value={editForm.corporateName || ""}
-                      onChange={(e) => setEditForm({ ...editForm, corporateName: e.target.value })}
-                      className="w-full border rounded px-2 py-1 placeholder-slate-400"
-                      placeholder="Razão Social"
-                    />
-                    <input
-                      type="text"
-                      value={editForm.tradeName || ""}
-                      onChange={(e) => setEditForm({ ...editForm, tradeName: e.target.value })}
-                      className="w-full border rounded px-2 py-1 placeholder-slate-400 text-xs"
-                      placeholder="Nome Fantasia"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    value={editForm.corporateName || ""}
+                    onChange={(e) => setEditForm({ ...editForm, corporateName: e.target.value })}
+                    className="w-full border rounded px-2 py-1 placeholder-slate-400 font-normal"
+                    placeholder="Razão Social"
+                  />
                 ) : (
-                  <>
-                    {company.corporateName}
-                    {company.tradeName && <span className="block text-xs text-slate-500 font-normal mt-0.5">{company.tradeName}</span>}
-                  </>
+                  company.corporateName
                 )}
-              </td>
-              <td className="px-6 py-4 text-slate-600">
-                {company.cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")}
               </td>
               <td className="px-6 py-4 text-slate-600">
                 {editingId === company.id ? (
                   <input
                     type="text"
-                    value={editForm.emailPrimary || ""}
-                    onChange={(e) => setEditForm({ ...editForm, emailPrimary: e.target.value })}
-                    className="w-full border rounded px-2 py-1 placeholder-slate-400"
-                    placeholder="Email ou Telefone"
+                    value={editForm.cnpj || ""}
+                    onChange={(e) => setEditForm({ ...editForm, cnpj: e.target.value })}
+                    className="w-full border rounded px-2 py-1 placeholder-slate-400 font-normal"
+                    placeholder="CNPJ (apenas números)"
                   />
                 ) : (
-                  company.emailPrimary || company.phone || '-'
+                  company.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")
+                )}
+              </td>
+              <td className="px-6 py-4 text-slate-600">
+                {editingId === company.id ? (
+                  <div className="flex flex-col gap-1">
+                    <input
+                      type="text"
+                      value={editForm.emailPrimary || ""}
+                      onChange={(e) => setEditForm({ ...editForm, emailPrimary: e.target.value })}
+                      className="w-full border rounded px-2 py-1 placeholder-slate-400 font-normal text-xs"
+                      placeholder="Email"
+                    />
+                    <input
+                      type="text"
+                      value={editForm.phone || ""}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      className="w-full border rounded px-2 py-1 placeholder-slate-400 font-normal text-xs"
+                      placeholder="Telefone"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col text-xs">
+                    {company.emailPrimary && <span>{company.emailPrimary}</span>}
+                    {company.phone && <span className="text-slate-500">{company.phone}</span>}
+                    {!company.emailPrimary && !company.phone && '-'}
+                  </div>
+                )}
+              </td>
+              <td className="px-6 py-4 text-slate-600">
+                {editingId === company.id ? (
+                  <div className="flex flex-col gap-1">
+                    <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editForm.isTaxpayer}
+                        onChange={(e) => setEditForm({ ...editForm, isTaxpayer: e.target.checked })}
+                      />
+                      É Contribuinte?
+                    </label>
+                    {editForm.isTaxpayer && (
+                      <input
+                        type="text"
+                        value={editForm.municipalInsc || ""}
+                        onChange={(e) => setEditForm({ ...editForm, municipalInsc: e.target.value })}
+                        className="w-full border rounded px-2 py-1 placeholder-slate-400 font-normal text-xs"
+                        placeholder="Inscrição Municipal"
+                      />
+                    )}
+                  </div>
+                ) : (
+                  company.taxpayerInfo ? (
+                    <div className="flex flex-col text-xs">
+                      <span className="font-semibold text-amber-700">Sim</span>
+                      {company.taxpayerInfo.municipalInsc && (
+                        <span className="text-slate-500">Insc: {company.taxpayerInfo.municipalInsc}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-slate-400 text-xs font-medium">Não</span>
+                  )
                 )}
               </td>
               <td className="px-6 py-4">
@@ -129,15 +189,15 @@ export default function PessoasJuridicasClient({ companies }: { companies: Compa
                 {editingId === company.id ? (
                   <div className="flex items-center justify-end gap-2">
                     <button onClick={handleSaveEdit} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded" title="Salvar">
-                      <CheckCircle className="w-4 h-4" />
+                      <CheckCircle className="w-5 h-5" />
                     </button>
                     <button onClick={() => setEditingId(null)} className="p-1 text-slate-400 hover:bg-slate-100 rounded" title="Cancelar">
-                      <XCircle className="w-4 h-4" />
+                      <XCircle className="w-5 h-5" />
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center justify-end gap-2">
-                    <button onClick={() => handleEditClick(company)} className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded" title="Editar">
+                    <button onClick={() => handleEditClick(company)} className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded" title="Editar">
                       <Pencil className="w-4 h-4" />
                     </button>
                     {company.status === 'Ativo' ? (

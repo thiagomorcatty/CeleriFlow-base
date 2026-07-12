@@ -4,6 +4,10 @@ import { useState } from "react";
 import { Users, Pencil, Trash2, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { updatePerson, deactivatePerson, activatePerson } from "../actions";
 
+type TaxpayerInfo = {
+  municipalInsc: string | null;
+};
+
 type Person = {
   id: string;
   fullName: string;
@@ -11,11 +15,12 @@ type Person = {
   email: string | null;
   phonePrimary: string | null;
   status: string;
+  taxpayerInfo?: TaxpayerInfo | null;
 };
 
 export default function PessoasFisicasClient({ persons }: { persons: Person[] }) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Person>>({});
+  const [editForm, setEditForm] = useState<Partial<Person & { isTaxpayer: boolean; municipalInsc: string }>>({});
 
   const handleEditClick = (person: Person) => {
     setEditingId(person.id);
@@ -24,17 +29,29 @@ export default function PessoasFisicasClient({ persons }: { persons: Person[] })
       cpf: person.cpf,
       email: person.email,
       phonePrimary: person.phonePrimary,
+      isTaxpayer: !!person.taxpayerInfo,
+      municipalInsc: person.taxpayerInfo?.municipalInsc || "",
     });
   };
 
   const handleSaveEdit = async () => {
     if (!editingId) return;
-    try {
-      await updatePerson(editingId, editForm);
-      setEditingId(null);
-    } catch (e) {
-      console.error(e);
-      alert("Erro ao salvar");
+    if (confirm("Deseja salvar as alterações?")) {
+      try {
+        await updatePerson(editingId, {
+          fullName: editForm.fullName,
+          cpf: editForm.cpf,
+          email: editForm.email,
+          phonePrimary: editForm.phonePrimary,
+          // Pass the taxpayer fields to the action
+          isTaxpayer: editForm.isTaxpayer,
+          municipalInsc: editForm.municipalInsc,
+        });
+        setEditingId(null);
+      } catch (e) {
+        console.error(e);
+        alert("Erro ao salvar");
+      }
     }
   };
 
@@ -69,7 +86,8 @@ export default function PessoasFisicasClient({ persons }: { persons: Person[] })
           <tr>
             <th className="px-6 py-3">Nome Completo</th>
             <th className="px-6 py-3">CPF</th>
-            <th className="px-6 py-3">Contato (Email/Telefone)</th>
+            <th className="px-6 py-3">Contato</th>
+            <th className="px-6 py-3">Contribuinte</th>
             <th className="px-6 py-3">Status</th>
             <th className="px-6 py-3 text-right">Ações</th>
           </tr>
@@ -83,26 +101,84 @@ export default function PessoasFisicasClient({ persons }: { persons: Person[] })
                     type="text"
                     value={editForm.fullName || ""}
                     onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
-                    className="w-full border rounded px-2 py-1"
+                    className="w-full border rounded px-2 py-1 placeholder-slate-400 font-normal"
+                    placeholder="Nome Completo"
                   />
                 ) : (
                   person.fullName
                 )}
               </td>
               <td className="px-6 py-4 text-slate-600">
-                {person.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")}
-              </td>
-              <td className="px-6 py-4 text-slate-600">
                 {editingId === person.id ? (
                   <input
                     type="text"
-                    value={editForm.email || ""}
-                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    className="w-full border rounded px-2 py-1 placeholder-slate-400"
-                    placeholder="Email ou Telefone"
+                    value={editForm.cpf || ""}
+                    onChange={(e) => setEditForm({ ...editForm, cpf: e.target.value })}
+                    className="w-full border rounded px-2 py-1 placeholder-slate-400 font-normal"
+                    placeholder="CPF (apenas números)"
                   />
                 ) : (
-                  person.email || person.phonePrimary || '-'
+                  person.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
+                )}
+              </td>
+              <td className="px-6 py-4 text-slate-600">
+                {editingId === person.id ? (
+                  <div className="flex flex-col gap-1">
+                    <input
+                      type="text"
+                      value={editForm.email || ""}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      className="w-full border rounded px-2 py-1 placeholder-slate-400 font-normal text-xs"
+                      placeholder="Email"
+                    />
+                    <input
+                      type="text"
+                      value={editForm.phonePrimary || ""}
+                      onChange={(e) => setEditForm({ ...editForm, phonePrimary: e.target.value })}
+                      className="w-full border rounded px-2 py-1 placeholder-slate-400 font-normal text-xs"
+                      placeholder="Telefone"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col text-xs">
+                    {person.email && <span>{person.email}</span>}
+                    {person.phonePrimary && <span className="text-slate-500">{person.phonePrimary}</span>}
+                    {!person.email && !person.phonePrimary && '-'}
+                  </div>
+                )}
+              </td>
+              <td className="px-6 py-4 text-slate-600">
+                {editingId === person.id ? (
+                  <div className="flex flex-col gap-1">
+                    <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editForm.isTaxpayer}
+                        onChange={(e) => setEditForm({ ...editForm, isTaxpayer: e.target.checked })}
+                      />
+                      É Contribuinte?
+                    </label>
+                    {editForm.isTaxpayer && (
+                      <input
+                        type="text"
+                        value={editForm.municipalInsc || ""}
+                        onChange={(e) => setEditForm({ ...editForm, municipalInsc: e.target.value })}
+                        className="w-full border rounded px-2 py-1 placeholder-slate-400 font-normal text-xs"
+                        placeholder="Inscrição Municipal"
+                      />
+                    )}
+                  </div>
+                ) : (
+                  person.taxpayerInfo ? (
+                    <div className="flex flex-col text-xs">
+                      <span className="font-semibold text-amber-700">Sim</span>
+                      {person.taxpayerInfo.municipalInsc && (
+                        <span className="text-slate-500">Insc: {person.taxpayerInfo.municipalInsc}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-slate-400 text-xs font-medium">Não</span>
+                  )
                 )}
               </td>
               <td className="px-6 py-4">
@@ -114,10 +190,10 @@ export default function PessoasFisicasClient({ persons }: { persons: Person[] })
                 {editingId === person.id ? (
                   <div className="flex items-center justify-end gap-2">
                     <button onClick={handleSaveEdit} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded" title="Salvar">
-                      <CheckCircle className="w-4 h-4" />
+                      <CheckCircle className="w-5 h-5" />
                     </button>
                     <button onClick={() => setEditingId(null)} className="p-1 text-slate-400 hover:bg-slate-100 rounded" title="Cancelar">
-                      <XCircle className="w-4 h-4" />
+                      <XCircle className="w-5 h-5" />
                     </button>
                   </div>
                 ) : (

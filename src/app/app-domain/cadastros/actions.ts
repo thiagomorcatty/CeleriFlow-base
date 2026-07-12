@@ -5,7 +5,22 @@ import { revalidatePath } from "next/cache";
 
 // Person
 export async function updatePerson(id: string, data: any) {
-  const result = await prisma.person.update({ where: { id }, data });
+  const { isTaxpayer, municipalInsc, ...personData } = data;
+  
+  const result = await prisma.person.update({ where: { id }, data: personData });
+  
+  if (isTaxpayer !== undefined) {
+    if (isTaxpayer) {
+      await prisma.taxpayer.upsert({
+        where: { personId: id },
+        update: { municipalInsc: municipalInsc || null },
+        create: { personId: id, taxpayerType: 'PF', municipalInsc: municipalInsc || null }
+      });
+    } else {
+      await prisma.taxpayer.deleteMany({ where: { personId: id } });
+    }
+  }
+  
   revalidatePath("/cadastros/pessoas-fisicas");
   return result;
 }
@@ -22,7 +37,22 @@ export async function activatePerson(id: string) {
 
 // Company
 export async function updateCompany(id: string, data: any) {
-  const result = await prisma.company.update({ where: { id }, data });
+  const { isTaxpayer, municipalInsc, ...companyData } = data;
+  
+  const result = await prisma.company.update({ where: { id }, data: companyData });
+  
+  if (isTaxpayer !== undefined) {
+    if (isTaxpayer) {
+      await prisma.taxpayer.upsert({
+        where: { companyId: id },
+        update: { municipalInsc: municipalInsc || null },
+        create: { companyId: id, taxpayerType: 'PJ', municipalInsc: municipalInsc || null }
+      });
+    } else {
+      await prisma.taxpayer.deleteMany({ where: { companyId: id } });
+    }
+  }
+  
   revalidatePath("/cadastros/pessoas-juridicas");
   return result;
 }
@@ -37,22 +67,7 @@ export async function activateCompany(id: string) {
   return result;
 }
 
-// Taxpayer
-export async function updateTaxpayer(id: string, data: any) {
-  const result = await prisma.taxpayer.update({ where: { id }, data });
-  revalidatePath("/cadastros/contribuintes");
-  return result;
-}
-export async function deactivateTaxpayer(id: string) {
-  const result = await prisma.taxpayer.update({ where: { id }, data: { status: 'Inativo' } });
-  revalidatePath("/cadastros/contribuintes");
-  return result;
-}
-export async function activateTaxpayer(id: string) {
-  const result = await prisma.taxpayer.update({ where: { id }, data: { status: 'Ativo' } });
-  revalidatePath("/cadastros/contribuintes");
-  return result;
-}
+// Taxpayer endpoints removed as it's now handled by Person/Company
 
 // RealEstate
 export async function updateRealEstate(id: string, data: any) {
@@ -88,17 +103,7 @@ export async function activateSupplier(id: string) {
   return result;
 }
 
-// Address (Excluir inves de Inativar, pois nao tem status)
-export async function updateAddress(id: string, data: any) {
-  const result = await prisma.address.update({ where: { id }, data });
-  revalidatePath("/cadastros/enderecos");
-  return result;
-}
-export async function deleteAddress(id: string) {
-  const result = await prisma.address.delete({ where: { id } });
-  revalidatePath("/cadastros/enderecos");
-  return result;
-}
+// Address endpoints removed as they don't have a standalone page anymore
 
 // Document
 export async function updateDocument(id: string, data: any) {

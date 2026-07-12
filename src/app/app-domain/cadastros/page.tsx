@@ -7,13 +7,13 @@ export const dynamic = "force-dynamic";
 export default async function CadastrosDashboardPage() {
   const personsCount = await prisma.person.count();
   const companiesCount = await prisma.company.count();
-  const taxpayersCount = await prisma.taxpayer.count();
+  const suppliersCount = await prisma.supplier.count();
   const realEstatesCount = await prisma.realEstate.count();
 
   const stats = [
     { title: "Pessoas Físicas", value: personsCount.toString(), icon: Users, href: "/cadastros/pessoas-fisicas", color: "text-indigo-600", bg: "bg-indigo-100" },
     { title: "Pessoas Jurídicas", value: companiesCount.toString(), icon: Building2, href: "/cadastros/pessoas-juridicas", color: "text-emerald-600", bg: "bg-emerald-100" },
-    { title: "Contribuintes", value: taxpayersCount.toString(), icon: FileText, href: "/cadastros/contribuintes", color: "text-amber-600", bg: "bg-amber-100" },
+    { title: "Fornecedores", value: suppliersCount.toString(), icon: Users, href: "/cadastros/fornecedores", color: "text-amber-600", bg: "bg-amber-100" },
     { title: "Imóveis", value: realEstatesCount.toString(), icon: Home, href: "/cadastros/imoveis", color: "text-sky-600", bg: "bg-sky-100" },
   ];
 

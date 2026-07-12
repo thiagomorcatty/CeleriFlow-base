@@ -28,15 +28,17 @@ export default function DocumentosClient({ documents }: { documents: Document[] 
 
   const handleSaveEdit = async () => {
     if (!editingId) return;
-    try {
-      await updateDocument(editingId, {
-        title: editForm.title,
-        documentType: editForm.documentType,
-      });
-      setEditingId(null);
-    } catch (e) {
-      console.error(e);
-      alert("Erro ao salvar");
+    if (confirm("Deseja salvar as alterações?")) {
+      try {
+        await updateDocument(editingId, {
+          title: editForm.title,
+          documentType: editForm.documentType,
+        });
+        setEditingId(null);
+      } catch (e) {
+        console.error(e);
+        alert("Erro ao salvar");
+      }
     }
   };
 
