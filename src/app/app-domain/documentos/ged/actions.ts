@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 export async function createFolder(name: string, parentId: string | null) {
   if (!name.trim()) throw new Error("Nome obrigatório");
   await prisma.folder.create({
-    data: { name: name.trim(), parentId: parentId || null }
+    data: { name: name.trim(), parentId: parentId || null },
   });
   revalidatePath("/documentos/ged");
   revalidatePath("/documentos");
@@ -39,6 +39,20 @@ export async function deleteDocument(id: string) {
 }
 
 export async function deleteFolder(id: string) {
+  // First move all documents inside to folderId = null (unlink), then delete
+  await prisma.document.updateMany({
+    where: { folderId: id },
+    data: { folderId: null },
+  });
+  // Recursively unlink sub-folders' documents
+  const subFolders = await prisma.folder.findMany({ where: { parentId: id } });
+  for (const sub of subFolders) {
+    await prisma.document.updateMany({
+      where: { folderId: sub.id },
+      data: { folderId: null },
+    });
+    await prisma.folder.delete({ where: { id: sub.id } });
+  }
   await prisma.folder.delete({ where: { id } });
   revalidatePath("/documentos/ged");
   revalidatePath("/documentos");

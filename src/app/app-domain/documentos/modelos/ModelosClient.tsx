@@ -71,7 +71,7 @@ export default function ModelosClient({ initialModelos }: { initialModelos: Mode
     if (!newForm.title.trim()) return;
     setLoading("new");
     try {
-      await createModelo(newForm.title, newForm.notes, "Modelo");
+      await createModelo(newForm.title, newForm.notes);
       setNewForm({ title: "", notes: "" });
       setShowNewModal(false);
       // Reload from server (revalidatePath will handle)

@@ -53,7 +53,7 @@ export default async function GEDPage({
       orderBy: { createdAt: "desc" },
     });
   } else {
-    // Root: show docs without folder
+    // Root: show docs without folder (any status except Modelo)
     documents = await prisma.document.findMany({
       where: { folderId: null, documentType: { not: "Modelo" } },
       take: 20,

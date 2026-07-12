@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 export async function updateModelo(
   id: string,
-  data: { title?: string; notes?: string; status?: string }
+  data: { title?: string; notes?: string | null; status?: string }
 ) {
   await prisma.document.update({ where: { id }, data });
   revalidatePath("/documentos/modelos");
@@ -18,7 +18,7 @@ export async function deleteModelo(id: string) {
   revalidatePath("/documentos");
 }
 
-export async function createModelo(title: string, notes: string, documentType: string) {
+export async function createModelo(title: string, notes: string) {
   if (!title.trim()) throw new Error("Título obrigatório");
   await prisma.document.create({
     data: {
@@ -26,7 +26,7 @@ export async function createModelo(title: string, notes: string, documentType: s
       documentType: "Modelo",
       fileUrl: `/modelos/${Date.now()}_${title.trim().replace(/\s+/g, "_")}.docx`,
       status: "Ativo",
-      notes: notes || null,
+      notes: notes?.trim() || null,
     },
   });
   revalidatePath("/documentos/modelos");

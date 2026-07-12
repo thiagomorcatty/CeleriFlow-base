@@ -59,9 +59,22 @@ export default function GEDClient({
     if (!uploadFile || !uploadTitle.trim()) return;
     setLoading(true);
     try {
-      // Simulated URL — in production, replace with actual Vercel Blob / S3 upload
-      const simulatedUrl = `/uploads/${Date.now()}_${uploadFile.name}`;
-      await createDocument(uploadTitle, uploadType, simulatedUrl, currentFolderId);
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha no upload do arquivo");
+      }
+
+      const blobData = await response.json();
+
+      await createDocument(uploadTitle, uploadType, blobData.url, currentFolderId);
+      
       setUploadTitle("");
       setUploadFile(null);
       setUploadType("Arquivo");
