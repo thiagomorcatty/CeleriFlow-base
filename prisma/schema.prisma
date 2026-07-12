@@ -75,6 +75,7 @@ model Secretariat {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(true)
 }
 
 // Departamentos / Setores
@@ -110,6 +111,7 @@ model Department {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(true)
 }
 
 // Unidades Administrativas (Escolas, UBS, CRAS, Almoxarifados)
