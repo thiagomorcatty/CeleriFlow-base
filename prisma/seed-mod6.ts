@@ -42,7 +42,7 @@ async function seedMod6() {
       data: {
         name: "Secretaria Municipal de Educação",
         acronym: "SME",
-        status: "Ativo"
+        isActive: true
       }
     });
   }
