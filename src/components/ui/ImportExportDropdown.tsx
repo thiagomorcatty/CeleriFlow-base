@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Download, Upload, MoreHorizontal, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Download, Upload, FileSpreadsheet, Loader2 } from "lucide-react";
 
 interface ImportExportDropdownProps {
   onExport?: () => void;
@@ -43,7 +43,7 @@ export function ImportExportDropdown({ onExport, onImport, isLoading = false }: 
         disabled={isLoading}
         className="px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MoreHorizontal className="w-4 h-4" />}
+        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
         Ações em Lote
       </button>
 
