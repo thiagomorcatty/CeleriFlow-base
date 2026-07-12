@@ -64,6 +64,7 @@ export default async function TransparenciaPage() {
             <p className="text-xs font-medium text-slate-500 uppercase mt-1">Contratos</p>
           </div>
         </Link>
+      </div>
     </div>
   );
 }
