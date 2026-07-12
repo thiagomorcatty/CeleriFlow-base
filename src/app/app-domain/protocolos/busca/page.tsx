@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import BuscaClient from "./BuscaClient";
+import BuscaClient from "./BuscaClient"; // Force IDE reload
 
 export const dynamic = "force-dynamic";
 
