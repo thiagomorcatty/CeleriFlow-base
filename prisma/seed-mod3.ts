@@ -5,6 +5,8 @@ async function main() {
 
   // Busca entidades necessárias (criadas no seed anterior)
   const person = await prisma.person.findFirst();
+  const person2 = await prisma.person.findFirst({ skip: 1 });
+  const company = await prisma.company.findFirst();
   const department = await prisma.department.findFirst();
   const employee = await prisma.employee.findFirst();
 
@@ -12,62 +14,58 @@ async function main() {
     throw new Error('Certifique-se de que o seed anterior foi rodado. Faltam Person, Department ou Employee.');
   }
 
-  // ProcessType
-  const processType = await prisma.processType.create({
-    data: {
-      name: 'Alvará de Funcionamento',
-      description: 'Solicitação de alvará para estabelecimentos comerciais.'
-    }
+  // Limpar Processos antigos se necessário (opcional, para evitar duplicação)
+  // await prisma.process.deleteMany();
+
+  // Criando Diversos Tipos de Processos
+  const typeAlvara = await prisma.processType.create({
+    data: { name: 'Alvará de Funcionamento', description: 'Solicitação de alvará para estabelecimentos comerciais.' }
   });
 
-  // Subject
-  const subject = await prisma.subject.create({
-    data: {
-      name: 'Renovação Anual',
-      processTypeId: processType.id,
-      slaDays: 15
-    }
+  const typeLicenca = await prisma.processType.create({
+    data: { name: 'Licença Ambiental', description: 'Emissão de licença ambiental para obras e atividades.' }
   });
 
-  // Process
-  const process = await prisma.process.create({
+  const typeAprovacao = await prisma.processType.create({
+    data: { name: 'Aprovação de Projeto', description: 'Aprovação de projetos arquitetônicos.' }
+  });
+
+  const typeITBI = await prisma.processType.create({
+    data: { name: 'Guia de ITBI', description: 'Emissão de guia para pagamento de ITBI.' }
+  });
+
+  // Criando Assuntos
+  const subRenovacao = await prisma.subject.create({ data: { name: 'Renovação Anual', processTypeId: typeAlvara.id, slaDays: 15 } });
+  const subNovaLicenca = await prisma.subject.create({ data: { name: 'Licença Prévia', processTypeId: typeLicenca.id, slaDays: 30 } });
+  const subProjetoResidencial = await prisma.subject.create({ data: { name: 'Residencial Unifamiliar', processTypeId: typeAprovacao.id, slaDays: 20 } });
+  const subITBIVenda = await prisma.subject.create({ data: { name: 'Compra e Venda', processTypeId: typeITBI.id, slaDays: 5 } });
+
+  // Processo 1: Em Análise (Alvará)
+  const process1 = await prisma.process.create({
     data: {
-      protocolNumber: '2026/00001',
+      protocolNumber: '2026/90001',
       status: 'Em Análise',
       description: 'Solicito a renovação do meu alvará de funcionamento.',
-      processTypeId: processType.id,
-      subjectId: subject.id,
+      processTypeId: typeAlvara.id,
+      subjectId: subRenovacao.id,
       personId: person.id,
       currentDepartmentId: department.id
     }
   });
 
-  // ProcessMovement
   await prisma.processMovement.create({
     data: {
-      processId: process.id,
+      processId: process1.id,
       fromDepartmentId: department.id,
-      toDepartmentId: department.id, // Simulação rápida: do protocolo para a análise
+      toDepartmentId: department.id,
       employeeId: employee.id,
       reason: 'Encaminhado para análise técnica.'
     }
   });
 
-  // ProcessDocument
-  await prisma.processDocument.create({
-    data: {
-      processId: process.id,
-      title: 'Comprovante de Endereço',
-      fileUrl: 'https://exemplo.com/comprovante.pdf',
-      documentType: 'PDF',
-      employeeId: employee.id
-    }
-  });
-
-  // ProcessDispatch
   await prisma.processDispatch.create({
     data: {
-      processId: process.id,
+      processId: process1.id,
       content: 'A documentação parece estar completa. Aguardando vistoria.',
       dispatchType: 'Parecer',
       employeeId: employee.id,
@@ -75,44 +73,70 @@ async function main() {
     }
   });
 
-  // --- Módulo 1 (Administração): Inserir mais alguns dados a pedido do usuário ---
-  console.log('Inserindo dados adicionais no Módulo de Administração...');
-
-  const role = await prisma.role.findFirst();
-
-  await prisma.employee.create({
+  // Processo 2: Aberto (ITBI)
+  await prisma.process.create({
     data: {
-      name: 'João Técnico',
-      cpf: '222.333.444-55',
-      email: 'joao@tecnico.gov.br',
-      phone: '(11) 97777-6666',
-      roleId: role?.id,
+      protocolNumber: '2026/90002',
+      status: 'Aberto',
+      description: 'Solicitação de ITBI referente ao imóvel matrícula 12345.',
+      processTypeId: typeITBI.id,
+      subjectId: subITBIVenda.id,
+      personId: person2?.id || person.id,
+      currentDepartmentId: department.id
+    }
+  });
+
+  // Processo 3: Concluído (Aprovação de Projeto)
+  const process3 = await prisma.process.create({
+    data: {
+      protocolNumber: '2026/90003',
+      status: 'Concluído',
+      description: 'Projeto de construção de residência unifamiliar no bairro Centro.',
+      processTypeId: typeAprovacao.id,
+      subjectId: subProjetoResidencial.id,
+      companyId: company?.id,
+      currentDepartmentId: department.id
+    }
+  });
+
+  await prisma.processDispatch.create({
+    data: {
+      processId: process3.id,
+      content: 'Projeto analisado e aprovado conforme diretrizes municipais. Alvará de construção emitido.',
+      dispatchType: 'Decisão',
+      employeeId: employee.id,
       departmentId: department.id
     }
   });
 
-  await prisma.internalDemand.create({
+  // Processo 4: Arquivado (Licença Ambiental)
+  await prisma.process.create({
     data: {
-      title: 'Manutenção de Equipamento',
-      description: 'O computador da recepção precisa de formatação.',
-      status: 'Aberta',
-      priority: 'Urgente',
-      assigneeId: employee.id,
-      creatorId: employee.id,
-      departmentId: department.id
+      protocolNumber: '2026/90004',
+      status: 'Arquivado',
+      description: 'Solicitação de licença prévia para loteamento.',
+      processTypeId: typeLicenca.id,
+      subjectId: subNovaLicenca.id,
+      companyId: company?.id,
+      currentDepartmentId: department.id
     }
   });
 
-  await prisma.calendarEvent.create({
+  // Processo 5: Em Análise (ITBI)
+  await prisma.process.create({
     data: {
-      title: 'Feriado Municipal',
-      description: 'Aniversário da cidade',
-      date: new Date('2026-08-15'),
-      type: 'Feriado Nacional'
+      protocolNumber: '2026/90005',
+      status: 'Em Análise',
+      description: 'Emissão de ITBI urgente.',
+      processTypeId: typeITBI.id,
+      subjectId: subITBIVenda.id,
+      personId: person.id,
+      currentDepartmentId: department.id,
+      priority: 'Urgente'
     }
   });
 
-  console.log('Inserção de dados concluída com sucesso!');
+  console.log('Inserção de dados do Módulo 3 concluída com sucesso!');
 }
 
 main()
