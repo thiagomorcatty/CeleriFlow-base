@@ -38,7 +38,45 @@ export default async function FiscalizacaoPage() {
             <p className="text-slate-500 mt-1">Os autos de infração aparecerão aqui.</p>
           </div>
         ) : (
-          <div className="p-4 text-slate-500">Listagem de Infrações (Em construção)</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-3">Tipo de Infração</th>
+                  <th className="px-6 py-3">Contribuinte</th>
+                  <th className="px-6 py-3">Valor da Multa</th>
+                  <th className="px-6 py-3">Prazo Defesa</th>
+                  <th className="px-6 py-3 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {infractions.map((inf) => (
+                  <tr key={inf.id} className="hover:bg-slate-50 transition-colors group">
+                    <td className="px-6 py-4 font-bold text-slate-800">
+                      {inf.infractionType}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 font-medium">
+                      {inf.taxpayer?.company?.corporateName || inf.taxpayer?.person?.fullName || "Não Informado"}
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-orange-600">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inf.penaltyValue)}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600">
+                      {inf.defenseDeadline ? new Date(inf.defenseDeadline).toLocaleDateString('pt-BR') : "-"}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        inf.status === 'Emitido' ? 'bg-orange-100 text-orange-700' :
+                        inf.status === 'Pago' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'
+                      }`}>
+                        {inf.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

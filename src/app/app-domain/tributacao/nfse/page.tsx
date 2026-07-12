@@ -39,7 +39,49 @@ export default async function NfsePage() {
             <p className="text-slate-500 mt-1">As notas fiscais de serviço emitidas no município aparecerão aqui.</p>
           </div>
         ) : (
-          <div className="p-4 text-slate-500">Listagem de Notas (Em construção)</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-3">Nº NFS-e</th>
+                  <th className="px-6 py-3">Prestador</th>
+                  <th className="px-6 py-3">Tomador</th>
+                  <th className="px-6 py-3">Competência</th>
+                  <th className="px-6 py-3">Valor do Serviço</th>
+                  <th className="px-6 py-3 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {invoices.map((inv) => (
+                  <tr key={inv.id} className="hover:bg-slate-50 transition-colors group">
+                    <td className="px-6 py-4 font-mono font-bold text-blue-600">
+                      {inv.invoiceNumber}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 font-medium">
+                      {inv.provider.company?.corporateName || inv.provider.person?.fullName || "-"}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 font-medium">
+                      {inv.taker?.company?.corporateName || inv.taker?.person?.fullName || "-"}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600">
+                      {inv.competence}
+                    </td>
+                    <td className="px-6 py-4 font-bold text-slate-800">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inv.serviceValue)}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        inv.status === 'Emitida' ? 'bg-blue-100 text-blue-700' :
+                        inv.status === 'Cancelada' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'
+                      }`}>
+                        {inv.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

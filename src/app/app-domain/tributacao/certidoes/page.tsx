@@ -38,7 +38,44 @@ export default async function CertidoesPage() {
             <p className="text-slate-500 mt-1">As certidões fiscais aparecerão aqui.</p>
           </div>
         ) : (
-          <div className="p-4 text-slate-500">Listagem de Certidões (Em construção)</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-3">Código de Autenticação</th>
+                  <th className="px-6 py-3">Tipo de Certidão</th>
+                  <th className="px-6 py-3">Contribuinte</th>
+                  <th className="px-6 py-3">Validade</th>
+                  <th className="px-6 py-3 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {certs.map((cert) => (
+                  <tr key={cert.id} className="hover:bg-slate-50 transition-colors group">
+                    <td className="px-6 py-4 font-mono text-slate-500 text-xs">
+                      {cert.authCode}
+                    </td>
+                    <td className="px-6 py-4 font-bold text-slate-800">
+                      {cert.certificateType}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 font-medium">
+                      {cert.taxpayer?.company?.corporateName || cert.taxpayer?.person?.fullName || "Não Informado"}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600">
+                      {new Date(cert.validUntil).toLocaleDateString('pt-BR')}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        cert.status === 'Emitida' ? 'bg-sky-100 text-sky-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {cert.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

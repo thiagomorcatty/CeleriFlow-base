@@ -39,7 +39,46 @@ export default async function AlvarasPage() {
             <p className="text-slate-500 mt-1">Os alvarás e licenças aparecerão aqui.</p>
           </div>
         ) : (
-          <div className="p-4 text-slate-500">Listagem de Alvarás (Em construção)</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-3">Tipo de Alvará</th>
+                  <th className="px-6 py-3">Contribuinte</th>
+                  <th className="px-6 py-3">Emissão</th>
+                  <th className="px-6 py-3">Validade</th>
+                  <th className="px-6 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {licenses.map((license) => (
+                  <tr key={license.id} className="hover:bg-slate-50 transition-colors group">
+                    <td className="px-6 py-4 font-bold text-slate-800">
+                      {license.licenseType}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 font-medium">
+                      {license.taxpayer?.company?.corporateName || license.taxpayer?.person?.fullName || "Não Informado"}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600">
+                      {license.issueDate ? new Date(license.issueDate).toLocaleDateString('pt-BR') : "-"}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600">
+                      {license.validUntil ? new Date(license.validUntil).toLocaleDateString('pt-BR') : "-"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        license.status === 'Emitido' || license.status === 'Ativo' ? 'bg-indigo-100 text-indigo-700' :
+                        license.status === 'Vencido' ? 'bg-red-100 text-red-700' :
+                        'bg-slate-100 text-slate-700'
+                      }`}>
+                        {license.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
