@@ -109,3 +109,21 @@ export async function updateEmployee(id: string, data: {
   });
   revalidatePath("/administracao/servidores");
 }
+
+// --- Administrative Units ---
+export async function updateAdministrativeUnit(id: string, data: { name: string, type: string, managerName: string, secretariatId: string }) {
+  await prisma.administrativeUnit.update({
+    where: { id },
+    data
+  });
+  revalidatePath("/administracao/unidades");
+}
+
+// --- Internal Demands ---
+export async function updateInternalDemand(id: string, data: { title: string, status: string, priority: string, assigneeId: string | null, secretariatId: string | null, departmentId: string | null }) {
+  await prisma.internalDemand.update({
+    where: { id },
+    data
+  });
+  revalidatePath("/administracao/demandas");
+}

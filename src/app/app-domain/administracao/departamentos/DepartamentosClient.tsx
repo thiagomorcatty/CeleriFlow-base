@@ -88,7 +88,6 @@ export default function DepartamentosClient({
             <th className="px-6 py-4">Descrição</th>
             <th className="px-6 py-4">Secretaria Vinculada</th>
             <th className="px-6 py-4 text-center">Status</th>
-            <th className="px-6 py-4 text-right">Ações</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -118,34 +117,11 @@ export default function DepartamentosClient({
                   {dep.isActive ? 'Ativo' : 'Inativo'}
                 </span>
               </td>
-              <td className="px-6 py-4 text-right flex justify-end gap-2">
-                {editingId === dep.id ? (
-                  <>
-                    <button onClick={handleSaveEdit} className="text-emerald-600 hover:text-emerald-700 font-medium text-xs bg-emerald-50 px-2 py-1 rounded">Salvar</button>
-                    <button onClick={() => setEditingId(null)} className="text-slate-500 hover:text-slate-700 font-medium text-xs bg-slate-100 px-2 py-1 rounded">Cancelar</button>
-                  </>
-                ) : (
-                  <>
-                    <button onClick={() => handleEditClick(dep)} className="text-amber-600 hover:text-amber-700 p-1" title="Editar">
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    {dep.isActive ? (
-                      <button onClick={() => handleDeactivate(dep.id)} className="text-red-500 hover:text-red-700 p-1" title="Inativar">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <button onClick={() => handleActivate(dep.id)} className="text-emerald-500 hover:text-emerald-700 p-1" title="Reativar">
-                        <RefreshCw className="w-4 h-4" />
-                      </button>
-                    )}
-                  </>
-                )}
-              </td>
             </tr>
           ))}
           {filteredDepartments.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+              <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
                 Nenhum departamento encontrado para "{searchTerm}".
               </td>
             </tr>
