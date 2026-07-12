@@ -1,0 +1,37 @@
+"use server";
+
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+
+export async function createInvoice(data: {
+  serviceValue: number;
+  competence: string;
+  providerId: string;
+  takerId?: string;
+  verificationCode?: string;
+}) {
+  const result = await prisma.invoice.create({
+    data: {
+      serviceValue: data.serviceValue,
+      issValue: data.serviceValue * 0.05, // Exemplo de cálculo 5%
+      competence: data.competence,
+      providerId: data.providerId,
+      takerId: data.takerId || undefined,
+      verificationCode: data.verificationCode || `VER-${Math.floor(100000 + Math.random() * 900000)}`,
+      status: "Emitida"
+    }
+  });
+
+  revalidatePath("/tributacao/nfse");
+  return result;
+}
+
+export async function cancelInvoice(id: string) {
+  const result = await prisma.invoice.update({
+    where: { id },
+    data: { status: "Cancelada" }
+  });
+
+  revalidatePath("/tributacao/nfse");
+  return result;
+}
