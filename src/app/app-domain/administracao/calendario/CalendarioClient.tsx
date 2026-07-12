@@ -201,3 +201,7 @@ export default function CalendarioClient({ events }: { events: CalendarEvent[] }
     </div>
   );
 }
+/ /  
+ t r i g g e r  
+ r e f r e s h  
+ 
