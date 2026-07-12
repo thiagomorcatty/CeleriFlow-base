@@ -33,7 +33,6 @@ export default function FornecedoresClient({ suppliers }: { suppliers: Supplier[
   const handleEditClick = (supplier: Supplier) => {
     setEditingId(supplier.id);
     setEditForm({
-      category: supplier.category,
       businessBranch: supplier.businessBranch,
     });
   };
@@ -43,7 +42,6 @@ export default function FornecedoresClient({ suppliers }: { suppliers: Supplier[
     if (confirm("Deseja salvar as alterações?")) {
       try {
         await updateSupplier(editingId, { 
-          category: editForm.category,
           businessBranch: editForm.businessBranch 
         });
         setEditingId(null);
@@ -84,7 +82,6 @@ export default function FornecedoresClient({ suppliers }: { suppliers: Supplier[
         <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
           <tr>
             <th className="px-6 py-3">Nome / Razão Social</th>
-            <th className="px-6 py-3">Categoria</th>
             <th className="px-6 py-3">Ramo de Atividade</th>
             <th className="px-6 py-3">Status</th>
             <th className="px-6 py-3 text-right">Ações</th>
@@ -98,19 +95,6 @@ export default function FornecedoresClient({ suppliers }: { suppliers: Supplier[
               <tr key={supplier.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-4 font-medium text-slate-800">
                   {name || 'N/A'}
-                </td>
-                <td className="px-6 py-4 text-slate-600">
-                  {editingId === supplier.id ? (
-                    <input
-                      type="text"
-                      value={editForm.category || ""}
-                      onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                      className="w-full border rounded px-2 py-1 placeholder-slate-400 font-normal"
-                      placeholder="Categoria"
-                    />
-                  ) : (
-                    supplier.category || '-'
-                  )}
                 </td>
                 <td className="px-6 py-4 text-slate-600">
                   {editingId === supplier.id ? (
