@@ -19,7 +19,7 @@ export async function uploadBiddingsCsv(formData: FormData) {
   // Garantir que existe uma secretaria padrao
   let sec = await prisma.secretariat.findFirst();
   if (!sec) {
-    sec = await prisma.secretariat.create({ data: { name: "Secretaria Geral", acronym: "SG", isActive: true } });
+    sec = await prisma.secretariat.create({ data: { name: "Secretaria Geral", acronym: "SG" } });
   }
 
   for (const line of lines) {
