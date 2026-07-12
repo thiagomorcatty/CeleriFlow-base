@@ -127,3 +127,14 @@ export async function updateInternalDemand(id: string, data: { title: string, st
   });
   revalidatePath("/administracao/demandas");
 }
+
+// --- Calendar Events ---
+export async function deleteCalendarEvent(id: string) {
+  await prisma.calendarEvent.delete({ where: { id } });
+  revalidatePath('/administracao/calendario');
+}
+
+export async function updateCalendarEvent(id: string, data: { title: string, description: string, date: Date, type: string, isHoliday: boolean }) {
+  await prisma.calendarEvent.update({ where: { id }, data });
+  revalidatePath('/administracao/calendario');
+}

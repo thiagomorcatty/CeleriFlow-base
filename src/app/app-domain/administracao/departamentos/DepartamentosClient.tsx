@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Network, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { Network, Pencil, Trash2, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { updateDepartment, deactivateDepartment, activateDepartment } from "../actions";
 
 type Department = {
@@ -85,9 +85,9 @@ export default function DepartamentosClient({
         <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
           <tr>
             <th className="px-6 py-4">Nome</th>
-            <th className="px-6 py-4">Descrição</th>
             <th className="px-6 py-4">Secretaria Vinculada</th>
             <th className="px-6 py-4 text-center">Status</th>
+            <th className="px-6 py-4 text-right">Ações</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -116,6 +116,33 @@ export default function DepartamentosClient({
                 <span className={`px-2 py-1 rounded-md text-xs font-semibold ${dep.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                   {dep.isActive ? 'Ativo' : 'Inativo'}
                 </span>
+              </td>
+              <td className="px-6 py-4 text-right">
+                {editingId === dep.id ? (
+                  <div className="flex items-center justify-end gap-2">
+                    <button onClick={handleSaveEdit} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded">
+                      <CheckCircle className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setEditingId(null)} className="p-1 text-slate-400 hover:bg-slate-100 rounded">
+                      <XCircle className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-end gap-2">
+                    <button onClick={() => handleEditClick(dep)} className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Editar">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    {dep.isActive ? (
+                      <button onClick={() => handleDeactivate(dep.id)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded" title="Inativar">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <button onClick={() => handleActivate(dep.id)} className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded" title="Reativar">
+                        <RefreshCw className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
               </td>
             </tr>
           ))}
