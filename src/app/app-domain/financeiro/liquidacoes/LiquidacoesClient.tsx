@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { FileCheck, Plus, Search, Filter, Ban } from "lucide-react";
+import { FileCheck, Plus, Search, Ban, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +18,15 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createSettlement, cancelSettlement } from "./actions";
+import { MoneyInput } from "@/components/ui/MoneyInput";
+import { createSettlement, cancelSettlement, updateSettlement } from "./actions";
 
 type Settlement = {
   id: string;
   date: Date;
   value: number;
   documentRef: string | null;
+  notes: string | null;
   status: string;
   commitment: {
     id: string;
@@ -35,6 +37,7 @@ type Settlement = {
     };
   };
   author: {
+    id: string;
     name: string;
   };
 };
@@ -49,8 +52,13 @@ export default function LiquidacoesClient({
   employees: any[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [filterMonth, setFilterMonth] = useState("ALL");
+  const [filterYear, setFilterYear] = useState("ALL");
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().substring(0, 10),
@@ -61,12 +69,19 @@ export default function LiquidacoesClient({
     notes: ""
   });
 
-  const filteredSettlements = settlements.filter(s =>
-    s.commitment.number.includes(searchTerm) ||
-    (s.documentRef && s.documentRef.includes(searchTerm))
-  );
+  const filteredSettlements = settlements.filter(s => {
+    const matchesSearch = s.commitment.number.includes(searchTerm) || (s.documentRef && s.documentRef.includes(searchTerm));
+    const matchesStatus = filterStatus === "ALL" || s.status === filterStatus;
+    
+    const d = new Date(s.date);
+    const matchesMonth = filterMonth === "ALL" || (d.getMonth() + 1).toString() === filterMonth;
+    const matchesYear = filterYear === "ALL" || d.getFullYear().toString() === filterYear;
+    
+    return matchesSearch && matchesStatus && matchesMonth && matchesYear;
+  });
 
   const handleOpenNew = () => {
+    setEditingId(null);
     setFormData({
       date: new Date().toISOString().substring(0, 10),
       value: 0,
@@ -74,6 +89,19 @@ export default function LiquidacoesClient({
       commitmentId: "",
       authorId: "",
       notes: ""
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (settlement: Settlement) => {
+    setEditingId(settlement.id);
+    setFormData({
+      date: new Date(settlement.date).toISOString().substring(0, 10),
+      value: settlement.value,
+      documentRef: settlement.documentRef || "",
+      commitmentId: settlement.commitment.id,
+      authorId: settlement.author.id,
+      notes: settlement.notes || ""
     });
     setIsModalOpen(true);
   };
@@ -87,10 +115,14 @@ export default function LiquidacoesClient({
         date: new Date(formData.date)
       };
       
-      await createSettlement(dataToSubmit);
+      if (editingId) {
+        await updateSettlement(editingId, dataToSubmit);
+      } else {
+        await createSettlement(dataToSubmit);
+      }
       setIsModalOpen(false);
     } catch (error) {
-      console.error("Error creating settlement:", error);
+      console.error("Error saving settlement:", error);
       alert("Ocorreu um erro ao salvar a liquidação.");
     } finally {
       setIsSubmitting(false);
@@ -120,21 +152,52 @@ export default function LiquidacoesClient({
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <CardTitle>Listagem de Liquidações</CardTitle>
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input 
-                  placeholder="Buscar por empenho..." 
-                  className="pl-8 w-[250px]" 
+                  placeholder="Buscar..." 
+                  className="pl-8 w-[150px]" 
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
+              <Select value={filterStatus} onValueChange={(val) => setFilterStatus(val as string)}>
+                <SelectTrigger className="w-[120px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todos</SelectItem>
+                  <SelectItem value="Liquidado">Liquidado</SelectItem>
+                  <SelectItem value="Cancelado">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterMonth} onValueChange={(val) => setFilterMonth(val as string)}>
+                <SelectTrigger className="w-[110px]"><SelectValue placeholder="Mês" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Mês</SelectItem>
+                  <SelectItem value="1">Jan</SelectItem>
+                  <SelectItem value="2">Fev</SelectItem>
+                  <SelectItem value="3">Mar</SelectItem>
+                  <SelectItem value="4">Abr</SelectItem>
+                  <SelectItem value="5">Mai</SelectItem>
+                  <SelectItem value="6">Jun</SelectItem>
+                  <SelectItem value="7">Jul</SelectItem>
+                  <SelectItem value="8">Ago</SelectItem>
+                  <SelectItem value="9">Set</SelectItem>
+                  <SelectItem value="10">Out</SelectItem>
+                  <SelectItem value="11">Nov</SelectItem>
+                  <SelectItem value="12">Dez</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterYear} onValueChange={(val) => setFilterYear(val as string)}>
+                <SelectTrigger className="w-[100px]"><SelectValue placeholder="Ano" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Ano</SelectItem>
+                  <SelectItem value="2026">2026</SelectItem>
+                  <SelectItem value="2025">2025</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
@@ -185,6 +248,9 @@ export default function LiquidacoesClient({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right flex justify-end gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(settlement)} title="Editar Liquidação" disabled={settlement.status === 'Cancelado'}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleCancelSettlement(settlement.id)} title="Cancelar Liquidação" disabled={settlement.status === 'Cancelado'}>
                         <Ban className="h-4 w-4 text-rose-500" />
                       </Button>
@@ -200,7 +266,7 @@ export default function LiquidacoesClient({
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Nova Liquidação</DialogTitle>
+            <DialogTitle>{editingId ? "Editar Liquidação" : "Nova Liquidação"}</DialogTitle>
             <DialogDescription>Ateste o recebimento de materiais ou serviços vinculados a um empenho.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -211,7 +277,7 @@ export default function LiquidacoesClient({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="value">Valor (R$)</Label>
-                <Input id="value" type="number" step="0.01" required value={formData.value} onChange={e => setFormData({...formData, value: parseFloat(e.target.value)})} />
+                <MoneyInput id="value" required value={formData.value} onChange={val => setFormData({...formData, value: val})} />
               </div>
             </div>
             

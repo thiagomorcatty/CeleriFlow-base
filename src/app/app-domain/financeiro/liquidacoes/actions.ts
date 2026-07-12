@@ -36,3 +36,27 @@ export async function cancelSettlement(id: string) {
   revalidatePath("/financeiro/liquidacoes");
   return settlement;
 }
+
+export async function updateSettlement(id: string, data: {
+  date: Date;
+  value: number;
+  documentRef: string;
+  commitmentId: string;
+  authorId: string;
+  notes: string;
+}) {
+  const settlement = await prisma.settlement.update({
+    where: { id },
+    data: {
+      date: data.date,
+      value: data.value,
+      documentRef: data.documentRef,
+      commitmentId: data.commitmentId,
+      authorId: data.authorId,
+      notes: data.notes
+    }
+  });
+
+  revalidatePath("/financeiro/liquidacoes");
+  return settlement;
+}

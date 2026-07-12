@@ -215,7 +215,35 @@ async function main() {
       bankAccountId: bbAccount.id,
       supplierId: supplier.id,
       paymentMethod: 'Transferência',
-      status: 'Pago'
+      status: 'Paga'
+    }
+  })
+
+  const payment2 = await prisma.payment.upsert({
+    where: { orderNumber: '2026OB00002' },
+    update: {},
+    create: {
+      orderNumber: '2026OB00002',
+      value: 5000.00,
+      commitmentId: commitment2.id,
+      bankAccountId: itauAccount.id,
+      supplierId: supplier.id,
+      paymentMethod: 'PIX',
+      status: 'Emitida'
+    }
+  })
+
+  const payment3 = await prisma.payment.upsert({
+    where: { orderNumber: '2026OB00003' },
+    update: {},
+    create: {
+      orderNumber: '2026OB00003',
+      value: 2000.00,
+      commitmentId: commitment2.id,
+      bankAccountId: cefAccount.id,
+      supplierId: supplier.id,
+      paymentMethod: 'Boleto',
+      status: 'Cancelada'
     }
   })
 

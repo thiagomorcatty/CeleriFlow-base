@@ -23,7 +23,7 @@ export async function createPayment(data: {
       bankAccountId: data.bankAccountId,
       supplierId: data.supplierId,
       paymentMethod: data.paymentMethod,
-      status: "Pago"
+      status: "Emitida"
     }
   });
 
@@ -34,7 +34,17 @@ export async function createPayment(data: {
 export async function cancelPayment(id: string) {
   const payment = await prisma.payment.update({
     where: { id },
-    data: { status: "Cancelado" }
+    data: { status: "Cancelada" }
+  });
+
+  revalidatePath("/financeiro/pagamentos");
+  return payment;
+}
+
+export async function updatePaymentStatus(id: string, status: string) {
+  const payment = await prisma.payment.update({
+    where: { id },
+    data: { status }
   });
 
   revalidatePath("/financeiro/pagamentos");

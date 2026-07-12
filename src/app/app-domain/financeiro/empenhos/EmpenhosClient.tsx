@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { createCommitment, updateCommitment, cancelCommitment } from "./actions";
 
 type Commitment = {
@@ -253,10 +254,10 @@ export default function EmpenhosClient({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="value">Valor (R$)</Label>
-                <Input id="value" type="number" step="0.01" required value={formData.value} onChange={e => setFormData({...formData, value: parseFloat(e.target.value)})} />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="value">Valor (R$)</Label>
+                  <MoneyInput id="value" required value={formData.value} onChange={val => setFormData({...formData, value: val})} />
+                </div>
             </div>
             
             <div className="space-y-2">

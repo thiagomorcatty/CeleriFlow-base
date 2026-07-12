@@ -1,0 +1,54 @@
+"use client"
+
+import React, { useState, useEffect } from "react"
+import { Input } from "@/components/ui/input"
+
+interface MoneyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
+  value: number;
+  onChange: (value: number) => void;
+}
+
+export function MoneyInput({ value, onChange, ...props }: MoneyInputProps) {
+  const [displayValue, setDisplayValue] = useState("")
+
+  // Convert number to formatted string: e.g. 1234.56 -> "1.234,56"
+  const formatMoney = (val: number) => {
+    if (isNaN(val)) return ""
+    return new Intl.NumberFormat('pt-BR', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    }).format(val)
+  }
+
+  useEffect(() => {
+    setDisplayValue(formatMoney(value))
+  }, [value])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let rawValue = e.target.value
+
+    // Remove all non-digits
+    rawValue = rawValue.replace(/\D/g, "")
+    
+    if (!rawValue) {
+      onChange(0)
+      setDisplayValue("0,00")
+      return
+    }
+
+    // Convert to number assuming last 2 digits are decimals
+    const numericValue = parseInt(rawValue, 10) / 100
+    
+    onChange(numericValue)
+    setDisplayValue(formatMoney(numericValue))
+  }
+
+  return (
+    <Input
+      {...props}
+      type="text"
+      value={displayValue}
+      onChange={handleChange}
+    />
+  )
+}

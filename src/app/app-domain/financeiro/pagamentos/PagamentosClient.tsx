@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { Wallet, Plus, Search, Filter, Ban } from "lucide-react";
+import { Wallet, Plus, Search, Ban, CheckCircle, RefreshCcw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createPayment, cancelPayment } from "./actions";
+import { MoneyInput } from "@/components/ui/MoneyInput";
+import { createPayment, cancelPayment, updatePaymentStatus } from "./actions";
 
 type Payment = {
   id: string;
@@ -56,6 +57,12 @@ export default function PagamentosClient({
   suppliers: any[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [filterMonth, setFilterMonth] = useState("ALL");
+  const [filterYear, setFilterYear] = useState("ALL");
+  const [filterAccount, setFilterAccount] = useState("ALL");
+  const [filterMethod, setFilterMethod] = useState("ALL");
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -69,11 +76,21 @@ export default function PagamentosClient({
     paymentMethod: "Transferência"
   });
 
-  const filteredPayments = payments.filter(p =>
-    p.orderNumber.includes(searchTerm) ||
-    p.supplier.company?.corporateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.supplier.person?.fullName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPayments = payments.filter(p => {
+    const matchesSearch = p.orderNumber.includes(searchTerm) || 
+      (p.supplier.company?.corporateName || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (p.supplier.person?.fullName || "").toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = filterStatus === "ALL" || p.status === filterStatus;
+    const matchesAccount = filterAccount === "ALL" || p.bankAccount.id === filterAccount;
+    const matchesMethod = filterMethod === "ALL" || p.paymentMethod === filterMethod;
+    
+    const d = new Date(p.date);
+    const matchesMonth = filterMonth === "ALL" || (d.getMonth() + 1).toString() === filterMonth;
+    const matchesYear = filterYear === "ALL" || d.getFullYear().toString() === filterYear;
+    
+    return matchesSearch && matchesStatus && matchesMonth && matchesYear && matchesAccount && matchesMethod;
+  });
 
   const handleOpenNew = () => {
     setFormData({
@@ -107,9 +124,13 @@ export default function PagamentosClient({
     }
   };
 
-  const handleCancelPayment = async (id: string) => {
-    if (window.confirm('Deseja realmente cancelar este pagamento? Esta ação não pode ser desfeita.')) {
-      await cancelPayment(id);
+  const handleChangeStatus = async (id: string, newStatus: string) => {
+    if (newStatus === "Cancelada") {
+      if (window.confirm('Deseja realmente cancelar este pagamento? Esta ação não pode ser desfeita.')) {
+        await cancelPayment(id);
+      }
+    } else {
+      await updatePaymentStatus(id, newStatus);
     }
   };
 
@@ -130,21 +151,72 @@ export default function PagamentosClient({
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <CardTitle>Listagem de Pagamentos</CardTitle>
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input 
-                  placeholder="Buscar por fornecedor ou ordem..." 
-                  className="pl-8 w-[280px]" 
+                  placeholder="Buscar..." 
+                  className="pl-8 w-[150px]" 
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
+              <Select value={filterStatus} onValueChange={(val) => setFilterStatus(val as string)}>
+                <SelectTrigger className="w-[120px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todos (Status)</SelectItem>
+                  <SelectItem value="Emitida">Emitida</SelectItem>
+                  <SelectItem value="Paga">Paga</SelectItem>
+                  <SelectItem value="Cancelada">Cancelada</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterMonth} onValueChange={(val) => setFilterMonth(val as string)}>
+                <SelectTrigger className="w-[100px]"><SelectValue placeholder="Mês" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Mês</SelectItem>
+                  <SelectItem value="1">Jan</SelectItem>
+                  <SelectItem value="2">Fev</SelectItem>
+                  <SelectItem value="3">Mar</SelectItem>
+                  <SelectItem value="4">Abr</SelectItem>
+                  <SelectItem value="5">Mai</SelectItem>
+                  <SelectItem value="6">Jun</SelectItem>
+                  <SelectItem value="7">Jul</SelectItem>
+                  <SelectItem value="8">Ago</SelectItem>
+                  <SelectItem value="9">Set</SelectItem>
+                  <SelectItem value="10">Out</SelectItem>
+                  <SelectItem value="11">Nov</SelectItem>
+                  <SelectItem value="12">Dez</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterYear} onValueChange={(val) => setFilterYear(val as string)}>
+                <SelectTrigger className="w-[100px]"><SelectValue placeholder="Ano" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Ano</SelectItem>
+                  <SelectItem value="2026">2026</SelectItem>
+                  <SelectItem value="2025">2025</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterAccount} onValueChange={(val) => setFilterAccount(val as string)}>
+                <SelectTrigger className="w-[150px]"><SelectValue placeholder="Conta" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todas Contas</SelectItem>
+                  {bankAccounts.map(b => (
+                    <SelectItem key={b.id} value={b.id}>{b.bankName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterMethod} onValueChange={(val) => setFilterMethod(val as string)}>
+                <SelectTrigger className="w-[130px]"><SelectValue placeholder="Forma" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todas Formas</SelectItem>
+                  <SelectItem value="Transferência">Transferência</SelectItem>
+                  <SelectItem value="Boleto">Boleto</SelectItem>
+                  <SelectItem value="Cheque">Cheque</SelectItem>
+                  <SelectItem value="PIX">PIX</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
@@ -191,15 +263,26 @@ export default function PagamentosClient({
                     </TableCell>
                     <TableCell>
                       <Badge variant={
-                        payment.status === 'Pago' ? 'default' : 
-                        payment.status === 'Cancelado' ? 'destructive' : 
-                        'secondary'
+                        payment.status === 'Paga' ? 'default' : 
+                        payment.status === 'Emitida' ? 'secondary' : 
+                        payment.status === 'Cancelada' ? 'destructive' : 
+                        'outline'
                       }>
                         {payment.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleCancelPayment(payment.id)} title="Cancelar Pagamento" disabled={payment.status === 'Cancelado'}>
+                      {payment.status === 'Emitida' && (
+                        <Button variant="ghost" size="icon" onClick={() => handleChangeStatus(payment.id, 'Paga')} title="Marcar como Paga">
+                          <CheckCircle className="h-4 w-4 text-emerald-500" />
+                        </Button>
+                      )}
+                      {payment.status === 'Paga' && (
+                        <Button variant="ghost" size="icon" onClick={() => handleChangeStatus(payment.id, 'Emitida')} title="Reverter para Emitida">
+                          <RefreshCcw className="h-4 w-4 text-blue-500" />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" onClick={() => handleChangeStatus(payment.id, 'Cancelada')} title="Cancelar Pagamento" disabled={payment.status === 'Cancelada'}>
                         <Ban className="h-4 w-4 text-rose-500" />
                       </Button>
                     </TableCell>
@@ -241,10 +324,10 @@ export default function PagamentosClient({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="value">Valor (R$)</Label>
-                <Input id="value" type="number" step="0.01" required value={formData.value} onChange={e => setFormData({...formData, value: parseFloat(e.target.value)})} />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="value">Valor (R$)</Label>
+                  <MoneyInput id="value" required value={formData.value} onChange={val => setFormData({...formData, value: val})} />
+                </div>
             </div>
             
             <div className="space-y-2">

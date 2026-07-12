@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { createBankAccount, updateBankAccount, toggleBankAccountStatus } from "./actions";
 
 type BankAccount = {
@@ -233,7 +234,7 @@ export default function ContasBancariasClient({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="currentBalance">Saldo Atual (R$)</Label>
-                <Input id="currentBalance" type="number" step="0.01" required value={formData.currentBalance} onChange={e => setFormData({...formData, currentBalance: parseFloat(e.target.value)})} />
+                <MoneyInput id="currentBalance" required value={formData.currentBalance} onChange={val => setFormData({...formData, currentBalance: val})} />
               </div>
             </div>
             <div className="space-y-2">
