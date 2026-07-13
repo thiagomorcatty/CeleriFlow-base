@@ -1,16 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Trash, Edit, MoreHorizontal, FileText } from "lucide-react";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Trash, Edit, FileText } from "lucide-react";
 import Link from "next/link";
 import { deleteContract } from "./actions";
 
@@ -26,30 +18,16 @@ export function ContratoRowActions({ id }: { id: string }) {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger render={
-        <Button variant="ghost" className="h-8 w-8 p-0">
-          <span className="sr-only">Abrir menu</span>
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      } />
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Ações</DropdownMenuLabel>
-        <DropdownMenuItem render={
-          <Link href={`/compras/contratos/${id}`}>
-            <FileText className="mr-2 h-4 w-4" /> Ver Detalhes
-          </Link>
-        } />
-        <DropdownMenuItem render={
-          <Link href={`/compras/contratos/${id}/editar`}>
-            <Edit className="mr-2 h-4 w-4" /> Editar
-          </Link>
-        } />
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleDelete} disabled={isDeleting} className="text-red-600 focus:text-red-600">
-          <Trash className="mr-2 h-4 w-4" /> {isDeleting ? "Excluindo..." : "Excluir"}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex justify-end gap-2">
+      <Link href={`/compras/contratos/${id}`} className={buttonVariants({ variant: "ghost", size: "icon" })} title="Ver Detalhes">
+        <FileText className="h-4 w-4 text-blue-500" />
+      </Link>
+      <Link href={`/compras/contratos/${id}/editar`} className={buttonVariants({ variant: "ghost", size: "icon" })} title="Editar">
+        <Edit className="h-4 w-4 text-amber-500" />
+      </Link>
+      <Button variant="ghost" size="icon" onClick={handleDelete} disabled={isDeleting} title="Excluir">
+        <Trash className="h-4 w-4 text-rose-500" />
+      </Button>
+    </div>
   );
 }
