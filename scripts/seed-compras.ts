@@ -153,5 +153,6 @@ main()
     process.exit(1)
   })
   .finally(async () => {
+    const { prisma } = require('../src/lib/prisma')
     await prisma.$disconnect()
   })
