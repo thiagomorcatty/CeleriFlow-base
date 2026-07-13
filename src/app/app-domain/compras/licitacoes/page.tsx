@@ -7,6 +7,7 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { LicitacaoRowActions } from "./LicitacaoRowActions"
 
 export default async function LicitacoesPage() {
   const biddings = await prisma.bidding.findMany({
@@ -98,9 +99,7 @@ export default async function LicitacoesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Link href={`/compras/licitacoes/${bid.id}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                          Detalhes
-                        </Link>
+                        <LicitacaoRowActions id={bid.id} />
                       </TableCell>
                     </TableRow>
                   ))}

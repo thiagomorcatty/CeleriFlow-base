@@ -7,6 +7,7 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { ProcessoRowActions } from "./ProcessoRowActions"
 
 export default async function ProcessosComprasPage() {
   const processos = await prisma.purchaseProcess.findMany({
@@ -107,9 +108,7 @@ export default async function ProcessosComprasPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Link href={`/compras/processos/${proc.id}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                          Detalhes
-                        </Link>
+                        <ProcessoRowActions id={proc.id} />
                       </TableCell>
                     </TableRow>
                   ))}
