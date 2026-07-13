@@ -11,15 +11,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export function ContratoForm({ data }: { data?: any }) {
+export function ContratoForm({ data, processos = [], secretarias = [], fornecedores = [] }: { data?: any, processos?: any[], secretarias?: any[], fornecedores?: any[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
-  const [initialValue, setInitialValue] = useState<number>(data?.initialValue || 0);
+  const [selectedProcessId, setSelectedProcessId] = useState<string>(data?.processId || "");
+
+  const selectedProcess = processos.find(p => p.id === selectedProcessId);
+  const calculatedTotal = selectedProcess ? selectedProcess.estimatedValue : (data?.initialValue || 0);
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
-    formData.set("initialValue", initialValue.toString());
+    formData.set("initialValue", calculatedTotal.toString());
     const result = await saveContract(formData);
     setIsSaving(false);
     
@@ -54,12 +58,58 @@ export function ContratoForm({ data }: { data?: any }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="number">Número do Contrato</Label>
-                <Input id="number" name="number" defaultValue={data?.number || ""} required placeholder="CONT 001/2026" />
+                <Input id="number" name="number" defaultValue={data?.number || ""} placeholder="Ex: CONT 001/2026 (Auto-gerado se vazio)" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="initialValue">Valor Inicial (R$)</Label>
-                <MoneyInput id="initialValue" value={initialValue} onChange={setInitialValue} required />
+                <Label htmlFor="processId">Processo Vinculado</Label>
+                <Select name="processId" value={selectedProcessId} onValueChange={(val) => setSelectedProcessId(val || "")} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o processo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {processos.map(proc => (
+                      <SelectItem key={proc.id} value={proc.id}>{proc.number} - {proc.object?.substring(0, 30)}...</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="supplierId">Fornecedor</Label>
+                <Select name="supplierId" defaultValue={data?.supplierId || ""} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um fornecedor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fornecedores.map(forn => (
+                      <SelectItem key={forn.id} value={forn.id}>{forn.company?.corporateName || forn.company?.tradeName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="secretariatId">Secretaria</Label>
+                <Select name="secretariatId" defaultValue={data?.secretariatId || ""} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a Secretaria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {secretarias.map(sec => (
+                      <SelectItem key={sec.id} value={sec.id}>{sec.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Valor Total (R$)</Label>
+              <div className="text-2xl font-bold text-slate-700 h-10 flex items-center">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedTotal)}
+              </div>
+              <input type="hidden" name="initialValue" value={calculatedTotal} />
             </div>
 
             <div className="space-y-2">

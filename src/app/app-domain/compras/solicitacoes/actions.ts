@@ -17,10 +17,10 @@ export async function deletePurchaseRequest(id: string) {
 }
 
 export async function savePurchaseRequest(payload: any) {
-  const { id, number, object, justification, estimatedValue, items } = payload;
+  const { id, number, object, justification, estimatedValue, items, secretariatId, departmentId } = payload;
   
-  const secretariat = await prisma.secretariat.findFirst();
-  const department = await prisma.department.findFirst();
+  const secretariat = secretariatId ? await prisma.secretariat.findUnique({ where: { id: secretariatId } }) : await prisma.secretariat.findFirst();
+  const department = departmentId ? await prisma.department.findUnique({ where: { id: departmentId } }) : await prisma.department.findFirst();
   const requester = await prisma.employee.findFirst();
 
   if (!secretariat || !department || !requester) {

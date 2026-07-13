@@ -15,6 +15,10 @@ import { format } from "date-fns";
 export function LicitacaoForm({ data, processos = [] }: { data?: any, processos?: any[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedProcessId, setSelectedProcessId] = useState<string>(data?.processId || "");
+
+  const selectedProcess = processos.find(p => p.id === selectedProcessId);
+  const calculatedTotal = selectedProcess ? selectedProcess.estimatedValue : 0;
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
@@ -93,16 +97,23 @@ export function LicitacaoForm({ data, processos = [] }: { data?: any, processos?
               </div>
               <div className="space-y-2">
                 <Label htmlFor="processId">Processo Vinculado</Label>
-                <Select name="processId" defaultValue={data?.processId || ""}>
+                <Select name="processId" value={selectedProcessId} onValueChange={(val) => setSelectedProcessId(val || "")}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o processo" />
                   </SelectTrigger>
                   <SelectContent>
                     {processos.map(proc => (
-                      <SelectItem key={proc.id} value={proc.id}>{proc.number} - {proc.object.substring(0, 30)}...</SelectItem>
+                      <SelectItem key={proc.id} value={proc.id}>{proc.number} - {proc.object?.substring(0, 30)}...</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Valor Total Estimado (R$)</Label>
+              <div className="text-2xl font-bold text-slate-700 h-10 flex items-center">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedTotal)}
               </div>
             </div>
 

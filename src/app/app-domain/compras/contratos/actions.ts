@@ -22,12 +22,12 @@ export async function saveContract(formData: FormData) {
   const object = formData.get("object") as string;
   const initialValue = parseFloat(formData.get("initialValue") as string) || 0;
   
-  const process = await prisma.purchaseProcess.findFirst();
-  const supplier = await prisma.supplier.findFirst();
-  const secretariat = await prisma.secretariat.findFirst();
+  const processId = formData.get("processId") as string;
+  const supplierId = formData.get("supplierId") as string;
+  const secretariatId = formData.get("secretariatId") as string;
 
-  if (!process || !supplier || !secretariat) {
-    throw new Error("Dados básicos (Processo, Fornecedor, Secretaria) não encontrados no banco.");
+  if (!processId || !supplierId || !secretariatId) {
+    throw new Error("Dados básicos (Processo, Fornecedor, Secretaria) não foram selecionados.");
   }
 
   const data = {
@@ -37,9 +37,9 @@ export async function saveContract(formData: FormData) {
     updatedValue: initialValue,
     startDate: new Date(),
     endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-    processId: process.id,
-    supplierId: supplier.id,
-    secretariatId: secretariat.id,
+    processId,
+    supplierId,
+    secretariatId,
   };
 
   try {

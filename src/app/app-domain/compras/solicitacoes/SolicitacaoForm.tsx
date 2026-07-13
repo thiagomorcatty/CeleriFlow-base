@@ -13,7 +13,7 @@ import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 
-export function SolicitacaoForm({ data, catalogItems = [] }: { data?: any, catalogItems?: any[] }) {
+export function SolicitacaoForm({ data, catalogItems = [], secretarias = [] }: { data?: any, catalogItems?: any[], secretarias?: any[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   
@@ -104,9 +104,26 @@ export function SolicitacaoForm({ data, catalogItems = [] }: { data?: any, catal
                 <Input id="number" name="number" defaultValue={data?.number || ""} placeholder="Ex: REQ-2026-001 (Auto-gerado se vazio)" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="estimatedValue">Valor Estimado Total (R$)</Label>
-                <MoneyInput id="estimatedValue" name="estimatedValue" value={estimatedTotal} onChange={setEstimatedTotal} required />
+                <Label htmlFor="secretariatId">Secretaria</Label>
+                <Select name="secretariatId" defaultValue={data?.secretariatId || ""}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a Secretaria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {secretarias.map(sec => (
+                      <SelectItem key={sec.id} value={sec.id}>{sec.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Valor Estimado Total (R$)</Label>
+              <div className="text-2xl font-bold text-slate-700">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(estimatedTotal)}
+              </div>
+              <input type="hidden" name="estimatedValue" value={estimatedTotal} />
             </div>
 
             <div className="space-y-2">

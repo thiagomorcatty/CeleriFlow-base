@@ -106,8 +106,11 @@ export function ProcessoForm({ data, catalogItems = [] }: { data?: any, catalogI
                 <Input id="number" name="number" defaultValue={data?.number || ""} placeholder="Ex: PROC-2026-001 (Auto-gerado se vazio)" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="estimatedValue">Valor Estimado Total (R$)</Label>
-                <MoneyInput id="estimatedValue" name="estimatedValue" value={estimatedTotal} onChange={setEstimatedTotal} required />
+                <Label>Valor Estimado Total (R$)</Label>
+                <div className="text-2xl font-bold text-slate-700 h-10 flex items-center">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(estimatedTotal)}
+                </div>
+                <input type="hidden" name="estimatedValue" value={estimatedTotal} />
               </div>
             </div>
 

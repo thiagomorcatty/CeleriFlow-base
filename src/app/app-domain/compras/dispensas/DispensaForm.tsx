@@ -15,9 +15,14 @@ import { ArrowLeft, Save } from "lucide-react";
 export function DispensaForm({ data, processos = [], fornecedores = [] }: { data?: any, processos?: any[], fornecedores?: any[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedProcessId, setSelectedProcessId] = useState<string>(data?.processId || "");
+
+  const selectedProcess = processos.find(p => p.id === selectedProcessId);
+  const calculatedTotal = selectedProcess ? selectedProcess.estimatedValue : 0;
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
+    formData.set("value", calculatedTotal.toString());
     const result = await saveDispensa(formData);
     setIsSaving(false);
     
@@ -81,7 +86,7 @@ export function DispensaForm({ data, processos = [], fornecedores = [] }: { data
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="processId">Processo Vinculado</Label>
-                <Select name="processId" defaultValue={data?.processId || ""} required>
+                <Select name="processId" value={selectedProcessId} onValueChange={(val) => setSelectedProcessId(val || "")} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o processo" />
                   </SelectTrigger>
@@ -106,6 +111,14 @@ export function DispensaForm({ data, processos = [], fornecedores = [] }: { data
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Valor Total Estimado (R$)</Label>
+              <div className="text-2xl font-bold text-slate-700 h-10 flex items-center">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculatedTotal)}
+              </div>
+              <input type="hidden" name="value" value={calculatedTotal} />
             </div>
 
             <div className="space-y-2">
