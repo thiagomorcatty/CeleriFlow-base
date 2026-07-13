@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
+import { ServidorRowActions } from "./ServidorRowActions"
 
 export default async function ServidoresPage() {
   const employees = await prisma.employee.findMany({
@@ -49,6 +50,7 @@ export default async function ServidoresPage() {
                   <th className="font-medium p-4">Cargo</th>
                   <th className="font-medium p-4">Setor</th>
                   <th className="font-medium p-4">Status</th>
+                  <th className="font-medium p-4 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -72,6 +74,9 @@ export default async function ServidoresPage() {
                         <Badge variant={emp.isActive ? "default" : "secondary"} className={emp.isActive ? "bg-emerald-500 hover:bg-emerald-600" : ""}>
                           {emp.isActive ? "Ativo" : "Inativo"}
                         </Badge>
+                      </td>
+                      <td className="p-4 text-right">
+                        <ServidorRowActions employee={emp} />
                       </td>
                     </tr>
                   ))

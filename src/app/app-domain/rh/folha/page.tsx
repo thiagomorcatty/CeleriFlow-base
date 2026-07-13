@@ -1,17 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
-import { 
-  Banknote,
-  Plus,
-  Play
-} from "lucide-react"
+import { Plus } from "lucide-react"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
+import { FolhaRowActions } from "./FolhaRowActions"
 
 export default async function FolhaPage() {
   const payrolls = await prisma.payroll.findMany({
-    take: 12,
+    take: 20,
     orderBy: { createdAt: 'desc' }
   })
 
@@ -20,18 +17,18 @@ export default async function FolhaPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Folha de Pagamento</h2>
         <div className="flex items-center space-x-2">
-          <Link href="/rh/folha/nova" className={buttonVariants()}>
+          <Link href="/rh/folha/novo" className={buttonVariants()}>
             <Plus className="mr-2 h-4 w-4" />
-            Nova Competência
+            Nova Folha
           </Link>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Histórico de Folhas</CardTitle>
+          <CardTitle>Listagem de Competências</CardTitle>
           <CardDescription>
-            Gerenciamento e cálculo de competências.
+            Gerencie as folhas mensais, férias, 13º e rescisões.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -54,25 +51,20 @@ export default async function FolhaPage() {
                     </td>
                   </tr>
                 ) : (
-                  payrolls.map((payroll) => (
-                    <tr key={payroll.id} className="border-b last:border-0 hover:bg-muted/50">
-                      <td className="p-4 font-bold">{payroll.competence}</td>
-                      <td className="p-4">{payroll.type}</td>
-                      <td className="p-4 text-muted-foreground">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payroll.totalValue)}
+                  payrolls.map((folha) => (
+                    <tr key={folha.id} className="border-b last:border-0 hover:bg-muted/50">
+                      <td className="p-4 font-medium">{folha.competence}</td>
+                      <td className="p-4">{folha.type}</td>
+                      <td className="p-4">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(folha.totalValue)}
                       </td>
                       <td className="p-4">
-                        <Badge variant={payroll.status === "Aberta" ? "secondary" : "default"}>
-                          {payroll.status}
+                        <Badge variant={folha.status === "Paga" ? "default" : "secondary"} className={folha.status === "Paga" ? "bg-emerald-500" : ""}>
+                          {folha.status}
                         </Badge>
                       </td>
                       <td className="p-4 text-right">
-                        {payroll.status === "Aberta" && (
-                          <Link href={`/rh/folha/calcular/${payroll.id}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                            <Play className="h-4 w-4 mr-1 text-emerald-500" />
-                            Calcular
-                          </Link>
-                        )}
+                        <FolhaRowActions folha={folha} />
                       </td>
                     </tr>
                   ))

@@ -1,42 +1,38 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
-import { 
-  Clock,
-  Plus
-} from "lucide-react"
+import { Plus } from "lucide-react"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
+import { PontoRowActions } from "./PontoRowActions"
 import { format } from "date-fns"
-import { ptBR } from "date-fns/locale"
 
 export default async function PontoPage() {
   const records = await prisma.attendanceRecord.findMany({
-    take: 15,
+    take: 50,
     orderBy: { date: 'desc' },
-    include: { employee: true }
+    include: {
+      employee: true
+    }
   })
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Controle de Ponto</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Registro de Ponto</h2>
         <div className="flex items-center space-x-2">
-          <Link href="/rh/ponto/lote" className={buttonVariants({ variant: "outline" })}>
-            Importar Relógio
-          </Link>
           <Link href="/rh/ponto/novo" className={buttonVariants()}>
             <Plus className="mr-2 h-4 w-4" />
-            Lançamento Manual
+            Registrar Ponto
           </Link>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Espelho de Frequência</CardTitle>
+          <CardTitle>Espelho de Ponto</CardTitle>
           <CardDescription>
-            Registros diários dos servidores.
+            Controle de frequência e assiduidade dos servidores.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -48,33 +44,37 @@ export default async function PontoPage() {
                   <th className="font-medium p-4">Servidor</th>
                   <th className="font-medium p-4">Entrada</th>
                   <th className="font-medium p-4">Saída</th>
+                  <th className="font-medium p-4">Horas</th>
                   <th className="font-medium p-4">Status</th>
+                  <th className="font-medium p-4 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {records.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center p-8 text-muted-foreground">
+                    <td colSpan={7} className="text-center p-8 text-muted-foreground">
                       Nenhum registro de ponto encontrado.
                     </td>
                   </tr>
                 ) : (
                   records.map((rec) => (
                     <tr key={rec.id} className="border-b last:border-0 hover:bg-muted/50">
-                      <td className="p-4 font-medium">
-                        {format(new Date(rec.date), "dd/MM/yyyy", { locale: ptBR })}
-                      </td>
-                      <td className="p-4">{rec.employee?.name || "Servidor Removido"}</td>
+                      <td className="p-4 font-medium">{format(new Date(rec.date), 'dd/MM/yyyy')}</td>
+                      <td className="p-4 font-medium">{rec.employee?.name}</td>
+                      <td className="p-4">{rec.entryTime ? format(new Date(rec.entryTime), 'HH:mm') : '-'}</td>
+                      <td className="p-4">{rec.exitTime ? format(new Date(rec.exitTime), 'HH:mm') : '-'}</td>
+                      <td className="p-4 font-semibold">{rec.hoursWorked.toFixed(2)}h</td>
                       <td className="p-4">
-                        {rec.entryTime ? format(new Date(rec.entryTime), "HH:mm") : "-"}
-                      </td>
-                      <td className="p-4">
-                        {rec.exitTime ? format(new Date(rec.exitTime), "HH:mm") : "-"}
-                      </td>
-                      <td className="p-4">
-                        <Badge variant="outline">
+                        <Badge variant="outline" className={
+                          rec.status === 'Presente' ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
+                          rec.status === 'Falta' ? "bg-red-100 text-red-700 border-red-200" :
+                          rec.status === 'Atraso' ? "bg-orange-100 text-orange-700 border-orange-200" : ""
+                        }>
                           {rec.status}
                         </Badge>
+                      </td>
+                      <td className="p-4 text-right">
+                        <PontoRowActions record={rec} />
                       </td>
                     </tr>
                   ))
