@@ -3,16 +3,17 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function deleteBidding(id: string) {
+export async function inactivateBidding(id: string) {
   try {
-    await prisma.bidding.delete({
+    await prisma.bidding.update({
       where: { id },
+      data: { status: "Inativa" }
     });
     revalidatePath("/compras/licitacoes");
     return { success: true };
   } catch (error) {
-    console.error("Error deleting bidding:", error);
-    return { success: false, error: "Falha ao excluir a licitação." };
+    console.error("Error inactivating bidding:", error);
+    return { success: false, error: "Falha ao inativar a licitação." };
   }
 }
 

@@ -17,7 +17,8 @@ export default async function ProcessosComprasPage() {
         select: {
           preliminaryStudies: true,
           termsOfReference: true,
-          contracts: true
+          contracts: true,
+          items: true
         }
       }
     },
@@ -74,6 +75,7 @@ export default async function ProcessosComprasPage() {
                   <TableRow>
                     <TableHead>Número</TableHead>
                     <TableHead>Objeto</TableHead>
+                    <TableHead>Itens</TableHead>
                     <TableHead>Modalidade</TableHead>
                     <TableHead>Valor Est.</TableHead>
                     <TableHead>Documentos</TableHead>
@@ -86,6 +88,9 @@ export default async function ProcessosComprasPage() {
                     <TableRow key={proc.id}>
                       <TableCell className="font-medium">{proc.number}</TableCell>
                       <TableCell className="max-w-[300px] truncate" title={proc.object}>{proc.object}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{proc._count.items}</Badge>
+                      </TableCell>
                       <TableCell>{proc.modality || proc.type}</TableCell>
                       <TableCell>
                         {proc.estimatedValue ? 

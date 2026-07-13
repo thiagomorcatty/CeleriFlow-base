@@ -14,7 +14,10 @@ export default async function SolicitacoesPage() {
     include: {
       secretariat: true,
       department: true,
-      requester: true
+      requester: true,
+      _count: {
+        select: { items: true }
+      }
     },
     orderBy: { createdAt: 'desc' }
   }).catch(() => [])
@@ -69,6 +72,7 @@ export default async function SolicitacoesPage() {
                   <TableRow>
                     <TableHead>Número</TableHead>
                     <TableHead>Objeto</TableHead>
+                    <TableHead>Itens</TableHead>
                     <TableHead>Secretaria</TableHead>
                     <TableHead>Valor Est.</TableHead>
                     <TableHead>Data</TableHead>
@@ -81,6 +85,9 @@ export default async function SolicitacoesPage() {
                     <TableRow key={req.id}>
                       <TableCell className="font-medium">{req.number}</TableCell>
                       <TableCell className="max-w-[300px] truncate" title={req.object}>{req.object}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{req._count.items}</Badge>
+                      </TableCell>
                       <TableCell>{req.secretariat?.acronym || req.secretariat?.name}</TableCell>
                       <TableCell>
                         {req.estimatedValue ? 

@@ -16,13 +16,8 @@ export async function deletePurchaseProcess(id: string) {
   }
 }
 
-export async function savePurchaseProcess(formData: FormData) {
-  const id = formData.get("id") as string | null;
-  const number = formData.get("number") as string;
-  const object = formData.get("object") as string;
-  const type = formData.get("type") as string;
-  const modality = formData.get("modality") as string;
-  const estimatedValue = parseFloat(formData.get("estimatedValue") as string) || 0;
+export async function savePurchaseProcess(payload: any) {
+  const { id, number, object, type, modality, estimatedValue, items } = payload;
   
   const secretariat = await prisma.secretariat.findFirst();
 
@@ -40,11 +35,33 @@ export async function savePurchaseProcess(formData: FormData) {
   };
 
   try {
+    let processId = id;
+
     if (id) {
       await prisma.purchaseProcess.update({ where: { id }, data });
+      
+      await prisma.purchaseProcessItem.deleteMany({
+        where: { purchaseProcessId: id }
+      });
     } else {
-      await prisma.purchaseProcess.create({ data });
+      const newProcess = await prisma.purchaseProcess.create({ data });
+      processId = newProcess.id;
     }
+
+    if (items && items.length > 0) {
+      const itemsToCreate = items.map((item: any) => ({
+        purchaseProcessId: processId,
+        catalogItemId: item.catalogItemId === "custom" || !item.catalogItemId ? null : item.catalogItemId,
+        customName: item.catalogItemId === "custom" || !item.catalogItemId ? item.customName : null,
+        quantity: item.quantity,
+        estimatedUnitValue: item.estimatedUnitValue || null
+      }));
+
+      await prisma.purchaseProcessItem.createMany({
+        data: itemsToCreate
+      });
+    }
+
     revalidatePath("/compras/processos");
     return { success: true };
   } catch (error) {

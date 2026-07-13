@@ -16,14 +16,9 @@ export async function deletePurchaseRequest(id: string) {
   }
 }
 
-export async function savePurchaseRequest(formData: FormData) {
-  const id = formData.get("id") as string | null;
-  const number = formData.get("number") as string;
-  const object = formData.get("object") as string;
-  const justification = formData.get("justification") as string;
-  const estimatedValue = parseFloat(formData.get("estimatedValue") as string) || 0;
+export async function savePurchaseRequest(payload: any) {
+  const { id, number, object, justification, estimatedValue, items } = payload;
   
-  // Para fins de demonstração, usaremos as primeiras entidades disponíveis
   const secretariat = await prisma.secretariat.findFirst();
   const department = await prisma.department.findFirst();
   const requester = await prisma.employee.findFirst();
@@ -43,11 +38,37 @@ export async function savePurchaseRequest(formData: FormData) {
   };
 
   try {
+    let requestId = id;
+
     if (id) {
+      // Atualizar a solicitacao
       await prisma.purchaseRequest.update({ where: { id }, data });
+      
+      // Deletar os itens antigos para recriar (abordagem simples para sync de itens)
+      await prisma.purchaseRequestItem.deleteMany({
+        where: { purchaseRequestId: id }
+      });
     } else {
-      await prisma.purchaseRequest.create({ data });
+      // Criar nova solicitacao
+      const newRequest = await prisma.purchaseRequest.create({ data });
+      requestId = newRequest.id;
     }
+
+    // Criar os itens
+    if (items && items.length > 0) {
+      const itemsToCreate = items.map((item: any) => ({
+        purchaseRequestId: requestId,
+        catalogItemId: item.catalogItemId === "custom" || !item.catalogItemId ? null : item.catalogItemId,
+        customName: item.catalogItemId === "custom" || !item.catalogItemId ? item.customName : null,
+        quantity: item.quantity,
+        estimatedUnitValue: item.estimatedUnitValue || null
+      }));
+
+      await prisma.purchaseRequestItem.createMany({
+        data: itemsToCreate
+      });
+    }
+
     revalidatePath("/compras/solicitacoes");
     return { success: true };
   } catch (error) {

@@ -2,18 +2,18 @@
 
 import { useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Trash, Edit, FileText } from "lucide-react";
+import { Ban, Edit, FileText } from "lucide-react";
 import Link from "next/link";
-import { deleteBidding } from "./actions";
+import { inactivateBidding } from "./actions";
 
 export function LicitacaoRowActions({ id }: { id: string }) {
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isInactivating, setIsInactivating] = useState(false);
 
-  async function handleDelete() {
-    if (confirm("Tem certeza que deseja excluir esta licitação?")) {
-      setIsDeleting(true);
-      await deleteBidding(id);
-      setIsDeleting(false);
+  async function handleInactivate() {
+    if (confirm("Tem certeza que deseja inativar esta licitação?")) {
+      setIsInactivating(true);
+      await inactivateBidding(id);
+      setIsInactivating(false);
     }
   }
 
@@ -25,8 +25,8 @@ export function LicitacaoRowActions({ id }: { id: string }) {
       <Link href={`/compras/licitacoes/${id}/editar`} className={buttonVariants({ variant: "ghost", size: "icon" })} title="Editar">
         <Edit className="h-4 w-4 text-amber-500" />
       </Link>
-      <Button variant="ghost" size="icon" onClick={handleDelete} disabled={isDeleting} title="Excluir">
-        <Trash className="h-4 w-4 text-rose-500" />
+      <Button variant="ghost" size="icon" onClick={handleInactivate} disabled={isInactivating} title="Inativar">
+        <Ban className="h-4 w-4 text-rose-500" />
       </Button>
     </div>
   );
