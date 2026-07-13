@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 
 export function SolicitacaoForm({ data, catalogItems = [] }: { data?: any, catalogItems?: any[] }) {
   const router = useRouter();
@@ -104,7 +105,7 @@ export function SolicitacaoForm({ data, catalogItems = [] }: { data?: any, catal
               </div>
               <div className="space-y-2">
                 <Label htmlFor="estimatedValue">Valor Estimado Total (R$)</Label>
-                <Input id="estimatedValue" name="estimatedValue" type="number" step="0.01" value={estimatedTotal} onChange={(e) => setEstimatedTotal(parseFloat(e.target.value) || 0)} required />
+                <MoneyInput id="estimatedValue" name="estimatedValue" value={estimatedTotal} onChange={setEstimatedTotal} required />
               </div>
             </div>
 
@@ -175,12 +176,9 @@ export function SolicitacaoForm({ data, catalogItems = [] }: { data?: any, catal
                         </div>
                         <div className="col-span-6 md:col-span-3 space-y-2">
                           <Label>Valor Unit. (R$)</Label>
-                          <Input 
-                            type="number" 
-                            min="0" 
-                            step="0.01" 
-                            value={item.estimatedUnitValue} 
-                            onChange={(e) => updateItem(index, 'estimatedUnitValue', parseFloat(e.target.value) || 0)} 
+                          <MoneyInput 
+                            value={item.estimatedUnitValue || 0} 
+                            onChange={(val) => updateItem(index, 'estimatedUnitValue', val)} 
                           />
                         </div>
                       </div>

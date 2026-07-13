@@ -88,8 +88,12 @@ export default function CatalogoClient({ items }: { items: CatalogItem[] }) {
         id: editingId,
         ...formData
       };
-      await saveCatalogItem(dataToSave);
-      setIsModalOpen(false);
+      const result = await saveCatalogItem(dataToSave);
+      if (result.success) {
+        setIsModalOpen(false);
+      } else {
+        alert(result.error);
+      }
     } catch (error) {
       console.error("Error saving catalog item:", error);
       alert("Ocorreu um erro ao salvar o item do catálogo.");

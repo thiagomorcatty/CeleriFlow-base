@@ -5,11 +5,36 @@ import { revalidatePath } from "next/cache";
 
 export async function saveCatalogItem(formData: any) {
   try {
+    let finalCode = formData.code;
+
+    // Se não tiver código, gerar automaticamente
+    if (!finalCode || finalCode.trim() === "") {
+      // Pega o último código gerado ou a quantidade total para gerar um próximo
+      const count = await prisma.catalogItem.count();
+      const nextId = count + 1;
+      finalCode = `CAT-${String(nextId).padStart(4, '0')}`;
+      
+      // Validação de segurança, caso a exclusão de itens cause colisões
+      let existing = await prisma.catalogItem.findUnique({ where: { code: finalCode } });
+      let increment = nextId;
+      while (existing) {
+        increment++;
+        finalCode = `CAT-${String(increment).padStart(4, '0')}`;
+        existing = await prisma.catalogItem.findUnique({ where: { code: finalCode } });
+      }
+    } else {
+      // Se tiver código, verificar se já existe em outro item
+      const existing = await prisma.catalogItem.findUnique({ where: { code: finalCode } });
+      if (existing && existing.id !== formData.id) {
+        return { success: false, error: "Este código já está em uso por outro item. Escolha outro código ou deixe em branco para auto-gerar." };
+      }
+    }
+
     if (formData.id) {
       await prisma.catalogItem.update({
         where: { id: formData.id },
         data: {
-          code: formData.code,
+          code: finalCode,
           name: formData.name,
           description: formData.description,
           category: formData.category,
@@ -21,7 +46,7 @@ export async function saveCatalogItem(formData: any) {
     } else {
       await prisma.catalogItem.create({
         data: {
-          code: formData.code,
+          code: finalCode,
           name: formData.name,
           description: formData.description,
           category: formData.category,

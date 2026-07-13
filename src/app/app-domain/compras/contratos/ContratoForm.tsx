@@ -10,13 +10,16 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 
 export function ContratoForm({ data }: { data?: any }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [initialValue, setInitialValue] = useState<number>(data?.initialValue || 0);
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
+    formData.set("initialValue", initialValue.toString());
     const result = await saveContract(formData);
     setIsSaving(false);
     
@@ -55,7 +58,7 @@ export function ContratoForm({ data }: { data?: any }) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="initialValue">Valor Inicial (R$)</Label>
-                <Input id="initialValue" name="initialValue" type="number" step="0.01" defaultValue={data?.initialValue || ""} required />
+                <MoneyInput id="initialValue" value={initialValue} onChange={setInitialValue} required />
               </div>
             </div>
 
