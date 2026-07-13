@@ -29,14 +29,6 @@ export default async function RHDashboard() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">RH e Folha</h2>
         <div className="flex items-center space-x-2">
-          <Link href="/rh/servidores/novo" className={buttonVariants({ variant: "outline" })}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Novo Servidor
-          </Link>
-          <Link href="/rh/folha/gerar" className={buttonVariants()}>
-            <Banknote className="mr-2 h-4 w-4" />
-            Gerar Folha
-          </Link>
         </div>
       </div>
 
