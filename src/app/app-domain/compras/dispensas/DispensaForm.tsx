@@ -101,7 +101,7 @@ export function DispensaForm({ data, processos = [], fornecedores = [] }: { data
                   <SelectContent>
                     <SelectItem value="">Nenhum / A Definir</SelectItem>
                     {fornecedores.map(forn => (
-                      <SelectItem key={forn.id} value={forn.id}>{forn.company?.legalName || forn.company?.tradeName}</SelectItem>
+                      <SelectItem key={forn.id} value={forn.id}>{forn.company?.corporateName || forn.company?.tradeName}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

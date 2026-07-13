@@ -67,7 +67,7 @@ export default async function DispensaDetalhesPage({ params }: { params: Promise
           <CardContent className="space-y-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Fornecedor</p>
-              <p>{dispensa.supplier ? (dispensa.supplier.company?.legalName || dispensa.supplier.company?.tradeName) : "A Definir"}</p>
+              <p>{dispensa.supplier ? (dispensa.supplier.company?.corporateName || dispensa.supplier.company?.tradeName) : "A Definir"}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Justificativa Legal</p>

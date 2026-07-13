@@ -9,7 +9,7 @@ export default async function EditarDispensaPage({ params }: { params: Promise<{
       where: { id: resolvedParams.id }
     }),
     prisma.purchaseProcess.findMany({ orderBy: { number: 'desc' } }),
-    prisma.supplier.findMany({ include: { company: true }, orderBy: { company: { legalName: 'asc' } } })
+    prisma.supplier.findMany({ include: { company: true }, orderBy: { company: { corporateName: 'asc' } } })
   ]);
 
   if (!dispensa) {
