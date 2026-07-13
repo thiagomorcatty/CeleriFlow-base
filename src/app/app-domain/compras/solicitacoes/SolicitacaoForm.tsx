@@ -100,8 +100,8 @@ export function SolicitacaoForm({ data, catalogItems = [] }: { data?: any, catal
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="number">Número</Label>
-                <Input id="number" name="number" defaultValue={data?.number || ""} required placeholder="REQ-2026-00X" />
+                <Label htmlFor="number">Número da Solicitação</Label>
+                <Input id="number" name="number" defaultValue={data?.number || ""} placeholder="Ex: REQ-2026-001 (Auto-gerado se vazio)" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="estimatedValue">Valor Estimado Total (R$)</Label>

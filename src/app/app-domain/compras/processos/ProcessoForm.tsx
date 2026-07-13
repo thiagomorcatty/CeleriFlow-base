@@ -103,7 +103,7 @@ export function ProcessoForm({ data, catalogItems = [] }: { data?: any, catalogI
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="number">Número do Processo</Label>
-                <Input id="number" name="number" defaultValue={data?.number || ""} required placeholder="PROC-2026-00X" />
+                <Input id="number" name="number" defaultValue={data?.number || ""} placeholder="Ex: PROC-2026-001 (Auto-gerado se vazio)" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="estimatedValue">Valor Estimado Total (R$)</Label>

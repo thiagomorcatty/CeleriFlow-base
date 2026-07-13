@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-export default async function LicitacaoDetalhesPage({ params }: { params: { id: string } }) {
+export default async function LicitacaoDetalhesPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
   const licitacao = await prisma.bidding.findUnique({
-    where: { id: params.id },
+    where: { id: resolvedParams.id },
     include: {
       process: true
     }

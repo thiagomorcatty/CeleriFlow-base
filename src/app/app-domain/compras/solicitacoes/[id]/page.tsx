@@ -6,9 +6,10 @@ import { ArrowLeft, Edit } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
-export default async function SolicitacaoDetalhesPage({ params }: { params: { id: string } }) {
+export default async function SolicitacaoDetalhesPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
   const solicitacao = await prisma.purchaseRequest.findUnique({
-    where: { id: params.id },
+    where: { id: resolvedParams.id },
     include: {
       secretariat: true,
       department: true,

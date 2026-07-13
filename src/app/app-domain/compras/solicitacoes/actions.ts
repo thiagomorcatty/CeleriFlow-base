@@ -27,17 +27,24 @@ export async function savePurchaseRequest(payload: any) {
     throw new Error("Dados básicos (Secretaria, Departamento, Funcionario) não encontrados no banco.");
   }
 
-  const data = {
-    number,
-    object,
-    justification,
-    estimatedValue,
-    secretariatId: secretariat.id,
-    departmentId: department.id,
-    requesterId: requester.id,
-  };
-
   try {
+    let finalNumber = number;
+    if (!finalNumber || finalNumber.trim() === "") {
+      const year = new Date().getFullYear();
+      const count = await prisma.purchaseRequest.count();
+      finalNumber = `REQ-${year}-${String(count + 1).padStart(3, '0')}`;
+    }
+
+    const data = {
+      number: finalNumber,
+      object,
+      justification,
+      estimatedValue,
+      secretariatId: secretariat.id,
+      departmentId: department.id,
+      requesterId: requester.id,
+    };
+
     let requestId = id;
 
     if (id) {

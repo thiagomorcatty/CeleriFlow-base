@@ -25,16 +25,23 @@ export async function savePurchaseProcess(payload: any) {
     throw new Error("Secretaria não encontrada no banco.");
   }
 
-  const data = {
-    number,
-    object,
-    type,
-    modality,
-    estimatedValue,
-    secretariatId: secretariat.id,
-  };
-
   try {
+    let finalNumber = number;
+    if (!finalNumber || finalNumber.trim() === "") {
+      const year = new Date().getFullYear();
+      const count = await prisma.purchaseProcess.count();
+      finalNumber = `PROC-${year}-${String(count + 1).padStart(3, '0')}`;
+    }
+
+    const data = {
+      number: finalNumber,
+      object,
+      type,
+      modality,
+      estimatedValue,
+      secretariatId: secretariat.id,
+    };
+
     let processId = id;
 
     if (id) {
