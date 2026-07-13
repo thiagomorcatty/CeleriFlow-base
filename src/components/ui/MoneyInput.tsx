@@ -44,11 +44,15 @@ export function MoneyInput({ value, onChange, ...props }: MoneyInputProps) {
   }
 
   return (
-    <Input
-      {...props}
-      type="text"
+    <>
+      <input type="hidden" name={props.name} value={value} />
+      <Input
+        {...props}
+        name={undefined}
+        type="text"
       value={displayValue}
       onChange={handleChange}
     />
+    </>
   )
 }

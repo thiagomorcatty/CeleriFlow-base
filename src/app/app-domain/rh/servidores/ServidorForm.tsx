@@ -10,8 +10,9 @@ import { saveServidor } from "./actions";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Save, Plus, Trash2, Edit } from "lucide-react";
+import { Edit, Save, Plus, ArrowLeft } from "lucide-react";
 import { EmployeeBenefitsCard } from "./EmployeeBenefitsCard";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 
 // Formata CPF: 000.000.000-00
 const formatCPF = (value: string) => {
@@ -51,6 +52,7 @@ export function ServidorForm({
 
   const [cpf, setCpf] = useState(data?.cpf || "");
   const [phone, setPhone] = useState(data?.phone || "");
+  const [salaryBase, setSalaryBase] = useState(data?.salaryBase || 0);
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
@@ -133,7 +135,7 @@ export function ServidorForm({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="salaryBase">Salário Base (R$)</Label>
-                  <Input id="salaryBase" name="salaryBase" type="number" step="0.01" defaultValue={data?.salaryBase || 0} />
+                  <MoneyInput id="salaryBase" name="salaryBase" value={salaryBase} onChange={setSalaryBase} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="contractedHours">Carga Horária Mensal</Label>

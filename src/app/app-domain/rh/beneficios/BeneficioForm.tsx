@@ -11,11 +11,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 
 export function BeneficioForm({ data, suppliers = [] }: { data?: any, suppliers?: any[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isActive, setIsActive] = useState(data ? data.isActive : true);
+  const [baseValue, setBaseValue] = useState(data?.baseValue || 0);
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
@@ -77,13 +79,11 @@ export function BeneficioForm({ data, suppliers = [] }: { data?: any, suppliers?
 
               <div className="space-y-2">
                 <Label htmlFor="baseValue">Valor Base (R$) <span className="text-red-500">*</span></Label>
-                <Input 
+                <MoneyInput 
                   id="baseValue" 
                   name="baseValue" 
-                  type="number" 
-                  step="0.01" 
-                  defaultValue={data?.baseValue || ""} 
-                  placeholder="0.00"
+                  value={baseValue}
+                  onChange={setBaseValue}
                   required 
                 />
               </div>

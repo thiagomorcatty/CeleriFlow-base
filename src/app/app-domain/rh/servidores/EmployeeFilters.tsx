@@ -38,9 +38,9 @@ export function EmployeeFilters({ roles, departments }: { roles: any[], departme
         />
       </div>
       
-      <div className="w-[180px]">
-        <Select value={status} onValueChange={(v) => setStatus(v || "")}>
-          <SelectTrigger className="bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
+      <div className="w-[180px] shrink-0">
+        <Select value={status === "all" ? "" : status} onValueChange={(v) => setStatus(v || "all")}>
+          <SelectTrigger className="bg-white"><SelectValue placeholder="Todos os Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os Status</SelectItem>
             <SelectItem value="active">Ativos</SelectItem>
@@ -49,10 +49,10 @@ export function EmployeeFilters({ roles, departments }: { roles: any[], departme
         </Select>
       </div>
 
-      <div className="w-[200px]">
-        <Select value={departmentId} onValueChange={(v) => setDepartmentId(v || "")}>
-          <SelectTrigger className="bg-white"><SelectValue placeholder="Setor" /></SelectTrigger>
-          <SelectContent className="max-h-[300px]">
+      <div className="w-[280px] shrink-0">
+        <Select value={departmentId === "all" ? "" : departmentId} onValueChange={(v) => setDepartmentId(v || "all")}>
+          <SelectTrigger className="bg-white"><SelectValue placeholder="Todos os Setores" /></SelectTrigger>
+          <SelectContent className="max-h-[300px] !w-auto min-w-[var(--anchor-width)]">
             <SelectItem value="all">Todos os Setores</SelectItem>
             {departments.map(d => (
               <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
@@ -61,10 +61,10 @@ export function EmployeeFilters({ roles, departments }: { roles: any[], departme
         </Select>
       </div>
 
-      <div className="w-[200px]">
-        <Select value={roleId} onValueChange={(v) => setRoleId(v || "")}>
-          <SelectTrigger className="bg-white"><SelectValue placeholder="Cargo" /></SelectTrigger>
-          <SelectContent className="max-h-[300px]">
+      <div className="w-[280px] shrink-0">
+        <Select value={roleId === "all" ? "" : roleId} onValueChange={(v) => setRoleId(v || "all")}>
+          <SelectTrigger className="bg-white"><SelectValue placeholder="Todos os Cargos" /></SelectTrigger>
+          <SelectContent className="max-h-[300px] !w-auto min-w-[var(--anchor-width)]">
             <SelectItem value="all">Todos os Cargos</SelectItem>
             {roles.map(r => (
               <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
