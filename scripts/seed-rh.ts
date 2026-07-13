@@ -174,11 +174,22 @@ async function main() {
   console.log('Dependente criado.');
 
   // 8. Benefício
+  let benefitConfig = await prisma.benefitConfig.findFirst({ where: { name: 'Vale Transporte' }});
+  if (!benefitConfig) {
+    benefitConfig = await prisma.benefitConfig.create({
+      data: {
+        name: 'Vale Transporte',
+        type: 'Vale Transporte',
+        baseValue: 250.00
+      }
+    });
+  }
+
   await prisma.payrollBenefit.create({
     data: {
       employeeId: emp1.id,
-      type: 'Vale Transporte',
-      value: 250.00,
+      benefitConfigId: benefitConfig.id,
+      customValue: 250.00,
       status: 'Ativo'
     }
   });

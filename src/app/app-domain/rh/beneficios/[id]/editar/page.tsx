@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 export default async function EditarBeneficioPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const benefit = await prisma.payrollBenefit.findUnique({
+  const benefit = await prisma.benefitConfig.findUnique({
     where: { id }
   });
 
@@ -12,9 +12,12 @@ export default async function EditarBeneficioPage({ params }: { params: Promise<
     notFound();
   }
 
-  const employees = await prisma.employee.findMany({ orderBy: { name: 'asc' } });
+  const suppliers = await prisma.supplier.findMany({ 
+    include: { company: true },
+    orderBy: { company: { corporateName: 'asc' } } 
+  });
 
   return (
-    <BeneficioForm data={benefit} employees={employees} />
+    <BeneficioForm data={benefit} suppliers={suppliers} />
   );
 }

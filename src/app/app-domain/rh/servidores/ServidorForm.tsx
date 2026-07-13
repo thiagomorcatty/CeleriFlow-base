@@ -10,26 +10,54 @@ import { saveServidor } from "./actions";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Edit } from "lucide-react";
+import { EmployeeBenefitsCard } from "./EmployeeBenefitsCard";
+
+// Formata CPF: 000.000.000-00
+const formatCPF = (value: string) => {
+  return value
+    .replace(/\D/g, "")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})/, "$1-$2")
+    .replace(/(-\d{2})\d+?$/, "$1");
+};
+
+// Formata Telefone: (00) 00000-0000
+const formatPhone = (value: string) => {
+  return value
+    .replace(/\D/g, "")
+    .replace(/(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d)/, "$1-$2")
+    .replace(/(-\d{4})\d+?$/, "$1");
+};
 
 export function ServidorForm({ 
   data, 
   roles = [], 
   departments = [], 
-  secretariats = [] 
+  secretariats = [],
+  benefitConfigs = []
 }: { 
   data?: any, 
   roles?: any[], 
   departments?: any[], 
-  secretariats?: any[] 
+  secretariats?: any[],
+  benefitConfigs?: any[]
 }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isActive, setIsActive] = useState(data ? data.isActive : true);
 
+  const [cpf, setCpf] = useState(data?.cpf || "");
+  const [phone, setPhone] = useState(data?.phone || "");
+
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
     formData.set("isActive", isActive.toString());
+    formData.set("cpf", cpf);
+    formData.set("phone", phone);
+    
     const result = await saveServidor(formData);
     setIsSaving(false);
     
@@ -53,107 +81,189 @@ export function ServidorForm({
         </h2>
       </div>
 
-      <Card className="max-w-4xl">
-        <CardHeader>
-          <CardTitle>Dados do Servidor</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form action={handleSubmit} className="space-y-6">
-            {data && <input type="hidden" name="id" value={data.id} />}
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome Completo</Label>
-                <Input id="name" name="name" defaultValue={data?.name || ""} placeholder="Ex: João da Silva" required />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Dados do Servidor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form action={handleSubmit} className="space-y-6">
+              {data && <input type="hidden" name="id" value={data.id} />}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome Completo <span className="text-red-500">*</span></Label>
+                  <Input id="name" name="name" defaultValue={data?.name || ""} placeholder="Ex: João da Silva" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cpf">CPF <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="cpf" 
+                    name="cpf" 
+                    value={cpf} 
+                    onChange={(e) => setCpf(formatCPF(e.target.value))}
+                    placeholder="000.000.000-00" 
+                    required 
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="cpf">CPF</Label>
-                <Input id="cpf" name="cpf" defaultValue={data?.cpf || ""} placeholder="Ex: 000.000.000-00" />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="registration">Matrícula</Label>
-                <Input id="registration" name="registration" defaultValue={data?.registration || ""} placeholder="Ex: 12345" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="registration">Matrícula</Label>
+                  <Input id="registration" name="registration" defaultValue={data?.registration || ""} placeholder="Ex: 12345" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
+                  <Input id="email" name="email" type="email" defaultValue={data?.email || ""} placeholder="email@exemplo.com" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="phone" 
+                    name="phone" 
+                    value={phone} 
+                    onChange={(e) => setPhone(formatPhone(e.target.value))}
+                    placeholder="(00) 00000-0000" 
+                    required
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" defaultValue={data?.email || ""} placeholder="email@exemplo.com" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
-                <Input id="phone" name="phone" defaultValue={data?.phone || ""} placeholder="(00) 00000-0000" />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="secretariatId">Secretaria</Label>
-                <Select name="secretariatId" defaultValue={data?.secretariatId || ""}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {secretariats.map(sec => (
-                      <SelectItem key={sec.id} value={sec.id}>{sec.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="salaryBase">Salário Base (R$)</Label>
+                  <Input id="salaryBase" name="salaryBase" type="number" step="0.01" defaultValue={data?.salaryBase || 0} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contractedHours">Carga Horária Mensal</Label>
+                  <Input id="contractedHours" name="contractedHours" type="number" defaultValue={data?.contractedHours || 220} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="departmentId">Departamento / Setor</Label>
-                <Select name="departmentId" defaultValue={data?.departmentId || ""}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map(dep => (
-                      <SelectItem key={dep.id} value={dep.id}>{dep.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="roleId">Cargo / Função</Label>
-                <Select name="roleId" defaultValue={data?.roleId || ""}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map(role => (
-                      <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            <div className="flex items-center space-x-2 border p-4 rounded-lg bg-slate-50">
-              <Switch 
-                id="isActive" 
-                checked={isActive} 
-                onCheckedChange={setIsActive} 
-              />
-              <Label htmlFor="isActive" className="font-semibold cursor-pointer">
-                Servidor Ativo
-              </Label>
-              <p className="text-sm text-slate-500 ml-4">
-                Desative esta opção para servidores desligados ou inativos, preservando o histórico.
-              </p>
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="secretariatId">Secretaria</Label>
+                  <Select name="secretariatId" defaultValue={data?.secretariatId || ""}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px] z-50">
+                      {secretariats.map(sec => (
+                        <SelectItem key={sec.id} value={sec.id}>{sec.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="departmentId">Departamento / Setor</Label>
+                  <Select name="departmentId" defaultValue={data?.departmentId || ""}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px] z-50">
+                      {departments.map(dep => (
+                        <SelectItem key={dep.id} value={dep.id}>{dep.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="roleId">Cargo / Função</Label>
+                  <Select name="roleId" defaultValue={data?.roleId || ""}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px] z-50">
+                      {roles.map(role => (
+                        <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-            <div className="flex justify-end space-x-2">
-              <Link href="/rh/servidores">
-                <Button type="button" variant="outline">Cancelar</Button>
+              <div className="flex items-center space-x-2 border p-4 rounded-lg bg-slate-50">
+                <Switch 
+                  id="isActive" 
+                  checked={isActive} 
+                  onCheckedChange={setIsActive} 
+                />
+                <Label htmlFor="isActive" className="font-semibold cursor-pointer">
+                  Servidor Ativo
+                </Label>
+                <p className="text-sm text-slate-500 ml-4 hidden md:block">
+                  Desative esta opção para servidores desligados ou inativos, preservando o histórico.
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-4 border-t">
+                <Link href="/rh/servidores">
+                  <Button type="button" variant="outline">Cancelar</Button>
+                </Link>
+                <Button type="submit" disabled={isSaving}>
+                  <Save className="mr-2 h-4 w-4" /> {isSaving ? "Salvando..." : "Salvar"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Cadastro de Dependentes Interno */}
+        {data && (
+          <Card className="md:col-span-2 mt-6">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle>Dependentes do Servidor</CardTitle>
+              <Link href={`/rh/dependentes/novo?employeeId=${data.id}`}>
+                <Button size="sm">
+                  <Plus className="mr-2 h-4 w-4" /> Novo Dependente
+                </Button>
               </Link>
-              <Button type="submit" disabled={isSaving}>
-                <Save className="mr-2 h-4 w-4" /> {isSaving ? "Salvando..." : "Salvar"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <CardContent>
+              {data.dependents && data.dependents.length > 0 ? (
+                <div className="rounded-md border overflow-hidden">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-muted text-muted-foreground border-b">
+                      <tr>
+                        <th className="p-3 font-medium">Nome</th>
+                        <th className="p-3 font-medium">Parentesco</th>
+                        <th className="p-3 font-medium">Data de Nascimento</th>
+                        <th className="p-3 font-medium text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.dependents.map((dep: any) => (
+                        <tr key={dep.id} className="border-b last:border-0 hover:bg-muted/50">
+                          <td className="p-3">{dep.name}</td>
+                          <td className="p-3">{dep.relationship}</td>
+                          <td className="p-3">{dep.birthDate ? new Date(dep.birthDate).toLocaleDateString('pt-BR') : '-'}</td>
+                          <td className="p-3 text-right">
+                            <Link href={`/rh/dependentes/${dep.id}/editar`}>
+                              <Button variant="ghost" size="sm" title="Editar">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center p-6 text-muted-foreground border rounded-md border-dashed">
+                  Nenhum dependente cadastrado para este servidor.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Benefícios Concedidos Interno */}
+        {data && (
+          <EmployeeBenefitsCard employee={data} benefitConfigs={benefitConfigs} />
+        )}
+      </div>
     </div>
   );
 }

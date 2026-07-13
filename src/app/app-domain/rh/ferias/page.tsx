@@ -6,9 +6,21 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { FeriasRowActions } from "./FeriasRowActions"
 import { format } from "date-fns"
+import { FeriasFilters } from "./FeriasFilters"
 
-export default async function FeriasPage() {
+export default async function FeriasPage({ searchParams }: { searchParams: Promise<{ q?: string, status?: string }> }) {
+  const { q, status } = await searchParams;
+
+  const whereClause: any = {};
+  if (q) {
+    whereClause.employee = { name: { contains: q, mode: 'insensitive' } };
+  }
+  if (status && status !== 'all') {
+    whereClause.status = status;
+  }
+
   const vacations = await prisma.vacation.findMany({
+    where: whereClause,
     take: 20,
     orderBy: { createdAt: 'desc' },
     include: {
@@ -27,6 +39,8 @@ export default async function FeriasPage() {
           </Link>
         </div>
       </div>
+
+      <FeriasFilters />
 
       <Card>
         <CardHeader>

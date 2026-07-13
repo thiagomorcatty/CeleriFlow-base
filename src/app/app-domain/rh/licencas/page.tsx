@@ -6,9 +6,21 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { LicencaRowActions } from "./LicencaRowActions"
 import { format } from "date-fns"
+import { LicencasFilters } from "./LicencasFilters"
 
-export default async function LicencasPage() {
+export default async function LicencasPage({ searchParams }: { searchParams: Promise<{ q?: string, status?: string }> }) {
+  const { q, status } = await searchParams;
+
+  const whereClause: any = {};
+  if (q) {
+    whereClause.employee = { name: { contains: q, mode: 'insensitive' } };
+  }
+  if (status && status !== 'all') {
+    whereClause.status = status;
+  }
+
   const leaves = await prisma.leave.findMany({
+    where: whereClause,
     take: 20,
     orderBy: { startDate: 'desc' },
     include: {
@@ -27,6 +39,8 @@ export default async function LicencasPage() {
           </Link>
         </div>
       </div>
+
+      <LicencasFilters />
 
       <Card>
         <CardHeader>

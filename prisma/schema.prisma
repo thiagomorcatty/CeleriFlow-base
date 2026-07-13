@@ -143,13 +143,15 @@ model Role {
 
 // Servidores Básicos (Base para RH e vinculação de responsáveis)
 model Employee {
-  id           String  @id @default(cuid())
-  name         String
-  cpf          String? @unique
-  registration String? // Matrícula
-  email        String?
-  phone        String?
-  isActive     Boolean @default(true)
+  id              String  @id @default(cuid())
+  name            String
+  cpf             String? @unique
+  registration    String? // Matrícula
+  email           String?
+  phone           String?
+  isActive        Boolean @default(true)
+  salaryBase      Float   @default(0)
+  contractedHours Int     @default(220)
 
   roleId String?
   role   Role?   @relation(fields: [roleId], references: [id])
@@ -426,6 +428,9 @@ model Supplier {
   assets            Asset[]            @relation("AssetSupplier")
   assetMaintenances AssetMaintenance[] @relation("AssetMaintenanceSupplier")
   materialMovements MaterialMovement[] @relation("MaterialMovementSupplier")
+
+  // Mod 10
+  benefitConfigs BenefitConfig[] @relation("SupplierBenefitConfig")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1404,7 +1409,7 @@ model PurchaseRequest {
 }
 
 model PurchaseRequestItem {
-  id                 String  @id @default(cuid())
+  id                 String          @id @default(cuid())
   purchaseRequestId  String
   purchaseRequest    PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
   catalogItemId      String?
@@ -1443,7 +1448,7 @@ model PurchaseProcess {
 }
 
 model PurchaseProcessItem {
-  id                 String  @id @default(cuid())
+  id                 String          @id @default(cuid())
   purchaseProcessId  String
   purchaseProcess    PurchaseProcess @relation(fields: [purchaseProcessId], references: [id], onDelete: Cascade)
   catalogItemId      String?
@@ -1665,16 +1670,19 @@ model Leave {
 }
 
 model AttendanceRecord {
-  id          String    @id @default(cuid())
-  employeeId  String
-  employee    Employee  @relation("EmployeeAttendance", fields: [employeeId], references: [id])
-  date        DateTime
-  entryTime   DateTime?
-  exitTime    DateTime?
-  status      String    @default("Presente") // Presente, Falta, Atraso, Férias, Licença
-  hoursWorked Float     @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  employeeId      String
+  employee        Employee  @relation("EmployeeAttendance", fields: [employeeId], references: [id])
+  date            DateTime
+  entryTime       DateTime?
+  exitTime        DateTime?
+  status          String    @default("Presente") // Presente, Falta, Atraso, Férias, Licença
+  hoursWorked     Float     @default(0)
+  extraHours      Float     @default(0)
+  bankHours       Float     @default(0)
+  contractedHours Float     @default(8)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model Dependent {
@@ -1693,15 +1701,30 @@ model Dependent {
   updatedAt     DateTime  @updatedAt
 }
 
+model BenefitConfig {
+  id         String    @id @default(cuid())
+  name       String
+  type       String // Vale Transporte, Vale Alimentação, Plano de Saúde, etc.
+  baseValue  Float     @default(0)
+  supplierId String?
+  supplier   Supplier? @relation("SupplierBenefitConfig", fields: [supplierId], references: [id])
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  employeeBenefits PayrollBenefit[] @relation("ConfigBenefit")
+}
+
 model PayrollBenefit {
-  id         String   @id @default(cuid())
-  employeeId String
-  employee   Employee @relation("EmployeeBenefit", fields: [employeeId], references: [id])
-  type       String // Vale Transporte, Vale Alimentação
-  value      Float
-  status     String   @default("Ativo")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id              String        @id @default(cuid())
+  employeeId      String
+  employee        Employee      @relation("EmployeeBenefit", fields: [employeeId], references: [id])
+  benefitConfigId String
+  benefitConfig   BenefitConfig @relation("ConfigBenefit", fields: [benefitConfigId], references: [id])
+  customValue     Float? // Se for diferente do baseValue
+  status          String        @default("Ativo")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 }
 
 model PersonnelAct {
@@ -2611,88 +2634,88 @@ model SocialProgramParticipation {
 // --- Módulo 15: Meio Ambiente ---
 
 model EnvEnterprise {
-  id             String   @id @default(cuid())
-  name           String   // Razão social ou nome do local
-  cnpjCpf        String?  
-  activityType   String?  // Indústria, Comércio, Posto, etc
-  potentialRisk  String?  // Baixo, Médio, Alto
-  address        String?
-  status         String   @default("Ativo") // Ativo, Irregular, Embargado
-  
-  licenses       EnvLicense[]
-  inspections    EnvInspection[]
-  infractions    EnvInfraction[]
+  id            String  @id @default(cuid())
+  name          String // Razão social ou nome do local
+  cnpjCpf       String?
+  activityType  String? // Indústria, Comércio, Posto, etc
+  potentialRisk String? // Baixo, Médio, Alto
+  address       String?
+  status        String  @default("Ativo") // Ativo, Irregular, Embargado
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  licenses    EnvLicense[]
+  inspections EnvInspection[]
+  infractions EnvInfraction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model EnvLicense {
-  id             String   @id @default(cuid())
-  licenseNumber  String   @unique
-  licenseType    String   // Prévia, Instalação, Operação, Simplificada
-  issueDate      DateTime @default(now())
-  validUntil     DateTime?
-  status         String   @default("Emitida") // Em Análise, Emitida, Vencida, Suspensa
+  id            String    @id @default(cuid())
+  licenseNumber String    @unique
+  licenseType   String // Prévia, Instalação, Operação, Simplificada
+  issueDate     DateTime  @default(now())
+  validUntil    DateTime?
+  status        String    @default("Emitida") // Em Análise, Emitida, Vencida, Suspensa
 
-  enterpriseId   String
-  enterprise     EnvEnterprise @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+  enterpriseId String
+  enterprise   EnvEnterprise @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model EnvRequest {
-  id             String   @id @default(cuid())
-  requestType    String   // Poda, Supressão, Autorização
-  description    String
-  address        String?
-  requesterName  String?
-  status         String   @default("Solicitado") // Solicitado, Em Vistoria, Autorizado, Negado
+  id            String  @id @default(cuid())
+  requestType   String // Poda, Supressão, Autorização
+  description   String
+  address       String?
+  requesterName String?
+  status        String  @default("Solicitado") // Solicitado, Em Vistoria, Autorizado, Negado
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model EnvComplaint {
-  id             String   @id @default(cuid())
-  complaintType  String   // Descarte, Queimada, Poluição Sonora, etc
-  description    String
-  address        String?
-  isAnonymous    Boolean  @default(true)
-  status         String   @default("Recebida") // Recebida, Em Triagem, Em Vistoria, Encerrada
+  id            String  @id @default(cuid())
+  complaintType String // Descarte, Queimada, Poluição Sonora, etc
+  description   String
+  address       String?
+  isAnonymous   Boolean @default(true)
+  status        String  @default("Recebida") // Recebida, Em Triagem, Em Vistoria, Encerrada
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model EnvInspection {
-  id             String   @id @default(cuid())
-  dateScheduled  DateTime?
-  dateExecuted   DateTime?
-  inspector      String?
-  notes          String?
-  status         String   @default("Agendada") // Agendada, Realizada, Cancelada
+  id            String    @id @default(cuid())
+  dateScheduled DateTime?
+  dateExecuted  DateTime?
+  inspector     String?
+  notes         String?
+  status        String    @default("Agendada") // Agendada, Realizada, Cancelada
 
-  enterpriseId   String?
-  enterprise     EnvEnterprise? @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+  enterpriseId String?
+  enterprise   EnvEnterprise? @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model EnvInfraction {
-  id             String   @id @default(cuid())
-  infractionType String   // Notificação, Auto de Infração
+  id             String @id @default(cuid())
+  infractionType String // Notificação, Auto de Infração
   description    String
   fineAmount     Float?
-  status         String   @default("Emitido") // Emitido, Pago, Em Recurso, Cancelado
+  status         String @default("Emitido") // Emitido, Pago, Em Recurso, Cancelado
 
-  enterpriseId   String?
-  enterprise     EnvEnterprise? @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+  enterpriseId String?
+  enterprise   EnvEnterprise? @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ----------------------------------------------------------------------------
@@ -2700,85 +2723,85 @@ model EnvInfraction {
 // ----------------------------------------------------------------------------
 
 model SanConsumerUnit {
-  id             String   @id @default(cuid())
-  code           String   @unique
-  address        String
-  category       String   @default("Residencial") // Residencial, Comercial, Industrial, Rural, Pública
-  status         String   @default("Ativa") // Ativa, Inativa, Cortada, Suspensa
-  ownerName      String?
-  ownerDocument  String?  // CPF/CNPJ
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            String   @id @default(cuid())
+  code          String   @unique
+  address       String
+  category      String   @default("Residencial") // Residencial, Comercial, Industrial, Rural, Pública
+  status        String   @default("Ativa") // Ativa, Inativa, Cortada, Suspensa
+  ownerName     String?
+  ownerDocument String? // CPF/CNPJ
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  meters         SanWaterMeter[]
-  readings       SanMeterReading[]
-  invoices       SanInvoice[]
-  serviceOrders  SanServiceOrder[]
+  meters        SanWaterMeter[]
+  readings      SanMeterReading[]
+  invoices      SanInvoice[]
+  serviceOrders SanServiceOrder[]
 }
 
 model SanWaterMeter {
-  id             String   @id @default(cuid())
-  meterNumber    String   @unique
-  installation   DateTime?
-  status         String   @default("Instalado") // Instalado, Em Manutenção, Retirado
-  unitId         String
-  unit           SanConsumerUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           String          @id @default(cuid())
+  meterNumber  String          @unique
+  installation DateTime?
+  status       String          @default("Instalado") // Instalado, Em Manutenção, Retirado
+  unitId       String
+  unit         SanConsumerUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
-  readings       SanMeterReading[]
+  readings SanMeterReading[]
 }
 
 model SanMeterReading {
-  id             String   @id @default(cuid())
-  competence     String   // Formato MM/YYYY
-  previousValue  Float
-  currentValue   Float
-  consumption    Float
-  readingDate    DateTime @default(now())
-  readerName     String?
-  status         String   @default("Registrada") // Registrada, Revisada, Estimada
+  id            String   @id @default(cuid())
+  competence    String // Formato MM/YYYY
+  previousValue Float
+  currentValue  Float
+  consumption   Float
+  readingDate   DateTime @default(now())
+  readerName    String?
+  status        String   @default("Registrada") // Registrada, Revisada, Estimada
 
-  unitId         String
-  unit           SanConsumerUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  meterId        String?
-  meter          SanWaterMeter? @relation(fields: [meterId], references: [id], onDelete: SetNull)
+  unitId  String
+  unit    SanConsumerUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  meterId String?
+  meter   SanWaterMeter?  @relation(fields: [meterId], references: [id], onDelete: SetNull)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([unitId, competence])
 }
 
 model SanInvoice {
-  id             String   @id @default(cuid())
-  invoiceNumber  String   @unique
-  competence     String   // Formato MM/YYYY
-  totalAmount    Float
-  dueDate        DateTime
-  status         String   @default("Emitida") // Emitida, Paga, Vencida, Cancelada
+  id            String   @id @default(cuid())
+  invoiceNumber String   @unique
+  competence    String // Formato MM/YYYY
+  totalAmount   Float
+  dueDate       DateTime
+  status        String   @default("Emitida") // Emitida, Paga, Vencida, Cancelada
 
-  unitId         String
-  unit           SanConsumerUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  unitId String
+  unit   SanConsumerUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SanServiceOrder {
-  id             String   @id @default(cuid())
-  orderNumber    String   @unique
-  orderType      String   // Vazamento, Religação, Corte, Manutenção
-  description    String
-  priority       String   @default("Normal") // Normal, Alta, Urgente
-  status         String   @default("Aberta") // Aberta, Em Andamento, Concluída, Cancelada
-  technician     String?
+  id          String  @id @default(cuid())
+  orderNumber String  @unique
+  orderType   String // Vazamento, Religação, Corte, Manutenção
+  description String
+  priority    String  @default("Normal") // Normal, Alta, Urgente
+  status      String  @default("Aberta") // Aberta, Em Andamento, Concluída, Cancelada
+  technician  String?
 
-  unitId         String?
-  unit           SanConsumerUnit? @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  unitId String?
+  unit   SanConsumerUnit? @relation(fields: [unitId], references: [id], onDelete: SetNull)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ----------------------------------------------------------------------------
@@ -2786,65 +2809,65 @@ model SanServiceOrder {
 // ----------------------------------------------------------------------------
 
 model CamLegislatura {
-  id             String   @id @default(cuid())
-  numero         Int      @unique
-  inicio         DateTime
-  fim            DateTime
-  status         String   @default("Ativa") // Ativa, Encerrada, Futura
+  id     String   @id @default(cuid())
+  numero Int      @unique
+  inicio DateTime
+  fim    DateTime
+  status String   @default("Ativa") // Ativa, Encerrada, Futura
 
-  vereadores     CamVereador[]
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  vereadores CamVereador[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model CamVereador {
-  id             String   @id @default(cuid())
-  nomeCompleto   String
+  id              String  @id @default(cuid())
+  nomeCompleto    String
   nomeParlamentar String
-  cpf            String?  @unique
-  partido        String?
-  status         String   @default("Em Exercício") // Em Exercício, Licenciado, Afastado, Suplente
-  
-  legislaturaId  String
-  legislatura    CamLegislatura @relation(fields: [legislaturaId], references: [id], onDelete: Cascade)
-  
-  proposicoes    CamProposicao[]
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  cpf             String? @unique
+  partido         String?
+  status          String  @default("Em Exercício") // Em Exercício, Licenciado, Afastado, Suplente
+
+  legislaturaId String
+  legislatura   CamLegislatura @relation(fields: [legislaturaId], references: [id], onDelete: Cascade)
+
+  proposicoes CamProposicao[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model CamSessao {
-  id             String   @id @default(cuid())
-  numero         Int      @unique
-  tipo           String   @default("Ordinária") // Ordinária, Extraordinária, Solene, Especial, Audiência Pública
-  data           DateTime
-  local          String   @default("Plenário")
-  status         String   @default("Agendada") // Agendada, Em Preparação, Aberta, Encerrada
-  
-  proposicoes    CamProposicao[]
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id     String   @id @default(cuid())
+  numero Int      @unique
+  tipo   String   @default("Ordinária") // Ordinária, Extraordinária, Solene, Especial, Audiência Pública
+  data   DateTime
+  local  String   @default("Plenário")
+  status String   @default("Agendada") // Agendada, Em Preparação, Aberta, Encerrada
+
+  proposicoes CamProposicao[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model CamProposicao {
-  id             String   @id @default(cuid())
-  numero         String   @unique
-  tipo           String   // Projeto de Lei, Requerimento, Indicação, Moção
-  ementa         String
-  texto          String?
-  status         String   @default("Protocolada") // Protocolada, Em Pauta, Aprovada, Rejeitada, Arquivada
+  id     String  @id @default(cuid())
+  numero String  @unique
+  tipo   String // Projeto de Lei, Requerimento, Indicação, Moção
+  ementa String
+  texto  String?
+  status String  @default("Protocolada") // Protocolada, Em Pauta, Aprovada, Rejeitada, Arquivada
 
-  autorId        String
-  autor          CamVereador @relation(fields: [autorId], references: [id], onDelete: Cascade)
+  autorId String
+  autor   CamVereador @relation(fields: [autorId], references: [id], onDelete: Cascade)
 
-  sessaoId       String?
-  sessao         CamSessao? @relation(fields: [sessaoId], references: [id], onDelete: SetNull)
+  sessaoId String?
+  sessao   CamSessao? @relation(fields: [sessaoId], references: [id], onDelete: SetNull)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // -----------------------------------------------------------------------------
@@ -2852,45 +2875,45 @@ model CamProposicao {
 // -----------------------------------------------------------------------------
 
 model ObrasObra {
-  id             String   @id @default(cuid())
-  numero         String   @unique
-  nome           String
-  descricao      String?
-  local          String?
-  tipo           String   // Construção, Reforma, Pavimentação, etc.
-  valorEstimado  Float?
-  status         String   @default("Em Planejamento") // Em Planejamento, Em Execução, Concluída, Paralisada
+  id            String  @id @default(cuid())
+  numero        String  @unique
+  nome          String
+  descricao     String?
+  local         String?
+  tipo          String // Construção, Reforma, Pavimentação, etc.
+  valorEstimado Float?
+  status        String  @default("Em Planejamento") // Em Planejamento, Em Execução, Concluída, Paralisada
 
-  medicoes       ObrasMedicao[]
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  medicoes ObrasMedicao[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ObrasMedicao {
-  id             String   @id @default(cuid())
-  numero         Int
-  data           DateTime
-  valorMedido    Float
-  status         String   @default("Em Análise") // Em Análise, Aprovada, Paga
+  id          String   @id @default(cuid())
+  numero      Int
+  data        DateTime
+  valorMedido Float
+  status      String   @default("Em Análise") // Em Análise, Aprovada, Paga
 
-  obraId         String
-  obra           ObrasObra @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  obraId String
+  obra   ObrasObra @relation(fields: [obraId], references: [id], onDelete: Cascade)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ObrasServico {
-  id             String   @id @default(cuid())
-  protocolo      String   @unique
-  tipo           String   // Tapa-buraco, Iluminação, Poda, Limpeza
-  descricao      String
-  local          String
-  status         String   @default("Aberto") // Aberto, Em Andamento, Concluído
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id        String @id @default(cuid())
+  protocolo String @unique
+  tipo      String // Tapa-buraco, Iluminação, Poda, Limpeza
+  descricao String
+  local     String
+  status    String @default("Aberto") // Aberto, Em Andamento, Concluído
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // -----------------------------------------------------------------------------
@@ -2898,42 +2921,42 @@ model ObrasServico {
 // -----------------------------------------------------------------------------
 
 model CulturaAgente {
-  id             String   @id @default(cuid())
-  nome           String
-  tipo           String   // Artista Individual, Grupo, Produtor, etc.
-  segmento       String   // Música, Teatro, Dança, Esporte, etc.
-  cpfCnpj        String?  @unique
-  telefone       String?
-  email          String?
-  status         String   @default("Ativo") // Ativo, Inativo
+  id       String  @id @default(cuid())
+  nome     String
+  tipo     String // Artista Individual, Grupo, Produtor, etc.
+  segmento String // Música, Teatro, Dança, Esporte, etc.
+  cpfCnpj  String? @unique
+  telefone String?
+  email    String?
+  status   String  @default("Ativo") // Ativo, Inativo
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model CulturaEspaco {
-  id             String   @id @default(cuid())
-  nome           String
-  tipo           String   // Centro Cultural, Quadra, Teatro, Praça
-  endereco       String?
-  capacidade     Int?
-  status         String   @default("Disponível") // Disponível, Em Manutenção, Reservado
+  id         String  @id @default(cuid())
+  nome       String
+  tipo       String // Centro Cultural, Quadra, Teatro, Praça
+  endereco   String?
+  capacidade Int?
+  status     String  @default("Disponível") // Disponível, Em Manutenção, Reservado
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model CulturaEvento {
-  id             String   @id @default(cuid())
-  nome           String
-  tipo           String   // Oficina, Campeonato, Festival, Apresentação
-  data           DateTime
-  local          String?
-  publicoAlvo    String?
-  status         String   @default("Programado") // Programado, Em Andamento, Realizado, Cancelado
+  id          String   @id @default(cuid())
+  nome        String
+  tipo        String // Oficina, Campeonato, Festival, Apresentação
+  data        DateTime
+  local       String?
+  publicoAlvo String?
+  status      String   @default("Programado") // Programado, Em Andamento, Realizado, Cancelado
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // -----------------------------------------------------------------------------
@@ -2941,43 +2964,43 @@ model CulturaEvento {
 // -----------------------------------------------------------------------------
 
 model SegurancaGuarda {
-  id             String   @id @default(cuid())
-  matricula      String   @unique
-  nome           String
-  tipo           String   // Guarda Municipal, Agente de Trânsito, Defesa Civil
-  equipe         String?
-  status         String   @default("Ativo") // Ativo, Licença, Inativo
+  id        String  @id @default(cuid())
+  matricula String  @unique
+  nome      String
+  tipo      String // Guarda Municipal, Agente de Trânsito, Defesa Civil
+  equipe    String?
+  status    String  @default("Ativo") // Ativo, Licença, Inativo
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SegurancaOcorrencia {
-  id             String   @id @default(cuid())
-  numero         String   @unique
-  tipo           String   // Perturbação, Acidente, Furto, Risco Estrutural
-  descricao      String
-  local          String?
-  bairro         String?
-  prioridade     String   @default("Normal") // Baixa, Normal, Alta, Urgente
-  status         String   @default("Registrada") // Registrada, Em Atendimento, Resolvida, Encerrada
+  id         String  @id @default(cuid())
+  numero     String  @unique
+  tipo       String // Perturbação, Acidente, Furto, Risco Estrutural
+  descricao  String
+  local      String?
+  bairro     String?
+  prioridade String  @default("Normal") // Baixa, Normal, Alta, Urgente
+  status     String  @default("Registrada") // Registrada, Em Atendimento, Resolvida, Encerrada
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SegurancaInfracao {
-  id             String   @id @default(cuid())
-  auto           String   @unique
-  data           DateTime
-  placa          String
-  tipo           String   // Estacionamento irregular, Velocidade, etc.
-  local          String
-  valor          Float?
-  status         String   @default("Registrado") // Registrado, Notificado, Em Recurso, Pago, Cancelado
+  id     String   @id @default(cuid())
+  auto   String   @unique
+  data   DateTime
+  placa  String
+  tipo   String // Estacionamento irregular, Velocidade, etc.
+  local  String
+  valor  Float?
+  status String   @default("Registrado") // Registrado, Notificado, Em Recurso, Pago, Cancelado
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // -----------------------------------------------------------------------------
@@ -2985,36 +3008,36 @@ model SegurancaInfracao {
 // -----------------------------------------------------------------------------
 
 model ConfiguracaoInstancia {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   nomePrefeitura String
   cnpj           String?
   municipio      String
   uf             String
   dominio        String?
-  status         String   @default("Ativa") // Ativa, Suspensa, Manutenção
+  status         String  @default("Ativa") // Ativa, Suspensa, Manutenção
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ConfiguracaoModulo {
-  id             String   @id @default(cuid())
-  nome           String
-  codigo         String   @unique
-  ativo          Boolean  @default(false)
-  dataAtivacao   DateTime?
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           String    @id @default(cuid())
+  nome         String
+  codigo       String    @unique
+  ativo        Boolean   @default(false)
+  dataAtivacao DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ConfiguracaoPerfil {
-  id             String   @id @default(cuid())
-  nome           String   // Administrador Municipal, Gestor, Operador
-  descricao      String?
-  permissoes     String   // JSON string with permissions
-  ativo          Boolean  @default(true)
+  id         String  @id @default(cuid())
+  nome       String // Administrador Municipal, Gestor, Operador
+  descricao  String?
+  permissoes String // JSON string with permissions
+  ativo      Boolean @default(true)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

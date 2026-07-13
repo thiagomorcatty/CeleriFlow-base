@@ -5,18 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { saveBeneficio } from "./actions";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
 
-export function BeneficioForm({ data, employees = [] }: { data?: any, employees?: any[] }) {
+export function BeneficioForm({ data, suppliers = [] }: { data?: any, suppliers?: any[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [isActive, setIsActive] = useState(data ? data.isActive : true);
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
+    formData.set("isActive", isActive.toString());
     const result = await saveBeneficio(formData);
     setIsSaving(false);
     
@@ -36,74 +39,80 @@ export function BeneficioForm({ data, employees = [] }: { data?: any, employees?
           </Button>
         </Link>
         <h2 className="text-3xl font-bold tracking-tight">
-          {data ? "Editar Benefício" : "Conceder Benefício"}
+          {data ? "Editar Benefício" : "Novo Benefício"}
         </h2>
       </div>
 
-      <Card className="max-w-4xl">
+      <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle>Dados do Benefício</CardTitle>
+          <CardTitle>Configuração do Benefício</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={handleSubmit} className="space-y-6">
             {data && <input type="hidden" name="id" value={data.id} />}
             
             <div className="space-y-2">
-              <Label htmlFor="employeeId">Servidor</Label>
-              <Select name="employeeId" defaultValue={data?.employeeId || ""} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o servidor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map(emp => (
-                    <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="name">Nome do Benefício <span className="text-red-500">*</span></Label>
+              <Input id="name" name="name" defaultValue={data?.name || ""} placeholder="Ex: Vale Refeição Ticket" required />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="type">Tipo de Benefício</Label>
-                <Select name="type" defaultValue={data?.type || ""} required>
+                <Label htmlFor="type">Categoria / Tipo <span className="text-red-500">*</span></Label>
+                <Select name="type" defaultValue={data?.type || ""}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
+                    <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Vale Transporte">Vale Transporte</SelectItem>
                     <SelectItem value="Vale Refeição">Vale Refeição</SelectItem>
-                    <SelectItem value="Auxílio Creche">Auxílio Creche</SelectItem>
+                    <SelectItem value="Vale Alimentação">Vale Alimentação</SelectItem>
+                    <SelectItem value="Vale Transporte">Vale Transporte</SelectItem>
                     <SelectItem value="Plano de Saúde">Plano de Saúde</SelectItem>
-                    <SelectItem value="Auxílio Educação">Auxílio Educação</SelectItem>
+                    <SelectItem value="Plano Odontológico">Plano Odontológico</SelectItem>
+                    <SelectItem value="Auxílio Creche">Auxílio Creche</SelectItem>
+                    <SelectItem value="Outro">Outro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="value">Valor (R$)</Label>
+                <Label htmlFor="baseValue">Valor Base (R$) <span className="text-red-500">*</span></Label>
                 <Input 
-                  id="value" 
-                  name="value" 
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  defaultValue={data?.value || 0} 
+                  id="baseValue" 
+                  name="baseValue" 
+                  type="number" 
+                  step="0.01" 
+                  defaultValue={data?.baseValue || ""} 
+                  placeholder="0.00"
                   required 
                 />
               </div>
             </div>
 
-            <div className="space-y-2 max-w-sm">
-              <Label htmlFor="status">Status</Label>
-              <Select name="status" defaultValue={data?.status || "Ativo"}>
+            <div className="space-y-2">
+              <Label htmlFor="supplierId">Fornecedor / Operadora</Label>
+              <Select name="supplierId" defaultValue={data?.supplierId || ""}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o status" />
+                  <SelectValue placeholder="Selecione o fornecedor parceiro..." />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Ativo">Ativo</SelectItem>
-                  <SelectItem value="Suspenso">Suspenso</SelectItem>
-                  <SelectItem value="Cancelado">Cancelado</SelectItem>
+                <SelectContent className="max-h-[300px]">
+                  <SelectItem value="none">Nenhum (Gerido internamente)</SelectItem>
+                  {suppliers.map(sup => (
+                    <SelectItem key={sup.id} value={sup.id}>{sup.name || "Sem Nome"}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="flex items-center space-x-2 border p-4 rounded-lg bg-slate-50">
+              <Switch 
+                id="isActive" 
+                checked={isActive} 
+                onCheckedChange={setIsActive} 
+              />
+              <Label htmlFor="isActive" className="font-semibold cursor-pointer">
+                Benefício Ativo
+              </Label>
             </div>
 
             <div className="flex justify-end space-x-2">

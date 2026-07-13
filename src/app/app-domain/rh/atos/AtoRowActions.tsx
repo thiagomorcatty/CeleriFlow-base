@@ -1,15 +1,7 @@
-﻿"use client";
+"use client";
 
-import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { deleteAtoPessoal } from "./actions";
 
@@ -24,30 +16,20 @@ export function AtoRowActions({ ato }: { ato: any }) {
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger>
-        <Button variant="ghost" className="h-8 w-8 p-0">
-          <span className="sr-only">Abrir menu</span>
-          <MoreHorizontal className="h-4 w-4" />
+    <div className="flex items-center justify-end space-x-2">
+      <Link href={`/rh/atos/${ato.id}/editar`}>
+        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+          <Edit className="h-4 w-4" />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>AÃ§Ãµes</DropdownMenuLabel>
-        
-        <DropdownMenuItem>
-          <Link href={`/rh/atos/${ato.id}/editar`} className="cursor-pointer">
-            <Edit className="mr-2 h-4 w-4" />
-            Editar
-          </Link>
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem onClick={handleDelete} className="cursor-pointer text-red-600 focus:text-red-600">
-          <Trash2 className="mr-2 h-4 w-4" />
-          Excluir
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </Link>
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={handleDelete}
+        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
   );
 }

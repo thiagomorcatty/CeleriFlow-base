@@ -6,9 +6,21 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { AtoRowActions } from "./AtoRowActions"
 import { format } from "date-fns"
+import { AtosFilters } from "./AtosFilters"
 
-export default async function AtosPage() {
+export default async function AtosPage({ searchParams }: { searchParams: Promise<{ q?: string, type?: string }> }) {
+  const { q, type } = await searchParams;
+
+  const whereClause: any = {};
+  if (q) {
+    whereClause.employee = { name: { contains: q, mode: 'insensitive' } };
+  }
+  if (type && type !== 'all') {
+    whereClause.type = type;
+  }
+
   const acts = await prisma.personnelAct.findMany({
+    where: whereClause,
     take: 20,
     orderBy: { date: 'desc' },
     include: {
@@ -27,6 +39,8 @@ export default async function AtosPage() {
           </Link>
         </div>
       </div>
+
+      <AtosFilters />
 
       <Card>
         <CardHeader>
@@ -50,7 +64,7 @@ export default async function AtosPage() {
               <tbody>
                 {acts.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center p-8 text-muted-foreground">
+                    <td colSpan={5} className="text-center p-8 text-muted-foreground">
                       Nenhum ato de pessoal registrado.
                     </td>
                   </tr>

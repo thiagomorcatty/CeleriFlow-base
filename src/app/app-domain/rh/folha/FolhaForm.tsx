@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
+import { PayrollSimulationCard } from "./PayrollSimulationCard";
 
 export function FolhaForm({ data }: { data?: any }) {
   const router = useRouter();
@@ -104,6 +105,11 @@ export function FolhaForm({ data }: { data?: any }) {
           </form>
         </CardContent>
       </Card>
+
+      {/* Cartão de Simulação só aparece quando a folha já existe */}
+      {data && (
+        <PayrollSimulationCard payrollId={data.id} status={data.status} />
+      )}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
+import { FileUpload } from "@/components/ui/FileUpload";
 
 export function AtoForm({ data, employees = [] }: { data?: any, employees?: any[] }) {
   const router = useRouter();
@@ -104,8 +105,8 @@ export function AtoForm({ data, employees = [] }: { data?: any, employees?: any[
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="documentUrl">Link do Documento Comprobatório (Opcional)</Label>
-              <Input id="documentUrl" name="documentUrl" defaultValue={data?.documentUrl || ""} placeholder="https://..." type="url" />
+              <Label htmlFor="documentUrl">Documento Comprobatório (Opcional)</Label>
+              <FileUpload name="documentUrl" defaultValue={data?.documentUrl} />
             </div>
 
             <div className="flex justify-end space-x-2">

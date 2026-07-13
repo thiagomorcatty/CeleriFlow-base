@@ -15,6 +15,8 @@ export async function saveServidor(formData: FormData) {
     const departmentId = formData.get("departmentId") as string;
     const secretariatId = formData.get("secretariatId") as string;
     const isActive = formData.get("isActive") === "true";
+    const salaryBase = parseFloat(formData.get("salaryBase") as string) || 0;
+    const contractedHours = parseInt(formData.get("contractedHours") as string, 10) || 220;
 
     if (!name) {
       return { success: false, error: "Nome é obrigatório." };
@@ -29,7 +31,9 @@ export async function saveServidor(formData: FormData) {
       roleId: roleId || null,
       departmentId: departmentId || null,
       secretariatId: secretariatId || null,
-      isActive
+      isActive,
+      salaryBase,
+      contractedHours
     };
 
     if (id) {

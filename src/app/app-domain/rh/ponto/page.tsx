@@ -6,9 +6,31 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { PontoRowActions } from "./PontoRowActions"
 import { format } from "date-fns"
+import { PontoFilters } from "./PontoFilters"
+import { UploadCSVButton } from "./UploadCSVButton"
 
-export default async function PontoPage() {
+export default async function PontoPage({ searchParams }: { searchParams: Promise<{ q?: string, month?: string }> }) {
+  const { q, month } = await searchParams;
+
+  const whereClause: any = {};
+  if (q) {
+    whereClause.employee = { name: { contains: q, mode: 'insensitive' } };
+  }
+  
+  if (month) {
+    // month is in format "yyyy-MM"
+    const [year, m] = month.split('-');
+    const startDate = new Date(parseInt(year), parseInt(m) - 1, 1);
+    const endDate = new Date(parseInt(year), parseInt(m), 0); // Last day of month
+    
+    whereClause.date = {
+      gte: startDate,
+      lte: endDate,
+    };
+  }
+
   const records = await prisma.attendanceRecord.findMany({
+    where: whereClause,
     take: 50,
     orderBy: { date: 'desc' },
     include: {
@@ -21,18 +43,21 @@ export default async function PontoPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Registro de Ponto</h2>
         <div className="flex items-center space-x-2">
+          <UploadCSVButton />
           <Link href="/rh/ponto/novo" className={buttonVariants()}>
             <Plus className="mr-2 h-4 w-4" />
-            Registrar Ponto
+            Apontamento Manual
           </Link>
         </div>
       </div>
+
+      <PontoFilters />
 
       <Card>
         <CardHeader>
           <CardTitle>Espelho de Ponto</CardTitle>
           <CardDescription>
-            Controle de frequência e assiduidade dos servidores.
+            Controle de frequência, assiduidade e banco de horas dos servidores.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -42,9 +67,10 @@ export default async function PontoPage() {
                 <tr>
                   <th className="font-medium p-4">Data</th>
                   <th className="font-medium p-4">Servidor</th>
-                  <th className="font-medium p-4">Entrada</th>
-                  <th className="font-medium p-4">Saída</th>
-                  <th className="font-medium p-4">Horas</th>
+                  <th className="font-medium p-4">Entrada/Saída</th>
+                  <th className="font-medium p-4">Horas Dia</th>
+                  <th className="font-medium p-4">Horas Extras</th>
+                  <th className="font-medium p-4">Banco Horas</th>
                   <th className="font-medium p-4">Status</th>
                   <th className="font-medium p-4 text-right">Ações</th>
                 </tr>
@@ -61,9 +87,12 @@ export default async function PontoPage() {
                     <tr key={rec.id} className="border-b last:border-0 hover:bg-muted/50">
                       <td className="p-4 font-medium">{format(new Date(rec.date), 'dd/MM/yyyy')}</td>
                       <td className="p-4 font-medium">{rec.employee?.name}</td>
-                      <td className="p-4">{rec.entryTime ? format(new Date(rec.entryTime), 'HH:mm') : '-'}</td>
-                      <td className="p-4">{rec.exitTime ? format(new Date(rec.exitTime), 'HH:mm') : '-'}</td>
+                      <td className="p-4">
+                        {rec.entryTime ? format(new Date(rec.entryTime), 'HH:mm') : '-'} / {rec.exitTime ? format(new Date(rec.exitTime), 'HH:mm') : '-'}
+                      </td>
                       <td className="p-4 font-semibold">{rec.hoursWorked.toFixed(2)}h</td>
+                      <td className="p-4 text-emerald-600">{rec.extraHours ? `${rec.extraHours.toFixed(2)}h` : '-'}</td>
+                      <td className="p-4 text-blue-600">{rec.bankHours ? `${rec.bankHours.toFixed(2)}h` : '-'}</td>
                       <td className="p-4">
                         <Badge variant="outline" className={
                           rec.status === 'Presente' ? "bg-emerald-100 text-emerald-700 border-emerald-200" :

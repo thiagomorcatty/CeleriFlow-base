@@ -1,15 +1,31 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { buttonVariants } from "@/components/ui/button"
-import { Plus } from "lucide-react"
-import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { DependenteRowActions } from "./DependenteRowActions"
 import { format } from "date-fns"
+import { DependenteFilters } from "./DependenteFilters"
 
-export default async function DependentesPage() {
+export default async function DependentesPage(
+  props: {
+    searchParams?: Promise<{
+      q?: string;
+    }>
+  }
+) {
+  const searchParams = await props.searchParams;
+  const q = searchParams?.q || "";
+
+  const where: any = {};
+  if (q) {
+    where.OR = [
+      { name: { contains: q, mode: 'insensitive' } },
+      { employee: { name: { contains: q, mode: 'insensitive' } } }
+    ];
+  }
+
   const dependents = await prisma.dependent.findMany({
-    take: 20,
-    orderBy: { name: 'asc' },
+    where,
+    take: 100,
+    orderBy: { createdAt: 'desc' },
     include: {
       employee: true
     }
@@ -19,48 +35,46 @@ export default async function DependentesPage() {
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dependentes</h2>
-        <div className="flex items-center space-x-2">
-          <Link href="/rh/dependentes/novo" className={buttonVariants()}>
-            <Plus className="mr-2 h-4 w-4" />
-            Cadastrar Dependente
-          </Link>
-        </div>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Relação de Dependentes</CardTitle>
+        <CardHeader className="pb-4">
+          <CardTitle>Lista de Dependentes</CardTitle>
           <CardDescription>
-            Controle de dependentes dos servidores para fins de imposto de renda, salário-família e benefícios.
+            Visualização geral de dependentes cadastrados. Exibindo {dependents.length} registros (limite de 100).
+            <br />
+            <strong>Nota:</strong> Novos dependentes devem ser cadastrados diretamente na ficha do Servidor (Editar Servidor).
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <DependenteFilters />
+
+          <div className="rounded-md border overflow-x-auto max-h-[600px] overflow-y-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-muted text-muted-foreground border-b">
+              <thead className="bg-muted text-muted-foreground border-b sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="font-medium p-4">Servidor Titular</th>
-                  <th className="font-medium p-4">Nome do Dependente</th>
-                  <th className="font-medium p-4">Parentesco</th>
-                  <th className="font-medium p-4">Data Nasc.</th>
-                  <th className="font-medium p-4 text-right">Ações</th>
+                  <th className="font-medium p-2 px-4 whitespace-nowrap">Servidor Responsável</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Dependente</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Parentesco</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Nascimento</th>
+                  <th className="font-medium p-2 text-right whitespace-nowrap">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {dependents.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="text-center p-8 text-muted-foreground">
-                      Nenhum dependente cadastrado.
+                      Nenhum dependente encontrado.
                     </td>
                   </tr>
                 ) : (
                   dependents.map((dep) => (
-                    <tr key={dep.id} className="border-b last:border-0 hover:bg-muted/50">
-                      <td className="p-4 font-medium">{dep.employee?.name}</td>
-                      <td className="p-4">{dep.name}</td>
-                      <td className="p-4">{dep.relationship}</td>
-                      <td className="p-4">{dep.birthDate ? format(new Date(dep.birthDate), 'dd/MM/yyyy') : '-'}</td>
-                      <td className="p-4 text-right">
+                    <tr key={dep.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+                      <td className="p-2 px-4 font-medium whitespace-nowrap">{dep.employee?.name}</td>
+                      <td className="p-2 whitespace-nowrap">{dep.name}</td>
+                      <td className="p-2 whitespace-nowrap">{dep.relationship}</td>
+                      <td className="p-2 whitespace-nowrap">{dep.birthDate ? format(new Date(dep.birthDate), 'dd/MM/yyyy') : '-'}</td>
+                      <td className="p-2 text-right whitespace-nowrap">
                         <DependenteRowActions dependent={dep} />
                       </td>
                     </tr>
