@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { LicitacaoRowActions } from "./LicitacaoRowActions"
+import { DispensaRowActions } from "../dispensas/DispensaRowActions"
 
 export default async function LicitacoesPage() {
   const biddings = await prisma.bidding.findMany({
@@ -35,6 +36,10 @@ export default async function LicitacoesPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          <Link href="/compras/dispensas/novo" className={buttonVariants({ variant: "outline" })}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Dispensa
+          </Link>
           <Link href="/compras/licitacoes/novo" className={buttonVariants()}>
             <Plus className="mr-2 h-4 w-4" />
             Nova Licitação
@@ -120,9 +125,7 @@ export default async function LicitacoesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Link href={`/compras/dispensas/${dc.id}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                          Detalhes
-                        </Link>
+                        <DispensaRowActions id={dc.id} />
                       </TableCell>
                     </TableRow>
                   ))}

@@ -1,5 +1,10 @@
+import { prisma } from "@/lib/prisma";
 import { LicitacaoForm } from "../LicitacaoForm";
 
-export default function NovaLicitacaoPage() {
-  return <LicitacaoForm />;
+export default async function NovaLicitacaoPage() {
+  const processos = await prisma.purchaseProcess.findMany({
+    orderBy: { number: 'desc' }
+  });
+
+  return <LicitacaoForm processos={processos} />;
 }

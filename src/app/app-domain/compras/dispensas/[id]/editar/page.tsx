@@ -1,0 +1,20 @@
+import { prisma } from "@/lib/prisma";
+import { DispensaForm } from "../../DispensaForm";
+import { notFound } from "next/navigation";
+
+export default async function EditarDispensaPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const [dispensa, processos, fornecedores] = await Promise.all([
+    prisma.directContracting.findUnique({
+      where: { id: resolvedParams.id }
+    }),
+    prisma.purchaseProcess.findMany({ orderBy: { number: 'desc' } }),
+    prisma.supplier.findMany({ include: { company: true }, orderBy: { company: { legalName: 'asc' } } })
+  ]);
+
+  if (!dispensa) {
+    notFound();
+  }
+
+  return <DispensaForm data={dispensa} processos={processos} fornecedores={fornecedores} />;
+}

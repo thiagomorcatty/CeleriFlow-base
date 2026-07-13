@@ -9,8 +9,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
 
-export function LicitacaoForm({ data }: { data?: any }) {
+export function LicitacaoForm({ data, processos = [] }: { data?: any, processos?: any[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -50,11 +52,78 @@ export function LicitacaoForm({ data }: { data?: any }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="number">Número do Edital / Certame</Label>
-                <Input id="number" name="number" defaultValue={data?.number || ""} required placeholder="Ex: PE 001/2026" />
+                <Input id="number" name="number" defaultValue={data?.number || ""} placeholder="Ex: PE 001/2026 (Auto-gerado se vazio)" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="modality">Modalidade</Label>
-                <Input id="modality" name="modality" defaultValue={data?.modality || ""} required placeholder="Pregão Eletrônico" />
+                <Select name="modality" defaultValue={data?.modality || "Pregão Eletrônico"}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a modalidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pregão Eletrônico">Pregão Eletrônico</SelectItem>
+                    <SelectItem value="Pregão Presencial">Pregão Presencial</SelectItem>
+                    <SelectItem value="Concorrência">Concorrência</SelectItem>
+                    <SelectItem value="Tomada de Preços">Tomada de Preços</SelectItem>
+                    <SelectItem value="Convite">Convite</SelectItem>
+                    <SelectItem value="Leilão">Leilão</SelectItem>
+                    <SelectItem value="Concurso">Concurso</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select name="status" defaultValue={data?.status || "Aberto"}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Aberto">Aberto</SelectItem>
+                    <SelectItem value="Em Julgamento">Em Julgamento</SelectItem>
+                    <SelectItem value="Homologado">Homologado</SelectItem>
+                    <SelectItem value="Suspenso">Suspenso</SelectItem>
+                    <SelectItem value="Cancelado">Cancelado</SelectItem>
+                    <SelectItem value="Fracassado">Fracassado</SelectItem>
+                    <SelectItem value="Deserto">Deserto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="processId">Processo Vinculado</Label>
+                <Select name="processId" defaultValue={data?.processId || ""}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o processo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {processos.map(proc => (
+                      <SelectItem key={proc.id} value={proc.id}>{proc.number} - {proc.object.substring(0, 30)}...</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="publicationDate">Data de Publicação</Label>
+                <Input 
+                  id="publicationDate" 
+                  name="publicationDate" 
+                  type="date" 
+                  defaultValue={data?.publicationDate ? format(new Date(data.publicationDate), "yyyy-MM-dd") : ""} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sessionDate">Data da Sessão</Label>
+                <Input 
+                  id="sessionDate" 
+                  name="sessionDate" 
+                  type="datetime-local" 
+                  defaultValue={data?.sessionDate ? format(new Date(data.sessionDate), "yyyy-MM-dd'T'HH:mm") : ""} 
+                />
               </div>
             </div>
 

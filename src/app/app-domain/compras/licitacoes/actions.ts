@@ -22,15 +22,28 @@ export async function saveBidding(formData: FormData) {
   const number = formData.get("number") as string;
   const modality = formData.get("modality") as string;
   
-  const process = await prisma.purchaseProcess.findFirst();
+  let processId = formData.get("processId") as string;
+  const status = formData.get("status") as string;
+  const publicationDateStr = formData.get("publicationDate") as string;
+  const sessionDateStr = formData.get("sessionDate") as string;
+
+  let process;
+  if (processId) {
+    process = await prisma.purchaseProcess.findUnique({ where: { id: processId } });
+  } else {
+    process = await prisma.purchaseProcess.findFirst();
+  }
 
   if (!process) {
     throw new Error("Nenhum processo de compra encontrado para vincular à licitação.");
   }
 
   const data = {
-    number,
+    number: number || `PE-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
     modality,
+    status: status || "Aberto",
+    publicationDate: publicationDateStr ? new Date(publicationDateStr) : null,
+    sessionDate: sessionDateStr ? new Date(sessionDateStr) : null,
     processId: process.id,
   };
 
