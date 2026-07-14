@@ -561,6 +561,7 @@ model RealEstate {
   taxAssessments TaxAssessment[]
 
   assets Asset[]
+  schools School[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2007,6 +2008,9 @@ model School {
   addressId String?  @unique
   address   Address? @relation("SchoolAddress", fields: [addressId], references: [id])
 
+  realEstateId String?
+  realEstate   RealEstate? @relation(fields: [realEstateId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -2014,6 +2018,7 @@ model School {
   enrollments    Enrollment[]
   preEnrollments PreEnrollment[]
   meals          SchoolMeal[]
+  buses          SchoolBus[]
 }
 
 model Student {
@@ -2205,6 +2210,7 @@ model SchoolMeal {
   date           DateTime @default(now())
   menu           String
   servedQuantity Int
+  totalCost      Float?
   notes          String?
 
   schoolId String
@@ -2212,6 +2218,31 @@ model SchoolMeal {
 
   warehouseId String?
   warehouse   Warehouse? @relation(fields: [warehouseId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SchoolBus {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  capacity        Int?
+  value           Float?
+  maintenanceDate DateTime?
+  status          String    @default("Ativo") // Ativo, Inativo, Manuteno
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  schools School[]
+}
+
+model SchoolCalendarEvent {
+  id        String   @id @default(cuid())
+  title     String
+  date      DateTime
+  endDate   DateTime?
+  type      String // Dia Letivo, Feriado, Festa Familiar, Incio de Semestre, Trmino de Semestre
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

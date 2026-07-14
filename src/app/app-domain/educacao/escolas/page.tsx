@@ -1,7 +1,7 @@
 import React from "react";
-import { School, MapPin, Users, Building, Plus } from "lucide-react";
+import { School, MapPin, Users, Building, Plus, Search, Filter, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-
+import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function EscolasPage() {
@@ -27,10 +27,32 @@ export default async function EscolasPage() {
             Gestão da infraestrutura educacional e unidades de ensino.
           </p>
         </div>
-        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+        <Link href="/educacao/escolas/novo" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
           <Plus className="h-5 w-5" />
           Nova Escola
-        </button>
+        </Link>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Buscar escola por nome ou INEP..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+          />
+        </div>
+        <div className="flex gap-2">
+          <select className="border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="">Status (Todos)</option>
+            <option value="ativos">Ativos</option>
+            <option value="inativos">Inativos</option>
+          </select>
+          <button className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg transition-colors">
+            <Filter className="h-5 w-5" />
+            Filtrar
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -43,6 +65,7 @@ export default async function EscolasPage() {
                 <th className="p-4 font-medium text-gray-500 dark:text-gray-400">Capacidade / Turmas</th>
                 <th className="p-4 font-medium text-gray-500 dark:text-gray-400">Alunos Matriculados</th>
                 <th className="p-4 font-medium text-gray-500 dark:text-gray-400">Status</th>
+                <th className="p-4 font-medium text-gray-500 dark:text-gray-400 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -87,12 +110,22 @@ export default async function EscolasPage() {
                       {school.isActive ? "Ativa" : "Inativa"}
                     </span>
                   </td>
+                  <td className="p-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors" title="Editar">
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors" title="Inativar">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
 
               {schools.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-gray-500">
+                  <td colSpan={6} className="p-8 text-center text-gray-500">
                     Nenhuma escola cadastrada no momento.
                   </td>
                 </tr>

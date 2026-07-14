@@ -1,5 +1,5 @@
 import React from "react";
-import { GraduationCap, School, Users, BookOpen, ClipboardCheck, Bus, Utensils } from "lucide-react";
+import { GraduationCap, School, Users, BookOpen, ClipboardCheck, Bus, Utensils, Calendar } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
@@ -82,19 +82,27 @@ export default async function EducacaoDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/educacao/alunos" className="group">
+        <Link href="/educacao/matriculas" className="group">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
             <Users className="h-8 w-8 text-blue-500 mb-4 group-hover:scale-110 transition-transform" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Alunos e Matrículas</h3>
-            <p className="text-sm text-gray-500">Cadastro de estudantes, responsáveis e vínculos.</p>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Matrículas e Turmas</h3>
+            <p className="text-sm text-gray-500">Gestão de turmas, vagas e alunos matriculados.</p>
           </div>
         </Link>
 
-        <Link href="/educacao/turmas" className="group">
+        <Link href="/educacao/professores" className="group">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
             <BookOpen className="h-8 w-8 text-emerald-500 mb-4 group-hover:scale-110 transition-transform" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Turmas e Diário</h3>
-            <p className="text-sm text-gray-500">Grade curricular, frequência e notas.</p>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Professores</h3>
+            <p className="text-sm text-gray-500">Corpo docente e alocação por turmas e escolas.</p>
+          </div>
+        </Link>
+
+        <Link href="/educacao/calendario" className="group">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
+            <Calendar className="h-8 w-8 text-purple-500 mb-4 group-hover:scale-110 transition-transform" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Calendário Escolar</h3>
+            <p className="text-sm text-gray-500">Dias letivos, feriados, recessos e eventos.</p>
           </div>
         </Link>
 

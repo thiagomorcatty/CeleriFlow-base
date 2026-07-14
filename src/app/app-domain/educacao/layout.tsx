@@ -12,14 +12,16 @@ import {
   ArrowLeft,
   Menu,
   X,
-  Utensils
+  Utensils,
+  Calendar
 } from "lucide-react";
 
 const sidebarNavItems = [
   { title: "Painel Educação", href: "/educacao", icon: GraduationCap },
   { title: "Escolas", href: "/educacao/escolas", icon: School },
-  { title: "Alunos", href: "/educacao/alunos", icon: Users },
-  { title: "Turmas & Diários", href: "/educacao/turmas", icon: BookOpen },
+  { title: "Matrículas e Turmas", href: "/educacao/matriculas", icon: Users },
+  { title: "Professores", href: "/educacao/professores", icon: BookOpen },
+  { title: "Calendário", href: "/educacao/calendario", icon: Calendar },
   { title: "Merenda Escolar", href: "/educacao/merenda", icon: Utensils },
   { title: "Transporte Escolar", href: "/educacao/transporte", icon: Bus },
 ];
