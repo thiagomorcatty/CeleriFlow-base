@@ -12,7 +12,7 @@ import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
 import { MaskedInput } from "@/components/ui/MaskedInput";
 
-export function DependenteForm({ data, employees = [] }: { data?: any, employees?: any[] }) {
+export function DependenteForm({ data, employees = [], defaultEmployeeId }: { data?: any, employees?: any[], defaultEmployeeId?: string }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -33,6 +33,9 @@ export function DependenteForm({ data, employees = [] }: { data?: any, employees
     const date = new Date(dateString);
     return date.toISOString().split("T")[0];
   };
+
+  const effectiveEmployeeId = data?.employeeId || defaultEmployeeId;
+  const effectiveEmployee = effectiveEmployeeId ? employees.find(e => e.id === effectiveEmployeeId) : null;
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
@@ -57,16 +60,27 @@ export function DependenteForm({ data, employees = [] }: { data?: any, employees
             
             <div className="space-y-2">
               <Label htmlFor="employeeId">Servidor Titular</Label>
-              <Select name="employeeId" defaultValue={data?.employeeId || ""} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o servidor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map(emp => (
-                    <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {effectiveEmployeeId ? (
+                <>
+                  <input type="hidden" name="employeeId" value={effectiveEmployeeId} />
+                  <Input 
+                    value={effectiveEmployee?.name || "Servidor não encontrado"} 
+                    readOnly 
+                    className="bg-slate-100 cursor-not-allowed" 
+                  />
+                </>
+              ) : (
+                <Select name="employeeId" required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o servidor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
