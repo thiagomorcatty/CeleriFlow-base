@@ -15,7 +15,7 @@ export default async function SolicitacaoDetalhesPage({ params }: { params: Prom
       department: true,
       requester: true,
       items: {
-        include: { catalogItem: true }
+        include: { material: true }
       }
     }
   });
@@ -98,7 +98,7 @@ export default async function SolicitacaoDetalhesPage({ params }: { params: Prom
               </thead>
               <tbody className="divide-y">
                 {solicitacao.items.map((item) => {
-                  const name = item.catalogItem ? item.catalogItem.name : item.customName;
+                  const name = item.material ? item.material.name : item.customName;
                   const unitVal = item.estimatedUnitValue || 0;
                   const subtotal = item.quantity * unitVal;
                   return (

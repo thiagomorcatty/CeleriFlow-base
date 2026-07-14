@@ -1,21 +1,43 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { 
   Building2,
-  Plus
+  Plus,
+  Search,
+  Filter
 } from "lucide-react"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 
-export default async function BensPatrimoniaisPage() {
+export default async function BensPatrimoniaisPage(
+  props: { searchParams?: Promise<{ q?: string, status?: string }> }
+) {
+  const searchParams = await props.searchParams;
+  const q = searchParams?.q || "";
+  const status = searchParams?.status || "";
+
+  const where: any = {};
+  if (q) {
+    where.OR = [
+      { name: { contains: q, mode: 'insensitive' } },
+      { patrimonyNumber: { contains: q, mode: 'insensitive' } }
+    ];
+  }
+  if (status) {
+    where.status = status;
+  }
+
   const assets = await prisma.asset.findMany({
-    take: 15,
+    where,
+    take: 50,
     orderBy: { createdAt: 'desc' },
     include: {
       category: true,
       department: true,
-      responsible: true
+      responsible: true,
+      realEstate: true
     }
   })
 
@@ -32,43 +54,85 @@ export default async function BensPatrimoniaisPage() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle>Lista de Bens Permanentes</CardTitle>
           <CardDescription>
-            Controle de móveis, imóveis, equipamentos e veículos.
+            Controle de móveis, equipamentos, veículos e vinculação com imóveis e secretarias.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <form className="flex flex-wrap items-center gap-2 mb-4 bg-slate-50 p-3 rounded-lg border">
+            <div className="flex-1 min-w-[300px]">
+              <Input 
+                name="q"
+                defaultValue={q}
+                placeholder="Buscar por nome do bem ou nº do tombamento..." 
+                className="bg-white"
+              />
+            </div>
+            <div className="w-[200px]">
+              <select 
+                name="status"
+                defaultValue={status}
+                className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">Todos os Status</option>
+                <option value="Ativo">Ativo</option>
+                <option value="Em uso">Em uso</option>
+                <option value="Ocioso">Ocioso</option>
+                <option value="Em manutenção">Em manutenção</option>
+                <option value="Baixado">Baixado</option>
+              </select>
+            </div>
+            <button type="submit" className={buttonVariants()}>
+              <Search className="h-4 w-4 mr-2" />
+              Filtrar
+            </button>
+          </form>
+
+          <div className="rounded-md border overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-muted text-muted-foreground border-b">
                 <tr>
-                  <th className="font-medium p-4">Tombamento</th>
-                  <th className="font-medium p-4">Descrição</th>
-                  <th className="font-medium p-4">Categoria</th>
-                  <th className="font-medium p-4">Localização / Responsável</th>
-                  <th className="font-medium p-4">Status</th>
+                  <th className="font-medium p-4 whitespace-nowrap">Tombamento</th>
+                  <th className="font-medium p-4 whitespace-nowrap">Descrição</th>
+                  <th className="font-medium p-4 whitespace-nowrap">Categoria</th>
+                  <th className="font-medium p-4 whitespace-nowrap">Imóvel (Localização Física)</th>
+                  <th className="font-medium p-4 whitespace-nowrap">Setor / Responsável</th>
+                  <th className="font-medium p-4 whitespace-nowrap">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {assets.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center p-8 text-muted-foreground">
-                      Nenhum bem patrimonial tombado.
+                    <td colSpan={6} className="text-center p-8 text-muted-foreground">
+                      Nenhum bem patrimonial encontrado com os filtros atuais.
                     </td>
                   </tr>
                 ) : (
                   assets.map((asset) => (
-                    <tr key={asset.id} className="border-b last:border-0 hover:bg-muted/50">
-                      <td className="p-4 font-bold">{asset.patrimonyNumber}</td>
-                      <td className="p-4 font-medium">{asset.name}</td>
-                      <td className="p-4">{asset.category?.name || "-"}</td>
-                      <td className="p-4 text-xs text-muted-foreground">
-                        Local: {asset.department?.name || "Não alocado"} <br/>
-                        Resp: {asset.responsible?.name || "Sem responsável"}
+                    <tr key={asset.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+                      <td className="p-4 font-bold whitespace-nowrap text-amber-700">{asset.patrimonyNumber}</td>
+                      <td className="p-4 font-medium min-w-[200px]">{asset.name}</td>
+                      <td className="p-4 whitespace-nowrap">{asset.category?.name || "-"}</td>
+                      <td className="p-4 text-xs text-muted-foreground min-w-[200px]">
+                        {asset.realEstate ? (
+                          <div className="flex items-center gap-1">
+                            <Building2 className="w-3 h-3 text-blue-500" />
+                            {asset.realEstate.propertyType || "Imóvel"} - Inscrição: {asset.realEstate.municipalInsc || "-"}
+                            <br/>
+                            {asset.realEstate.streetName}, {asset.realEstate.number}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">Não vinculado a imóvel</span>
+                        )}
                       </td>
-                      <td className="p-4">
-                        <Badge variant={asset.status === "Ativo" ? "default" : "secondary"}>
+                      <td className="p-4 text-xs text-muted-foreground min-w-[200px]">
+                        <strong>Setor:</strong> {asset.department?.name || "Não alocado"} <br/>
+                        <strong>Resp:</strong> {asset.responsible?.name || "Sem responsável"}
+                      </td>
+                      <td className="p-4 whitespace-nowrap">
+                        <Badge variant={asset.status === "Ativo" || asset.status === "Em uso" ? "default" : asset.status === "Baixado" ? "destructive" : "secondary"}>
                           {asset.status}
                         </Badge>
                       </td>

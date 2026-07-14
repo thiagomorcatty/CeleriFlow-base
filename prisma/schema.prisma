@@ -560,6 +560,8 @@ model RealEstate {
 
   taxAssessments TaxAssessment[]
 
+  assets Asset[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -1418,6 +1420,9 @@ model PurchaseRequestItem {
   quantity           Float
   estimatedUnitValue Float?
 
+  materialId         String?
+  material           Material?       @relation(fields: [materialId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -1456,6 +1461,9 @@ model PurchaseProcessItem {
   customName         String?
   quantity           Float
   estimatedUnitValue Float?
+
+  materialId         String?
+  material           Material?       @relation(fields: [materialId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1774,6 +1782,9 @@ model Asset {
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
 
+  realEstateId String?
+  realEstate   RealEstate? @relation(fields: [realEstateId], references: [id])
+
   responsibleId String?
   responsible   Employee? @relation("AssetResponsible", fields: [responsibleId], references: [id])
 
@@ -1895,9 +1906,11 @@ model Material {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  stocks    MaterialStock[]
-  movements MaterialMovement[]
-  requests  MaterialRequestItem[]
+  stocks               MaterialStock[]
+  movements            MaterialMovement[]
+  requests             MaterialRequestItem[]
+  purchaseRequestItems PurchaseRequestItem[]
+  purchaseProcessItems PurchaseProcessItem[]
 }
 
 model MaterialStock {

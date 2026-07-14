@@ -4,20 +4,28 @@ import { notFound } from "next/navigation";
 
 export default async function EditarProcessoPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
-  const [processo, catalogItems] = await Promise.all([
-    prisma.purchaseProcess.findUnique({
-      where: { id: resolvedParams.id },
-      include: { items: true }
-    }),
-    prisma.catalogItem.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' }
-    })
-  ]);
+  const processoPromise = prisma.purchaseProcess.findUnique({
+    where: { id: resolvedParams.id },
+    include: { items: true }
+  });
+  
+  const materialsPromise = prisma.material.findMany({
+    orderBy: { name: 'asc' }
+  });
+
+  const [processo, materials] = await Promise.all([processoPromise, materialsPromise]);
 
   if (!processo) {
     notFound();
   }
 
-  return <ProcessoForm data={processo} catalogItems={catalogItems} />;
+  const mappedProcesso = {
+    ...processo,
+    items: processo.items.map((item) => ({
+      ...item,
+      catalogItemId: item.materialId,
+    }))
+  };
+
+  return <ProcessoForm data={mappedProcesso} catalogItems={materials} />;
 }

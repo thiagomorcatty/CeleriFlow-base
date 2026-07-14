@@ -58,7 +58,7 @@ export async function savePurchaseProcess(payload: any) {
     if (items && items.length > 0) {
       const itemsToCreate = items.map((item: any) => ({
         purchaseProcessId: processId,
-        catalogItemId: item.catalogItemId === "custom" || !item.catalogItemId ? null : item.catalogItemId,
+        materialId: item.catalogItemId === "custom" || !item.catalogItemId ? null : item.catalogItemId,
         customName: item.catalogItemId === "custom" || !item.catalogItemId ? item.customName : null,
         quantity: item.quantity,
         estimatedUnitValue: item.estimatedUnitValue || null

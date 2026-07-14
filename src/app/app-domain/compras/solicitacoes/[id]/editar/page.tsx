@@ -4,13 +4,12 @@ import { notFound } from "next/navigation";
 
 export default async function EditarSolicitacaoPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
-  const [solicitacao, catalogItems, secretarias] = await Promise.all([
+  const [solicitacao, materials, secretarias] = await Promise.all([
     prisma.purchaseRequest.findUnique({
       where: { id: resolvedParams.id },
       include: { items: true }
     }),
-    prisma.catalogItem.findMany({
-      where: { isActive: true },
+    prisma.material.findMany({
       orderBy: { name: 'asc' }
     }),
     prisma.secretariat.findMany({
@@ -22,5 +21,14 @@ export default async function EditarSolicitacaoPage({ params }: { params: Promis
     notFound();
   }
 
-  return <SolicitacaoForm data={solicitacao} catalogItems={catalogItems} secretarias={secretarias} />;
+  // Map materialId to catalogItemId so the form works seamlessly
+  const mappedSolicitacao = {
+    ...solicitacao,
+    items: solicitacao.items.map((item) => ({
+      ...item,
+      catalogItemId: item.materialId,
+    }))
+  };
+
+  return <SolicitacaoForm data={mappedSolicitacao} catalogItems={materials} secretarias={secretarias} />;
 }
