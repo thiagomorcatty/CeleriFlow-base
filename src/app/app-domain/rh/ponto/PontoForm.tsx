@@ -16,6 +16,8 @@ export function PontoForm({ data, employees = [] }: { data?: any, employees?: an
   const [isSaving, setIsSaving] = useState(false);
   const [entryTime, setEntryTime] = useState(data?.entryTime ? new Date(data.entryTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : "");
   const [exitTime, setExitTime] = useState(data?.exitTime ? new Date(data.exitTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : "");
+  const [employeeId, setEmployeeId] = useState<string>(data?.employeeId || "");
+  const [status, setStatus] = useState<string>(data?.status || "Presente");
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
@@ -73,9 +75,11 @@ export function PontoForm({ data, employees = [] }: { data?: any, employees?: an
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="employeeId">Servidor</Label>
-                <Select name="employeeId" defaultValue={data?.employeeId || ""} required>
+                <Select name="employeeId" value={employeeId} onValueChange={(v) => setEmployeeId(v || "")} required>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o servidor" />
+                    <span className="flex-1 text-left line-clamp-1">
+                      {employeeId ? (employees.find(e => e.id === employeeId)?.name || "Selecione o servidor") : "Selecione o servidor"}
+                    </span>
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map(emp => (
@@ -109,9 +113,9 @@ export function PontoForm({ data, employees = [] }: { data?: any, employees?: an
 
             <div className="space-y-2 max-w-sm">
               <Label htmlFor="status">Status</Label>
-              <Select name="status" defaultValue={data?.status || "Presente"}>
+              <Select name="status" value={status} onValueChange={(v) => setStatus(v || "Presente")}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o status" />
+                  <span className="flex-1 text-left line-clamp-1">{status}</span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Presente">Presente</SelectItem>

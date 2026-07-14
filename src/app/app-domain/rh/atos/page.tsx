@@ -50,30 +50,31 @@ export default async function AtosPage({ searchParams }: { searchParams: Promise
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto max-h-[600px] overflow-y-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-muted text-muted-foreground border-b">
+              <thead className="bg-muted text-muted-foreground border-b sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="font-medium p-4">Data</th>
-                  <th className="font-medium p-4">Servidor</th>
-                  <th className="font-medium p-4">Tipo do Ato</th>
-                  <th className="font-medium p-4">Doc</th>
-                  <th className="font-medium p-4 text-right">Ações</th>
+                  <th className="font-medium p-2 px-4 whitespace-nowrap">Data</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Servidor</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Tipo do Ato</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Número do Ato</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Doc</th>
+                  <th className="font-medium p-2 px-4 text-right whitespace-nowrap">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {acts.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center p-8 text-muted-foreground">
+                    <td colSpan={6} className="text-center p-8 text-muted-foreground">
                       Nenhum ato de pessoal registrado.
                     </td>
                   </tr>
                 ) : (
                   acts.map((ato) => (
                     <tr key={ato.id} className="border-b last:border-0 hover:bg-muted/50">
-                      <td className="p-4">{format(new Date(ato.date), 'dd/MM/yyyy')}</td>
-                      <td className="p-4 font-medium">{ato.employee?.name}</td>
-                      <td className="p-4">
+                      <td className="p-2 px-4 whitespace-nowrap">{format(new Date(ato.date), 'dd/MM/yyyy')}</td>
+                      <td className="p-2 font-medium whitespace-nowrap">{ato.employee?.name}</td>
+                      <td className="p-2 whitespace-nowrap">
                         <Badge variant="outline" className={
                           ato.type === 'Admissão' ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
                           ato.type === 'Demissão' ? "bg-red-100 text-red-700 border-red-200" :
@@ -83,10 +84,10 @@ export default async function AtosPage({ searchParams }: { searchParams: Promise
                           {ato.type}
                         </Badge>
                       </td>
-                      <td className="p-4 truncate max-w-[200px]" title={ato.actNumber || ""}>
+                      <td className="p-2 truncate max-w-[200px] whitespace-nowrap" title={ato.actNumber || ""}>
                         {ato.actNumber || "-"}
                       </td>
-                      <td className="p-4">
+                      <td className="p-2 whitespace-nowrap">
                         {ato.documentUrl ? (
                           <a href={ato.documentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800" title="Ver Documento">
                             <ExternalLink className="h-4 w-4" />
@@ -95,7 +96,7 @@ export default async function AtosPage({ searchParams }: { searchParams: Promise
                           <span className="text-muted-foreground">-</span>
                         )}
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-2 px-4 text-right whitespace-nowrap">
                         <AtoRowActions ato={ato} />
                       </td>
                     </tr>

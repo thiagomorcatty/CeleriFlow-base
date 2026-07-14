@@ -14,6 +14,8 @@ import { ArrowLeft, Save } from "lucide-react";
 export function FeriasForm({ data, employees = [] }: { data?: any, employees?: any[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [employeeId, setEmployeeId] = useState<string>(data?.employeeId || "");
+  const [status, setStatus] = useState<string>(data?.status || "A vencer");
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
@@ -57,9 +59,16 @@ export function FeriasForm({ data, employees = [] }: { data?: any, employees?: a
             
             <div className="space-y-2">
               <Label htmlFor="employeeId">Servidor</Label>
-              <Select name="employeeId" defaultValue={data?.employeeId || ""} required>
+              <Select name="employeeId" value={employeeId} onValueChange={(v) => setEmployeeId(v || "")} required>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o servidor" />
+                  <span className="flex-1 text-left line-clamp-1">
+                    {employeeId ? (
+                      (() => {
+                        const emp = employees.find(e => e.id === employeeId);
+                        return emp ? `${emp.name} (Matrícula: ${emp.registration || "N/A"})` : "Selecione o servidor";
+                      })()
+                    ) : "Selecione o servidor"}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   {employees.map(emp => (
@@ -104,9 +113,9 @@ export function FeriasForm({ data, employees = [] }: { data?: any, employees?: a
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <Select name="status" defaultValue={data?.status || "A vencer"}>
+                <Select name="status" value={status} onValueChange={(v) => setStatus(v || "A vencer")}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o status" />
+                    <span className="flex-1 text-left line-clamp-1">{status}</span>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="A vencer">A vencer</SelectItem>

@@ -68,7 +68,7 @@ export default async function BeneficiosPage(
             </button>
           </form>
 
-          <div className="rounded-md border overflow-x-auto">
+          <div className="rounded-md border overflow-x-auto max-h-[600px] overflow-y-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-muted text-muted-foreground border-b sticky top-0 z-10">
                 <tr>

@@ -16,6 +16,8 @@ import { FileUpload } from "@/components/ui/FileUpload";
 export function AtoForm({ data, employees = [] }: { data?: any, employees?: any[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [employeeId, setEmployeeId] = useState<string>(data?.employeeId || "");
+  const [type, setType] = useState<string>(data?.type || "");
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
@@ -58,9 +60,11 @@ export function AtoForm({ data, employees = [] }: { data?: any, employees?: any[
             
             <div className="space-y-2">
               <Label htmlFor="employeeId">Servidor</Label>
-              <Select name="employeeId" defaultValue={data?.employeeId || ""} required>
+              <Select name="employeeId" value={employeeId} onValueChange={(v) => setEmployeeId(v || "")} required>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o servidor" />
+                  <span className="flex-1 text-left line-clamp-1">
+                    {employeeId ? (employees.find(e => e.id === employeeId)?.name || "Selecione o servidor") : "Selecione o servidor"}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   {employees.map(emp => (
@@ -73,9 +77,11 @@ export function AtoForm({ data, employees = [] }: { data?: any, employees?: any[
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="type">Tipo do Ato</Label>
-                <Select name="type" defaultValue={data?.type || ""} required>
+                <Select name="type" value={type} onValueChange={(v) => setType(v || "")} required>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo de ato" />
+                    <span className="flex-1 text-left line-clamp-1">
+                      {type || "Selecione o tipo de ato"}
+                    </span>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Admissão">Admissão</SelectItem>

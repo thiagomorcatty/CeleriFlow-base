@@ -36,7 +36,9 @@ export function LicencasFilters() {
       <div className="w-[200px]">
         <Select value={status} onValueChange={(val) => setStatus(val || "")}>
           <SelectTrigger className="bg-white">
-            <SelectValue placeholder="Status" />
+            <span className="flex-1 text-left line-clamp-1">
+              {status === "all" ? "Todos" : status}
+            </span>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>

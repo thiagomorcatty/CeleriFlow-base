@@ -15,6 +15,8 @@ import { PayrollSimulationCard } from "./PayrollSimulationCard";
 export function FolhaForm({ data }: { data?: any }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [type, setType] = useState<string>(data?.type || "Mensal");
+  const [status, setStatus] = useState<string>(data?.status || "Aberta");
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
@@ -56,9 +58,9 @@ export function FolhaForm({ data }: { data?: any }) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="type">Tipo de Folha</Label>
-                <Select name="type" defaultValue={data?.type || "Mensal"}>
+                <Select name="type" value={type} onValueChange={(v) => setType(v || "Mensal")}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
+                    <span className="flex-1 text-left line-clamp-1">{type}</span>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Mensal">Mensal</SelectItem>
@@ -73,9 +75,11 @@ export function FolhaForm({ data }: { data?: any }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <Select name="status" defaultValue={data?.status || "Aberta"}>
+                <Select name="status" value={status} onValueChange={(v) => setStatus(v || "Aberta")}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o status" />
+                    <span className="flex-1 text-left line-clamp-1">
+                      {status === "Aberta" ? "Aberta (Em Elaboração)" : status === "Fechada" ? "Fechada (Consolidada)" : "Paga"}
+                    </span>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Aberta">Aberta (Em Elaboração)</SelectItem>

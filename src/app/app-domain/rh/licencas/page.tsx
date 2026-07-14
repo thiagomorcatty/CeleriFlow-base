@@ -50,15 +50,15 @@ export default async function LicencasPage({ searchParams }: { searchParams: Pro
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto max-h-[600px] overflow-y-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-muted text-muted-foreground border-b">
+              <thead className="bg-muted text-muted-foreground border-b sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="font-medium p-4">Servidor</th>
-                  <th className="font-medium p-4">Tipo</th>
-                  <th className="font-medium p-4">Período</th>
-                  <th className="font-medium p-4">Status</th>
-                  <th className="font-medium p-4 text-right">Ações</th>
+                  <th className="font-medium p-2 px-4 whitespace-nowrap">Servidor</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Tipo</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Período</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Status</th>
+                  <th className="font-medium p-2 px-4 text-right whitespace-nowrap">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -71,13 +71,13 @@ export default async function LicencasPage({ searchParams }: { searchParams: Pro
                 ) : (
                   leaves.map((leave) => (
                     <tr key={leave.id} className="border-b last:border-0 hover:bg-muted/50">
-                      <td className="p-4 font-medium">{leave.employee?.name}</td>
-                      <td className="p-4">{leave.type}</td>
-                      <td className="p-4 text-muted-foreground">
+                      <td className="p-2 px-4 font-medium whitespace-nowrap">{leave.employee?.name}</td>
+                      <td className="p-2 whitespace-nowrap">{leave.type}</td>
+                      <td className="p-2 text-muted-foreground whitespace-nowrap">
                         {format(new Date(leave.startDate), 'dd/MM/yyyy')} a <br />
                         {format(new Date(leave.endDate), 'dd/MM/yyyy')}
                       </td>
-                      <td className="p-4">
+                      <td className="p-2 whitespace-nowrap">
                         <Badge variant="outline" className={
                           leave.status === 'Ativa' ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
                           leave.status === 'Encerrada' ? "bg-slate-100 text-slate-500" :
@@ -86,7 +86,7 @@ export default async function LicencasPage({ searchParams }: { searchParams: Pro
                           {leave.status}
                         </Badge>
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-2 px-4 text-right whitespace-nowrap">
                         <LicencaRowActions leave={leave} />
                       </td>
                     </tr>

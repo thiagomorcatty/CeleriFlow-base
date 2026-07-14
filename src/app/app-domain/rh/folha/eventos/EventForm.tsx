@@ -16,6 +16,7 @@ export function EventForm({ data }: { data?: any }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isActive, setIsActive] = useState(data ? data.isActive : true);
+  const [type, setType] = useState<string>(data?.type || "Vencimento");
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
@@ -58,9 +59,11 @@ export function EventForm({ data }: { data?: any }) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="type">Tipo do Evento <span className="text-red-500">*</span></Label>
-                <Select name="type" defaultValue={data?.type || "Vencimento"}>
+                <Select name="type" value={type} onValueChange={(v) => setType(v || "Vencimento")}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo..." />
+                    <span className="flex-1 text-left line-clamp-1">
+                      {type === "Vencimento" ? "Vencimento (Provento)" : type === "Desconto" ? "Desconto" : "Base de Cálculo"}
+                    </span>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Vencimento">Vencimento (Provento)</SelectItem>

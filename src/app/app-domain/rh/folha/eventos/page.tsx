@@ -36,16 +36,16 @@ export default async function EventosPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto max-h-[600px] overflow-y-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-muted text-muted-foreground border-b">
+              <thead className="bg-muted text-muted-foreground border-b sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="font-medium p-4">Código</th>
-                  <th className="font-medium p-4">Descrição</th>
-                  <th className="font-medium p-4">Tipo</th>
-                  <th className="font-medium p-4">Fórmula Base</th>
-                  <th className="font-medium p-4">Status</th>
-                  <th className="font-medium p-4 text-right">Ações</th>
+                  <th className="font-medium p-2 px-4 whitespace-nowrap">Código</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Descrição</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Tipo</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Fórmula Base</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Status</th>
+                  <th className="font-medium p-2 px-4 text-right whitespace-nowrap">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -58,9 +58,9 @@ export default async function EventosPage() {
                 ) : (
                   events.map((ev) => (
                     <tr key={ev.id} className="border-b last:border-0 hover:bg-muted/50">
-                      <td className="p-4 font-medium font-mono">{ev.code}</td>
-                      <td className="p-4 font-medium">{ev.name}</td>
-                      <td className="p-4">
+                      <td className="p-2 px-4 font-medium font-mono whitespace-nowrap">{ev.code}</td>
+                      <td className="p-2 font-medium whitespace-nowrap">{ev.name}</td>
+                      <td className="p-2 whitespace-nowrap">
                         <Badge variant="outline" className={
                           ev.type === 'Vencimento' ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
                           ev.type === 'Desconto' ? "bg-red-100 text-red-700 border-red-200" :
@@ -69,14 +69,14 @@ export default async function EventosPage() {
                           {ev.type}
                         </Badge>
                       </td>
-                      <td className="p-4 font-mono text-xs">{ev.formula || "-"}</td>
-                      <td className="p-4">
+                      <td className="p-2 font-mono text-xs whitespace-nowrap">{ev.formula || "-"}</td>
+                      <td className="p-2 whitespace-nowrap">
                         <Badge variant={ev.isActive ? "default" : "secondary"}>
                           {ev.isActive ? "Ativo" : "Inativo"}
                         </Badge>
                       </td>
-                      <td className="p-4 text-right">
-                        <Link href={`/rh/folha/eventos/${ev.id}/editar`} className="text-blue-600 hover:underline">
+                      <td className="p-2 px-4 text-right whitespace-nowrap">
+                        <Link href={`/rh/folha/eventos/${ev.id}/editar`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
                           Editar
                         </Link>
                       </td>

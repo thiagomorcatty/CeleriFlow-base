@@ -50,16 +50,16 @@ export default async function FeriasPage({ searchParams }: { searchParams: Promi
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto max-h-[600px] overflow-y-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-muted text-muted-foreground border-b">
+              <thead className="bg-muted text-muted-foreground border-b sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="font-medium p-4">Servidor</th>
-                  <th className="font-medium p-4">Período Aquisitivo</th>
-                  <th className="font-medium p-4">Gozo Programado</th>
-                  <th className="font-medium p-4">Dias</th>
-                  <th className="font-medium p-4">Status</th>
-                  <th className="font-medium p-4 text-right">Ações</th>
+                  <th className="font-medium p-2 px-4 whitespace-nowrap">Servidor</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Período Aquisitivo</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Gozo Programado</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Dias</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Status</th>
+                  <th className="font-medium p-2 px-4 text-right whitespace-nowrap">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -72,12 +72,12 @@ export default async function FeriasPage({ searchParams }: { searchParams: Promi
                 ) : (
                   vacations.map((vac) => (
                     <tr key={vac.id} className="border-b last:border-0 hover:bg-muted/50">
-                      <td className="p-4 font-medium">{vac.employee?.name}</td>
-                      <td className="p-4 text-muted-foreground">
+                      <td className="p-2 px-4 font-medium whitespace-nowrap">{vac.employee?.name}</td>
+                      <td className="p-2 text-muted-foreground whitespace-nowrap">
                         {format(new Date(vac.acquisitionStart), 'dd/MM/yyyy')} a <br />
                         {format(new Date(vac.acquisitionEnd), 'dd/MM/yyyy')}
                       </td>
-                      <td className="p-4 text-muted-foreground">
+                      <td className="p-2 text-muted-foreground whitespace-nowrap">
                         {vac.enjoymentStart ? (
                           <>
                             {format(new Date(vac.enjoymentStart), 'dd/MM/yyyy')} a <br />
@@ -87,8 +87,8 @@ export default async function FeriasPage({ searchParams }: { searchParams: Promi
                           "A Definir"
                         )}
                       </td>
-                      <td className="p-4">{vac.days}</td>
-                      <td className="p-4">
+                      <td className="p-2 whitespace-nowrap">{vac.days}</td>
+                      <td className="p-2 whitespace-nowrap">
                         <Badge variant="outline" className={
                           vac.status === 'Concluída' ? "bg-slate-100 text-slate-500" :
                           vac.status === 'Em gozo' ? "bg-blue-100 text-blue-700 border-blue-200" :
@@ -97,7 +97,7 @@ export default async function FeriasPage({ searchParams }: { searchParams: Promi
                           {vac.status}
                         </Badge>
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-2 px-4 text-right whitespace-nowrap">
                         <FeriasRowActions vacation={vac} />
                       </td>
                     </tr>

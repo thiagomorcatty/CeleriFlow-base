@@ -40,7 +40,11 @@ export function EmployeeFilters({ roles, departments }: { roles: any[], departme
       
       <div className="w-[180px] shrink-0">
         <Select value={status === "all" ? "" : status} onValueChange={(v) => setStatus(v || "all")}>
-          <SelectTrigger className="bg-white"><SelectValue placeholder="Todos os Status" /></SelectTrigger>
+          <SelectTrigger className="bg-white">
+            <span className="flex-1 text-left line-clamp-1">
+              {status === "all" ? "Todos os Status" : status === "active" ? "Ativos" : "Inativos"}
+            </span>
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os Status</SelectItem>
             <SelectItem value="active">Ativos</SelectItem>
@@ -51,7 +55,11 @@ export function EmployeeFilters({ roles, departments }: { roles: any[], departme
 
       <div className="w-[280px] shrink-0">
         <Select value={departmentId === "all" ? "" : departmentId} onValueChange={(v) => setDepartmentId(v || "all")}>
-          <SelectTrigger className="bg-white"><SelectValue placeholder="Todos os Setores" /></SelectTrigger>
+          <SelectTrigger className="bg-white">
+            <span className="flex-1 text-left line-clamp-1">
+              {departmentId === "all" ? "Todos os Setores" : departments.find(d => d.id === departmentId)?.name || "Todos os Setores"}
+            </span>
+          </SelectTrigger>
           <SelectContent className="max-h-[300px] !w-auto min-w-[var(--anchor-width)]">
             <SelectItem value="all">Todos os Setores</SelectItem>
             {departments.map(d => (
@@ -63,7 +71,11 @@ export function EmployeeFilters({ roles, departments }: { roles: any[], departme
 
       <div className="w-[280px] shrink-0">
         <Select value={roleId === "all" ? "" : roleId} onValueChange={(v) => setRoleId(v || "all")}>
-          <SelectTrigger className="bg-white"><SelectValue placeholder="Todos os Cargos" /></SelectTrigger>
+          <SelectTrigger className="bg-white">
+            <span className="flex-1 text-left line-clamp-1">
+              {roleId === "all" ? "Todos os Cargos" : roles.find(r => r.id === roleId)?.name || "Todos os Cargos"}
+            </span>
+          </SelectTrigger>
           <SelectContent className="max-h-[300px] !w-auto min-w-[var(--anchor-width)]">
             <SelectItem value="all">Todos os Cargos</SelectItem>
             {roles.map(r => (

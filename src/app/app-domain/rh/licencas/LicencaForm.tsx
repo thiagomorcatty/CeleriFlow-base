@@ -15,6 +15,9 @@ import { ArrowLeft, Save } from "lucide-react";
 export function LicencaForm({ data, employees = [] }: { data?: any, employees?: any[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [employeeId, setEmployeeId] = useState<string>(data?.employeeId || "");
+  const [type, setType] = useState<string>(data?.type || "Médica");
+  const [status, setStatus] = useState<string>(data?.status || "Ativa");
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
@@ -58,9 +61,11 @@ export function LicencaForm({ data, employees = [] }: { data?: any, employees?: 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="employeeId">Servidor</Label>
-                <Select name="employeeId" defaultValue={data?.employeeId || ""} required>
+                <Select name="employeeId" value={employeeId} onValueChange={(v) => setEmployeeId(v || "")} required>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o servidor" />
+                    <span className="flex-1 text-left line-clamp-1">
+                      {employeeId ? (employees.find(e => e.id === employeeId)?.name || "Selecione o servidor") : "Selecione o servidor"}
+                    </span>
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map(emp => (
@@ -71,9 +76,9 @@ export function LicencaForm({ data, employees = [] }: { data?: any, employees?: 
               </div>
               <div className="space-y-2">
                 <Label htmlFor="type">Tipo de Licença</Label>
-                <Select name="type" defaultValue={data?.type || "Médica"} required>
+                <Select name="type" value={type} onValueChange={(v) => setType(v || "Médica")} required>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
+                    <span className="flex-1 text-left line-clamp-1">{type}</span>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Médica">Médica / Saúde</SelectItem>
@@ -98,9 +103,9 @@ export function LicencaForm({ data, employees = [] }: { data?: any, employees?: 
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <Select name="status" defaultValue={data?.status || "Ativa"}>
+                <Select name="status" value={status} onValueChange={(v) => setStatus(v || "Ativa")}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o status" />
+                    <span className="flex-1 text-left line-clamp-1">{status}</span>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Ativa">Ativa</SelectItem>

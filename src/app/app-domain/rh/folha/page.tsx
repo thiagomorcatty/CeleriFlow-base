@@ -35,15 +35,15 @@ export default async function FolhaPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto max-h-[600px] overflow-y-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-muted text-muted-foreground border-b">
+              <thead className="bg-muted text-muted-foreground border-b sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="font-medium p-4">Competência</th>
-                  <th className="font-medium p-4">Tipo</th>
-                  <th className="font-medium p-4">Valor Total</th>
-                  <th className="font-medium p-4">Status</th>
-                  <th className="font-medium p-4 text-right">Ações</th>
+                  <th className="font-medium p-2 px-4 whitespace-nowrap">Competência</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Tipo</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Valor Total</th>
+                  <th className="font-medium p-2 whitespace-nowrap">Status</th>
+                  <th className="font-medium p-2 px-4 text-right whitespace-nowrap">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -56,17 +56,17 @@ export default async function FolhaPage() {
                 ) : (
                   payrolls.map((folha) => (
                     <tr key={folha.id} className="border-b last:border-0 hover:bg-muted/50">
-                      <td className="p-4 font-medium">{folha.competence}</td>
-                      <td className="p-4">{folha.type}</td>
-                      <td className="p-4">
+                      <td className="p-2 px-4 font-medium whitespace-nowrap">{folha.competence}</td>
+                      <td className="p-2 whitespace-nowrap">{folha.type}</td>
+                      <td className="p-2 whitespace-nowrap">
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(folha.totalValue)}
                       </td>
-                      <td className="p-4">
+                      <td className="p-2 whitespace-nowrap">
                         <Badge variant={folha.status === "Paga" ? "default" : "secondary"} className={folha.status === "Paga" ? "bg-emerald-500" : ""}>
                           {folha.status}
                         </Badge>
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-2 px-4 text-right whitespace-nowrap">
                         <FolhaRowActions folha={folha} />
                       </td>
                     </tr>

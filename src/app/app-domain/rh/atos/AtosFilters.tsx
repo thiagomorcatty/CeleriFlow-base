@@ -36,7 +36,9 @@ export function AtosFilters() {
       <div className="w-[200px]">
         <Select value={type} onValueChange={(val) => setType(val || "")}>
           <SelectTrigger className="bg-white">
-            <SelectValue placeholder="Tipo do Ato" />
+            <span className="flex-1 text-left line-clamp-1">
+              {type === "all" ? "Todos" : type}
+            </span>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
