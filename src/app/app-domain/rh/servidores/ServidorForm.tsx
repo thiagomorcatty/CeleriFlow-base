@@ -54,6 +54,10 @@ export function ServidorForm({
   const [phone, setPhone] = useState(data?.phone || "");
   const [salaryBase, setSalaryBase] = useState(data?.salaryBase || 0);
 
+  const [secretariatId, setSecretariatId] = useState<string>(data?.secretariatId || "");
+  const [departmentId, setDepartmentId] = useState<string>(data?.departmentId || "");
+  const [roleId, setRoleId] = useState<string>(data?.roleId || "");
+
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
     formData.set("isActive", isActive.toString());
@@ -146,9 +150,11 @@ export function ServidorForm({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="secretariatId">Secretaria</Label>
-                  <Select name="secretariatId" defaultValue={data?.secretariatId || ""}>
+                  <Select name="secretariatId" value={secretariatId} onValueChange={(v) => setSecretariatId(v || "")}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
+                      <span className="flex-1 text-left line-clamp-1">
+                        {secretariats.find(s => s.id === secretariatId)?.name || "Selecione..."}
+                      </span>
                     </SelectTrigger>
                     <SelectContent className="max-h-[300px] z-50">
                       {secretariats.map(sec => (
@@ -159,9 +165,11 @@ export function ServidorForm({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="departmentId">Departamento / Setor</Label>
-                  <Select name="departmentId" defaultValue={data?.departmentId || ""}>
+                  <Select name="departmentId" value={departmentId} onValueChange={(v) => setDepartmentId(v || "")}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
+                      <span className="flex-1 text-left line-clamp-1">
+                        {departments.find(d => d.id === departmentId)?.name || "Selecione..."}
+                      </span>
                     </SelectTrigger>
                     <SelectContent className="max-h-[300px] z-50">
                       {departments.map(dep => (
@@ -172,9 +180,11 @@ export function ServidorForm({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="roleId">Cargo / Função</Label>
-                  <Select name="roleId" defaultValue={data?.roleId || ""}>
+                  <Select name="roleId" value={roleId} onValueChange={(v) => setRoleId(v || "")}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
+                      <span className="flex-1 text-left line-clamp-1">
+                        {roles.find(r => r.id === roleId)?.name || "Selecione..."}
+                      </span>
                     </SelectTrigger>
                     <SelectContent className="max-h-[300px] z-50">
                       {roles.map(role => (

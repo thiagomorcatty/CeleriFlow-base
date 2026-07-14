@@ -18,6 +18,14 @@ export function BeneficioForm({ data, suppliers = [] }: { data?: any, suppliers?
   const [isSaving, setIsSaving] = useState(false);
   const [isActive, setIsActive] = useState(data ? data.isActive : true);
   const [baseValue, setBaseValue] = useState(data?.baseValue || 0);
+  const [supplierId, setSupplierId] = useState<string>(data?.supplierId || "none");
+
+  const getSupplierName = (sup: any) => {
+    if (!sup) return "Sem Nome";
+    if (sup.company) return sup.company.corporateName || sup.company.tradeName || "Empresa Sem Nome";
+    if (sup.person) return sup.person.name || "Pessoa Sem Nome";
+    return "Sem Nome";
+  };
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
@@ -91,14 +99,18 @@ export function BeneficioForm({ data, suppliers = [] }: { data?: any, suppliers?
 
             <div className="space-y-2">
               <Label htmlFor="supplierId">Fornecedor / Operadora</Label>
-              <Select name="supplierId" defaultValue={data?.supplierId || ""}>
+              <Select name="supplierId" value={supplierId} onValueChange={(v) => setSupplierId(v || "none")}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o fornecedor parceiro..." />
+                  <span className="flex-1 text-left line-clamp-1">
+                    {supplierId === "none" || !supplierId
+                      ? "Nenhum (Gerido internamente)"
+                      : getSupplierName(suppliers.find(s => s.id === supplierId))}
+                  </span>
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px]">
                   <SelectItem value="none">Nenhum (Gerido internamente)</SelectItem>
                   {suppliers.map(sup => (
-                    <SelectItem key={sup.id} value={sup.id}>{sup.name || "Sem Nome"}</SelectItem>
+                    <SelectItem key={sup.id} value={sup.id}>{getSupplierName(sup)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

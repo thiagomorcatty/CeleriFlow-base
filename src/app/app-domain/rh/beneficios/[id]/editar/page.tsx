@@ -13,7 +13,7 @@ export default async function EditarBeneficioPage({ params }: { params: Promise<
   }
 
   const suppliers = await prisma.supplier.findMany({ 
-    include: { company: true },
+    include: { company: true, person: true },
     orderBy: { company: { corporateName: 'asc' } } 
   });
 
