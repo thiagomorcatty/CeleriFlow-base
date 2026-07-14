@@ -98,16 +98,19 @@ export default async function EducacaoDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/app-domain/educacao/apoio" className="group">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all flex justify-between">
-            <div>
-              <div className="flex gap-2">
-                <Bus className="h-8 w-8 text-amber-500 mb-4 group-hover:scale-110 transition-transform" />
-                <Utensils className="h-8 w-8 text-orange-500 mb-4 group-hover:scale-110 transition-transform" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Transporte e Merenda</h3>
-              <p className="text-sm text-gray-500">Rotas e controle de alimentação escolar.</p>
-            </div>
+        <Link href="/app-domain/educacao/merenda" className="group">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
+            <Utensils className="h-8 w-8 text-orange-500 mb-4 group-hover:scale-110 transition-transform" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Merenda Escolar</h3>
+            <p className="text-sm text-gray-500">Controle de alimentação escolar e cardápios.</p>
+          </div>
+        </Link>
+
+        <Link href="/app-domain/educacao/transporte" className="group">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
+            <Bus className="h-8 w-8 text-amber-500 mb-4 group-hover:scale-110 transition-transform" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Transporte Escolar</h3>
+            <p className="text-sm text-gray-500">Rotas e veículos para transporte de alunos.</p>
           </div>
         </Link>
       </div>
