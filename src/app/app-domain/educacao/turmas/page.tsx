@@ -2,6 +2,8 @@ import React from "react";
 import { BookOpen, Users, ClipboardCheck, Plus, Calendar } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function TurmasPage() {
   const classes = await prisma.schoolClass.findMany({
     include: {

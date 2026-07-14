@@ -3,6 +3,8 @@ import { Users, UserPlus, Search, FileText } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function AlunosPage() {
   const students = await prisma.student.findMany({
     include: {

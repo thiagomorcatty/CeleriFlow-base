@@ -2,6 +2,8 @@ import React from "react";
 import { School, MapPin, Users, Building, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function EscolasPage() {
   const schools = await prisma.school.findMany({
     include: {

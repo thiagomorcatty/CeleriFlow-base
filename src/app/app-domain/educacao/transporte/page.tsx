@@ -2,6 +2,8 @@ import React from "react";
 import { Bus, AlertCircle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function TransporteEscolarPage() {
   const [studentsWithTransport] = await Promise.all([
     prisma.student.count({ where: { usesSchoolTransport: true, status: "Ativo" } }),

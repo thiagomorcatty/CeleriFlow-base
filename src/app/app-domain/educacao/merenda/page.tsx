@@ -2,6 +2,8 @@ import React from "react";
 import { Utensils, AlertCircle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function MerendaEscolarPage() {
   const [studentsWithSpecialMeal, mealsCount] = await Promise.all([
     prisma.student.count({ where: { needsSpecialMeal: true, status: "Ativo" } }),
