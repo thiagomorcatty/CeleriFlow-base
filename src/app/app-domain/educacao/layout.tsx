@@ -16,12 +16,12 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel Educação", href: "/app-domain/educacao", icon: GraduationCap },
-  { title: "Escolas", href: "/app-domain/educacao/escolas", icon: School },
-  { title: "Alunos", href: "/app-domain/educacao/alunos", icon: Users },
-  { title: "Turmas & Diários", href: "/app-domain/educacao/turmas", icon: BookOpen },
-  { title: "Merenda Escolar", href: "/app-domain/educacao/merenda", icon: Utensils },
-  { title: "Transporte Escolar", href: "/app-domain/educacao/transporte", icon: Bus },
+  { title: "Painel Educação", href: "/educacao", icon: GraduationCap },
+  { title: "Escolas", href: "/educacao/escolas", icon: School },
+  { title: "Alunos", href: "/educacao/alunos", icon: Users },
+  { title: "Turmas & Diários", href: "/educacao/turmas", icon: BookOpen },
+  { title: "Merenda Escolar", href: "/educacao/merenda", icon: Utensils },
+  { title: "Transporte Escolar", href: "/educacao/transporte", icon: Bus },
 ];
 
 export default function EducacaoLayout({ children }: { children: React.ReactNode }) {
@@ -56,8 +56,8 @@ export default function EducacaoLayout({ children }: { children: React.ReactNode
         
         <nav className="flex flex-col gap-1.5 flex-1">
           {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/app-domain/educacao" 
-              ? pathname === "/app-domain/educacao" 
+            const isActive = item.href === "/educacao" 
+              ? pathname === "/educacao" 
               : pathname.startsWith(item.href);
 
             return (
@@ -81,7 +81,7 @@ export default function EducacaoLayout({ children }: { children: React.ReactNode
         {/* Bottom Menu items */}
         <div className="mt-6 pt-6 border-t border-slate-100">
           <Link
-            href="/app-domain/dashboard"
+            href="/dashboard"
             onClick={() => setIsSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200"
           >

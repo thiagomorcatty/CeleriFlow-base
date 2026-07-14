@@ -74,7 +74,7 @@ export default async function EducacaoDashboardPage() {
       {/* Acessos Rápidos */}
       <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Acesso Rápido</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Link href="/app-domain/educacao/escolas" className="group">
+        <Link href="/educacao/escolas" className="group">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
             <School className="h-8 w-8 text-indigo-500 mb-4 group-hover:scale-110 transition-transform" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Gestão de Escolas</h3>
@@ -82,7 +82,7 @@ export default async function EducacaoDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/app-domain/educacao/alunos" className="group">
+        <Link href="/educacao/alunos" className="group">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
             <Users className="h-8 w-8 text-blue-500 mb-4 group-hover:scale-110 transition-transform" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Alunos e Matrículas</h3>
@@ -90,7 +90,7 @@ export default async function EducacaoDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/app-domain/educacao/turmas" className="group">
+        <Link href="/educacao/turmas" className="group">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
             <BookOpen className="h-8 w-8 text-emerald-500 mb-4 group-hover:scale-110 transition-transform" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Turmas e Diário</h3>
@@ -98,7 +98,7 @@ export default async function EducacaoDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/app-domain/educacao/merenda" className="group">
+        <Link href="/educacao/merenda" className="group">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
             <Utensils className="h-8 w-8 text-orange-500 mb-4 group-hover:scale-110 transition-transform" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Merenda Escolar</h3>
@@ -106,7 +106,7 @@ export default async function EducacaoDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/app-domain/educacao/transporte" className="group">
+        <Link href="/educacao/transporte" className="group">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
             <Bus className="h-8 w-8 text-amber-500 mb-4 group-hover:scale-110 transition-transform" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Transporte Escolar</h3>
