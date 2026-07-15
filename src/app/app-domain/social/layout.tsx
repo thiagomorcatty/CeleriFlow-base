@@ -15,11 +15,11 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel Social", href: "/app-domain/social", icon: HeartHandshake },
-  { title: "Unidades (CRAS/CREAS)", href: "/app-domain/social/unidades", icon: Building2 },
-  { title: "Famílias e Indivíduos", href: "/app-domain/social/familias", icon: Users },
-  { title: "Prontuário Eletrônico", href: "/app-domain/social/prontuario", icon: FileText },
-  { title: "Programas e Benefícios", href: "/app-domain/social/beneficios", icon: Gift },
+  { title: "Painel Social", href: "/social", icon: HeartHandshake },
+  { title: "Unidades (CRAS/CREAS)", href: "/social/unidades", icon: Building2 },
+  { title: "Famílias e Indivíduos", href: "/social/familias", icon: Users },
+  { title: "Prontuário Eletrônico", href: "/social/prontuario", icon: FileText },
+  { title: "Programas e Benefícios", href: "/social/beneficios", icon: Gift },
 ];
 
 export default function SocialLayout({ children }: { children: React.ReactNode }) {
@@ -72,8 +72,8 @@ export default function SocialLayout({ children }: { children: React.ReactNode }
         
         <nav className="flex flex-col gap-1.5 flex-1 overflow-y-auto pr-2 pb-4">
           {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/app-domain/social" 
-              ? pathname === "/app-domain/social" 
+            const isActive = item.href === "/social" 
+              ? pathname === "/social" 
               : pathname.startsWith(item.href);
 
             return (

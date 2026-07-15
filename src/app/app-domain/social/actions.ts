@@ -15,7 +15,7 @@ export async function createSocialUnit(data: { name: string; type: string; phone
         managerId: data.managerId,
       },
     });
-    revalidatePath("/app-domain/social/unidades");
+    revalidatePath("/social/unidades");
     return { success: true, data: unit };
   } catch (error) {
     console.error("Error creating social unit:", error);
@@ -35,7 +35,7 @@ export async function createFamily(data: { representativeId: string; nis?: strin
         vulnerabilities: data.vulnerabilities,
       },
     });
-    revalidatePath("/app-domain/social/familias");
+    revalidatePath("/social/familias");
     return { success: true, data: family };
   } catch (error) {
     console.error("Error creating family:", error);
@@ -56,7 +56,7 @@ export async function createAttendance(data: { familyId: string; unitId: string;
         personId: data.personId,
       },
     });
-    revalidatePath("/app-domain/social/atendimentos");
+    revalidatePath("/social/atendimentos");
     return { success: true, data: attendance };
   } catch (error) {
     console.error("Error creating attendance:", error);
@@ -76,7 +76,7 @@ export async function createBenefitConcession(data: { benefitId: string; familyI
         personId: data.personId,
       },
     });
-    revalidatePath("/app-domain/social/beneficios");
+    revalidatePath("/social/beneficios");
     return { success: true, data: concession };
   } catch (error) {
     console.error("Error creating benefit concession:", error);
