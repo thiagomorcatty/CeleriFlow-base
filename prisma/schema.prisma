@@ -562,6 +562,7 @@ model RealEstate {
 
   assets Asset[]
   schools School[]
+  socialUnits SocialUnit[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1236,6 +1237,13 @@ model Expense {
   secretariatId   String
   secretariat     Secretariat         @relation("SecretariatExpenses", fields: [secretariatId], references: [id])
   status          String              @default("Solicitada") // Solicitada, Reservada, Empenhada
+  
+  socialProgramId String?
+  socialProgram   SocialProgram? @relation(fields: [socialProgramId], references: [id])
+  
+  socialBenefitId String?
+  socialBenefit   SocialBenefit? @relation(fields: [socialBenefitId], references: [id])
+
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 }
@@ -2561,6 +2569,9 @@ model SocialUnit {
   addressId String?  @unique
   address   Address? @relation("SocialUnitAddress", fields: [addressId], references: [id])
 
+  realEstateId String?
+  realEstate   RealEstate? @relation(fields: [realEstateId], references: [id])
+
   managerId String?
   manager   Employee? @relation("SocialUnitManager", fields: [managerId], references: [id])
 
@@ -2634,6 +2645,7 @@ model SocialAttendance {
   description  String
   referrals    String? // Encaminhamentos realizados
   secrecyLevel String   @default("Normal") // Normal, Restrito (CREAS)
+  isActive     Boolean  @default(true)
 
   familyId String
   family   SocialFamily @relation(fields: [familyId], references: [id])
@@ -2680,6 +2692,7 @@ model SocialBenefit {
   updatedAt DateTime @updatedAt
 
   concessions SocialBenefitConcession[]
+  expenses    Expense[]
 }
 
 model SocialBenefitConcession {
@@ -2716,6 +2729,7 @@ model SocialProgram {
   updatedAt DateTime @updatedAt
 
   participations SocialProgramParticipation[]
+  expenses       Expense[]
 }
 
 model SocialProgramParticipation {
