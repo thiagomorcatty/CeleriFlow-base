@@ -83,7 +83,7 @@ export default function SaudeLayout({ children }: { children: React.ReactNode })
         
         <nav className="flex flex-col gap-1.5 flex-1 overflow-y-auto pr-2 pb-4">
           {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/app-domain/saude" 
+            const isActive = item.href === "/saude" 
               ? pathname === "/saude" 
               : pathname.startsWith(item.href);
 

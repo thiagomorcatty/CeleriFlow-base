@@ -1,14 +1,23 @@
-import { prisma } from '../src/lib/prisma';
+import { PrismaClient } from '@prisma/client';
+import { PrismaNeon } from '@prisma/adapter-neon';
+import { neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
+
+neonConfig.webSocketConstructor = ws;
+const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('Iniciando seed do Módulo 13 - Saúde...');
 
+  const randomUnitSuffix = Math.floor(Math.random() * 90000) + 10000;
+  
   // 1. Unidades de Saúde
   const ubs1 = await prisma.healthUnit.create({
     data: {
-      name: 'UBS Centro',
+      name: `UBS Centro ${randomUnitSuffix}`,
       type: 'UBS',
-      cnes: '1234567',
+      cnes: `123${randomUnitSuffix}`,
       phone: '(11) 9999-0001',
       isActive: true,
     }
@@ -16,9 +25,9 @@ async function main() {
 
   const caps1 = await prisma.healthUnit.create({
     data: {
-      name: 'CAPS II - Mente Saudável',
+      name: `CAPS II - Mente Saudável ${randomUnitSuffix}`,
       type: 'CAPS',
-      cnes: '7654321',
+      cnes: `765${randomUnitSuffix}`,
       phone: '(11) 9999-0002',
       isActive: true,
     }
@@ -26,9 +35,9 @@ async function main() {
 
   const farmacia = await prisma.healthUnit.create({
     data: {
-      name: 'Farmácia Municipal Central',
+      name: `Farmácia Municipal Central ${randomUnitSuffix}`,
       type: 'Farmácia',
-      cnes: '1112223',
+      cnes: `111${randomUnitSuffix}`,
       phone: '(11) 9999-0003',
       isActive: true,
     }
@@ -40,11 +49,12 @@ async function main() {
   const conselhos = ['CRM', 'COREN', 'CRM', 'CRM', 'CRF'];
 
   for (let i = 0; i < 5; i++) {
+    const randomSuffix = Math.floor(Math.random() * 9000) + 1000;
     const emp = await prisma.employee.create({
       data: {
-        name: `Profissional Saúde ${i + 1}`,
-        cpf: `0000000001${i}`,
-        email: `prof${i}@saude.gov.br`,
+        name: `Profissional Saúde ${randomSuffix}`,
+        cpf: `000000${randomSuffix}`,
+        email: `prof${randomSuffix}@saude.gov.br`,
         isActive: true,
       }
     });
@@ -65,8 +75,8 @@ async function main() {
   // 3. Equipes ESF
   const team1 = await prisma.healthTeam.create({
     data: {
-      name: 'Equipe ESF Centro - Azul',
-      code: 'ESF-01',
+      name: `Equipe ESF Centro - Azul ${randomUnitSuffix}`,
+      code: `ESF-01-${randomUnitSuffix}`,
       microarea: 'Centro e Jardins',
       unitId: ubs1.id,
       isActive: true,
@@ -75,8 +85,8 @@ async function main() {
 
   const team2 = await prisma.healthTeam.create({
     data: {
-      name: 'Equipe ESF Norte - Verde',
-      code: 'ESF-02',
+      name: `Equipe ESF Norte - Verde ${randomUnitSuffix}`,
+      code: `ESF-02-${randomUnitSuffix}`,
       microarea: 'Zona Norte',
       unitId: caps1.id,
       isActive: true,
@@ -86,10 +96,11 @@ async function main() {
   // 4. Pacientes (com Person base)
   const pacientes = [];
   for (let i = 0; i < 5; i++) {
+    const randomSuffix = Math.floor(Math.random() * 9000) + 1000;
     const person = await prisma.person.create({
       data: {
-        fullName: `Paciente Teste ${i + 1}`,
-        cpf: `1112223334${i}`,
+        fullName: `Paciente Teste ${randomSuffix}`,
+        cpf: `111222${randomSuffix}`,
         birthDate: new Date(1980 + i, i, 10),
       }
     });
@@ -97,7 +108,7 @@ async function main() {
     const patient = await prisma.patient.create({
       data: {
         personId: person.id,
-        cns: `70000000000000${i}`,
+        cns: `700000000${randomSuffix}`,
         bloodType: i % 2 === 0 ? 'O+' : 'A-',
         referenceUnitId: ubs1.id,
         teamId: i % 2 === 0 ? team1.id : team2.id,
@@ -148,9 +159,10 @@ async function main() {
   ];
 
   for (const m of meds) {
+    const randomMedSuffix = Math.floor(Math.random() * 9000) + 1000;
     const med = await prisma.medicine.create({
       data: {
-        name: m.name,
+        name: `${m.name} ${randomMedSuffix}`,
         activePrinciple: m.active,
         presentation: m.pres,
         concentration: m.conc,
@@ -172,9 +184,10 @@ async function main() {
   // 8. Vacinas
   const vaxList = ['Hepatite B', 'BCG', 'Poliomielite', 'Febre Amarela'];
   for (const v of vaxList) {
+    const randomVaxSuffix = Math.floor(Math.random() * 9000) + 1000;
     const vaccine = await prisma.vaccine.create({
       data: {
-        name: v,
+        name: `${v} ${randomVaxSuffix}`,
         dosesRequired: 2,
       }
     });
