@@ -74,9 +74,9 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
         <div>
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
             <FileText className="w-6 h-6 text-blue-600" />
-            Prontu�rio Eletr�nico SUAS
+            Prontuário EletrÚnico SUAS
           </h1>
-          <p className="text-slate-500">Hist�rico de atendimentos, visitas e acompanhamentos t�cnicos.</p>
+          <p className="text-slate-500">Histórico de atendimentos, visitas e acompanhamentos técnicos.</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -84,7 +84,7 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input 
               type="text" 
-              placeholder="Buscar por c�digo da fam�lia ou nome..." 
+              placeholder="Buscar por código da família ou nome..." 
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 w-full md:w-72"
@@ -104,11 +104,11 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
                 <th className="p-4 font-semibold">Data</th>
                 <th className="p-4 font-semibold">Unidade</th>
-                <th className="p-4 font-semibold">Fam�lia/C�digo</th>
+                <th className="p-4 font-semibold">Família/Código</th>
                 <th className="p-4 font-semibold">Tipo</th>
                 <th className="p-4 font-semibold">Relato</th>
                 <th className="p-4 font-semibold text-center">Status</th>
-                <th className="p-4 font-semibold text-center">A��es</th>
+                <th className="p-4 font-semibold text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
@@ -200,18 +200,18 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
             <form onSubmit={handleSave} className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">Fam�lia</label>
+                  <label className="text-sm font-medium text-slate-700">Família</label>
                   <select required value={formData.familyId} onChange={e => setFormData({...formData, familyId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
-                    <option value="">Selecione a Fam�lia</option>
+                    <option value="">Selecione a Família</option>
                     {familias.map((f: any) => (
                       <option key={f.id} value={f.id}>{f.familyCode} - NIS: {f.nis}</option>
                     ))}
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">Cidad�o (Opcional)</label>
+                  <label className="text-sm font-medium text-slate-700">Cidadão (Opcional)</label>
                   <select value={formData.personId} onChange={e => setFormData({...formData, personId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
-                    <option value="">Geral da Fam�lia</option>
+                    <option value="">Geral da Família</option>
                     {persons.map((p: any) => (
                       <option key={p.id} value={p.id}>{p.fullName}</option>
                     ))}
@@ -227,9 +227,9 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">T�cnico Respons�vel</label>
+                  <label className="text-sm font-medium text-slate-700">Técnico Responsável</label>
                   <select required value={formData.professionalId} onChange={e => setFormData({...formData, professionalId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
-                    <option value="">Selecione o T�cnico</option>
+                    <option value="">Selecione o Técnico</option>
                     {professionals.map((p: any) => (
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
@@ -242,18 +242,18 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
                     <option value="PAIF">PAIF</option>
                     <option value="PAEFI">PAEFI</option>
                     <option value="Visita Domiciliar">Visita Domiciliar</option>
-                    <option value="Benef�cio">Concess�o de Benef�cio</option>
+                    <option value="Benefício">Concessão de Benefício</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">N�vel de Sigilo</label>
+                  <label className="text-sm font-medium text-slate-700">Nível de Sigilo</label>
                   <select value={formData.secrecyLevel} onChange={e => setFormData({...formData, secrecyLevel: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                     <option value="Normal">Normal</option>
-                    <option value="Restrito">Restrito (Apenas Equipe T�cnica)</option>
+                    <option value="Restrito">Restrito (Apenas Equipe Técnica)</option>
                   </select>
                 </div>
                 <div className="space-y-1 md:col-span-2">
-                  <label className="text-sm font-medium text-slate-700">Relato / Descri��o</label>
+                  <label className="text-sm font-medium text-slate-700">Relato / Descrição</label>
                   <textarea required rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" />
                 </div>
               </div>
@@ -261,7 +261,7 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
               <div className="pt-4 flex justify-end gap-3 border-t">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-medium">Cancelar</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
-                  {editingAtendimento ? "Salvar Altera��es" : "Salvar Atendimento"}
+                  {editingAtendimento ? "Salvar Alterações" : "Salvar Atendimento"}
                 </button>
               </div>
             </form>

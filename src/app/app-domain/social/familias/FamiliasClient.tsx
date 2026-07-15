@@ -73,9 +73,9 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
         <div>
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
             <Users className="w-6 h-6 text-blue-600" />
-            Fam�lias e Indiv�duos
+            Famílias e Indiv�duos
           </h1>
-          <p className="text-slate-500">Gest�o do Cadastro �nico Municipal e composi��o familiar.</p>
+          <p className="text-slate-500">Gestão do Cadastro Único Municipal e composição familiar.</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -83,7 +83,7 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input 
               type="text" 
-              placeholder="Buscar por NIS, C�digo ou Respons�vel..." 
+              placeholder="Buscar por NIS, Código ou Responsável..." 
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 w-full md:w-72"
@@ -91,7 +91,7 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
           </div>
           <button onClick={() => handleOpenModal()} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Nova Fam�lia</span>
+            <span className="hidden sm:inline">Nova Família</span>
           </button>
         </div>
       </div>
@@ -101,13 +101,13 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
-                <th className="p-4 font-semibold">Respons�vel</th>
+                <th className="p-4 font-semibold">Responsável</th>
                 <th className="p-4 font-semibold">NIS</th>
-                <th className="p-4 font-semibold">C�digo Familiar</th>
+                <th className="p-4 font-semibold">Código Familiar</th>
                 <th className="p-4 font-semibold">Renda</th>
                 <th className="p-4 font-semibold">Vulnerabilidade</th>
                 <th className="p-4 font-semibold text-center">Status</th>
-                <th className="p-4 font-semibold text-center">A��es</th>
+                <th className="p-4 font-semibold text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
@@ -116,7 +116,7 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
                   <tr key={familia.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-4">
                       <p className="font-semibold text-slate-800">
-                        {familia.representative?.fullName || 'Sem respons�vel'}
+                        {familia.representative?.fullName || 'Sem responsável'}
                       </p>
                       {familia.representative?.cpf && (
                         <p className="text-xs text-slate-500 mt-1">
@@ -181,7 +181,7 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
               ) : (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-500">
-                    Nenhuma fam�lia encontrada.
+                    Nenhuma família encontrada.
                   </td>
                 </tr>
               )}
@@ -195,7 +195,7 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
               <h2 className="text-lg font-bold text-slate-800">
-                {editingFamilia ? "Editar Fam�lia" : "Nova Fam�lia"}
+                {editingFamilia ? "Editar Família" : "Nova Família"}
               </h2>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">&times;</button>
             </div>
@@ -203,7 +203,7 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
             <form onSubmit={handleSave} className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">Respons�vel Familiar (Pessoa)</label>
+                  <label className="text-sm font-medium text-slate-700">Responsável Familiar (Pessoa)</label>
                   <select required value={formData.representativeId} onChange={e => setFormData({...formData, representativeId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                     <option value="">Selecione a Pessoa</option>
                     {persons.map((p: any) => (
@@ -216,7 +216,7 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
                   <input type="text" value={formData.nis} onChange={e => setFormData({...formData, nis: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">C�digo Familiar</label>
+                  <label className="text-sm font-medium text-slate-700">Código Familiar</label>
                   <input type="text" value={formData.familyCode} onChange={e => setFormData({...formData, familyCode: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" />
                 </div>
                 <div className="space-y-1">
@@ -236,7 +236,7 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
               <div className="pt-4 flex justify-end gap-3 border-t">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-medium">Cancelar</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
-                  {editingFamilia ? "Salvar Altera��es" : "Criar Fam�lia"}
+                  {editingFamilia ? "Salvar Alterações" : "Criar Família"}
                 </button>
               </div>
             </form>

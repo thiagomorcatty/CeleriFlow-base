@@ -100,10 +100,10 @@ export default function UnidadesClient({ unidadesInicial, realEstates, employees
                 <th className="p-4 font-semibold">Tipo</th>
                 <th className="p-4 font-semibold">Telefone</th>
                 <th className="p-4 font-semibold">Email</th>
-                <th className="p-4 font-semibold">Im�vel (Patrim�nio)</th>
+                <th className="p-4 font-semibold">Imóvel (Patrimônio)</th>
                 <th className="p-4 font-semibold">Gestor (RH)</th>
                 <th className="p-4 font-semibold text-center">Status</th>
-                <th className="p-4 font-semibold text-center">A��es</th>
+                <th className="p-4 font-semibold text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
@@ -207,7 +207,7 @@ export default function UnidadesClient({ unidadesInicial, realEstates, employees
                   <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">Im�vel Vinculado (Patrim�nio)</label>
+                  <label className="text-sm font-medium text-slate-700">Imóvel Vinculado (Patrimônio)</label>
                   <select value={formData.realEstateId} onChange={e => setFormData({...formData, realEstateId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                     <option value="">Nenhum</option>
                     {realEstates.map((re: any) => (
@@ -216,7 +216,7 @@ export default function UnidadesClient({ unidadesInicial, realEstates, employees
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">Servidor Respons�vel (Gestor)</label>
+                  <label className="text-sm font-medium text-slate-700">Servidor Responsável (Gestor)</label>
                   <select value={formData.managerId} onChange={e => setFormData({...formData, managerId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                     <option value="">Nenhum</option>
                     {employees.map((emp: any) => (
@@ -229,7 +229,7 @@ export default function UnidadesClient({ unidadesInicial, realEstates, employees
               <div className="pt-4 flex justify-end gap-3 border-t">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-medium">Cancelar</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
-                  {editingUnidade ? "Salvar Altera��es" : "Criar Unidade"}
+                  {editingUnidade ? "Salvar Alterações" : "Criar Unidade"}
                 </button>
               </div>
             </form>
