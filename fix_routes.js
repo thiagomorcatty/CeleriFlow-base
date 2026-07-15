@@ -15,7 +15,7 @@ function walkDir(dir, callback) {
   });
 }
 
-walkDir('src/app/app-domain', (filePath) => {
+walkDir('src/app/app-domain/saude', (filePath) => {
   let content = fs.readFileSync(filePath, 'utf-8');
   let original = content;
 

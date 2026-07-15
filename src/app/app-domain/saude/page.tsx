@@ -88,7 +88,7 @@ export default async function SaudeDashboardPage() {
       {/* Acessos Rápidos */}
       <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Acesso Rápido</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Link href="/app-domain/saude/unidades" className="group">
+        <Link href="/saude/unidades" className="group">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all h-full">
             <Activity className="h-8 w-8 text-indigo-500 mb-4 group-hover:scale-110 transition-transform" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Unidades e Equipes</h3>
@@ -96,7 +96,7 @@ export default async function SaudeDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/app-domain/saude/pacientes" className="group">
+        <Link href="/saude/pacientes" className="group">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all h-full">
             <Users className="h-8 w-8 text-blue-500 mb-4 group-hover:scale-110 transition-transform" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Pacientes</h3>
@@ -104,7 +104,7 @@ export default async function SaudeDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/app-domain/saude/atendimentos" className="group">
+        <Link href="/saude/atendimentos" className="group">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all h-full">
             <Stethoscope className="h-8 w-8 text-emerald-500 mb-4 group-hover:scale-110 transition-transform" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Atendimentos</h3>
@@ -112,7 +112,7 @@ export default async function SaudeDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/app-domain/saude/farmacia" className="group">
+        <Link href="/saude/farmacia" className="group">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all h-full">
             <div className="flex gap-2">
               <Pill className="h-8 w-8 text-teal-500 mb-4 group-hover:scale-110 transition-transform" />

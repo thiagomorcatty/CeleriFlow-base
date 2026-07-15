@@ -20,17 +20,17 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel de Saúde", href: "/app-domain/saude", icon: Heart },
-  { title: "Unidades", href: "/app-domain/saude/unidades", icon: Building2 },
-  { title: "Pacientes", href: "/app-domain/saude/pacientes", icon: Users },
-  { title: "Profissionais", href: "/app-domain/saude/profissionais", icon: Stethoscope },
-  { title: "Equipes ESF", href: "/app-domain/saude/equipes", icon: Users },
-  { title: "Agenda", href: "/app-domain/saude/agenda", icon: Calendar },
-  { title: "Atendimentos", href: "/app-domain/saude/atendimentos", icon: ClipboardList },
-  { title: "Farmácia", href: "/app-domain/saude/farmacia", icon: Pill },
-  { title: "Vacinação", href: "/app-domain/saude/vacinacao", icon: Syringe },
-  { title: "Relatórios", href: "/app-domain/saude/relatorios", icon: FileText },
-  { title: "Integração e-SUS", href: "/app-domain/saude/esus", icon: Activity },
+  { title: "Painel de Saúde", href: "/saude", icon: Heart },
+  { title: "Unidades", href: "/saude/unidades", icon: Building2 },
+  { title: "Pacientes", href: "/saude/pacientes", icon: Users },
+  { title: "Profissionais", href: "/saude/profissionais", icon: Stethoscope },
+  { title: "Equipes ESF", href: "/saude/equipes", icon: Users },
+  { title: "Agenda", href: "/saude/agenda", icon: Calendar },
+  { title: "Atendimentos", href: "/saude/atendimentos", icon: ClipboardList },
+  { title: "Farmácia", href: "/saude/farmacia", icon: Pill },
+  { title: "Vacinação", href: "/saude/vacinacao", icon: Syringe },
+  { title: "Relatórios", href: "/saude/relatorios", icon: FileText },
+  { title: "Integração e-SUS", href: "/saude/esus", icon: Activity },
 ];
 
 export default function SaudeLayout({ children }: { children: React.ReactNode }) {
@@ -84,7 +84,7 @@ export default function SaudeLayout({ children }: { children: React.ReactNode })
         <nav className="flex flex-col gap-1.5 flex-1 overflow-y-auto pr-2 pb-4">
           {sidebarNavItems.map((item) => {
             const isActive = item.href === "/app-domain/saude" 
-              ? pathname === "/app-domain/saude" 
+              ? pathname === "/saude" 
               : pathname.startsWith(item.href);
 
             return (
@@ -108,7 +108,7 @@ export default function SaudeLayout({ children }: { children: React.ReactNode })
         {/* Bottom Menu items */}
         <div className="pt-4 border-t border-slate-100 shrink-0">
           <Link
-            href="/app-domain/dashboard"
+            href="/dashboard"
             onClick={() => setIsSidebarOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200"
           >
