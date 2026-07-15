@@ -1,11 +1,18 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { Users } from 'lucide-react';
+import EquipesClient from './EquipesClient';
 
 export default async function Page() {
   const items = await prisma.healthTeam.findMany({
     orderBy: { createdAt: 'desc' },
     include: { unit: true }
+  });
+
+  const units = await prisma.healthUnit.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' }
   });
 
   return (
@@ -15,32 +22,7 @@ export default async function Page() {
         Equipes ESF
       </h1>
 
-      <div className="bg-white rounded shadow overflow-x-auto">
-        <table className="w-full text-left text-sm whitespace-nowrap">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="p-4 font-semibold text-gray-600">Nome da Equipe</th><th className="p-4 font-semibold text-gray-600">Código</th><th className="p-4 font-semibold text-gray-600">Microárea</th><th className="p-4 font-semibold text-gray-600">Unidade</th><th className="p-4 font-semibold text-gray-600">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="p-4 text-center text-gray-500">Nenhum registro encontrado.</td>
-              </tr>
-            ) : (
-              items.map(item => (
-      <tr key={item.id} className="border-b">
-        <td className="p-4">{item.name}</td>
-        <td className="p-4">{item.code || '-'}</td>
-        <td className="p-4">{item.microarea || '-'}</td>
-        <td className="p-4">{item.unit?.name}</td>
-        <td className="p-4">{item.isActive ? 'Ativa' : 'Inativa'}</td>
-      </tr>
-    ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <EquipesClient teams={items} units={units} />
     </div>
   );
 }
