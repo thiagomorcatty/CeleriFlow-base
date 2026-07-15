@@ -2302,6 +2302,8 @@ model Patient {
   prescriptions HealthPrescription[]
   dispensations MedicineDispensation[]
   vaccinations  VaccinationRecord[]
+  examRequests  HealthExamRequest[]
+  referrals     HealthReferral[]
 }
 
 model HealthProfessional {
@@ -2328,6 +2330,8 @@ model HealthProfessional {
   records       MedicalRecord[]
   prescriptions HealthPrescription[]
   vaccinations  VaccinationRecord[]
+  examRequests  HealthExamRequest[]
+  referrals     HealthReferral[]
 }
 
 model HealthTeam {
@@ -2417,6 +2421,7 @@ model Medicine {
   updatedAt DateTime @updatedAt
 
   dispensations MedicineDispensation[]
+  batches       MedicineBatch[]
 }
 
 model HealthPrescription {
@@ -2448,6 +2453,9 @@ model MedicineDispensation {
 
   unitId String
   unit   HealthUnit @relation(fields: [unitId], references: [id])
+
+  batchId String?
+  batch   MedicineBatch? @relation(fields: [batchId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2484,6 +2492,57 @@ model VaccinationRecord {
 
   unitId String
   unit   HealthUnit @relation(fields: [unitId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MedicineBatch {
+  id             String   @id @default(cuid())
+  batchNumber    String
+  expirationDate DateTime
+  quantity       Int      @default(0)
+
+  medicineId String
+  medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dispensations MedicineDispensation[]
+}
+
+model HealthExamRequest {
+  id         String   @id @default(cuid())
+  date       DateTime @default(now())
+  examName   String
+  reason     String?
+  status     String   @default("Solicitado") // Solicitado, Agendado, Realizado, Cancelado
+  resultDate DateTime?
+  resultUrl  String?
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  professionalId String
+  professional   HealthProfessional @relation(fields: [professionalId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HealthReferral {
+  id         String   @id @default(cuid())
+  date       DateTime @default(now())
+  specialty  String
+  reason     String
+  status     String   @default("Pendente") // Pendente, Agendado, Atendido, Cancelado
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  professionalId String
+  professional   HealthProfessional @relation(fields: [professionalId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

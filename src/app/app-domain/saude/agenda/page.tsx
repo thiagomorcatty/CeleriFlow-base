@@ -1,9 +1,9 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
-import { ClipboardList } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 export default async function Page() {
-  const items = await prisma.medicalRecord.findMany({
+  const items = await prisma.healthAppointment.findMany({
     orderBy: { createdAt: 'desc' },
     include: { patient: { include: { person: true } }, professional: { include: { employee: true } } }
   });
@@ -11,15 +11,15 @@ export default async function Page() {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <ClipboardList className="h-6 w-6 text-emerald-600" />
-        Atendimentos e Prontuários
+        <Calendar className="h-6 w-6 text-emerald-600" />
+        Agenda e Agendamentos
       </h1>
 
       <div className="bg-white rounded shadow overflow-x-auto">
         <table className="w-full text-left text-sm whitespace-nowrap">
           <thead className="bg-gray-50">
             <tr>
-              <th className="p-4 font-semibold text-gray-600">Data</th><th className="p-4 font-semibold text-gray-600">Tipo</th><th className="p-4 font-semibold text-gray-600">Paciente</th><th className="p-4 font-semibold text-gray-600">Profissional</th><th className="p-4 font-semibold text-gray-600">Queixa Principal</th>
+              <th className="p-4 font-semibold text-gray-600">Data</th><th className="p-4 font-semibold text-gray-600">Paciente</th><th className="p-4 font-semibold text-gray-600">Profissional</th><th className="p-4 font-semibold text-gray-600">Especialidade</th><th className="p-4 font-semibold text-gray-600">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -31,10 +31,10 @@ export default async function Page() {
               items.map(item => (
       <tr key={item.id} className="border-b">
         <td className="p-4">{new Date(item.date).toLocaleString()}</td>
-        <td className="p-4">{item.type}</td>
         <td className="p-4">{item.patient?.person?.fullName}</td>
-        <td className="p-4">{item.professional?.employee?.name}</td>
-        <td className="p-4">{item.chiefComplaint || '-'}</td>
+        <td className="p-4">{item.professional?.employee?.name || '-'}</td>
+        <td className="p-4">{item.specialty || '-'}</td>
+        <td className="p-4">{item.status}</td>
       </tr>
     ))
             )}
