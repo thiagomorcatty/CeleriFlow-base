@@ -1,116 +1,112 @@
-import React from "react";
-import { Users, Search, MapPin, UserPlus, FileText } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { Users, Search, Plus, CreditCard, HeartPulse } from "lucide-react";
 
-import { NewFamilySheet } from "../components/NewFamilySheet";
-
-export default async function SocialFamiliasPage() {
-  const families = await prisma.socialFamily.findMany({
+export default async function FamiliasSociaisPage() {
+  const familias = await prisma.socialFamily.findMany({
     include: {
       representative: true,
-      address: true,
-      _count: {
-        select: { members: true, attendances: true, concessions: true }
-      }
+      members: true,
     },
-    orderBy: { representative: { fullName: "asc" } },
-    take: 50
-  });
-
-  const people = await prisma.person.findMany({
-    select: { id: true, fullName: true },
-    orderBy: { fullName: "asc" },
-    take: 100
+    orderBy: {
+      createdAt: 'desc'
+    }
   });
 
   return (
-    <div className="flex-1 p-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <Users className="h-8 w-8 text-blue-600" />
-            Famílias Assistidas
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+            <Users className="w-6 h-6 text-blue-600" />
+            Famílias e Indivíduos
           </h1>
-          <p className="text-gray-500 mt-2">
-            Base unificada de acompanhamento familiar, composição e Cadastro Único (CadÚnico).
-          </p>
+          <p className="text-slate-500">Gestão do Cadastro Único Municipal e composição familiar.</p>
         </div>
-        <NewFamilySheet people={people} />
+
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input 
+              type="text" 
+              placeholder="Buscar por NIS ou Responsável..." 
+              className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 w-full md:w-72"
+            />
+          </div>
+          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Nova Família</span>
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-6">
-        <div className="relative">
-          <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Buscar por nome do responsável, CPF ou NIS..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-          />
-        </div>
-      </div>
-
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
-                <th className="p-4 font-medium text-gray-500 dark:text-gray-400">Responsável Familiar</th>
-                <th className="p-4 font-medium text-gray-500 dark:text-gray-400">NIS / Cód. Familiar</th>
-                <th className="p-4 font-medium text-gray-500 dark:text-gray-400">Endereço / Renda</th>
-                <th className="p-4 font-medium text-gray-500 dark:text-gray-400">Composição / Ações</th>
-                <th className="p-4 font-medium text-gray-500 dark:text-gray-400">Prontuário</th>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                <th className="p-4 font-semibold">Responsável Familiar</th>
+                <th className="p-4 font-semibold">Identificação</th>
+                <th className="p-4 font-semibold">Renda e Vulnerabilidade</th>
+                <th className="p-4 font-semibold">Membros</th>
+                <th className="p-4 font-semibold text-center">Ações</th>
               </tr>
             </thead>
-            <tbody>
-              {families.map((family) => (
-                <tr key={family.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                  <td className="p-4">
-                    <div className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                      <Users className="h-4 w-4 text-gray-400" />
-                      {family.representative.fullName}
-                    </div>
-                    {family.vulnerabilities && (
-                      <div className="text-xs text-rose-600 dark:text-rose-400 font-medium mt-1 truncate max-w-xs">
-                        Atenção: {family.vulnerabilities}
+            <tbody className="divide-y divide-slate-100 text-sm">
+              {familias.length > 0 ? (
+                familias.map((familia) => (
+                  <tr key={familia.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-4">
+                      <p className="font-semibold text-slate-800">
+                        {familia.representative?.fullName || 'Sem responsável'}
+                      </p>
+                      {familia.representative?.cpf && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          CPF: {familia.representative.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")}
+                        </p>
+                      )}
+                    </td>
+                    <td className="p-4 text-slate-600">
+                      <p className="flex items-center gap-1 font-medium text-xs">
+                        <CreditCard className="w-3 h-3 text-slate-400" /> 
+                        NIS: {familia.nis || 'Não informado'}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Cód. Familiar: {familia.familyCode}
+                      </p>
+                    </td>
+                    <td className="p-4">
+                      {familia.perCapitaIncome !== null && (
+                        <p className="text-xs font-semibold text-slate-700">
+                          Renda Per Capita: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(familia.perCapitaIncome)}
+                        </p>
+                      )}
+                      {familia.vulnerabilities && (
+                        <p className="text-xs text-red-600 mt-1 max-w-[200px] truncate" title={familia.vulnerabilities}>
+                          {familia.vulnerabilities}
+                        </p>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-medium">
+                        {familia.members.length + 1} pessoa(s)
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex justify-center gap-2">
+                        <button className="text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-colors text-xs font-medium">
+                          Indivíduos
+                        </button>
+                        <button className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors text-xs font-medium">
+                          Editar
+                        </button>
                       </div>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    <div className="text-sm font-mono text-gray-900 dark:text-white">
-                      NIS: {family.nis || "Não informado"}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Cód: {family.familyCode || "Sem código"}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="text-sm text-gray-900 dark:text-white flex items-center gap-1">
-                      <MapPin className="h-3 w-3 text-gray-400" />
-                      {family.address?.streetName || "Sem endereço"}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1 font-medium">
-                      Renda Per Capita: {family.perCapitaIncome ? `R$ ${family.perCapitaIncome.toFixed(2)}` : "Não informada"}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400">
-                      <span>{family._count.members + 1} pessoas no núcleo</span>
-                      <span>{family._count.concessions} benefícios recebidos</span>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <button className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-sm flex items-center gap-1">
-                      <FileText className="h-4 w-4" />
-                      Abrir Prontuário
-                    </button>
-                  </td>
-                </tr>
-              ))}
-
-              {families.length === 0 && (
+                    </td>
+                  </tr>
+                ))
+              ) : (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-gray-500">
-                    Nenhuma família cadastrada.
+                  <td colSpan={5} className="p-8 text-center text-slate-500">
+                    Nenhuma família encontrada.
                   </td>
                 </tr>
               )}

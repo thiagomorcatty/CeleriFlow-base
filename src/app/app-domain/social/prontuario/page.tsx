@@ -1,82 +1,122 @@
-import React from "react";
-import { FileText, Search, Users, CalendarClock, ChevronRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
+import { FileText, Search, ClipboardList, Lock, Clock } from "lucide-react";
 
-export default async function SocialProntuarioPage() {
-  const families = await prisma.socialFamily.findMany({
+export default async function ProntuarioSocialPage() {
+  const atendimentos = await prisma.socialAttendance.findMany({
     include: {
-      representative: true,
-      _count: {
-        select: { records: true, attendances: true }
-      }
+      family: true,
+      person: true,
+      professional: true,
+      unit: true,
     },
-    orderBy: { representative: { fullName: "asc" } },
-    take: 50
+    orderBy: {
+      date: 'desc'
+    }
   });
 
   return (
-    <div className="flex-1 p-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <FileText className="h-8 w-8 text-indigo-600" />
-            Prontuário Social
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+            <FileText className="w-6 h-6 text-blue-600" />
+            Prontuário Eletrônico SUAS
           </h1>
-          <p className="text-gray-500 mt-2">
-            Histórico técnico, acompanhamento familiar, pareceres sociais e evolução (SUAS).
-          </p>
+          <p className="text-slate-500">Histórico de atendimentos, visitas e acompanhamentos técnicos.</p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input 
+              type="text" 
+              placeholder="Buscar por código da família ou nome..." 
+              className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 w-full md:w-72"
+            />
+          </div>
+          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+            <ClipboardList className="w-4 h-4" />
+            <span className="hidden sm:inline">Novo Atendimento</span>
+          </button>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-6">
-        <div className="relative">
-          <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Buscar família, nome do responsável ou código..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-          />
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                <th className="p-4 font-semibold">Data / Unidade</th>
+                <th className="p-4 font-semibold">Família / Cidadão</th>
+                <th className="p-4 font-semibold">Tipo e Relato</th>
+                <th className="p-4 font-semibold">Técnico Responsável</th>
+                <th className="p-4 font-semibold text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-sm">
+              {atendimentos.length > 0 ? (
+                atendimentos.map((atendimento) => (
+                  <tr key={atendimento.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-4">
+                      <p className="font-semibold text-slate-800 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(atendimento.date))}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {atendimento.unit.name}
+                      </p>
+                    </td>
+                    <td className="p-4">
+                      <p className="font-medium text-slate-800">
+                        {atendimento.person ? atendimento.person.fullName : `Família ${atendimento.family.familyCode}`}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Cód: {atendimento.family.familyCode}
+                      </p>
+                    </td>
+                    <td className="p-4 max-w-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs font-medium border border-indigo-100">
+                          {atendimento.type}
+                        </span>
+                        {atendimento.secrecyLevel === 'Restrito' && (
+                          <span title="Atendimento com Sigilo Restrito">
+                            <Lock className="w-3.5 h-3.5 text-red-500" />
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-600 mt-2 truncate" title={atendimento.description}>
+                        {atendimento.description}
+                      </p>
+                      {atendimento.referrals && (
+                        <p className="text-xs text-blue-600 mt-1 truncate font-medium">
+                          Encaminhamento: {atendimento.referrals}
+                        </p>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <p className="font-medium text-slate-700">{atendimento.professional.name}</p>
+                      <p className="text-xs text-slate-500">{atendimento.professional.registration}</p>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex justify-center gap-2">
+                        <button className="text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-colors text-xs font-medium">
+                          Ver Detalhes
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-slate-500">
+                    Nenhum atendimento registrado.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4">
-        {families.map((family) => (
-          <div key={family.id} className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-full text-indigo-600 dark:text-indigo-400">
-                <Users className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  Família de {family.representative.fullName}
-                </h3>
-                <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <CalendarClock className="h-4 w-4" />
-                    {family._count.attendances} Atendimentos Registrados
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <FileText className="h-4 w-4" />
-                    {family._count.records} Pareceres Sociais
-                  </span>
-                </div>
-              </div>
-            </div>
-            <Link href={`/app-domain/social/prontuario/${family.id}`}>
-              <button className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium">
-                Abrir Linha do Tempo
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </Link>
-          </div>
-        ))}
-
-        {families.length === 0 && (
-          <div className="p-8 text-center text-gray-500 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-            Nenhum prontuário encontrado. Crie uma família primeiro.
-          </div>
-        )}
       </div>
     </div>
   );
