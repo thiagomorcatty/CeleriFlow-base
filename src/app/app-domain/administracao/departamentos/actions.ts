@@ -8,14 +8,14 @@ export async function createDepartment(formData: FormData) {
   const description = formData.get("description") as string;
   const secretariatId = formData.get("secretariatId") as string;
 
-  if (!name || !secretariatId) return { error: "Nome e Secretaria são obrigatórios" };
+  if (!name || !secretariatId) throw new Error();
 
   try {
     await prisma.department.create({
       data: { name, description, secretariatId }
     });
   } catch (error) {
-    return { error: "Erro ao criar departamento" };
+    throw new Error();
   }
 
   revalidatePath("/administracao/departamentos");

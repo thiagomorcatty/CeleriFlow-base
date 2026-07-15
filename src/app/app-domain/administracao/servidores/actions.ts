@@ -15,7 +15,7 @@ export async function createEmployee(formData: FormData) {
   const departmentId = formData.get("departmentId") as string || null;
   const unitId = formData.get("unitId") as string || null;
 
-  if (!name || !cpf) return { error: "Nome e CPF são obrigatórios" };
+  if (!name || !cpf) throw new Error();
 
   try {
     await prisma.employee.create({
@@ -23,7 +23,7 @@ export async function createEmployee(formData: FormData) {
     });
   } catch (error: any) {
     console.error("Error creating employee:", error);
-    return { error: error.message || "Erro desconhecido ao cadastrar servidor." };
+    throw new Error();
   }
 
   revalidatePath("/administracao/servidores");

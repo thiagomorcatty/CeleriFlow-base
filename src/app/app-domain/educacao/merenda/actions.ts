@@ -12,7 +12,7 @@ export async function createSchoolMeal(formData: FormData) {
   const notes = formData.get("notes") as string;
 
   if (!schoolId || !menu || servedQuantity <= 0) {
-    return { error: "Escola, Cardápio e Quantidade são obrigatórios." };
+    throw new Error("Escola, Cardápio e Quantidade são obrigatórios.");
   }
 
   try {
@@ -57,7 +57,7 @@ export async function createSchoolMeal(formData: FormData) {
 
   } catch (error: any) {
     console.error("Erro ao registrar merenda:", error);
-    return { error: "Ocorreu um erro ao registrar a merenda e integrar com financeiro." };
+    throw new Error("Ocorreu um erro ao registrar a merenda e integrar com financeiro.");
   }
 
   revalidatePath("/app-domain/educacao/merenda");

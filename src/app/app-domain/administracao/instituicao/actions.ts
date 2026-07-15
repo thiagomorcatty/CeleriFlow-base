@@ -11,7 +11,7 @@ export async function saveInstitution(formData: FormData) {
     if (logoFile && logoFile.size > 0 && logoFile.name) {
       // Limite de segurança para MVP (evitar travar o banco com arquivos gigantes)
       if (logoFile.size > 2 * 1024 * 1024) { 
-        return { error: "O arquivo da logo deve ter no máximo 2MB." };
+        throw new Error();
       }
       
       const buffer = Buffer.from(await logoFile.arrayBuffer());
@@ -42,7 +42,7 @@ export async function saveInstitution(formData: FormData) {
     }
 
     if (!data.name) {
-      return { error: "O nome da prefeitura é obrigatório." };
+      throw new Error();
     }
 
     const existing = await prisma.institution.findFirst();
@@ -64,6 +64,6 @@ export async function saveInstitution(formData: FormData) {
     return { success: true };
   } catch (error: any) {
     console.error("Error saving institution:", error);
-    return { error: error.message || "Erro desconhecido ao salvar os dados da instituição." };
+    throw new Error();
   }
 }
