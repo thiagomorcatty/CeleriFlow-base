@@ -8,14 +8,14 @@ export async function createSecretariat(formData: FormData) {
   const acronym = formData.get("acronym") as string;
   const managerName = formData.get("managerName") as string;
 
-  if (!name) throw new Error();
+  if (!name) return { error: "Nome é obrigatório" };
 
   try {
     await prisma.secretariat.create({
       data: { name, acronym, managerName }
     });
   } catch (error) {
-    throw new Error();
+    return { error: "Erro ao criar secretaria" };
   }
 
   revalidatePath("/administracao/secretarias");

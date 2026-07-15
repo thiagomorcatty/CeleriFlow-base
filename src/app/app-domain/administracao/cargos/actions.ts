@@ -9,14 +9,14 @@ export async function createRole(formData: FormData) {
   const description = formData.get("description") as string;
   const canSign = formData.get("canSign") === "on";
 
-  if (!name) throw new Error();
+  if (!name) return { error: "Nome é obrigatório" };
 
   try {
     await prisma.role.create({
       data: { name, level, description, canSign }
     });
   } catch (error) {
-    throw new Error();
+    return { error: "Erro ao criar cargo" };
   }
 
   revalidatePath("/administracao/cargos");

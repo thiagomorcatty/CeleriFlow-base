@@ -11,7 +11,7 @@ export async function createEnvEnterprise(formData: FormData) {
   const address = formData.get("address") as string;
 
   if (!name) {
-    throw new Error();
+    return { error: "Nome é obrigatório." };
   }
 
   try {
@@ -30,7 +30,7 @@ export async function createEnvEnterprise(formData: FormData) {
     return { success: true, enterprise };
   } catch (error) {
     console.error("Erro ao criar empreendimento:", error);
-    throw new Error();
+    return { error: "Erro ao criar empreendimento. Tente novamente." };
   }
 }
 
@@ -41,7 +41,7 @@ export async function createEnvLicense(formData: FormData) {
   const validUntilStr = formData.get("validUntil") as string;
 
   if (!licenseNumber || !licenseType || !enterpriseId) {
-    throw new Error();
+    return { error: "Número, Tipo e Empreendimento são obrigatórios." };
   }
 
   try {
@@ -62,7 +62,7 @@ export async function createEnvLicense(formData: FormData) {
     return { success: true, license };
   } catch (error) {
     console.error("Erro ao criar licença:", error);
-    throw new Error();
+    return { error: "Erro ao criar licença. Verifique se o número já existe." };
   }
 }
 
@@ -73,7 +73,7 @@ export async function createEnvComplaint(formData: FormData) {
   const isAnonymous = formData.get("isAnonymous") === "true";
 
   if (!complaintType || !description) {
-    throw new Error();
+    return { error: "Tipo e descrição são obrigatórios." };
   }
 
   try {
@@ -91,7 +91,7 @@ export async function createEnvComplaint(formData: FormData) {
     return { success: true, complaint };
   } catch (error) {
     console.error("Erro ao registrar denúncia:", error);
-    throw new Error();
+    return { error: "Erro ao registrar denúncia. Tente novamente." };
   }
 }
 
@@ -102,7 +102,7 @@ export async function createEnvInspection(formData: FormData) {
   const enterpriseId = formData.get("enterpriseId") as string; // Opcional
 
   if (!dateScheduledStr || !inspector) {
-    throw new Error();
+    return { error: "Data agendada e Fiscal são obrigatórios." };
   }
 
   try {
@@ -122,6 +122,6 @@ export async function createEnvInspection(formData: FormData) {
     return { success: true, inspection };
   } catch (error) {
     console.error("Erro ao agendar vistoria:", error);
-    throw new Error();
+    return { error: "Erro ao agendar vistoria. Tente novamente." };
   }
 }
