@@ -2762,6 +2762,8 @@ model EnvEnterprise {
   licenses    EnvLicense[]
   inspections EnvInspection[]
   infractions EnvInfraction[]
+  wastes      EnvWaste[]
+  documents   EnvDocument[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2833,6 +2835,60 @@ model EnvInfraction {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model EnvGreenArea {
+  id            String   @id @default(cuid())
+  name          String
+  areaType      String   // Parque, APP, Reserva, Praça, etc
+  sizeSqm       Float?   // Área em metros quadrados
+  location      String?  // Coordenadas ou Endereço
+  status        String   @default("Preservado") // Preservado, Em Recuperação, Degradado
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model EnvWaste {
+  id            String   @id @default(cuid())
+  generatorName String   // Nome do gerador/empresa
+  wasteType     String   // Orgânico, Reciclável, Perigoso, Eletrônico, Construção, etc
+  quantityKg    Float
+  destination   String   // Aterro, Reciclagem, Compostagem, Coprocessamento, etc
+  date          DateTime @default(now())
+  notes         String?
+  
+  enterpriseId  String?
+  enterprise    EnvEnterprise? @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model EnvEduProgram {
+  id                String   @id @default(cuid())
+  title             String   // Título do programa/campanha
+  description       String
+  targetAudience    String?  // Público-alvo (Escolas, População Geral, Empresas, etc)
+  startDate         DateTime
+  endDate           DateTime?
+  participantsCount Int?     // Número de participantes estimados ou reais
+  status            String   @default("Planejado") // Planejado, Em Execução, Concluído
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model EnvDocument {
+  id           String   @id @default(cuid())
+  title        String
+  docType      String   // Relatório, Termo de Compromisso, Parecer Técnico, etc
+  fileUrl      String?  // Link de simulação ou anexo
+  
+  enterpriseId String?
+  enterprise   EnvEnterprise? @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 // ----------------------------------------------------------------------------

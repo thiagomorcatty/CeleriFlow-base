@@ -14,7 +14,7 @@ export default async function DenunciasPage() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <Link href="/app-domain/meio-ambiente" className="text-gray-500 hover:text-gray-700">Meio Ambiente</Link>
+            <Link href="/meio-ambiente" className="text-gray-500 hover:text-gray-700">Meio Ambiente</Link>
             <span className="text-gray-400">/</span>
             <span className="text-gray-900 font-medium">Denúncias</span>
           </div>
