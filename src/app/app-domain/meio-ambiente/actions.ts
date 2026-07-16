@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { put } from "@vercel/blob";
 
 export async function createEnvEnterprise(formData: FormData) {
   const name = formData.get("name") as string;
@@ -238,28 +239,66 @@ export async function createEnvEduProgram(formData: FormData) {
 export async function createEnvDocument(formData: FormData) {
   const title = formData.get("title") as string;
   const docType = formData.get("docType") as string;
-  const fileUrl = formData.get("fileUrl") as string;
   const enterpriseId = formData.get("enterpriseId") as string;
+  const file = formData.get("file") as File;
 
   if (!title || !docType) {
     return { error: "Título e Tipo de Documento são obrigatórios." };
   }
 
+  if (!file || file.size === 0) {
+    return { error: "O envio do arquivo é obrigatório." };
+  }
+
   try {
-    const doc = await prisma.envDocument.create({
-      data: {
-        title,
-        docType,
-        fileUrl: fileUrl || "/docs/exemplo.pdf", // valor simulado se não informado
-        enterpriseId: enterpriseId || null,
-      },
+    // 1. Fazer o upload para o Vercel Blob
+    const blob = await put(`meio-ambiente/${file.name}`, file, {
+      access: 'public',
     });
+    const finalFileUrl = blob.url;
+
+    // 2. Localizar ou criar a pasta "Documentos Ambientais" no Módulo GED
+    let folder = await prisma.folder.findFirst({
+      where: { name: "Documentos Ambientais" }
+    });
+
+    if (!folder) {
+      folder = await prisma.folder.create({
+        data: {
+          name: "Documentos Ambientais",
+        }
+      });
+    }
+
+    // 3. Salvar no GED (Document) e no Meio Ambiente (EnvDocument)
+    // Para simplificar e garantir atomicidade, podemos usar transação, mas o upload já ocorreu.
+    const [envDoc, gedDoc] = await prisma.$transaction([
+      prisma.envDocument.create({
+        data: {
+          title,
+          docType,
+          fileUrl: finalFileUrl,
+          enterpriseId: enterpriseId || null,
+        },
+      }),
+      prisma.document.create({
+        data: {
+          title,
+          documentType: docType,
+          fileUrl: finalFileUrl,
+          folderId: folder.id,
+          status: "Válido",
+        }
+      })
+    ]);
 
     revalidatePath("/meio-ambiente/documentos");
     revalidatePath("/meio-ambiente");
-    return { success: true, document: doc };
+    revalidatePath("/ged");
+    
+    return { success: true, document: envDoc };
   } catch (error) {
     console.error("Erro ao anexar documento:", error);
-    return { error: "Erro ao anexar documento. Tente novamente." };
+    return { error: "Erro ao anexar documento e salvar no GED. Verifique sua conexão e configurações." };
   }
 }
