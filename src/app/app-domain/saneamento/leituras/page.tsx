@@ -1,85 +1,68 @@
+"use client";
+
 import React from "react";
-import { prisma } from "@/lib/prisma";
-import { FileText, Search } from "lucide-react";
-import Link from "next/link";
-import { NewReadingSheet } from "../components/NewReadingSheet";
+import { FileText, Download } from "lucide-react";
 
-export default async function LeiturasPage() {
-  const [readings, units] = await Promise.all([
-    prisma.sanMeterReading.findMany({
-      include: { unit: true },
-      orderBy: { createdAt: 'desc' }
-    }),
-    prisma.sanConsumerUnit.findMany({
-      where: { status: "Ativa" },
-      select: { id: true, code: true, address: true }
-    })
-  ]);
+const leiturasData = [
+  { id: "1", rota: "Centro 01", unidade: "UC-1020", mes: "Julho/2026", leituraAnterior: 1540, leituraAtual: 1565, consumo: 25, status: "Lida" },
+  { id: "2", rota: "Centro 01", unidade: "UC-1021", mes: "Julho/2026", leituraAnterior: 890, leituraAtual: 902, consumo: 12, status: "Lida" },
+  { id: "3", rota: "Bairro Sul", unidade: "UC-1022", mes: "Julho/2026", leituraAnterior: 430, leituraAtual: 445, consumo: 15, status: "Análise" },
+  { id: "4", rota: "Bairro Norte", unidade: "UC-1023", mes: "Julho/2026", leituraAnterior: 2110, leituraAtual: 0, consumo: 0, status: "Pendente" },
+];
 
+export default function LeiturasPage() {
   return (
-    <div className="flex-1 p-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Link href="/app-domain/saneamento" className="text-gray-500 hover:text-gray-700">Água e Saneamento</Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-900 font-medium">Leituras e Consumo</span>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+            <FileText className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <FileText className="h-6 w-6 text-[#0284C7]" />
-            Leituras e Consumo
-          </h1>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Leituras e Consumo</h1>
+            <p className="text-sm text-slate-500">Gestão de Rotas, Leituras e Histórico de Consumo</p>
+          </div>
         </div>
-        <NewReadingSheet units={units} />
+        <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors">
+          <Download className="h-4 w-4" />
+          Exportar Rotas
+        </button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Buscar leitura..." 
-              className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0284C7]"
-            />
-          </div>
-        </div>
-
-        {readings.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">
-            <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p>Nenhuma leitura registrada.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-800">
-                <tr>
-                  <th className="px-6 py-3">Unidade</th>
-                  <th className="px-6 py-3">Competência</th>
-                  <th className="px-6 py-3">Leitura Ant.</th>
-                  <th className="px-6 py-3">Leitura Atual</th>
-                  <th className="px-6 py-3">Consumo (m³)</th>
-                  <th className="px-6 py-3">Leiturista</th>
-                </tr>
-              </thead>
-              <tbody>
-                {readings.map((reading) => (
-                  <tr key={reading.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                      {reading.unit.code}
-                    </td>
-                    <td className="px-6 py-4 text-gray-500">{reading.competence}</td>
-                    <td className="px-6 py-4 text-gray-500">{reading.previousValue}</td>
-                    <td className="px-6 py-4 text-gray-500">{reading.currentValue}</td>
-                    <td className="px-6 py-4 font-semibold text-[#0284C7]">{reading.consumption}</td>
-                    <td className="px-6 py-4 text-gray-500">{reading.readerName || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-200 text-sm font-semibold text-slate-600">
+              <th className="p-4">Rota</th>
+              <th className="p-4">Unidade (UC)</th>
+              <th className="p-4">Mês Referência</th>
+              <th className="p-4 text-right">Leit. Anterior</th>
+              <th className="p-4 text-right">Leit. Atual</th>
+              <th className="p-4 text-right">Consumo (m³)</th>
+              <th className="p-4 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {leiturasData.map((item) => (
+              <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                <td className="p-4 font-medium text-slate-700">{item.rota}</td>
+                <td className="p-4 text-slate-600">{item.unidade}</td>
+                <td className="p-4 text-slate-600">{item.mes}</td>
+                <td className="p-4 text-slate-600 text-right">{item.leituraAnterior}</td>
+                <td className="p-4 text-slate-600 text-right font-medium">{item.leituraAtual > 0 ? item.leituraAtual : '-'}</td>
+                <td className="p-4 text-slate-800 text-right font-bold">{item.consumo}</td>
+                <td className="p-4 text-center">
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    item.status === 'Lida' ? 'bg-emerald-100 text-emerald-700' : 
+                    item.status === 'Análise' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'
+                  }`}>
+                    {item.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
