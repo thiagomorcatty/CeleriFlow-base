@@ -4,10 +4,18 @@ import { FolderOpen, Search, Download } from "lucide-react";
 import Link from "next/link";
 import { NewDocumentSheet } from "../components/NewDocumentSheet";
 
+import { QuickFilters } from "../components/QuickFilters";
+
 export const dynamic = "force-dynamic";
 
-export default async function DocumentosAmbientaisPage() {
+export default async function DocumentosAmbientaisPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const searchParams = await Promise.resolve(props.searchParams || {});
+  
+  const where: any = {};
+  if (searchParams.tipo) where.docType = searchParams.tipo;
+
   const documents = await prisma.envDocument.findMany({
+    where,
     include: {
       enterprise: true
     },
@@ -33,11 +41,16 @@ export default async function DocumentosAmbientaisPage() {
             Central de Documentos
           </h1>
         </div>
-        <NewDocumentSheet enterprises={enterprises} />
+        <div className="flex items-center gap-3">
+          <Link href="/ged" className="text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 px-4 py-2 rounded-lg transition-colors border border-green-200">
+            Acessar GED Central
+          </Link>
+          <NewDocumentSheet enterprises={enterprises} />
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 flex-wrap gap-4">
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input 
@@ -46,6 +59,9 @@ export default async function DocumentosAmbientaisPage() {
               className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
+          <QuickFilters filters={[
+            { name: "tipo", label: "Tipo", options: [{ value: "Laudo/Relatório Técnico", label: "Laudo/Relatório Técnico" }, { value: "Termo de Compromisso", label: "Termo de Compromisso" }, { value: "Parecer Técnico", label: "Parecer Técnico" }, { value: "Alvará/Autorização Especial", label: "Alvará/Autorização Especial" }, { value: "Outros", label: "Outros" }] }
+          ]} />
         </div>
 
         {documents.length === 0 ? (

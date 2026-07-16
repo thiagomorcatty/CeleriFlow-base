@@ -4,8 +4,17 @@ import { Search, MapPin } from "lucide-react";
 import Link from "next/link";
 import { NewInspectionSheet } from "../components/NewInspectionSheet";
 
-export default async function FiscalizacaoPage() {
+import { QuickFilters } from "../components/QuickFilters";
+import { ActionButtons } from "../components/ActionButtons";
+
+export default async function FiscalizacaoPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const searchParams = await Promise.resolve(props.searchParams || {});
+  
+  const where: any = {};
+  if (searchParams.status) where.status = searchParams.status;
+
   const inspections = await prisma.envInspection.findMany({
+    where,
     include: {
       enterprise: true
     },
@@ -35,7 +44,7 @@ export default async function FiscalizacaoPage() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 flex-wrap gap-4">
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input 
@@ -44,6 +53,9 @@ export default async function FiscalizacaoPage() {
               className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
+          <QuickFilters filters={[
+            { name: "status", label: "Status", options: [{ value: "Agendada", label: "Agendada" }, { value: "Em Andamento", label: "Em Andamento" }, { value: "Realizada", label: "Realizada" }, { value: "Cancelada", label: "Cancelada" }] }
+          ]} />
         </div>
 
         {inspections.length === 0 ? (
@@ -62,6 +74,7 @@ export default async function FiscalizacaoPage() {
                   <th className="px-6 py-3">Empreendimento Vinculado</th>
                   <th className="px-6 py-3">Status</th>
                   <th className="px-6 py-3">Observações</th>
+                  <th className="px-6 py-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -84,6 +97,9 @@ export default async function FiscalizacaoPage() {
                     </td>
                     <td className="px-6 py-4 text-gray-500 max-w-xs truncate" title={insp.notes || ''}>
                       {insp.notes || '-'}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <ActionButtons requireJustification={true} />
                     </td>
                   </tr>
                 ))}

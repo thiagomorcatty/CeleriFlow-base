@@ -4,10 +4,19 @@ import { GraduationCap, Search } from "lucide-react";
 import Link from "next/link";
 import { NewEduProgramSheet } from "../components/NewEduProgramSheet";
 
+import { QuickFilters } from "../components/QuickFilters";
+import { ActionButtons } from "../components/ActionButtons";
+
 export const dynamic = "force-dynamic";
 
-export default async function EducacaoAmbientalPage() {
+export default async function EducacaoAmbientalPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const searchParams = await Promise.resolve(props.searchParams || {});
+  
+  const where: any = {};
+  if (searchParams.status) where.status = searchParams.status;
+
   const programs = await prisma.envEduProgram.findMany({
+    where,
     orderBy: { startDate: 'desc' }
   });
 
@@ -29,7 +38,7 @@ export default async function EducacaoAmbientalPage() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 flex-wrap gap-4">
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input 
@@ -38,6 +47,9 @@ export default async function EducacaoAmbientalPage() {
               className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
+          <QuickFilters filters={[
+            { name: "status", label: "Status", options: [{ value: "Planejado", label: "Planejado" }, { value: "Em Execução", label: "Em Execução" }, { value: "Concluído", label: "Concluído" }, { value: "Cancelado", label: "Cancelado" }] }
+          ]} />
         </div>
 
         {programs.length === 0 ? (
@@ -57,6 +69,7 @@ export default async function EducacaoAmbientalPage() {
                   <th className="px-6 py-3">Participantes</th>
                   <th className="px-6 py-3">Status</th>
                   <th className="px-6 py-3">Descrição</th>
+                  <th className="px-6 py-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -84,6 +97,9 @@ export default async function EducacaoAmbientalPage() {
                     </td>
                     <td className="px-6 py-4 text-gray-400 text-xs italic truncate max-w-xs" title={prog.description}>
                       {prog.description}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <ActionButtons />
                     </td>
                   </tr>
                 ))}

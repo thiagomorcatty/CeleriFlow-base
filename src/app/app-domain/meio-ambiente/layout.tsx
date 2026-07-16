@@ -68,11 +68,11 @@ export default function MeioAmbienteLayout({ children }: { children: React.React
           </button>
         </div>
 
-        <div className={`mb-8 px-2 hidden md:block ${isDesktopCollapsed ? 'text-center' : ''}`}>
+        <div className={`mb-6 px-2 hidden md:block ${isDesktopCollapsed ? 'text-center' : ''}`}>
           {!isDesktopCollapsed && (
             <>
-              <h2 className="text-lg font-bold text-slate-800 tracking-tight leading-tight">Meio Ambiente</h2>
-              <p className="text-xs font-semibold text-green-600 mt-1 uppercase tracking-wider">Gestão Sustentável</p>
+              <h2 className="text-base font-bold text-slate-800 tracking-tight leading-tight">Meio Ambiente</h2>
+              <p className="text-[10px] font-semibold text-green-600 mt-0.5 uppercase tracking-wider">Gestão Sustentável</p>
             </>
           )}
           {isDesktopCollapsed && (
@@ -80,7 +80,7 @@ export default function MeioAmbienteLayout({ children }: { children: React.React
           )}
         </div>
         
-        <nav className="flex flex-col gap-1.5 flex-1 overflow-y-auto pr-2 pb-4">
+        <nav className="flex flex-col gap-1 flex-1 overflow-y-auto pr-2 pb-2">
           {sidebarNavItems.map((item) => {
             const isActive = item.href === "/meio-ambiente" 
               ? pathname === "/meio-ambiente" 
@@ -91,13 +91,13 @@ export default function MeioAmbienteLayout({ children }: { children: React.React
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsSidebarOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 outline-none ${
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 outline-none ${
                   isActive
                     ? "bg-green-600 text-white shadow-md shadow-green-600/20"
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-green-600/50"
                 }`}
               >
-                <item.icon className={`shrink-0 h-[18px] w-[18px] ${isActive ? "text-white" : "text-slate-400"}`} strokeWidth={isActive ? 2.5 : 2} />
+                <item.icon className={`shrink-0 h-4 w-4 ${isActive ? "text-white" : "text-slate-400"}`} strokeWidth={isActive ? 2.5 : 2} />
                 {!isDesktopCollapsed && <span>{item.title}</span>}
               </Link>
             );
@@ -105,13 +105,13 @@ export default function MeioAmbienteLayout({ children }: { children: React.React
         </nav>
 
         {/* Bottom Menu items */}
-        <div className="pt-4 border-t border-slate-100 shrink-0">
+        <div className="pt-2 border-t border-slate-100 shrink-0">
           <Link
             href="/dashboard"
             onClick={() => setIsSidebarOpen(false)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200"
           >
-            <ArrowLeft className="shrink-0 h-[18px] w-[18px] text-slate-400" strokeWidth={2} />
+            <ArrowLeft className="shrink-0 h-4 w-4 text-slate-400" strokeWidth={2} />
             {!isDesktopCollapsed && <span>Voltar ao Dashboard</span>}
           </Link>
         </div>

@@ -4,10 +4,19 @@ import { Trash2, Search } from "lucide-react";
 import Link from "next/link";
 import { NewWasteSheet } from "../components/NewWasteSheet";
 
+import { QuickFilters } from "../components/QuickFilters";
+import { ActionButtons } from "../components/ActionButtons";
+
 export const dynamic = "force-dynamic";
 
-export default async function ResiduosPage() {
+export default async function ResiduosPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const searchParams = await Promise.resolve(props.searchParams || {});
+  
+  const where: any = {};
+  if (searchParams.tipo) where.wasteType = { contains: searchParams.tipo, mode: 'insensitive' };
+
   const wastes = await prisma.envWaste.findMany({
+    where,
     include: {
       enterprise: true
     },
@@ -37,7 +46,7 @@ export default async function ResiduosPage() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 flex-wrap gap-4">
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input 
@@ -46,6 +55,9 @@ export default async function ResiduosPage() {
               className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
+          <QuickFilters filters={[
+            { name: "tipo", label: "Tipo", options: [{ value: "Sólido", label: "Sólido" }, { value: "Líquido", label: "Líquido" }, { value: "Perigoso", label: "Perigoso" }, { value: "Reciclável", label: "Reciclável" }] }
+          ]} />
         </div>
 
         {wastes.length === 0 ? (
@@ -65,6 +77,7 @@ export default async function ResiduosPage() {
                   <th className="px-6 py-3">Destinação Final</th>
                   <th className="px-6 py-3">Data Registro</th>
                   <th className="px-6 py-3">Detalhes</th>
+                  <th className="px-6 py-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -86,6 +99,9 @@ export default async function ResiduosPage() {
                     </td>
                     <td className="px-6 py-4 text-gray-400 text-xs italic truncate max-w-xs" title={w.notes || ""}>
                       {w.notes || '-'}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <ActionButtons />
                     </td>
                   </tr>
                 ))}

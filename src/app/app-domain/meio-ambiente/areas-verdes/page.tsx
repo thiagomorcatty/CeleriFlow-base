@@ -4,10 +4,20 @@ import { Sprout, Search } from "lucide-react";
 import Link from "next/link";
 import { NewGreenAreaSheet } from "../components/NewGreenAreaSheet";
 
+import { QuickFilters } from "../components/QuickFilters";
+import { ActionButtons } from "../components/ActionButtons";
+
 export const dynamic = "force-dynamic";
 
-export default async function AreasVerdesPage() {
+export default async function AreasVerdesPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const searchParams = await Promise.resolve(props.searchParams || {});
+  
+  const where: any = {};
+  if (searchParams.tipo) where.areaType = { contains: searchParams.tipo, mode: 'insensitive' };
+  if (searchParams.status) where.status = searchParams.status;
+
   const greenAreas = await prisma.envGreenArea.findMany({
+    where,
     orderBy: { name: 'asc' }
   });
 
@@ -29,7 +39,7 @@ export default async function AreasVerdesPage() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 flex-wrap gap-4">
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input 
@@ -38,6 +48,10 @@ export default async function AreasVerdesPage() {
               className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
+          <QuickFilters filters={[
+            { name: "tipo", label: "Tipo", options: [{ value: "Parque", label: "Parque" }, { value: "Praça", label: "Praça" }, { value: "APP", label: "APP" }, { value: "Reserva", label: "Reserva" }] },
+            { name: "status", label: "Conservação", options: [{ value: "Preservado", label: "Preservado" }, { value: "Em Recuperação", label: "Em Recuperação" }, { value: "Degradado", label: "Degradado" }, { value: "Em Manutenção", label: "Em Manutenção" }] }
+          ]} />
         </div>
 
         {greenAreas.length === 0 ? (
@@ -56,6 +70,7 @@ export default async function AreasVerdesPage() {
                   <th className="px-6 py-3">Tamanho (m²)</th>
                   <th className="px-6 py-3">Localização</th>
                   <th className="px-6 py-3">Conservação</th>
+                  <th className="px-6 py-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -77,6 +92,9 @@ export default async function AreasVerdesPage() {
                           'bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400'}`}>
                         {area.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <ActionButtons requireJustification={true} />
                     </td>
                   </tr>
                 ))}

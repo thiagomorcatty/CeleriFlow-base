@@ -3,9 +3,19 @@ import { prisma } from "@/lib/prisma";
 import { Building2, Search } from "lucide-react";
 import Link from "next/link";
 import { NewEnterpriseSheet } from "../components/NewEnterpriseSheet";
+import { QuickFilters } from "../components/QuickFilters";
+import { Pencil, Trash } from "lucide-react";
 
-export default async function EmpreendimentosPage() {
+export default async function EmpreendimentosPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const searchParams = await Promise.resolve(props.searchParams || {});
+  
+  const where: any = {};
+  if (searchParams.atividade) where.activityType = { contains: searchParams.atividade, mode: 'insensitive' };
+  if (searchParams.risco) where.potentialRisk = searchParams.risco;
+  if (searchParams.status) where.status = searchParams.status;
+
   const enterprises = await prisma.envEnterprise.findMany({
+    where,
     orderBy: { createdAt: 'desc' }
   });
 
@@ -27,7 +37,7 @@ export default async function EmpreendimentosPage() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 flex-wrap gap-4">
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input 
@@ -36,6 +46,11 @@ export default async function EmpreendimentosPage() {
               className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
+          <QuickFilters filters={[
+            { name: "atividade", label: "Atividade", options: [{ value: "Indústria", label: "Indústria" }, { value: "Comércio", label: "Comércio" }, { value: "Serviços", label: "Serviços" }, { value: "Construção", label: "Construção" }] },
+            { name: "risco", label: "Risco", options: [{ value: "Alto", label: "Alto" }, { value: "Médio", label: "Médio" }, { value: "Baixo", label: "Baixo" }] },
+            { name: "status", label: "Status", options: [{ value: "Ativo", label: "Ativo" }, { value: "Inativo", label: "Inativo" }, { value: "Em Licenciamento", label: "Em Licenciamento" }] }
+          ]} />
         </div>
 
         {enterprises.length === 0 ? (
@@ -54,6 +69,7 @@ export default async function EmpreendimentosPage() {
                   <th className="px-6 py-3">Atividade</th>
                   <th className="px-6 py-3">Risco</th>
                   <th className="px-6 py-3">Status</th>
+                  <th className="px-6 py-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -77,6 +93,16 @@ export default async function EmpreendimentosPage() {
                         ${ent.status === 'Ativo' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
                         {ent.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Editar">
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Inativar">
+                          <Trash className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

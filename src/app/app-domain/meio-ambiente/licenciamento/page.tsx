@@ -4,8 +4,17 @@ import { ShieldCheck, Search } from "lucide-react";
 import Link from "next/link";
 import { NewLicenseSheet } from "../components/NewLicenseSheet";
 
-export default async function LicenciamentoPage() {
+import { QuickFilters } from "../components/QuickFilters";
+import { Pencil, Trash } from "lucide-react";
+
+export default async function LicenciamentoPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const searchParams = await Promise.resolve(props.searchParams || {});
+  
+  const where: any = {};
+  if (searchParams.status) where.status = searchParams.status;
+
   const licenses = await prisma.envLicense.findMany({
+    where,
     include: {
       enterprise: true
     },
@@ -35,7 +44,7 @@ export default async function LicenciamentoPage() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 flex-wrap gap-4">
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input 
@@ -44,6 +53,9 @@ export default async function LicenciamentoPage() {
               className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+          <QuickFilters filters={[
+            { name: "status", label: "Status", options: [{ value: "Emitida", label: "Emitida" }, { value: "Em Análise", label: "Em Análise" }, { value: "Vencida", label: "Vencida" }, { value: "Cassada", label: "Cassada" }] }
+          ]} />
         </div>
 
         {licenses.length === 0 ? (
@@ -62,6 +74,7 @@ export default async function LicenciamentoPage() {
                   <th className="px-6 py-3">Empreendimento</th>
                   <th className="px-6 py-3">Validade</th>
                   <th className="px-6 py-3">Status</th>
+                  <th className="px-6 py-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -82,6 +95,16 @@ export default async function LicenciamentoPage() {
                           'bg-yellow-100 text-yellow-700'}`}>
                         {lic.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Editar">
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Inativar">
+                          <Trash className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

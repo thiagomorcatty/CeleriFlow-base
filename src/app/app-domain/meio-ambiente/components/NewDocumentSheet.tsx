@@ -83,12 +83,14 @@ export function NewDocumentSheet({ enterprises }: { enterprises: { id: string; n
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Link do Arquivo / PDF (Simulado)</label>
+            <label className="text-sm font-medium">Arquivo do Documento</label>
             <input 
-              name="fileUrl" 
-              className="w-full p-2 border rounded-md text-sm" 
-              placeholder="Ex: /docs/meu-laudo.pdf"
+              type="file"
+              name="file" 
+              required
+              className="w-full p-2 border rounded-md text-sm cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" 
             />
+            <p className="text-xs text-gray-500">Upload de PDF, DOCX ou Imagens.</p>
           </div>
 
           <div className="pt-4 flex justify-end gap-2">
