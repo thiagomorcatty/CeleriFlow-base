@@ -1,11 +1,13 @@
-import React from "react";
+﻿import React from "react";
 import { prisma } from "@/lib/prisma";
 import { ShieldCheck, Search } from "lucide-react";
 import Link from "next/link";
 import { NewLicenseSheet } from "../components/NewLicenseSheet";
-
 import { QuickFilters } from "../components/QuickFilters";
-import { Pencil, Trash } from "lucide-react";
+import { ActionButtons } from "../components/ActionButtons";
+import { deleteEnvLicense } from "../actions";
+
+export const dynamic = "force-dynamic";
 
 export default async function LicenciamentoPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const searchParams = await Promise.resolve(props.searchParams || {});
@@ -13,18 +15,8 @@ export default async function LicenciamentoPage(props: { searchParams: Promise<{
   const where: any = {};
   if (searchParams.status) where.status = searchParams.status;
 
-  const licenses = await prisma.envLicense.findMany({
-    where,
-    include: {
-      enterprise: true
-    },
-    orderBy: { createdAt: 'desc' }
-  });
-
-  const enterprises = await prisma.envEnterprise.findMany({
-    select: { id: true, name: true },
-    orderBy: { name: 'asc' }
-  });
+  const licenses = await prisma.envLicense.findMany({ where, include: { enterprise: true }, orderBy: { createdAt: "desc" } });
+  const enterprises = await prisma.envEnterprise.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
 
   return (
     <div className="flex-1 p-8">
@@ -42,69 +34,49 @@ export default async function LicenciamentoPage(props: { searchParams: Promise<{
         </div>
         <NewLicenseSheet enterprises={enterprises} />
       </div>
-
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 flex-wrap gap-4">
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Buscar licença..." 
-              className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <input type="text" placeholder="Buscar licenca..." className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <QuickFilters filters={[
-            { name: "status", label: "Status", options: [{ value: "Emitida", label: "Emitida" }, { value: "Em Análise", label: "Em Análise" }, { value: "Vencida", label: "Vencida" }, { value: "Cassada", label: "Cassada" }] }
+            { name: "status", label: "Status", options: [{ value: "Emitida", label: "Emitida" }, { value: "Em Analise", label: "Em Analise" }, { value: "Vencida", label: "Vencida" }, { value: "Cassada", label: "Cassada" }] }
           ]} />
         </div>
-
         {licenses.length === 0 ? (
           <div className="p-12 text-center text-gray-500">
             <ShieldCheck className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p>Nenhuma licença emitida.</p>
-            <p className="text-sm">Clique em "Nova Licença" para adicionar.</p>
+            <p>Nenhuma licenca emitida.</p>
+            <p className="text-sm">Clique em "Nova Licenca" para adicionar.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="px-6 py-3">Nº Licença</th>
+                  <th className="px-6 py-3">No Licenca</th>
                   <th className="px-6 py-3">Tipo</th>
                   <th className="px-6 py-3">Empreendimento</th>
                   <th className="px-6 py-3">Validade</th>
                   <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Ações</th>
+                  <th className="px-6 py-3 text-right">Acoes</th>
                 </tr>
               </thead>
               <tbody>
                 {licenses.map((lic) => (
                   <tr key={lic.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                      {lic.licenseNumber}
-                    </td>
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{lic.licenseNumber}</td>
                     <td className="px-6 py-4 text-gray-500">{lic.licenseType}</td>
                     <td className="px-6 py-4 text-gray-900 font-medium">{lic.enterprise.name}</td>
-                    <td className="px-6 py-4 text-gray-500">
-                      {lic.validUntil ? new Date(lic.validUntil).toLocaleDateString('pt-BR') : 'Indeterminado'}
-                    </td>
+                    <td className="px-6 py-4 text-gray-500">{lic.validUntil ? new Date(lic.validUntil).toLocaleDateString("pt-BR") : "Indeterminado"}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium
-                        ${lic.status === 'Emitida' ? 'bg-green-100 text-green-700' : 
-                          lic.status === 'Vencida' ? 'bg-red-100 text-red-700' : 
-                          'bg-yellow-100 text-yellow-700'}`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${lic.status === "Emitida" ? "bg-green-100 text-green-700" : lic.status === "Vencida" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>
                         {lic.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Editar">
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Inativar">
-                          <Trash className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <ActionButtons id={lic.id} onDelete={deleteEnvLicense} />
                     </td>
                   </tr>
                 ))}
