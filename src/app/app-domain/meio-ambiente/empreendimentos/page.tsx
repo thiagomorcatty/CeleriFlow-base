@@ -4,14 +4,12 @@ import { Building2, Search } from "lucide-react";
 import Link from "next/link";
 import { NewEnterpriseSheet } from "../components/NewEnterpriseSheet";
 import { QuickFilters } from "../components/QuickFilters";
-import { ActionButtons } from "../components/ActionButtons";
-import { deleteEnvEnterprise } from "../actions";
+import { EnterpriseRowActions } from "../components/EnterpriseRowActions";
 
 export const dynamic = "force-dynamic";
 
 export default async function EmpreendimentosPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const searchParams = await Promise.resolve(props.searchParams || {});
-  
   const where: any = {};
   if (searchParams.atividade) where.activityType = { contains: searchParams.atividade, mode: "insensitive" };
   if (searchParams.risco) where.potentialRisk = searchParams.risco;
@@ -42,16 +40,14 @@ export default async function EmpreendimentosPage(props: { searchParams: Promise
             <input type="text" placeholder="Buscar empreendimento..." className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <QuickFilters filters={[
-            { name: "atividade", label: "Atividade", options: [{ value: "Industria", label: "Industria" }, { value: "Comercio", label: "Comercio" }, { value: "Servicos", label: "Servicos" }, { value: "Construcao", label: "Construcao" }] },
             { name: "risco", label: "Risco", options: [{ value: "Alto", label: "Alto" }, { value: "Medio", label: "Medio" }, { value: "Baixo", label: "Baixo" }] },
-            { name: "status", label: "Status", options: [{ value: "Ativo", label: "Ativo" }, { value: "Inativo", label: "Inativo" }, { value: "Em Licenciamento", label: "Em Licenciamento" }] }
+            { name: "status", label: "Status", options: [{ value: "Ativo", label: "Ativo" }, { value: "Inativo", label: "Inativo" }, { value: "Irregular", label: "Irregular" }, { value: "Embargado", label: "Embargado" }] }
           ]} />
         </div>
         {enterprises.length === 0 ? (
           <div className="p-12 text-center text-gray-500">
             <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
             <p>Nenhum empreendimento cadastrado.</p>
-            <p className="text-sm">Clique em "Novo Empreendimento" para adicionar.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -78,12 +74,12 @@ export default async function EmpreendimentosPage(props: { searchParams: Promise
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${ent.status === "Ativo" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${ent.status === "Ativo" ? "bg-blue-100 text-blue-700" : ent.status === "Embargado" ? "bg-red-100 text-red-700" : ent.status === "Irregular" ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-600"}`}>
                         {ent.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <ActionButtons id={ent.id} onDelete={deleteEnvEnterprise} />
+                      <EnterpriseRowActions enterprise={ent} />
                     </td>
                   </tr>
                 ))}

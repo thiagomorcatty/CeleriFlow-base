@@ -4,14 +4,12 @@ import { FolderOpen, Search, Download } from "lucide-react";
 import Link from "next/link";
 import { NewDocumentSheet } from "../components/NewDocumentSheet";
 import { QuickFilters } from "../components/QuickFilters";
-import { ActionButtons } from "../components/ActionButtons";
-import { deleteEnvDocument } from "../actions";
+import { DocumentRowActions } from "../components/DocumentRowActions";
 
 export const dynamic = "force-dynamic";
 
 export default async function DocumentosAmbientaisPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const searchParams = await Promise.resolve(props.searchParams || {});
-  
   const where: any = {};
   if (searchParams.tipo) where.docType = searchParams.tipo;
 
@@ -33,9 +31,6 @@ export default async function DocumentosAmbientaisPage(props: { searchParams: Pr
           </h1>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/app-domain/documentos/ged" className="text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 px-4 py-2 rounded-lg transition-colors border border-green-200">
-            Acessar GED Central
-          </Link>
           <NewDocumentSheet enterprises={enterprises} />
         </div>
       </div>
@@ -53,7 +48,6 @@ export default async function DocumentosAmbientaisPage(props: { searchParams: Pr
           <div className="p-12 text-center text-gray-500">
             <FolderOpen className="h-12 w-12 mx-auto mb-4 text-gray-300 animate-bounce" />
             <p>Nenhum documento anexado.</p>
-            <p className="text-sm">Clique em "Anexar Documento" para adicionar.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -62,7 +56,7 @@ export default async function DocumentosAmbientaisPage(props: { searchParams: Pr
                 <tr>
                   <th className="px-6 py-3">Titulo do Documento</th>
                   <th className="px-6 py-3">Tipo</th>
-                  <th className="px-6 py-3">Empreendimento Vinculado</th>
+                  <th className="px-6 py-3">Empreendimento</th>
                   <th className="px-6 py-3">Data de Cadastro</th>
                   <th className="px-6 py-3 text-center">Download</th>
                   <th className="px-6 py-3 text-right">Acoes</th>
@@ -78,18 +72,16 @@ export default async function DocumentosAmbientaisPage(props: { searchParams: Pr
                     </td>
                     <td className="px-6 py-4 text-gray-500">{new Date(doc.createdAt).toLocaleDateString("pt-BR")}</td>
                     <td className="px-6 py-4 text-center">
-                      <a
-                        href={doc.fileUrl || "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-900 dark:hover:bg-slate-950 dark:text-slate-300 rounded-lg transition-colors"
-                        title="Baixar arquivo"
-                      >
-                        <Download className="h-4 w-4" />
-                      </a>
+                      {doc.fileUrl ? (
+                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors" title="Baixar arquivo">
+                          <Download className="h-4 w-4" />
+                        </a>
+                      ) : (
+                        <span className="text-gray-400 text-xs">Sem arquivo</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <ActionButtons id={doc.id} onDelete={deleteEnvDocument} />
+                      <DocumentRowActions doc={doc} enterprises={enterprises} />
                     </td>
                   </tr>
                 ))}

@@ -4,14 +4,12 @@ import { Search, MapPin } from "lucide-react";
 import Link from "next/link";
 import { NewInspectionSheet } from "../components/NewInspectionSheet";
 import { QuickFilters } from "../components/QuickFilters";
-import { ActionButtons } from "../components/ActionButtons";
-import { deleteEnvInspection } from "../actions";
+import { InspectionRowActions } from "../components/InspectionRowActions";
 
 export const dynamic = "force-dynamic";
 
 export default async function FiscalizacaoPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const searchParams = await Promise.resolve(props.searchParams || {});
-  
   const where: any = {};
   if (searchParams.status) where.status = searchParams.status;
 
@@ -48,7 +46,6 @@ export default async function FiscalizacaoPage(props: { searchParams: Promise<{ 
           <div className="p-12 text-center text-gray-500">
             <MapPin className="h-12 w-12 mx-auto mb-4 text-gray-300" />
             <p>Nenhuma vistoria agendada.</p>
-            <p className="text-sm">Clique em "Agendar Vistoria" para adicionar.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -57,7 +54,7 @@ export default async function FiscalizacaoPage(props: { searchParams: Promise<{ 
                 <tr>
                   <th className="px-6 py-3">Data Agendada</th>
                   <th className="px-6 py-3">Fiscal Responsavel</th>
-                  <th className="px-6 py-3">Empreendimento Vinculado</th>
+                  <th className="px-6 py-3">Empreendimento</th>
                   <th className="px-6 py-3">Status</th>
                   <th className="px-6 py-3">Observacoes</th>
                   <th className="px-6 py-3 text-right">Acoes</th>
@@ -76,7 +73,7 @@ export default async function FiscalizacaoPage(props: { searchParams: Promise<{ 
                     </td>
                     <td className="px-6 py-4 text-gray-500 max-w-xs truncate" title={insp.notes || ""}>{insp.notes || "-"}</td>
                     <td className="px-6 py-4 text-right">
-                      <ActionButtons id={insp.id} onDelete={deleteEnvInspection} />
+                      <InspectionRowActions inspection={insp} enterprises={enterprises} />
                     </td>
                   </tr>
                 ))}

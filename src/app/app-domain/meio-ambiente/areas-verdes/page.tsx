@@ -4,16 +4,13 @@ import { Sprout, Search } from "lucide-react";
 import Link from "next/link";
 import { NewGreenAreaSheet } from "../components/NewGreenAreaSheet";
 import { QuickFilters } from "../components/QuickFilters";
-import { ActionButtons } from "../components/ActionButtons";
-import { deleteEnvGreenArea } from "../actions";
+import { GreenAreaRowActions } from "../components/GreenAreaRowActions";
 
 export const dynamic = "force-dynamic";
 
 export default async function AreasVerdesPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const searchParams = await Promise.resolve(props.searchParams || {});
-  
   const where: any = {};
-  if (searchParams.tipo) where.areaType = { contains: searchParams.tipo, mode: "insensitive" };
   if (searchParams.status) where.status = searchParams.status;
 
   const greenAreas = await prisma.envGreenArea.findMany({ where, orderBy: { name: "asc" } });
@@ -41,15 +38,13 @@ export default async function AreasVerdesPage(props: { searchParams: Promise<{ [
             <input type="text" placeholder="Buscar area verde..." className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <QuickFilters filters={[
-            { name: "tipo", label: "Tipo", options: [{ value: "Parque", label: "Parque" }, { value: "Praca", label: "Praca" }, { value: "APP", label: "APP" }, { value: "Reserva", label: "Reserva" }] },
-            { name: "status", label: "Conservacao", options: [{ value: "Preservado", label: "Preservado" }, { value: "Em Recuperacao", label: "Em Recuperacao" }, { value: "Degradado", label: "Degradado" }, { value: "Em Manutencao", label: "Em Manutencao" }] }
+            { name: "status", label: "Conservacao", options: [{ value: "Preservado", label: "Preservado" }, { value: "Em Recuperacao", label: "Em Recuperacao" }, { value: "Degradado", label: "Degradado" }, { value: "Monitorado", label: "Monitorado" }] }
           ]} />
         </div>
         {greenAreas.length === 0 ? (
           <div className="p-12 text-center text-gray-500">
             <Sprout className="h-12 w-12 mx-auto mb-4 text-gray-300 animate-bounce" />
             <p>Nenhuma area verde cadastrada.</p>
-            <p className="text-sm">Clique em "Nova Area Verde" para adicionar.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -77,7 +72,7 @@ export default async function AreasVerdesPage(props: { searchParams: Promise<{ [
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <ActionButtons id={area.id} onDelete={deleteEnvGreenArea} />
+                      <GreenAreaRowActions area={area} />
                     </td>
                   </tr>
                 ))}

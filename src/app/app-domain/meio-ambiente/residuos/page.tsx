@@ -4,14 +4,12 @@ import { Trash2, Search } from "lucide-react";
 import Link from "next/link";
 import { NewWasteSheet } from "../components/NewWasteSheet";
 import { QuickFilters } from "../components/QuickFilters";
-import { ActionButtons } from "../components/ActionButtons";
-import { deleteEnvWaste } from "../actions";
+import { WasteRowActions } from "../components/WasteRowActions";
 
 export const dynamic = "force-dynamic";
 
 export default async function ResiduosPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const searchParams = await Promise.resolve(props.searchParams || {});
-  
   const where: any = {};
   if (searchParams.tipo) where.wasteType = { contains: searchParams.tipo, mode: "insensitive" };
 
@@ -41,14 +39,13 @@ export default async function ResiduosPage(props: { searchParams: Promise<{ [key
             <input type="text" placeholder="Buscar registros..." className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <QuickFilters filters={[
-            { name: "tipo", label: "Tipo", options: [{ value: "Solido", label: "Solido" }, { value: "Liquido", label: "Liquido" }, { value: "Perigoso", label: "Perigoso" }, { value: "Reciclavel", label: "Reciclavel" }] }
+            { name: "tipo", label: "Tipo", options: [{ value: "Organico", label: "Organico" }, { value: "Reciclavel", label: "Reciclavel" }, { value: "Perigoso", label: "Perigoso" }, { value: "Eletronico", label: "Eletronico" }] }
           ]} />
         </div>
         {wastes.length === 0 ? (
           <div className="p-12 text-center text-gray-500">
             <Trash2 className="h-12 w-12 mx-auto mb-4 text-gray-300 animate-bounce" />
             <p>Nenhum registro de residuo encontrado.</p>
-            <p className="text-sm">Clique em "Registrar Residuo" para adicionar.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -60,24 +57,19 @@ export default async function ResiduosPage(props: { searchParams: Promise<{ [key
                   <th className="px-6 py-3">Quantidade (Kg)</th>
                   <th className="px-6 py-3">Destinacao Final</th>
                   <th className="px-6 py-3">Data Registro</th>
-                  <th className="px-6 py-3">Detalhes</th>
                   <th className="px-6 py-3 text-right">Acoes</th>
                 </tr>
               </thead>
               <tbody>
                 {wastes.map((w) => (
                   <tr key={w.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                      {w.generatorName}
-                      {w.enterprise && (<span className="block text-xs font-semibold text-green-600 dark:text-green-400">Visto no sistema</span>)}
-                    </td>
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{w.generatorName}</td>
                     <td className="px-6 py-4 text-gray-500">{w.wasteType}</td>
                     <td className="px-6 py-4 font-semibold text-gray-700">{w.quantityKg.toLocaleString("pt-BR")} Kg</td>
                     <td className="px-6 py-4 text-gray-500">{w.destination}</td>
                     <td className="px-6 py-4 text-gray-500">{new Date(w.date).toLocaleDateString("pt-BR")}</td>
-                    <td className="px-6 py-4 text-gray-400 text-xs italic truncate max-w-xs" title={w.notes || ""}>{w.notes || "-"}</td>
                     <td className="px-6 py-4 text-right">
-                      <ActionButtons id={w.id} onDelete={deleteEnvWaste} />
+                      <WasteRowActions waste={w} enterprises={enterprises} />
                     </td>
                   </tr>
                 ))}

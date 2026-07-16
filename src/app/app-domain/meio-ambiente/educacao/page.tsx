@@ -4,14 +4,12 @@ import { GraduationCap, Search } from "lucide-react";
 import Link from "next/link";
 import { NewEduProgramSheet } from "../components/NewEduProgramSheet";
 import { QuickFilters } from "../components/QuickFilters";
-import { ActionButtons } from "../components/ActionButtons";
-import { deleteEnvEduProgram } from "../actions";
+import { EduProgramRowActions } from "../components/EduProgramRowActions";
 
 export const dynamic = "force-dynamic";
 
 export default async function EducacaoAmbientalPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const searchParams = await Promise.resolve(props.searchParams || {});
-  
   const where: any = {};
   if (searchParams.status) where.status = searchParams.status;
 
@@ -47,7 +45,6 @@ export default async function EducacaoAmbientalPage(props: { searchParams: Promi
           <div className="p-12 text-center text-gray-500">
             <GraduationCap className="h-12 w-12 mx-auto mb-4 text-gray-300 animate-bounce" />
             <p>Nenhuma acao educativa registrada.</p>
-            <p className="text-sm">Clique em "Novo Projeto / Acao" para adicionar.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -59,7 +56,6 @@ export default async function EducacaoAmbientalPage(props: { searchParams: Promi
                   <th className="px-6 py-3">Inicio / Fim</th>
                   <th className="px-6 py-3">Participantes</th>
                   <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3">Descricao</th>
                   <th className="px-6 py-3 text-right">Acoes</th>
                 </tr>
               </thead>
@@ -78,9 +74,8 @@ export default async function EducacaoAmbientalPage(props: { searchParams: Promi
                         {prog.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-400 text-xs italic truncate max-w-xs" title={prog.description}>{prog.description}</td>
                     <td className="px-6 py-4 text-right">
-                      <ActionButtons id={prog.id} onDelete={deleteEnvEduProgram} />
+                      <EduProgramRowActions program={prog} />
                     </td>
                   </tr>
                 ))}

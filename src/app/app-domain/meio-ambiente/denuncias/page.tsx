@@ -1,17 +1,15 @@
 ﻿import React from "react";
 import { prisma } from "@/lib/prisma";
-import { AlertTriangle, Search, CheckCircle, XCircle } from "lucide-react";
+import { AlertTriangle, Search } from "lucide-react";
 import Link from "next/link";
 import { NewComplaintSheet } from "../components/NewComplaintSheet";
 import { QuickFilters } from "../components/QuickFilters";
-import { ActionButtons } from "../components/ActionButtons";
-import { deleteEnvComplaint, updateEnvComplaintStatus } from "../actions";
+import { ComplaintRowActions } from "../components/ComplaintRowActions";
 
 export const dynamic = "force-dynamic";
 
 export default async function DenunciasPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const searchParams = await Promise.resolve(props.searchParams || {});
-  
   const where: any = {};
   if (searchParams.tipo) where.complaintType = { contains: searchParams.tipo, mode: "insensitive" };
   if (searchParams.status) where.status = searchParams.status;
@@ -41,15 +39,13 @@ export default async function DenunciasPage(props: { searchParams: Promise<{ [ke
             <input type="text" placeholder="Buscar denuncia..." className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
           </div>
           <QuickFilters filters={[
-            { name: "tipo", label: "Tipo", options: [{ value: "Desmatamento", label: "Desmatamento" }, { value: "Poluicao", label: "Poluicao" }, { value: "Queimada", label: "Queimada" }, { value: "Fauna Silvestre", label: "Fauna Silvestre" }] },
-            { name: "status", label: "Status", options: [{ value: "Recebida", label: "Recebida" }, { value: "Em Verificacao", label: "Em Verificacao" }, { value: "Encerrada", label: "Encerrada" }] }
+            { name: "status", label: "Status", options: [{ value: "Recebida", label: "Recebida" }, { value: "Em Triagem", label: "Em Triagem" }, { value: "Em Vistoria", label: "Em Vistoria" }, { value: "Encerrada", label: "Encerrada" }] }
           ]} />
         </div>
         {complaints.length === 0 ? (
           <div className="p-12 text-center text-gray-500">
             <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
             <p>Nenhuma denuncia registrada.</p>
-            <p className="text-sm">Clique em "Registrar Denuncia" para adicionar.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -79,7 +75,7 @@ export default async function DenunciasPage(props: { searchParams: Promise<{ [ke
                     </td>
                     <td className="px-6 py-4 text-gray-500">{new Date(comp.createdAt).toLocaleDateString("pt-BR")}</td>
                     <td className="px-6 py-4 text-right">
-                      <ActionButtons id={comp.id} onDelete={deleteEnvComplaint} />
+                      <ComplaintRowActions complaint={comp} />
                     </td>
                   </tr>
                 ))}

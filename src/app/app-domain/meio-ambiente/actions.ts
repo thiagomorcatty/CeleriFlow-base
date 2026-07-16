@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
 
+// ─── EnvEnterprise ───────────────────────────────────────────────────────────
+
 export async function createEnvEnterprise(formData: FormData) {
   const name = formData.get("name") as string;
   const cnpjCpf = formData.get("cnpjCpf") as string;
@@ -17,22 +19,43 @@ export async function createEnvEnterprise(formData: FormData) {
     revalidatePath("/meio-ambiente");
     return { success: true, enterprise };
   } catch (error) {
-    console.error("Erro ao criar empreendimento:", error);
+    console.error(error);
     return { error: "Erro ao criar empreendimento. Tente novamente." };
   }
 }
 
-export async function deleteEnvEnterprise(id: string) {
+export async function updateEnvEnterprise(id: string, formData: FormData) {
+  const name = formData.get("name") as string;
+  const cnpjCpf = formData.get("cnpjCpf") as string;
+  const activityType = formData.get("activityType") as string;
+  const potentialRisk = formData.get("potentialRisk") as string;
+  const address = formData.get("address") as string;
+  const status = formData.get("status") as string;
+  if (!name) return { error: "Nome e obrigatorio." };
   try {
-    await prisma.envEnterprise.delete({ where: { id } });
+    await prisma.envEnterprise.update({ where: { id }, data: { name, cnpjCpf, activityType, potentialRisk, address, ...(status && { status }) } });
     revalidatePath("/meio-ambiente/empreendimentos");
     revalidatePath("/meio-ambiente");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao excluir empreendimento:", error);
-    return { error: "Erro ao excluir. Verifique se nao ha registros vinculados." };
+    console.error(error);
+    return { error: "Erro ao atualizar empreendimento." };
   }
 }
+
+export async function inactivateEnvEnterprise(id: string) {
+  try {
+    await prisma.envEnterprise.update({ where: { id }, data: { status: "Inativo" } });
+    revalidatePath("/meio-ambiente/empreendimentos");
+    revalidatePath("/meio-ambiente");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Erro ao inativar empreendimento." };
+  }
+}
+
+// ─── EnvLicense ──────────────────────────────────────────────────────────────
 
 export async function createEnvLicense(formData: FormData) {
   const licenseNumber = formData.get("licenseNumber") as string;
@@ -44,12 +67,41 @@ export async function createEnvLicense(formData: FormData) {
     const validUntil = validUntilStr ? new Date(validUntilStr) : null;
     const license = await prisma.envLicense.create({ data: { licenseNumber, licenseType, enterpriseId, validUntil } });
     revalidatePath("/meio-ambiente/licenciamento");
-    revalidatePath("/meio-ambiente/empreendimentos");
     revalidatePath("/meio-ambiente");
     return { success: true, license };
   } catch (error) {
-    console.error("Erro ao criar licenca:", error);
+    console.error(error);
     return { error: "Erro ao criar licenca. Verifique se o numero ja existe." };
+  }
+}
+
+export async function updateEnvLicense(id: string, formData: FormData) {
+  const licenseNumber = formData.get("licenseNumber") as string;
+  const licenseType = formData.get("licenseType") as string;
+  const validUntilStr = formData.get("validUntil") as string;
+  const status = formData.get("status") as string;
+  if (!licenseNumber || !licenseType) return { error: "Numero e Tipo sao obrigatorios." };
+  try {
+    const validUntil = validUntilStr ? new Date(validUntilStr) : null;
+    await prisma.envLicense.update({ where: { id }, data: { licenseNumber, licenseType, validUntil, ...(status && { status }) } });
+    revalidatePath("/meio-ambiente/licenciamento");
+    revalidatePath("/meio-ambiente");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Erro ao atualizar licenca." };
+  }
+}
+
+export async function inactivateEnvLicense(id: string) {
+  try {
+    await prisma.envLicense.update({ where: { id }, data: { status: "Suspensa" } });
+    revalidatePath("/meio-ambiente/licenciamento");
+    revalidatePath("/meio-ambiente");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Erro ao suspender licenca." };
   }
 }
 
@@ -60,10 +112,12 @@ export async function deleteEnvLicense(id: string) {
     revalidatePath("/meio-ambiente");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao excluir licenca:", error);
+    console.error(error);
     return { error: "Erro ao excluir licenca." };
   }
 }
+
+// ─── EnvComplaint ─────────────────────────────────────────────────────────────
 
 export async function createEnvComplaint(formData: FormData) {
   const complaintType = formData.get("complaintType") as string;
@@ -77,20 +131,23 @@ export async function createEnvComplaint(formData: FormData) {
     revalidatePath("/meio-ambiente");
     return { success: true, complaint };
   } catch (error) {
-    console.error("Erro ao registrar denuncia:", error);
+    console.error(error);
     return { error: "Erro ao registrar denuncia. Tente novamente." };
   }
 }
 
-export async function updateEnvComplaintStatus(id: string, status: string) {
+export async function updateEnvComplaint(id: string, formData: FormData) {
+  const status = formData.get("status") as string;
+  const address = formData.get("address") as string;
+  const description = formData.get("description") as string;
   try {
-    await prisma.envComplaint.update({ where: { id }, data: { status } });
+    await prisma.envComplaint.update({ where: { id }, data: { status, address, description } });
     revalidatePath("/meio-ambiente/denuncias");
     revalidatePath("/meio-ambiente");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao atualizar status da denuncia:", error);
-    return { error: "Erro ao atualizar status." };
+    console.error(error);
+    return { error: "Erro ao atualizar denuncia." };
   }
 }
 
@@ -101,10 +158,12 @@ export async function deleteEnvComplaint(id: string) {
     revalidatePath("/meio-ambiente");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao excluir denuncia:", error);
+    console.error(error);
     return { error: "Erro ao excluir denuncia." };
   }
 }
+
+// ─── EnvInspection ────────────────────────────────────────────────────────────
 
 export async function createEnvInspection(formData: FormData) {
   const dateScheduledStr = formData.get("dateScheduled") as string;
@@ -119,8 +178,26 @@ export async function createEnvInspection(formData: FormData) {
     revalidatePath("/meio-ambiente");
     return { success: true, inspection };
   } catch (error) {
-    console.error("Erro ao agendar vistoria:", error);
+    console.error(error);
     return { error: "Erro ao agendar vistoria. Tente novamente." };
+  }
+}
+
+export async function updateEnvInspection(id: string, formData: FormData) {
+  const dateScheduledStr = formData.get("dateScheduled") as string;
+  const inspector = formData.get("inspector") as string;
+  const notes = formData.get("notes") as string;
+  const status = formData.get("status") as string;
+  const enterpriseId = formData.get("enterpriseId") as string;
+  try {
+    const dateScheduled = dateScheduledStr ? new Date(dateScheduledStr) : undefined;
+    await prisma.envInspection.update({ where: { id }, data: { ...(dateScheduled && { dateScheduled }), inspector, notes, status, enterpriseId: enterpriseId || null } });
+    revalidatePath("/meio-ambiente/fiscalizacao");
+    revalidatePath("/meio-ambiente");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Erro ao atualizar vistoria." };
   }
 }
 
@@ -131,10 +208,12 @@ export async function deleteEnvInspection(id: string) {
     revalidatePath("/meio-ambiente");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao excluir vistoria:", error);
+    console.error(error);
     return { error: "Erro ao excluir vistoria." };
   }
 }
+
+// ─── EnvGreenArea ─────────────────────────────────────────────────────────────
 
 export async function createEnvGreenArea(formData: FormData) {
   const name = formData.get("name") as string;
@@ -151,22 +230,44 @@ export async function createEnvGreenArea(formData: FormData) {
     revalidatePath("/meio-ambiente");
     return { success: true, greenArea };
   } catch (error) {
-    console.error("Erro ao criar area verde:", error);
+    console.error(error);
     return { error: "Erro ao criar area verde. Tente novamente." };
   }
 }
 
-export async function deleteEnvGreenArea(id: string) {
+export async function updateEnvGreenArea(id: string, formData: FormData) {
+  const name = formData.get("name") as string;
+  const areaType = formData.get("areaType") as string;
+  const sizeSqmStr = formData.get("sizeSqm") as string;
+  const location = formData.get("location") as string;
+  const status = formData.get("status") as string;
+  const notes = formData.get("notes") as string;
+  if (!name || !areaType) return { error: "Nome e Tipo da Area sao obrigatorios." };
   try {
-    await prisma.envGreenArea.delete({ where: { id } });
+    const sizeSqm = sizeSqmStr ? parseFloat(sizeSqmStr) : null;
+    await prisma.envGreenArea.update({ where: { id }, data: { name, areaType, sizeSqm, location, status, notes } });
     revalidatePath("/meio-ambiente/areas-verdes");
     revalidatePath("/meio-ambiente");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao excluir area verde:", error);
-    return { error: "Erro ao excluir area verde." };
+    console.error(error);
+    return { error: "Erro ao atualizar area verde." };
   }
 }
+
+export async function inactivateEnvGreenArea(id: string) {
+  try {
+    await prisma.envGreenArea.update({ where: { id }, data: { status: "Degradado" } });
+    revalidatePath("/meio-ambiente/areas-verdes");
+    revalidatePath("/meio-ambiente");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Erro ao atualizar status da area verde." };
+  }
+}
+
+// ─── EnvWaste ─────────────────────────────────────────────────────────────────
 
 export async function createEnvWaste(formData: FormData) {
   const generatorName = formData.get("generatorName") as string;
@@ -183,8 +284,28 @@ export async function createEnvWaste(formData: FormData) {
     revalidatePath("/meio-ambiente");
     return { success: true, waste };
   } catch (error) {
-    console.error("Erro ao registrar residuo:", error);
+    console.error(error);
     return { error: "Erro ao registrar residuo. Tente novamente." };
+  }
+}
+
+export async function updateEnvWaste(id: string, formData: FormData) {
+  const generatorName = formData.get("generatorName") as string;
+  const wasteType = formData.get("wasteType") as string;
+  const quantityKgStr = formData.get("quantityKg") as string;
+  const destination = formData.get("destination") as string;
+  const notes = formData.get("notes") as string;
+  const enterpriseId = formData.get("enterpriseId") as string;
+  if (!generatorName || !wasteType || !quantityKgStr || !destination) return { error: "Gerador, Tipo, Quantidade e Destino sao obrigatorios." };
+  try {
+    const quantityKg = parseFloat(quantityKgStr);
+    await prisma.envWaste.update({ where: { id }, data: { generatorName, wasteType, quantityKg, destination, notes, enterpriseId: enterpriseId || null } });
+    revalidatePath("/meio-ambiente/residuos");
+    revalidatePath("/meio-ambiente");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Erro ao atualizar residuo." };
   }
 }
 
@@ -195,10 +316,12 @@ export async function deleteEnvWaste(id: string) {
     revalidatePath("/meio-ambiente");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao excluir registro de residuo:", error);
+    console.error(error);
     return { error: "Erro ao excluir registro de residuo." };
   }
 }
+
+// ─── EnvEduProgram ────────────────────────────────────────────────────────────
 
 export async function createEnvEduProgram(formData: FormData) {
   const title = formData.get("title") as string;
@@ -218,8 +341,31 @@ export async function createEnvEduProgram(formData: FormData) {
     revalidatePath("/meio-ambiente");
     return { success: true, eduProgram };
   } catch (error) {
-    console.error("Erro ao criar projeto de educacao:", error);
+    console.error(error);
     return { error: "Erro ao criar projeto de educacao. Tente novamente." };
+  }
+}
+
+export async function updateEnvEduProgram(id: string, formData: FormData) {
+  const title = formData.get("title") as string;
+  const description = formData.get("description") as string;
+  const targetAudience = formData.get("targetAudience") as string;
+  const startDateStr = formData.get("startDate") as string;
+  const endDateStr = formData.get("endDate") as string;
+  const participantsCountStr = formData.get("participantsCount") as string;
+  const status = formData.get("status") as string;
+  if (!title || !description || !startDateStr) return { error: "Titulo, Descricao e Data de Inicio sao obrigatorios." };
+  try {
+    const startDate = new Date(startDateStr);
+    const endDate = endDateStr ? new Date(endDateStr) : null;
+    const participantsCount = participantsCountStr ? parseInt(participantsCountStr, 10) : null;
+    await prisma.envEduProgram.update({ where: { id }, data: { title, description, targetAudience, startDate, endDate, participantsCount, status } });
+    revalidatePath("/meio-ambiente/educacao");
+    revalidatePath("/meio-ambiente");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Erro ao atualizar programa educativo." };
   }
 }
 
@@ -230,10 +376,12 @@ export async function deleteEnvEduProgram(id: string) {
     revalidatePath("/meio-ambiente");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao excluir programa educativo:", error);
+    console.error(error);
     return { error: "Erro ao excluir programa educativo." };
   }
 }
+
+// ─── EnvDocument ──────────────────────────────────────────────────────────────
 
 export async function createEnvDocument(formData: FormData) {
   const title = formData.get("title") as string;
@@ -249,8 +397,24 @@ export async function createEnvDocument(formData: FormData) {
     revalidatePath("/meio-ambiente");
     return { success: true, document: envDoc };
   } catch (error) {
-    console.error("Erro ao anexar documento:", error);
+    console.error(error);
     return { error: "Erro ao anexar documento. Verifique sua conexao e tente novamente." };
+  }
+}
+
+export async function updateEnvDocument(id: string, formData: FormData) {
+  const title = formData.get("title") as string;
+  const docType = formData.get("docType") as string;
+  const enterpriseId = formData.get("enterpriseId") as string;
+  if (!title || !docType) return { error: "Titulo e Tipo sao obrigatorios." };
+  try {
+    await prisma.envDocument.update({ where: { id }, data: { title, docType, enterpriseId: enterpriseId || null } });
+    revalidatePath("/meio-ambiente/documentos");
+    revalidatePath("/meio-ambiente");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Erro ao atualizar documento." };
   }
 }
 
@@ -261,7 +425,7 @@ export async function deleteEnvDocument(id: string) {
     revalidatePath("/meio-ambiente");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao excluir documento:", error);
+    console.error(error);
     return { error: "Erro ao excluir documento." };
   }
 }
