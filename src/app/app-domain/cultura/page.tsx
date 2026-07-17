@@ -70,7 +70,7 @@ export default async function CulturaDashboard() {
 
       <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Acesso Rápido</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link href="/app-domain/cultura/gestao-cultural" className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-pink-200 transition-all group flex flex-col justify-between h-36 relative overflow-hidden">
+        <Link href="/cultura/gestao-cultural" className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-pink-200 transition-all group flex flex-col justify-between h-36 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-pink-50 dark:bg-pink-900/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
           <Palette className="h-7 w-7 text-pink-600 mb-3 relative z-10" />
           <div className="relative z-10">
@@ -82,7 +82,7 @@ export default async function CulturaDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/cultura/fomento-projetos" className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-indigo-200 transition-all group flex flex-col justify-between h-36 relative overflow-hidden">
+        <Link href="/cultura/fomento-projetos" className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-indigo-200 transition-all group flex flex-col justify-between h-36 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 dark:bg-indigo-900/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
           <Sparkles className="h-7 w-7 text-indigo-600 mb-3 relative z-10" />
           <div className="relative z-10">
@@ -94,7 +94,7 @@ export default async function CulturaDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/cultura/esporte-lazer" className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-rose-200 transition-all group flex flex-col justify-between h-36 relative overflow-hidden">
+        <Link href="/cultura/esporte-lazer" className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-rose-200 transition-all group flex flex-col justify-between h-36 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50 dark:bg-rose-900/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
           <Trophy className="h-7 w-7 text-rose-600 mb-3 relative z-10" />
           <div className="relative z-10">
@@ -106,7 +106,7 @@ export default async function CulturaDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/cultura/espacos-reservas" className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-emerald-200 transition-all group flex flex-col justify-between h-36 relative overflow-hidden">
+        <Link href="/cultura/espacos-reservas" className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-emerald-200 transition-all group flex flex-col justify-between h-36 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 dark:bg-emerald-900/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
           <MapPin className="h-7 w-7 text-emerald-600 mb-3 relative z-10" />
           <div className="relative z-10">
@@ -118,7 +118,7 @@ export default async function CulturaDashboard() {
           </div>
         </Link>
         
-        <Link href="/app-domain/cultura/eventos" className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-amber-200 transition-all group flex flex-col justify-between h-36 relative overflow-hidden">
+        <Link href="/cultura/eventos" className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-amber-200 transition-all group flex flex-col justify-between h-36 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 dark:bg-amber-900/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
           <Calendar className="h-7 w-7 text-amber-600 mb-3 relative z-10" />
           <div className="relative z-10">
@@ -130,7 +130,7 @@ export default async function CulturaDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/cultura/conselhos-fundos" className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-red-200 transition-all group flex flex-col justify-between h-36 relative overflow-hidden">
+        <Link href="/cultura/conselhos-fundos" className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-red-200 transition-all group flex flex-col justify-between h-36 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-red-50 dark:bg-red-900/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
           <ShieldAlert className="h-7 w-7 text-red-600 mb-3 relative z-10" />
           <div className="relative z-10">
@@ -142,7 +142,7 @@ export default async function CulturaDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/cultura/documentos" className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-slate-300 transition-all group flex flex-col justify-between h-36 relative overflow-hidden">
+        <Link href="/cultura/documentos" className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-slate-300 transition-all group flex flex-col justify-between h-36 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 dark:bg-slate-900/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
           <FileText className="h-7 w-7 text-slate-600 mb-3 relative z-10" />
           <div className="relative z-10">

@@ -21,14 +21,14 @@ export async function createConsumerUnit(data: {
       status: "Ativa",
     },
   });
-  revalidatePath("/app-domain/saneamento/unidades");
-  revalidatePath("/app-domain/saneamento");
+  revalidatePath("/saneamento/unidades");
+  revalidatePath("/saneamento");
 }
 
 export async function deleteConsumerUnit(id: string) {
   await prisma.sanConsumerUnit.delete({ where: { id } });
-  revalidatePath("/app-domain/saneamento/unidades");
-  revalidatePath("/app-domain/saneamento");
+  revalidatePath("/saneamento/unidades");
+  revalidatePath("/saneamento");
 }
 
 // --- Leituras ---
@@ -52,14 +52,14 @@ export async function createMeterReading(data: {
       status: "Registrada",
     },
   });
-  revalidatePath("/app-domain/saneamento/leituras");
-  revalidatePath("/app-domain/saneamento");
+  revalidatePath("/saneamento/leituras");
+  revalidatePath("/saneamento");
 }
 
 export async function deleteMeterReading(id: string) {
   await prisma.sanMeterReading.delete({ where: { id } });
-  revalidatePath("/app-domain/saneamento/leituras");
-  revalidatePath("/app-domain/saneamento");
+  revalidatePath("/saneamento/leituras");
+  revalidatePath("/saneamento");
 }
 
 // --- Ordens de Serviço ---
@@ -84,12 +84,12 @@ export async function createServiceOrder(data: {
       status: "Aberta",
     },
   });
-  revalidatePath("/app-domain/saneamento/servicos");
-  revalidatePath("/app-domain/saneamento");
+  revalidatePath("/saneamento/servicos");
+  revalidatePath("/saneamento");
 }
 
 export async function deleteServiceOrder(id: string) {
   await prisma.sanServiceOrder.delete({ where: { id } });
-  revalidatePath("/app-domain/saneamento/servicos");
-  revalidatePath("/app-domain/saneamento");
+  revalidatePath("/saneamento/servicos");
+  revalidatePath("/saneamento");
 }

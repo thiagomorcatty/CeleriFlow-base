@@ -23,14 +23,14 @@ export async function createObra(data: {
       status: "Em Planejamento",
     },
   });
-  revalidatePath("/app-domain/obras/obras-publicas");
-  revalidatePath("/app-domain/obras");
+  revalidatePath("/obras/obras-publicas");
+  revalidatePath("/obras");
 }
 
 export async function deleteObra(id: string) {
   await prisma.obrasObra.delete({ where: { id } });
-  revalidatePath("/app-domain/obras/obras-publicas");
-  revalidatePath("/app-domain/obras");
+  revalidatePath("/obras/obras-publicas");
+  revalidatePath("/obras");
 }
 
 // --- Medições ---
@@ -49,16 +49,16 @@ export async function createMedicao(data: {
       status: "Em Análise",
     },
   });
-  revalidatePath("/app-domain/obras/medicoes");
-  revalidatePath("/app-domain/obras/obras-publicas");
-  revalidatePath("/app-domain/obras");
+  revalidatePath("/obras/medicoes");
+  revalidatePath("/obras/obras-publicas");
+  revalidatePath("/obras");
 }
 
 export async function deleteMedicao(id: string) {
   await prisma.obrasMedicao.delete({ where: { id } });
-  revalidatePath("/app-domain/obras/medicoes");
-  revalidatePath("/app-domain/obras/obras-publicas");
-  revalidatePath("/app-domain/obras");
+  revalidatePath("/obras/medicoes");
+  revalidatePath("/obras/obras-publicas");
+  revalidatePath("/obras");
 }
 
 // --- Serviços Urbanos ---
@@ -77,12 +77,12 @@ export async function createServico(data: {
       status: "Aberto",
     },
   });
-  revalidatePath("/app-domain/obras/servicos");
-  revalidatePath("/app-domain/obras");
+  revalidatePath("/obras/servicos");
+  revalidatePath("/obras");
 }
 
 export async function deleteServico(id: string) {
   await prisma.obrasServico.delete({ where: { id } });
-  revalidatePath("/app-domain/obras/servicos");
-  revalidatePath("/app-domain/obras");
+  revalidatePath("/obras/servicos");
+  revalidatePath("/obras");
 }

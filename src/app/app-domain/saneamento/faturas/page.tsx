@@ -14,7 +14,7 @@ export default async function FaturasPage() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <Link href="/app-domain/saneamento" className="text-gray-500 hover:text-gray-700">Água e Saneamento</Link>
+            <Link href="/saneamento" className="text-gray-500 hover:text-gray-700">Água e Saneamento</Link>
             <span className="text-gray-400">/</span>
             <span className="text-gray-900 font-medium">Faturamento</span>
           </div>

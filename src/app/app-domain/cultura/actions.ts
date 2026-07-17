@@ -23,14 +23,14 @@ export async function createAgente(data: {
       status: "Ativo",
     },
   });
-  revalidatePath("/app-domain/cultura/agentes");
-  revalidatePath("/app-domain/cultura");
+  revalidatePath("/cultura/agentes");
+  revalidatePath("/cultura");
 }
 
 export async function deleteAgente(id: string) {
   await prisma.culturaAgente.delete({ where: { id } });
-  revalidatePath("/app-domain/cultura/agentes");
-  revalidatePath("/app-domain/cultura");
+  revalidatePath("/cultura/agentes");
+  revalidatePath("/cultura");
 }
 
 // --- Espaços Culturais ---
@@ -49,14 +49,14 @@ export async function createEspaco(data: {
       status: "Disponível",
     },
   });
-  revalidatePath("/app-domain/cultura/espacos");
-  revalidatePath("/app-domain/cultura");
+  revalidatePath("/cultura/espacos");
+  revalidatePath("/cultura");
 }
 
 export async function deleteEspaco(id: string) {
   await prisma.culturaEspaco.delete({ where: { id } });
-  revalidatePath("/app-domain/cultura/espacos");
-  revalidatePath("/app-domain/cultura");
+  revalidatePath("/cultura/espacos");
+  revalidatePath("/cultura");
 }
 
 // --- Eventos ---
@@ -77,12 +77,12 @@ export async function createEvento(data: {
       status: "Programado",
     },
   });
-  revalidatePath("/app-domain/cultura/eventos");
-  revalidatePath("/app-domain/cultura");
+  revalidatePath("/cultura/eventos");
+  revalidatePath("/cultura");
 }
 
 export async function deleteEvento(id: string) {
   await prisma.culturaEvento.delete({ where: { id } });
-  revalidatePath("/app-domain/cultura/eventos");
-  revalidatePath("/app-domain/cultura");
+  revalidatePath("/cultura/eventos");
+  revalidatePath("/cultura");
 }

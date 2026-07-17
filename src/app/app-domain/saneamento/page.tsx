@@ -60,7 +60,7 @@ export default async function SaneamentoDashboard() {
 
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Acesso Rápido</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link href="/app-domain/saneamento/unidades" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/saneamento/unidades" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <Droplets className="h-6 w-6 text-[#0284C7] mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-[#0284C7] transition-colors flex items-center justify-between">
@@ -71,7 +71,7 @@ export default async function SaneamentoDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/saneamento/leituras" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/saneamento/leituras" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <FileText className="h-6 w-6 text-[#0284C7] mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-[#0284C7] transition-colors flex items-center justify-between">
@@ -82,7 +82,7 @@ export default async function SaneamentoDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/saneamento/faturas" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/saneamento/faturas" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <Receipt className="h-6 w-6 text-[#0284C7] mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-[#0284C7] transition-colors flex items-center justify-between">
@@ -93,7 +93,7 @@ export default async function SaneamentoDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/saneamento/servicos" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/saneamento/servicos" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <Wrench className="h-6 w-6 text-[#0284C7] mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-[#0284C7] transition-colors flex items-center justify-between">

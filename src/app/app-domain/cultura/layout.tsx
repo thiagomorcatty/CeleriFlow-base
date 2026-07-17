@@ -18,14 +18,14 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel", href: "/app-domain/cultura", icon: LayoutDashboard },
-  { title: "Gestão Cultural", href: "/app-domain/cultura/gestao-cultural", icon: Palette },
-  { title: "Fomento e Projetos", href: "/app-domain/cultura/fomento-projetos", icon: Sparkles },
-  { title: "Esporte e Lazer", href: "/app-domain/cultura/esporte-lazer", icon: Trophy },
-  { title: "Espaços e Reservas", href: "/app-domain/cultura/espacos-reservas", icon: MapPin },
-  { title: "Eventos", href: "/app-domain/cultura/eventos", icon: Calendar },
-  { title: "Conselhos e Fundos", href: "/app-domain/cultura/conselhos-fundos", icon: ShieldAlert },
-  { title: "Documentos", href: "/app-domain/cultura/documentos", icon: FileText },
+  { title: "Painel", href: "/cultura", icon: LayoutDashboard },
+  { title: "Gestão Cultural", href: "/cultura/gestao-cultural", icon: Palette },
+  { title: "Fomento e Projetos", href: "/cultura/fomento-projetos", icon: Sparkles },
+  { title: "Esporte e Lazer", href: "/cultura/esporte-lazer", icon: Trophy },
+  { title: "Espaços e Reservas", href: "/cultura/espacos-reservas", icon: MapPin },
+  { title: "Eventos", href: "/cultura/eventos", icon: Calendar },
+  { title: "Conselhos e Fundos", href: "/cultura/conselhos-fundos", icon: ShieldAlert },
+  { title: "Documentos", href: "/cultura/documentos", icon: FileText },
 ];
 
 export default function CulturaLayout({ children }: { children: React.ReactNode }) {
@@ -78,8 +78,8 @@ export default function CulturaLayout({ children }: { children: React.ReactNode 
         
         <nav className="flex flex-col gap-1.5 flex-1">
           {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/app-domain/cultura" 
-              ? pathname === "/app-domain/cultura" 
+            const isActive = item.href === "/cultura" 
+              ? pathname === "/cultura" 
               : pathname.startsWith(item.href);
 
             return (

@@ -20,14 +20,14 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel", href: "/app-domain/saneamento", icon: LayoutDashboard },
-  { title: "Cadastros", href: "/app-domain/saneamento/cadastros", icon: Users },
-  { title: "Leituras e Consumo", href: "/app-domain/saneamento/leituras", icon: FileText },
-  { title: "Faturamento", href: "/app-domain/saneamento/faturamento", icon: Receipt },
-  { title: "Serviços e Manutenção", href: "/app-domain/saneamento/servicos", icon: Wrench },
-  { title: "Esgoto e Qualidade", href: "/app-domain/saneamento/qualidade", icon: Droplet },
-  { title: "Portal do Consumidor", href: "/app-domain/saneamento/portal", icon: Globe },
-  { title: "Relatórios", href: "/app-domain/saneamento/relatorios", icon: BarChart3 },
+  { title: "Painel", href: "/saneamento", icon: LayoutDashboard },
+  { title: "Cadastros", href: "/saneamento/cadastros", icon: Users },
+  { title: "Leituras e Consumo", href: "/saneamento/leituras", icon: FileText },
+  { title: "Faturamento", href: "/saneamento/faturamento", icon: Receipt },
+  { title: "Serviços e Manutenção", href: "/saneamento/servicos", icon: Wrench },
+  { title: "Esgoto e Qualidade", href: "/saneamento/qualidade", icon: Droplet },
+  { title: "Portal do Consumidor", href: "/saneamento/portal", icon: Globe },
+  { title: "Relatórios", href: "/saneamento/relatorios", icon: BarChart3 },
 ];
 
 export default function SaneamentoLayout({ children }: { children: React.ReactNode }) {
@@ -78,8 +78,8 @@ export default function SaneamentoLayout({ children }: { children: React.ReactNo
 
         <nav className="flex flex-col gap-1.5 flex-1">
           {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/app-domain/saneamento" 
-              ? pathname === "/app-domain/saneamento" 
+            const isActive = item.href === "/saneamento" 
+              ? pathname === "/saneamento" 
               : pathname.startsWith(item.href);
 
             return (

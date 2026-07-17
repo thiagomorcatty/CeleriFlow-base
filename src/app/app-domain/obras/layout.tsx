@@ -20,15 +20,15 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel", href: "/app-domain/obras", icon: LayoutDashboard },
-  { title: "Obras e Projetos", href: "/app-domain/obras/obras-projetos", icon: Building2 },
-  { title: "Fiscalização e Medições", href: "/app-domain/obras/fiscalizacao-medicoes", icon: Ruler },
-  { title: "Serviços Urbanos", href: "/app-domain/obras/servicos-urbanos", icon: Pickaxe },
-  { title: "Iluminação e Energia", href: "/app-domain/obras/iluminacao-energia", icon: Lightbulb },
-  { title: "Ordens de Serviço", href: "/app-domain/obras/ordens-servico", icon: ClipboardCheck },
-  { title: "Máquinas e Equipes", href: "/app-domain/obras/maquinas-equipes", icon: Tractor },
-  { title: "Documentos", href: "/app-domain/obras/documentos", icon: FileText },
-  { title: "Relatórios", href: "/app-domain/obras/relatorios", icon: BarChart3 },
+  { title: "Painel", href: "/obras", icon: LayoutDashboard },
+  { title: "Obras e Projetos", href: "/obras/obras-projetos", icon: Building2 },
+  { title: "Fiscalização e Medições", href: "/obras/fiscalizacao-medicoes", icon: Ruler },
+  { title: "Serviços Urbanos", href: "/obras/servicos-urbanos", icon: Pickaxe },
+  { title: "Iluminação e Energia", href: "/obras/iluminacao-energia", icon: Lightbulb },
+  { title: "Ordens de Serviço", href: "/obras/ordens-servico", icon: ClipboardCheck },
+  { title: "Máquinas e Equipes", href: "/obras/maquinas-equipes", icon: Tractor },
+  { title: "Documentos", href: "/obras/documentos", icon: FileText },
+  { title: "Relatórios", href: "/obras/relatorios", icon: BarChart3 },
 ];
 
 export default function ObrasLayout({ children }: { children: React.ReactNode }) {
@@ -81,8 +81,8 @@ export default function ObrasLayout({ children }: { children: React.ReactNode })
         
         <nav className="flex flex-col gap-1.5 flex-1">
           {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/app-domain/obras" 
-              ? pathname === "/app-domain/obras" 
+            const isActive = item.href === "/obras" 
+              ? pathname === "/obras" 
               : pathname.startsWith(item.href);
 
             return (
