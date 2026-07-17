@@ -93,7 +93,7 @@ export default async function ConfiguracoesDashboard() {
           </div>
         </Link>
 
-        <Link href="#" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/app-domain/configuracoes/usuarios" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <UserCog className="h-6 w-6 text-gray-700 dark:text-gray-300 mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors flex items-center justify-between">
