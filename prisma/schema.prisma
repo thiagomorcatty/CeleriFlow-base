@@ -2978,17 +2978,20 @@ model SanServiceOrder {
 }
 
 // ----------------------------------------------------------------------------
-// MÓDULO 17: CÂMARA MUNICIPAL (MVP Legislativo)
+// MÓDULO 19: CÂMARA MUNICIPAL (Gestão Legislativa Completa)
 // ----------------------------------------------------------------------------
 
 model CamLegislatura {
-  id     String   @id @default(cuid())
-  numero Int      @unique
-  inicio DateTime
-  fim    DateTime
-  status String   @default("Ativa") // Ativa, Encerrada, Futura
+  id          String   @id @default(cuid())
+  numero      Int      @unique
+  inicio      DateTime
+  fim         DateTime
+  status      String   @default("Ativa") // Ativa, Encerrada, Futura
+  descricao   String?
 
-  vereadores CamVereador[]
+  vereadores   CamVereador[]
+  comissoes    CamComissao[]
+  mesaDiretora CamMesaDiretora[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3000,12 +3003,18 @@ model CamVereador {
   nomeParlamentar String
   cpf             String? @unique
   partido         String?
-  status          String  @default("Em Exercício") // Em Exercício, Licenciado, Afastado, Suplente
+  email           String?
+  telefone        String?
+  foto            String?
+  status          String  @default("Em Exercício") // Em Exercício, Licenciado, Afastado, Suplente, Inativo
 
   legislaturaId String
   legislatura   CamLegislatura @relation(fields: [legislaturaId], references: [id], onDelete: Cascade)
 
-  proposicoes CamProposicao[]
+  proposicoes      CamProposicao[]
+  membroComissoes  CamComissaoMembro[]
+  cargosMesa       CamMesaDiretora[]
+  gabinete         CamGabinete?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3014,27 +3023,196 @@ model CamVereador {
 model CamSessao {
   id     String   @id @default(cuid())
   numero Int      @unique
-  tipo   String   @default("Ordinária") // Ordinária, Extraordinária, Solene, Especial, Audiência Pública
+  tipo   String   @default("Ordinária") // Ordinária, Extraordinária, Solene, Especial
   data   DateTime
   local  String   @default("Plenário")
-  status String   @default("Agendada") // Agendada, Em Preparação, Aberta, Encerrada
+  status String   @default("Agendada") // Agendada, Em Preparação, Aberta, Encerrada, Cancelada
+  quorum Int?
 
   proposicoes CamProposicao[]
+  pautas      CamPauta[]
+  ata         CamAta?
+  votacoes    CamVotacao[]
+  audiencias  CamAudiencia[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model CamProposicao {
-  id     String  @id @default(cuid())
-  numero String  @unique
-  tipo   String // Projeto de Lei, Requerimento, Indicação, Moção
-  ementa String
-  texto  String?
-  status String  @default("Protocolada") // Protocolada, Em Pauta, Aprovada, Rejeitada, Arquivada
+  id          String  @id @default(cuid())
+  numero      String  @unique
+  tipo        String // Projeto de Lei, Requerimento, Indicação, Moção, Emenda, Decreto Legislativo
+  ementa      String
+  texto       String?
+  status      String  @default("Protocolada") // Protocolada, Em Análise, Em Pauta, Aprovada, Rejeitada, Arquivada, Sancionada
+  dataProtocolo DateTime @default(now())
+  urgente     Boolean @default(false)
 
   autorId String
   autor   CamVereador @relation(fields: [autorId], references: [id], onDelete: Cascade)
+
+  sessaoId String?
+  sessao   CamSessao? @relation(fields: [sessaoId], references: [id], onDelete: SetNull)
+
+  pautas    CamPauta[]
+  votacao   CamVotacao?
+  lei       CamLei?
+  pareceres CamParecer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CamComissao {
+  id        String @id @default(cuid())
+  nome      String
+  sigla     String?
+  tipo      String @default("Permanente") // Permanente, Temporária, CPI, Especial
+  descricao String?
+  status    String @default("Ativa") // Ativa, Inativa, Encerrada
+
+  legislaturaId String
+  legislatura   CamLegislatura @relation(fields: [legislaturaId], references: [id], onDelete: Cascade)
+
+  membros CamComissaoMembro[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CamComissaoMembro {
+  id     String @id @default(cuid())
+  cargo  String @default("Membro") // Presidente, Vice-Presidente, Membro, Suplente
+  status String @default("Ativo") // Ativo, Inativo
+
+  comissaoId String
+  comissao   CamComissao @relation(fields: [comissaoId], references: [id], onDelete: Cascade)
+
+  vereadorId String
+  vereador   CamVereador @relation(fields: [vereadorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model CamMesaDiretora {
+  id     String @id @default(cuid())
+  cargo  String // Presidente, 1º Vice-Presidente, 2º Vice-Presidente, 1º Secretário, 2º Secretário
+  status String @default("Ativo") // Ativo, Inativo
+
+  legislaturaId String
+  legislatura   CamLegislatura @relation(fields: [legislaturaId], references: [id], onDelete: Cascade)
+
+  vereadorId String
+  vereador   CamVereador @relation(fields: [vereadorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CamGabinete {
+  id       String  @id @default(cuid())
+  sala     String
+  andar    String?
+  telefone String?
+  ramal    String?
+  status   String  @default("Ativo") // Ativo, Inativo
+
+  vereadorId String     @unique
+  vereador   CamVereador @relation(fields: [vereadorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CamPauta {
+  id        String @id @default(cuid())
+  ordem     Int
+  tipo      String @default("Deliberativo") // Deliberativo, Informativo, Urgente, Requerimento
+  descricao String
+  status    String @default("Pendente") // Pendente, Votada, Aprovada, Rejeitada, Retirada, Adiada
+
+  sessaoId String
+  sessao   CamSessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+
+  proposicaoId String?
+  proposicao   CamProposicao? @relation(fields: [proposicaoId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+}
+
+model CamVotacao {
+  id         String @id @default(cuid())
+  modalidade String @default("Nominal") // Nominal, Secreta, Simbólica
+  resultado  String // Aprovada, Rejeitada, Prejudicada, Empate
+  votosSim   Int    @default(0)
+  votosNao   Int    @default(0)
+  abstencoes Int    @default(0)
+  observacao String?
+
+  proposicaoId String     @unique
+  proposicao   CamProposicao @relation(fields: [proposicaoId], references: [id], onDelete: Cascade)
+
+  sessaoId String
+  sessao   CamSessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model CamAta {
+  id        String  @id @default(cuid())
+  numero    String  @unique
+  conteudo  String
+  status    String  @default("Rascunho") // Rascunho, Em Revisão, Aprovada, Publicada
+  dataAprovacao DateTime?
+
+  sessaoId String     @unique
+  sessao   CamSessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CamLei {
+  id             String    @id @default(cuid())
+  numero         String    @unique
+  tipo           String // Lei Ordinária, Lei Complementar, Decreto Legislativo, Resolução
+  ementa         String
+  texto          String?
+  dataPublicacao DateTime?
+  dataVigor      DateTime?
+  status         String    @default("Vigente") // Vigente, Revogada, Suspensa, Vetada
+
+  proposicaoId String?        @unique
+  proposicao   CamProposicao? @relation(fields: [proposicaoId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CamParecer {
+  id        String  @id @default(cuid())
+  tipo      String  @default("Comissão") // Comissão, Jurídico, Técnico
+  conteudo  String
+  resultado String  @default("Favorável") // Favorável, Contrário, Com Ressalvas
+  status    String  @default("Emitido") // Emitido, Arquivado
+
+  proposicaoId String
+  proposicao   CamProposicao @relation(fields: [proposicaoId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CamAudiencia {
+  id        String   @id @default(cuid())
+  tema      String
+  descricao String?
+  data      DateTime
+  local     String
+  tipo      String   @default("Pública") // Pública, Privada, Online
+  status    String   @default("Agendada") // Agendada, Realizada, Cancelada
+  ata       String?
 
   sessaoId String?
   sessao   CamSessao? @relation(fields: [sessaoId], references: [id], onDelete: SetNull)
