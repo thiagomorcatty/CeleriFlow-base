@@ -1,0 +1,80 @@
+import { prisma } from "@/lib/prisma";
+import type { SegMobItem } from "./types";
+
+export function mapGuarda(item: any): SegMobItem {
+  return {
+    id: item.id,
+    kind: "guarda",
+    code: item.matricula,
+    title: item.nome,
+    type: item.tipo,
+    status: item.status,
+    isActive: item.isActive,
+    location: item.equipe,
+    date: item.createdAt,
+  };
+}
+
+export function mapOcorrencia(item: any): SegMobItem {
+  return {
+    id: item.id,
+    kind: "ocorrencia",
+    code: item.numero,
+    title: item.descricao,
+    type: item.tipo,
+    status: item.status,
+    isActive: item.isActive,
+    location: item.local,
+    district: item.bairro,
+    priority: item.prioridade,
+    description: item.descricao,
+    date: item.createdAt,
+  };
+}
+
+export function mapInfracao(item: any): SegMobItem {
+  return {
+    id: item.id,
+    kind: "infracao",
+    code: item.auto,
+    title: item.placa,
+    type: item.tipo,
+    status: item.status,
+    isActive: item.isActive,
+    location: item.local,
+    date: item.data,
+    plate: item.placa,
+    value: item.valor,
+  };
+}
+
+export function mapRegistro(item: any): SegMobItem {
+  return {
+    id: item.id,
+    kind: "registro",
+    code: item.codigo,
+    title: item.titulo,
+    type: item.tipo,
+    status: item.status,
+    isActive: item.isActive,
+    location: item.local,
+    district: item.bairro,
+    responsible: item.responsavel,
+    priority: item.prioridade,
+    date: item.dataInicio,
+    description: item.descricao,
+    plate: item.placa,
+    value: item.valor,
+    category: item.categoria,
+    relatedModule: item.relatedModule,
+    relatedId: item.relatedId,
+  };
+}
+
+export async function getRegistrosByCategorias(categories: string[]) {
+  const records = await prisma.segurancaMobilidadeRegistro.findMany({
+    where: { categoria: { in: categories } },
+    orderBy: { createdAt: "desc" },
+  });
+  return records.map(mapRegistro);
+}

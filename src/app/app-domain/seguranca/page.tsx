@@ -1,97 +1,82 @@
-import React from "react";
-import { Shield, ShieldAlert, CarFront, FileWarning, ArrowRight, Activity, Users } from "lucide-react";
 import Link from "next/link";
+import { AlertTriangle, ArrowRight, BarChart3, Camera, CarFront, ClipboardCheck, Route, Shield, Users, Wrench } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+
+const quickLinks = [
+  { title: "Guarda e Equipes", href: "/app-domain/seguranca/guardas", icon: Users, text: "Efetivo, agentes de transito e equipes de escala." },
+  { title: "Ocorrencias", href: "/app-domain/seguranca/ocorrencias", icon: AlertTriangle, text: "Registros internos, despacho e acompanhamento." },
+  { title: "Rondas e Cameras", href: "/app-domain/seguranca/rondas", icon: Camera, text: "Roteiros preventivos e pontos de videomonitoramento." },
+  { title: "Transito", href: "/app-domain/seguranca/transito", icon: CarFront, text: "Infracoes, sinalizacao e operacoes viarias." },
+  { title: "Mobilidade e Rotas", href: "/app-domain/seguranca/mobilidade", icon: Route, text: "Transporte, interdicoes, estacionamento e acessibilidade." },
+  { title: "OS e Equipamentos", href: "/app-domain/seguranca/ordens", icon: Wrench, text: "Ordens de servico, viaturas, radios, cones e ativos." },
+];
 
 export default async function SegurancaDashboard() {
-  const [totalGuardas, totalOcorrencias, totalInfracoes] = await Promise.all([
-    prisma.segurancaGuarda.count(),
-    prisma.segurancaOcorrencia.count(),
-    prisma.segurancaInfracao.count()
+  const [guardas, ocorrencias, infracoes, registros, urgentes, recentes] = await Promise.all([
+    prisma.segurancaGuarda.count({ where: { isActive: true } }),
+    prisma.segurancaOcorrencia.count({ where: { isActive: true } }),
+    prisma.segurancaInfracao.count({ where: { isActive: true } }),
+    prisma.segurancaMobilidadeRegistro.count({ where: { isActive: true } }),
+    prisma.segurancaMobilidadeRegistro.count({ where: { isActive: true, prioridade: { in: ["Alta", "Urgente"] } } }),
+    prisma.segurancaMobilidadeRegistro.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
   ]);
 
   return (
-    <div className="flex-1 p-8">
-      <div className="flex items-center gap-3 mb-8">
-        <Shield className="h-8 w-8 text-cyan-600" />
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="rounded-lg bg-cyan-100 p-3 text-cyan-700">
+          <Shield className="h-7 w-7" />
+        </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Segurança Pública e Mobilidade</h1>
-          <p className="text-gray-500 dark:text-gray-400">Gestão da guarda, trânsito, ocorrências e mobilidade</p>
+          <h1 className="text-2xl font-bold text-slate-900">Mod 20 - Seguranca e Mobilidade</h1>
+          <p className="text-sm text-slate-500">Painel administrativo da prefeitura para operacao urbana, seguranca municipal e mobilidade.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg text-cyan-600">
-              <Users className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Agentes e Guardas</p>
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{totalGuardas}</h2>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-teal-100 dark:bg-teal-900/30 rounded-lg text-teal-600">
-              <ShieldAlert className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Ocorrências Registradas</p>
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{totalOcorrencias}</h2>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400">
-              <FileWarning className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Autos de Infração</p>
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{totalInfracoes}</h2>
-            </div>
-          </div>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <Card className="rounded-lg"><CardHeader><CardTitle className="text-sm text-slate-500">Efetivo ativo</CardTitle></CardHeader><CardContent className="text-3xl font-bold">{guardas}</CardContent></Card>
+        <Card className="rounded-lg"><CardHeader><CardTitle className="text-sm text-slate-500">Ocorrencias ativas</CardTitle></CardHeader><CardContent className="text-3xl font-bold">{ocorrencias}</CardContent></Card>
+        <Card className="rounded-lg"><CardHeader><CardTitle className="text-sm text-slate-500">Autos ativos</CardTitle></CardHeader><CardContent className="text-3xl font-bold">{infracoes}</CardContent></Card>
+        <Card className="rounded-lg"><CardHeader><CardTitle className="text-sm text-slate-500">Registros operacionais</CardTitle></CardHeader><CardContent className="text-3xl font-bold">{registros}</CardContent></Card>
+        <Card className="rounded-lg"><CardHeader><CardTitle className="text-sm text-slate-500">Prioridade alta</CardTitle></CardHeader><CardContent className="text-3xl font-bold text-rose-600">{urgentes}</CardContent></Card>
       </div>
 
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Acesso Rápido</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Link href="/app-domain/seguranca/guardas" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
-          <Shield className="h-6 w-6 text-cyan-600 mb-2" />
-          <div>
-            <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-cyan-600 transition-colors flex items-center justify-between">
-              Efetivo e Equipes
-              <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all" />
-            </h4>
-            <p className="text-xs text-gray-500 mt-1">Gestão de guardas e agentes de trânsito</p>
-          </div>
-        </Link>
+      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {quickLinks.map((item) => (
+            <Link key={item.href} href={item.href} className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+              <item.icon className="mb-4 h-6 w-6 text-cyan-700" />
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="font-semibold text-slate-900">{item.title}</h2>
+                <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-1 group-hover:text-cyan-700" />
+              </div>
+              <p className="mt-2 text-sm text-slate-500">{item.text}</p>
+            </Link>
+          ))}
+        </div>
 
-        <Link href="/app-domain/seguranca/ocorrencias" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
-          <Activity className="h-6 w-6 text-teal-600 mb-2" />
-          <div>
-            <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-teal-600 transition-colors flex items-center justify-between">
-              Ocorrências e Despachos
-              <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all" />
-            </h4>
-            <p className="text-xs text-gray-500 mt-1">Atendimento, defesa civil e rondas</p>
-          </div>
-        </Link>
-
-        <Link href="/app-domain/seguranca/infracoes" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
-          <CarFront className="h-6 w-6 text-slate-600 dark:text-slate-400 mb-2" />
-          <div>
-            <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-slate-600 dark:group-hover:text-slate-400 transition-colors flex items-center justify-between">
-              Trânsito e Mobilidade
-              <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all" />
-            </h4>
-            <p className="text-xs text-gray-500 mt-1">Infrações, sinalização e transporte público</p>
-          </div>
-        </Link>
+        <Card className="rounded-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base"><BarChart3 className="h-4 w-4" /> Ultimos registros</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {recentes.length === 0 ? (
+              <p className="text-sm text-slate-500">Nenhum registro operacional cadastrado.</p>
+            ) : recentes.map((item) => (
+              <div key={item.id} className="rounded-md border border-slate-100 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">{item.codigo} - {item.titulo}</p>
+                    <p className="text-xs text-slate-500">{item.categoria} | {item.local || "Sem local"}</p>
+                  </div>
+                  <Badge className="bg-cyan-100 text-cyan-700 hover:bg-cyan-100">{item.status}</Badge>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

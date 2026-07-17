@@ -3318,9 +3318,10 @@ model SegurancaGuarda {
   id        String  @id @default(cuid())
   matricula String  @unique
   nome      String
-  tipo      String // Guarda Municipal, Agente de Trânsito, Defesa Civil
+  tipo      String // Guarda Municipal, Agente de Transito, Defesa Civil
   equipe    String?
-  status    String  @default("Ativo") // Ativo, Licença, Inativo
+  status    String  @default("Ativo") // Ativo, Licenca, Inativo
+  isActive  Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3329,33 +3330,56 @@ model SegurancaGuarda {
 model SegurancaOcorrencia {
   id         String  @id @default(cuid())
   numero     String  @unique
-  tipo       String // Perturbação, Acidente, Furto, Risco Estrutural
+  tipo       String // Perturbacao, Acidente, Furto, Risco Estrutural
   descricao  String
   local      String?
   bairro     String?
   prioridade String  @default("Normal") // Baixa, Normal, Alta, Urgente
   status     String  @default("Registrada") // Registrada, Em Atendimento, Resolvida, Encerrada
+  isActive   Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model SegurancaInfracao {
-  id     String   @id @default(cuid())
-  auto   String   @unique
-  data   DateTime
-  placa  String
-  tipo   String // Estacionamento irregular, Velocidade, etc.
-  local  String
-  valor  Float?
-  status String   @default("Registrado") // Registrado, Notificado, Em Recurso, Pago, Cancelado
+  id       String   @id @default(cuid())
+  auto     String   @unique
+  data     DateTime
+  placa    String
+  tipo     String // Estacionamento irregular, Velocidade, etc.
+  local    String
+  valor    Float?
+  status   String   @default("Registrado") // Registrado, Notificado, Em Recurso, Pago, Cancelado
+  isActive Boolean  @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// -----------------------------------------------------------------------------
-// MODULO 21 - CONFIGURAÇÕES E INTEGRAÇÕES
+model SegurancaMobilidadeRegistro {
+  id            String    @id @default(cuid())
+  codigo        String    @unique
+  categoria     String // Ronda, Videomonitoramento, Defesa Civil, Sinalizacao, Mobilidade Urbana, Transporte, Interdicao, Estacionamento, Acessibilidade, Ordem de Servico, Equipamento, Documento, Relatorio
+  tipo          String
+  titulo        String
+  descricao     String?
+  local         String?
+  bairro        String?
+  responsavel   String?
+  prioridade    String    @default("Normal") // Baixa, Normal, Alta, Urgente
+  status        String    @default("Ativo")
+  dataInicio    DateTime  @default(now())
+  dataFim       DateTime?
+  valor         Float?
+  placa         String?
+  relatedModule String?
+  relatedId     String?
+  isActive      Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 // -----------------------------------------------------------------------------
 
 model ConfiguracaoInstancia {
