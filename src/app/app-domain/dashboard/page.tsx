@@ -22,7 +22,8 @@ import {
   Gavel,
   HardHat,
   Palette,
-  Monitor
+  Monitor,
+  Shield
 } from "lucide-react";
 
 const menuItems = [
@@ -45,6 +46,7 @@ const menuItems = [
   { name: "Obras e Serviços", description: "Infraestrutura e urbana", href: "/obras", icon: HardHat, color: "text-[#B45309]", bg: "bg-[#FEF3C7]", solid: "bg-[#B45309]" },
   { name: "Cultura e Lazer", description: "Cultura e esporte", href: "/cultura", icon: Palette, color: "text-[#E11D48]", bg: "bg-[#FFE4E6]", solid: "bg-[#E11D48]" },
   { name: "Câmara Municipal", description: "Gestão Legislativa", href: "/camara", icon: Landmark, color: "text-[#9333EA]", bg: "bg-[#F3E8FF]", solid: "bg-[#9333EA]" },
+  { name: "Segurança e Mobilidade", description: "Guarda e trânsito", href: "/seguranca", icon: Shield, color: "text-[#0F766E]", bg: "bg-[#CCFBF1]", solid: "bg-[#0F766E]" },
   { name: "Sistema", description: "Painel de controle geral", href: "/sistema", icon: Monitor, color: "text-[#334155]", bg: "bg-[#F1F5F9]", solid: "bg-[#334155]" },
   { name: "Configurações e Integrações", description: "Gestão do sistema", href: "/configuracoes", icon: Settings, color: "text-[#475569]", bg: "bg-[#E2E8F0]", solid: "bg-[#475569]" },
 ];
