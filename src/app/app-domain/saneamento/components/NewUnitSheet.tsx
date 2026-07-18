@@ -22,16 +22,19 @@ export function NewUnitSheet() {
     const formData = new FormData(e.currentTarget);
     
     try {
-      await createConsumerUnit({
+      const result = await createConsumerUnit({
         code: formData.get("code") as string,
         address: formData.get("address") as string,
         category: formData.get("category") as string,
         ownerName: formData.get("ownerName") as string,
         ownerDocument: formData.get("ownerDocument") as string,
       });
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
       setOpen(false);
-    } catch (error) {
-      console.error(error);
+    } catch {
       alert("Erro ao cadastrar unidade consumidora.");
     } finally {
       setLoading(false);

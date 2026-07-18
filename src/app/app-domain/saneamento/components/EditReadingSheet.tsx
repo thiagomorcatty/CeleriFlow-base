@@ -33,14 +33,17 @@ export function EditReadingSheet({ reading }: { reading: Reading }) {
     const formData = new FormData(e.currentTarget);
 
     try {
-      await updateMeterReading(reading.id, {
+      const result = await updateMeterReading(reading.id, {
         currentValue: parseFloat(formData.get("currentValue") as string),
         status: formData.get("status") as string,
         readerName: formData.get("readerName") as string,
       });
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
       setOpen(false);
-    } catch (error) {
-      console.error(error);
+    } catch {
       alert("Erro ao atualizar leitura.");
     } finally {
       setLoading(false);
@@ -75,6 +78,7 @@ export function EditReadingSheet({ reading }: { reading: Reading }) {
               type="number"
               name="currentValue"
               step="0.01"
+              min="0"
               required
               defaultValue={reading.currentValue}
               className="w-full p-2 border rounded-md text-sm"

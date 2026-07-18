@@ -13,7 +13,6 @@ type Unit = {
   category: string;
   status: string;
   ownerName: string | null;
-  ownerDocument: string | null;
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -38,8 +37,7 @@ export function UnidadesClient({ units }: { units: Unit[] }) {
         !q ||
         u.code.toLowerCase().includes(q) ||
         u.address.toLowerCase().includes(q) ||
-        (u.ownerName ?? "").toLowerCase().includes(q) ||
-        (u.ownerDocument ?? "").toLowerCase().includes(q);
+        (u.ownerName ?? "").toLowerCase().includes(q);
       const matchesStatus = statusFilter === "Todos" || u.status === statusFilter;
       const matchesCategory = categoryFilter === "Todas" || u.category === categoryFilter;
       return matchesSearch && matchesStatus && matchesCategory;
@@ -49,7 +47,8 @@ export function UnidadesClient({ units }: { units: Unit[] }) {
   async function handleInactivate(id: string, code: string) {
     if (!confirm(`Inativar a unidade ${code}? Esta ação pode ser revertida editando o status.`)) return;
     try {
-      await inactivateConsumerUnit(id);
+      const result = await inactivateConsumerUnit(id);
+      if (result.error) alert(result.error);
     } catch {
       alert("Erro ao inativar unidade.");
     }

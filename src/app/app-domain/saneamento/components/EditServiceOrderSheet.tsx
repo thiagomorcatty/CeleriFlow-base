@@ -32,16 +32,19 @@ export function EditServiceOrderSheet({ order }: { order: ServiceOrder }) {
     const formData = new FormData(e.currentTarget);
 
     try {
-      await updateServiceOrder(order.id, {
+      const result = await updateServiceOrder(order.id, {
         orderType: formData.get("orderType") as string,
         description: formData.get("description") as string,
         priority: formData.get("priority") as string,
         status: formData.get("status") as string,
         technician: formData.get("technician") as string,
       });
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
       setOpen(false);
-    } catch (error) {
-      console.error(error);
+    } catch {
       alert("Erro ao atualizar ordem de serviço.");
     } finally {
       setLoading(false);

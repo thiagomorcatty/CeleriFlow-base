@@ -19,7 +19,6 @@ type Unit = {
   category: string;
   status: string;
   ownerName: string | null;
-  ownerDocument: string | null;
 };
 
 export function EditUnitSheet({ unit }: { unit: Unit }) {
@@ -32,17 +31,19 @@ export function EditUnitSheet({ unit }: { unit: Unit }) {
     const formData = new FormData(e.currentTarget);
 
     try {
-      await updateConsumerUnit(unit.id, {
+      const result = await updateConsumerUnit(unit.id, {
         code: formData.get("code") as string,
         address: formData.get("address") as string,
         category: formData.get("category") as string,
         ownerName: formData.get("ownerName") as string,
-        ownerDocument: formData.get("ownerDocument") as string,
         status: formData.get("status") as string,
       });
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
       setOpen(false);
-    } catch (error) {
-      console.error(error);
+    } catch {
       alert("Erro ao atualizar unidade consumidora.");
     } finally {
       setLoading(false);
@@ -96,8 +97,6 @@ export function EditUnitSheet({ unit }: { unit: Unit }) {
               <label className="text-sm font-medium">Status</label>
               <select name="status" required defaultValue={unit.status} className="w-full p-2 border rounded-md text-sm">
                 <option value="Ativa">Ativa</option>
-                <option value="Cortada">Cortada</option>
-                <option value="Suspensa">Suspensa</option>
                 <option value="Inativa">Inativa</option>
               </select>
             </div>
@@ -110,16 +109,6 @@ export function EditUnitSheet({ unit }: { unit: Unit }) {
               className="w-full p-2 border rounded-md text-sm"
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">CPF / CNPJ</label>
-            <input
-              name="ownerDocument"
-              defaultValue={unit.ownerDocument ?? ""}
-              className="w-full p-2 border rounded-md text-sm"
-              placeholder="000.000.000-00"
-            />
-          </div>
-
           <div className="pt-4 flex justify-end gap-2">
             <button
               type="button"

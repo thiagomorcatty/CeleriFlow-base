@@ -103,7 +103,7 @@ export function LeiturasClient({ readings, units }: { readings: Reading[]; units
                   <td className="px-3 py-2 text-xs font-mono font-medium text-gray-900 dark:text-white">{r.unit.code}</td>
                   <td className="px-3 py-2 text-xs text-gray-500">{r.competence}</td>
                   <td className="px-3 py-2 text-xs text-gray-500 text-right">{r.previousValue.toFixed(2)}</td>
-                  <td className="px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 text-right">{r.currentValue > 0 ? r.currentValue.toFixed(2) : "-"}</td>
+                  <td className="px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 text-right">{r.currentValue.toFixed(2)}</td>
                   <td className="px-3 py-2 text-xs font-bold text-gray-900 dark:text-white text-right">{r.consumption.toFixed(2)}</td>
                   <td className="px-3 py-2 text-xs text-gray-500">{r.readerName || "-"}</td>
                   <td className="px-3 py-2 text-center">

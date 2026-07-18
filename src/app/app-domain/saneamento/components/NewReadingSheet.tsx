@@ -22,16 +22,19 @@ export function NewReadingSheet({ units }: { units: { id: string; code: string; 
     const formData = new FormData(e.currentTarget);
     
     try {
-      await createMeterReading({
+      const result = await createMeterReading({
         unitId: formData.get("unitId") as string,
         competence: formData.get("competence") as string,
         previousValue: parseFloat(formData.get("previousValue") as string),
         currentValue: parseFloat(formData.get("currentValue") as string),
         readerName: formData.get("readerName") as string,
       });
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
       setOpen(false);
-    } catch (error) {
-      console.error(error);
+    } catch {
       alert("Erro ao cadastrar leitura.");
     } finally {
       setLoading(false);
@@ -80,6 +83,7 @@ export function NewReadingSheet({ units }: { units: { id: string; code: string; 
                 type="number"
                 name="previousValue"
                 step="0.01"
+                min="0"
                 required
                 className="w-full p-2 border rounded-md"
               />
@@ -90,6 +94,7 @@ export function NewReadingSheet({ units }: { units: { id: string; code: string; 
                 type="number"
                 name="currentValue"
                 step="0.01"
+                min="0"
                 required
                 className="w-full p-2 border rounded-md"
               />

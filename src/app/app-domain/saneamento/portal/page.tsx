@@ -1,77 +1,14 @@
-"use client";
+import { prisma } from "@/lib/prisma";
+import { Globe } from "lucide-react";
+import Link from "next/link";
 
-import React from "react";
-import { Globe, Eye, Settings, Share2 } from "lucide-react";
+export default async function PortalPage() {
+  const requests = await prisma.sanPortalRequest.findMany({ orderBy: { requestedAt: "desc" } });
 
-const portalData = [
-  { id: "1", solicitacao: "2ª Via de Conta", usuario: "João Silva", data: "16/07/2026", status: "Atendido", origem: "App Mobile" },
-  { id: "2", solicitacao: "Aviso de Vazamento", usuario: "Maria Oliveira", data: "15/07/2026", status: "Em Análise", origem: "Site Web" },
-  { id: "3", solicitacao: "Alteração de Titularidade", usuario: "Carlos Souza", data: "15/07/2026", status: "Pendente Docs", origem: "WhatsApp" },
-  { id: "4", solicitacao: "Histórico de Consumo", usuario: "Ana Pereira", data: "14/07/2026", status: "Atendido", origem: "App Mobile" },
-];
-
-export default function PortalPage() {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
-            <Globe className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Portal do Consumidor</h1>
-            <p className="text-sm text-slate-500">Gestão de Solicitações do Portal e Aplicativo Cidadão</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
-            <Settings className="h-4 w-4" />
-            Configurar Portal
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-sm font-semibold text-slate-600">
-              <th className="p-4">Tipo de Solicitação</th>
-              <th className="p-4">Usuário</th>
-              <th className="p-4 text-center">Data</th>
-              <th className="p-4 text-center">Origem</th>
-              <th className="p-4 text-center">Status</th>
-              <th className="p-4 text-right">Ação</th>
-            </tr>
-          </thead>
-          <tbody>
-            {portalData.map((item) => (
-              <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                <td className="p-4 font-medium text-slate-700">{item.solicitacao}</td>
-                <td className="p-4 text-slate-600">{item.usuario}</td>
-                <td className="p-4 text-center text-slate-600">{item.data}</td>
-                <td className="p-4 text-center">
-                  <span className="flex items-center justify-center gap-1 text-sm text-slate-500">
-                    <Share2 className="h-3 w-3" /> {item.origem}
-                  </span>
-                </td>
-                <td className="p-4 text-center">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    item.status === 'Atendido' ? 'bg-emerald-100 text-emerald-700' : 
-                    item.status === 'Em Análise' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {item.status}
-                  </span>
-                </td>
-                <td className="p-4 text-right">
-                  <button className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-                    <Eye className="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="flex-1 p-6">
+      <div className="mb-6"><div className="flex items-center gap-2 text-xs text-gray-400"><Link href="/saneamento" className="hover:text-gray-600">Água e Saneamento</Link><span>/</span><span className="text-gray-600 font-medium">Portal do Consumidor</span></div><h1 className="mt-1 flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white"><Globe className="h-5 w-5 text-indigo-500" />Portal do Consumidor</h1><p className="mt-1 text-xs text-gray-400">{requests.length} {requests.length === 1 ? "solicitação registrada" : "solicitações registradas"}</p></div>
+      <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"><table className="w-full text-left"><thead className="border-b bg-gray-50 text-xs font-semibold uppercase text-gray-500 dark:bg-gray-800"><tr><th className="px-3 py-2">Solicitação</th><th className="px-3 py-2">Solicitante</th><th className="px-3 py-2">Data</th><th className="px-3 py-2">Origem</th><th className="px-3 py-2">Status</th></tr></thead><tbody className="divide-y divide-gray-50">{requests.map((request) => <tr key={request.id} className="text-xs text-gray-600"><td className="px-3 py-2 font-medium">{request.requestType}</td><td className="px-3 py-2">{request.requesterName}</td><td className="px-3 py-2">{request.requestedAt.toLocaleDateString("pt-BR")}</td><td className="px-3 py-2">{request.source}</td><td className="px-3 py-2">{request.status}</td></tr>)}{requests.length === 0 && <tr><td colSpan={5} className="px-3 py-10 text-center text-sm text-gray-400">Nenhuma solicitação registrada.</td></tr>}</tbody></table></div>
     </div>
   );
 }

@@ -21,9 +21,9 @@ import {
 
 const sidebarNavItems = [
   { title: "Painel", href: "/saneamento", icon: LayoutDashboard },
-  { title: "Cadastros", href: "/saneamento/cadastros", icon: Users },
+  { title: "Unidades Consumidoras", href: "/saneamento/unidades", icon: Users },
   { title: "Leituras e Consumo", href: "/saneamento/leituras", icon: FileText },
-  { title: "Faturamento", href: "/saneamento/faturamento", icon: Receipt },
+  { title: "Faturas", href: "/saneamento/faturas", icon: Receipt },
   { title: "Serviços e Manutenção", href: "/saneamento/servicos", icon: Wrench },
   { title: "Esgoto e Qualidade", href: "/saneamento/qualidade", icon: Droplet },
   { title: "Portal do Consumidor", href: "/saneamento/portal", icon: Globe },

@@ -6,15 +6,21 @@ import { FaturasClient } from "../components/FaturasClient";
 
 export default async function FaturasPage() {
   const invoices = await prisma.sanInvoice.findMany({
-    include: { unit: true },
+    select: {
+      id: true,
+      invoiceNumber: true,
+      competence: true,
+      totalAmount: true,
+      dueDate: true,
+      status: true,
+      unit: { select: { code: true } },
+    },
     orderBy: { dueDate: "desc" },
   });
 
   const serialized = invoices.map((inv) => ({
     ...inv,
     dueDate: inv.dueDate.toISOString(),
-    createdAt: inv.createdAt.toISOString(),
-    updatedAt: inv.updatedAt.toISOString(),
   }));
 
   return (
@@ -32,9 +38,6 @@ export default async function FaturasPage() {
           </h1>
           <p className="text-xs text-gray-400 mt-0.5">{invoices.length} fatura{invoices.length !== 1 ? "s" : ""}</p>
         </div>
-        <button className="flex items-center gap-2 bg-[#0284C7] hover:bg-[#0369A1] text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
-          Gerar Faturas em Lote
-        </button>
       </div>
 
       <FaturasClient invoices={serialized} />

@@ -6,6 +6,14 @@ import { UnidadesClient } from "../components/UnidadesClient";
 
 export default async function UnidadesPage() {
   const units = await prisma.sanConsumerUnit.findMany({
+    select: {
+      id: true,
+      code: true,
+      address: true,
+      category: true,
+      status: true,
+      ownerName: true,
+    },
     orderBy: { createdAt: "desc" },
   });
 

@@ -22,16 +22,19 @@ export function NewServiceOrderSheet({ units }: { units: { id: string; code: str
     const formData = new FormData(e.currentTarget);
     
     try {
-      await createServiceOrder({
+      const result = await createServiceOrder({
         orderType: formData.get("orderType") as string,
         description: formData.get("description") as string,
         priority: formData.get("priority") as string,
         unitId: formData.get("unitId") as string,
         technician: formData.get("technician") as string,
       });
+      if (result.error) {
+        alert(result.error);
+        return;
+      }
       setOpen(false);
-    } catch (error) {
-      console.error(error);
+    } catch {
       alert("Erro ao abrir ordem de serviço.");
     } finally {
       setLoading(false);

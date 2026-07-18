@@ -2977,6 +2977,43 @@ model SanServiceOrder {
   updatedAt DateTime @updatedAt
 }
 
+model SanWaterQualityAnalysis {
+  id              String   @id @default(cuid())
+  collectionPoint String
+  collectedAt     DateTime
+  parameter       String
+  result          String
+  limit           String
+  compliance      String   // Conforme, Não Conforme
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([collectedAt])
+}
+
+model SanPortalRequest {
+  id            String   @id @default(cuid())
+  requestType   String
+  requesterName String
+  requestedAt   DateTime @default(now())
+  source        String
+  status        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([requestedAt])
+}
+
+model SanSavedReport {
+  id        String   @id @default(cuid())
+  name      String
+  type      String
+  period    String
+  format    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // ----------------------------------------------------------------------------
 // MÓDULO 19: CÂMARA MUNICIPAL (Gestão Legislativa Completa)
 // ----------------------------------------------------------------------------
