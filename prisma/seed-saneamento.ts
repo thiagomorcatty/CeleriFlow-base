@@ -8,10 +8,10 @@ import { prisma } from "../src/lib/prisma";
 const competence = "07/2026";
 
 const units = [
-  { code: "DEMO-SAN-001", address: "Rua das Acácias, 120, Centro", category: "Residencial", ownerName: "Ana Ribeiro (Demonstração)", ownerDocument: "000.000.001-91", status: "Ativa", previousValue: 120, currentValue: 138, readerName: "Marcos Lima" },
-  { code: "DEMO-SAN-002", address: "Avenida do Comércio, 45, Vila Nova", category: "Comercial", ownerName: "Mercado Horizonte Ltda. (Demonstração)", ownerDocument: "00.000.002/0001-02", status: "Ativa", previousValue: 450, currentValue: 512, readerName: "Marcos Lima" },
-  { code: "DEMO-SAN-003", address: "Estrada Municipal 08, Km 4, Zona Rural", category: "Rural", ownerName: "Paulo Nogueira (Demonstração)", ownerDocument: "000.000.003-73", status: "Cortada", previousValue: 60, currentValue: 75, readerName: "Renata Alves" },
-  { code: "DEMO-SAN-004", address: "Praça da Comunidade, 10, Jardim Sul", category: "Pública", ownerName: "Escola Municipal Aurora (Demonstração)", ownerDocument: "00.000.004/0001-84", status: "Ativa", previousValue: 980, currentValue: 1018, readerName: "Renata Alves" },
+  { code: "DEMO-SAN-001", address: "Rua das Acácias, 120, Centro", category: "Residencial", ownerName: "Ana Ribeiro", ownerDocument: "000.000.001-91", status: "Ativa", previousValue: 120, currentValue: 138, readerName: "Marcos Lima" },
+  { code: "DEMO-SAN-002", address: "Avenida do Comércio, 45, Vila Nova", category: "Comercial", ownerName: "Mercado Horizonte Ltda.", ownerDocument: "00.000.002/0001-02", status: "Ativa", previousValue: 450, currentValue: 512, readerName: "Marcos Lima" },
+  { code: "DEMO-SAN-003", address: "Estrada Municipal 08, Km 4, Zona Rural", category: "Rural", ownerName: "Paulo Nogueira", ownerDocument: "000.000.003-73", status: "Cortada", previousValue: 60, currentValue: 75, readerName: "Renata Alves" },
+  { code: "DEMO-SAN-004", address: "Praça da Comunidade, 10, Jardim Sul", category: "Pública", ownerName: "Escola Municipal Aurora", ownerDocument: "00.000.004/0001-84", status: "Ativa", previousValue: 980, currentValue: 1018, readerName: "Renata Alves" },
 ] as const;
 
 const serviceOrders = [
@@ -36,10 +36,10 @@ const qualityAnalyses = [
 ] as const;
 
 const portalRequests = [
-  { requestType: "2ª via de conta", requesterName: "Ana Ribeiro (Demonstração)", requestedAt: new Date("2026-07-16T12:00:00.000Z"), source: "Aplicativo", status: "Atendido" },
-  { requestType: "Aviso de vazamento", requesterName: "Comercial Horizonte (Demonstração)", requestedAt: new Date("2026-07-15T12:00:00.000Z"), source: "Portal web", status: "Em análise" },
-  { requestType: "Alteração de titularidade", requesterName: "Paulo Nogueira (Demonstração)", requestedAt: new Date("2026-07-15T12:00:00.000Z"), source: "Atendimento", status: "Pendente de documentos" },
-  { requestType: "Histórico de consumo", requesterName: "Escola Municipal Aurora (Demonstração)", requestedAt: new Date("2026-07-14T12:00:00.000Z"), source: "Aplicativo", status: "Atendido" },
+  { requestType: "2ª via de conta", requesterName: "Ana Ribeiro", requestedAt: new Date("2026-07-16T12:00:00.000Z"), source: "Aplicativo", status: "Atendido" },
+  { requestType: "Aviso de vazamento", requesterName: "Comercial Horizonte", requestedAt: new Date("2026-07-15T12:00:00.000Z"), source: "Portal web", status: "Em análise" },
+  { requestType: "Alteração de titularidade", requesterName: "Paulo Nogueira", requestedAt: new Date("2026-07-15T12:00:00.000Z"), source: "Atendimento", status: "Pendente de documentos" },
+  { requestType: "Histórico de consumo", requesterName: "Escola Municipal Aurora", requestedAt: new Date("2026-07-14T12:00:00.000Z"), source: "Aplicativo", status: "Atendido" },
 ] as const;
 
 const reports = [

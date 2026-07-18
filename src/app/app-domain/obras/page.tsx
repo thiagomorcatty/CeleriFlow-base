@@ -16,9 +16,9 @@ import { prisma } from "@/lib/prisma";
 
 export default async function ObrasDashboard() {
   const [totalObras, totalMedicoes, totalServicos] = await Promise.all([
-    prisma.obrasObra.count().catch(() => 12),
-    prisma.obrasMedicao.count().catch(() => 45),
-    prisma.obrasServico.count().catch(() => 128)
+    prisma.obrasObra.count({ where: { active: true, status: "Em Execução" } }),
+    prisma.obrasMedicao.count({ where: { active: true } }),
+    prisma.obrasServico.count({ where: { active: true, status: { in: ["Aberto", "Em Andamento"] } } })
   ]);
 
   return (
@@ -50,7 +50,7 @@ export default async function ObrasDashboard() {
               <Ruler className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Medições Realizadas</p>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Medições Registradas</p>
               <h2 className="text-3xl font-bold text-slate-900 dark:text-white">{totalMedicoes}</h2>
             </div>
           </div>

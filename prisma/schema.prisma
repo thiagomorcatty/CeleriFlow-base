@@ -108,6 +108,8 @@ model Department {
   transfersTo      AssetTransfer[]    @relation("TransferToDept")
   materialMoves    MaterialMovement[] @relation("MovementDepartment")
   materialRequests MaterialRequest[]  @relation("MaterialRequestDepartment")
+  obrasServices    ObrasServico[]     @relation("ObrasServicoDepartment")
+  obrasTeams       ObrasEquipe[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -208,6 +210,8 @@ model Employee {
   assetTransfersFrom AssetTransfer[]   @relation("TransferFromResp")
   assetTransfersTo   AssetTransfer[]   @relation("TransferToResp")
   materialRequests   MaterialRequest[] @relation("MaterialRequester")
+  obrasTeamMemberships ObrasEquipeMembro[]
+  obrasServiceAssignments ObrasServicoEmployee[]
 
   // Mod 12
   directedSchools School[] @relation("SchoolDirector")
@@ -586,6 +590,8 @@ model Document {
 
   folderId String?
   folder   Folder? @relation("DocumentFolder", fields: [folderId], references: [id])
+
+  obrasServiceLinks ObrasServicoDocumento[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1207,6 +1213,7 @@ model BudgetAppropriation {
   reservations BudgetReservation[]
   commitments  Commitment[]
   expenses     Expense[]
+  obrasServices ObrasServico[] @relation("ObrasServicoBudget")
 }
 
 model Revenue {
@@ -1278,6 +1285,7 @@ model Commitment {
 
   settlements Settlement[]
   payments    Payment[]
+  obrasServices ObrasServico[] @relation("ObrasServicoCommitment")
 }
 
 model Settlement {
@@ -1414,6 +1422,7 @@ model PurchaseRequest {
   requester   Employee @relation("EmployeePurchaseRequests", fields: [requesterId], references: [id])
 
   items PurchaseRequestItem[]
+  obrasServiceLinks ObrasServicoCompra[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1456,6 +1465,7 @@ model PurchaseProcess {
   contracts          Contract[]
 
   items PurchaseProcessItem[]
+  obrasServiceLinks ObrasServicoCompra[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1808,6 +1818,8 @@ model Asset {
   transfers    AssetTransfer[]
   maintenances AssetMaintenance[]
   writeOffs    AssetWriteOff[]
+  targetServices ObrasServico[] @relation("ObrasServicoTargetAsset")
+  serviceEquipment ObrasServicoEquipamento[]
 }
 
 model AssetTransfer {
@@ -1920,6 +1932,7 @@ model Material {
   requests             MaterialRequestItem[]
   purchaseRequestItems PurchaseRequestItem[]
   purchaseProcessItems PurchaseProcessItem[]
+  obrasServiceMaterials ObrasServicoMaterial[]
 }
 
 model MaterialStock {
@@ -1937,6 +1950,8 @@ model MaterialStock {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  obrasServiceMaterials ObrasServicoMaterial[]
 }
 
 model MaterialMovement {
@@ -1958,6 +1973,9 @@ model MaterialMovement {
 
   departmentId String?
   department   Department? @relation("MovementDepartment", fields: [departmentId], references: [id])
+
+  obrasServicoId String?
+  obrasServico   ObrasServico? @relation(fields: [obrasServicoId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3274,6 +3292,7 @@ model ObrasObra {
   tipo          String // Construção, Reforma, Pavimentação, etc.
   valorEstimado Float?
   status        String  @default("Em Planejamento") // Em Planejamento, Em Execução, Concluída, Paralisada
+  active        Boolean @default(true)
 
   medicoes ObrasMedicao[]
 
@@ -3287,12 +3306,15 @@ model ObrasMedicao {
   data        DateTime
   valorMedido Float
   status      String   @default("Em Análise") // Em Análise, Aprovada, Paga
+  active      Boolean  @default(true)
 
   obraId String
   obra   ObrasObra @relation(fields: [obraId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([obraId, numero])
 }
 
 model ObrasServico {
@@ -3302,9 +3324,143 @@ model ObrasServico {
   descricao String
   local     String
   status    String @default("Aberto") // Aberto, Em Andamento, Concluído
+  active    Boolean @default(true)
+
+  scheduledFor DateTime?
+  completedAt DateTime?
+  estimatedCost Float?
+
+  departmentId String?
+  department   Department? @relation("ObrasServicoDepartment", fields: [departmentId], references: [id])
+
+  targetAssetId String?
+  targetAsset   Asset? @relation("ObrasServicoTargetAsset", fields: [targetAssetId], references: [id])
+
+  budgetAppropriationId String?
+  budgetAppropriation   BudgetAppropriation? @relation("ObrasServicoBudget", fields: [budgetAppropriationId], references: [id])
+
+  commitmentId String?
+  commitment   Commitment? @relation("ObrasServicoCommitment", fields: [commitmentId], references: [id])
+
+  employees       ObrasServicoEmployee[]
+  teams           ObrasServicoEquipe[]
+  equipment       ObrasServicoEquipamento[]
+  materials       ObrasServicoMaterial[]
+  documents       ObrasServicoDocumento[]
+  purchases       ObrasServicoCompra[]
+  materialMoves   MaterialMovement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ObrasEquipe {
+  id           String     @id @default(cuid())
+  code         String     @unique
+  name         String
+  isActive     Boolean    @default(true)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  members      ObrasEquipeMembro[]
+  assignments  ObrasServicoEquipe[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model ObrasEquipeMembro {
+  id         String      @id @default(cuid())
+  equipeId   String
+  equipe     ObrasEquipe @relation(fields: [equipeId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   Employee    @relation(fields: [employeeId], references: [id])
+  isLeader   Boolean     @default(false)
+  isActive   Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@unique([equipeId, employeeId])
+}
+
+model ObrasServicoEmployee {
+  id             String        @id @default(cuid())
+  obrasServicoId String
+  obrasServico   ObrasServico  @relation(fields: [obrasServicoId], references: [id], onDelete: Cascade)
+  employeeId     String
+  employee       Employee      @relation(fields: [employeeId], references: [id])
+  role           String        @default("Executor")
+  assignedAt     DateTime      @default(now())
+  releasedAt     DateTime?
+
+  @@unique([obrasServicoId, employeeId])
+}
+
+model ObrasServicoEquipe {
+  id             String       @id @default(cuid())
+  obrasServicoId String
+  obrasServico   ObrasServico @relation(fields: [obrasServicoId], references: [id], onDelete: Cascade)
+  equipeId       String
+  equipe         ObrasEquipe  @relation(fields: [equipeId], references: [id])
+  assignedAt     DateTime     @default(now())
+  releasedAt     DateTime?
+
+  @@unique([obrasServicoId, equipeId])
+}
+
+model ObrasServicoEquipamento {
+  id             String       @id @default(cuid())
+  obrasServicoId String
+  obrasServico   ObrasServico @relation(fields: [obrasServicoId], references: [id], onDelete: Cascade)
+  assetId        String
+  asset          Asset        @relation(fields: [assetId], references: [id])
+  assignedAt     DateTime     @default(now())
+  releasedAt     DateTime?
+  operatingHours Float?
+
+  @@unique([obrasServicoId, assetId])
+}
+
+model ObrasServicoMaterial {
+  id             String        @id @default(cuid())
+  obrasServicoId String
+  obrasServico   ObrasServico  @relation(fields: [obrasServicoId], references: [id], onDelete: Cascade)
+  materialId     String
+  material       Material      @relation(fields: [materialId], references: [id])
+  stockId        String?
+  stock          MaterialStock? @relation(fields: [stockId], references: [id])
+  quantityPlanned Float       @default(0)
+  quantityIssued  Float       @default(0)
+  unitCost        Float?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([obrasServicoId, materialId])
+}
+
+model ObrasServicoDocumento {
+  id             String       @id @default(cuid())
+  obrasServicoId String
+  obrasServico   ObrasServico @relation(fields: [obrasServicoId], references: [id], onDelete: Cascade)
+  documentId     String
+  document       Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  purpose        String       @default("Comprovante")
+  createdAt      DateTime     @default(now())
+
+  @@unique([obrasServicoId, documentId])
+}
+
+model ObrasServicoCompra {
+  id                String           @id @default(cuid())
+  obrasServicoId    String
+  obrasServico      ObrasServico     @relation(fields: [obrasServicoId], references: [id], onDelete: Cascade)
+  purchaseRequestId String?
+  purchaseRequest   PurchaseRequest? @relation(fields: [purchaseRequestId], references: [id], onDelete: SetNull)
+  purchaseProcessId String?
+  purchaseProcess   PurchaseProcess? @relation(fields: [purchaseProcessId], references: [id], onDelete: SetNull)
+  purpose           String           @default("Material")
+  createdAt         DateTime         @default(now())
+
+  @@unique([obrasServicoId, purchaseRequestId])
+  @@unique([obrasServicoId, purchaseProcessId])
 }
 
 // -----------------------------------------------------------------------------
