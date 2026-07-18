@@ -212,6 +212,9 @@ model Employee {
   materialRequests   MaterialRequest[] @relation("MaterialRequester")
   obrasTeamMemberships ObrasEquipeMembro[]
   obrasServiceAssignments ObrasServicoEmployee[]
+  culturaSpacesResponsible CulturaEspaco[] @relation("CulturaSpaceResponsible")
+  culturaEventsResponsible CulturaEvento[] @relation("CulturaEventResponsible")
+  culturaActivitiesInstructor CulturaAtividade[] @relation("CulturaActivityInstructor")
 
   // Mod 12
   directedSchools School[] @relation("SchoolDirector")
@@ -328,6 +331,9 @@ model Person {
   socialAttendances  SocialAttendance[]
   socialConcessions  SocialBenefitConcession[]
 
+  culturaAgents       CulturaAgente[]  @relation("CulturaAgentPerson")
+  culturaReservations CulturaReserva[] @relation("CulturaReservationPerson")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -368,6 +374,9 @@ model Company {
 
   // Mod 4 e 5
   tickets Ticket[]
+
+  culturaAgents       CulturaAgente[]  @relation("CulturaAgentCompany")
+  culturaReservations CulturaReserva[] @relation("CulturaReservationCompany")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -567,6 +576,8 @@ model RealEstate {
   assets      Asset[]
   schools     School[]
   socialUnits SocialUnit[]
+  culturaSpaces    CulturaEspaco[]     @relation("CulturaSpaceRealEstate")
+  culturaHeritages CulturaPatrimonio[] @relation("CulturaHeritageRealEstate")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -592,6 +603,10 @@ model Document {
   folder   Folder? @relation("DocumentFolder", fields: [folderId], references: [id])
 
   obrasServiceLinks ObrasServicoDocumento[]
+  culturaEventLinks       CulturaEventoDocumento[]   @relation("CulturaEventDocument")
+  culturaProjectLinks     CulturaProjetoDocumento[]  @relation("CulturaProjectDocument")
+  culturaReservationLinks CulturaReservaDocumento[]  @relation("CulturaReservationDocument")
+  culturaCouncilLinks     CulturaConselhoDocumento[] @relation("CulturaCouncilDocument")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1214,6 +1229,8 @@ model BudgetAppropriation {
   commitments  Commitment[]
   expenses     Expense[]
   obrasServices ObrasServico[] @relation("ObrasServicoBudget")
+  culturaProjects CulturaProjeto[] @relation("CulturaProjectBudget")
+  culturaFunds CulturaFundo[] @relation("CulturaFundBudget")
 }
 
 model Revenue {
@@ -1286,6 +1303,7 @@ model Commitment {
   settlements Settlement[]
   payments    Payment[]
   obrasServices ObrasServico[] @relation("ObrasServicoCommitment")
+  culturaProjects CulturaProjeto[] @relation("CulturaProjectCommitment")
 }
 
 model Settlement {
@@ -1466,6 +1484,7 @@ model PurchaseProcess {
 
   items PurchaseProcessItem[]
   obrasServiceLinks ObrasServicoCompra[]
+  culturaProjects CulturaProjeto[] @relation("CulturaProjectPurchase")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1606,6 +1625,7 @@ model Contract {
   inspector   Employee? @relation("ContractInspector", fields: [inspectorId], references: [id])
 
   amendments ContractAmendment[]
+  culturaProjects CulturaProjeto[] @relation("CulturaProjectContract")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1820,6 +1840,8 @@ model Asset {
   writeOffs    AssetWriteOff[]
   targetServices ObrasServico[] @relation("ObrasServicoTargetAsset")
   serviceEquipment ObrasServicoEquipamento[]
+  culturaSpaces CulturaEspaco[] @relation("CulturaSpaceAsset")
+  culturaHeritages CulturaPatrimonio[] @relation("CulturaHeritageAsset")
 }
 
 model AssetTransfer {
@@ -3476,6 +3498,15 @@ model CulturaAgente {
   telefone String?
   email    String?
   status   String  @default("Ativo") // Ativo, Inativo
+  active   Boolean @default(true)
+
+  personId String?
+  person   Person? @relation("CulturaAgentPerson", fields: [personId], references: [id])
+  companyId String?
+  company   Company? @relation("CulturaAgentCompany", fields: [companyId], references: [id])
+
+  projetos CulturaProjeto[]
+  atividades CulturaAtividade[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3488,6 +3519,18 @@ model CulturaEspaco {
   endereco   String?
   capacidade Int?
   status     String  @default("Disponível") // Disponível, Em Manutenção, Reservado
+  active     Boolean @default(true)
+
+  assetId String?
+  asset   Asset? @relation("CulturaSpaceAsset", fields: [assetId], references: [id])
+  realEstateId String?
+  realEstate   RealEstate? @relation("CulturaSpaceRealEstate", fields: [realEstateId], references: [id])
+  responsibleEmployeeId String?
+  responsibleEmployee   Employee? @relation("CulturaSpaceResponsible", fields: [responsibleEmployeeId], references: [id])
+
+  eventos    CulturaEvento[]
+  atividades CulturaAtividade[]
+  reservas   CulturaReserva[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3501,9 +3544,190 @@ model CulturaEvento {
   local       String?
   publicoAlvo String?
   status      String   @default("Programado") // Programado, Em Andamento, Realizado, Cancelado
+  active      Boolean  @default(true)
+  startsAt    DateTime?
+  endsAt      DateTime?
+
+  spaceId String?
+  space   CulturaEspaco? @relation(fields: [spaceId], references: [id])
+  responsibleEmployeeId String?
+  responsibleEmployee   Employee? @relation("CulturaEventResponsible", fields: [responsibleEmployeeId], references: [id])
+  projectId String?
+  project   CulturaProjeto? @relation(fields: [projectId], references: [id])
+
+  reservas CulturaReserva[]
+  documentos CulturaEventoDocumento[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model CulturaProjeto {
+  id          String  @id @default(cuid())
+  numero      String  @unique
+  nome        String
+  descricao   String?
+  categoria   String
+  status      String  @default("Em Análise")
+  active      Boolean @default(true)
+  valorSolicitado Float?
+
+  agenteId String
+  agente   CulturaAgente @relation(fields: [agenteId], references: [id])
+
+  appropriationId String?
+  appropriation   BudgetAppropriation? @relation("CulturaProjectBudget", fields: [appropriationId], references: [id])
+  commitmentId String?
+  commitment   Commitment? @relation("CulturaProjectCommitment", fields: [commitmentId], references: [id])
+  purchaseProcessId String?
+  purchaseProcess   PurchaseProcess? @relation("CulturaProjectPurchase", fields: [purchaseProcessId], references: [id])
+  contractId String?
+  contract   Contract? @relation("CulturaProjectContract", fields: [contractId], references: [id])
+
+  eventos CulturaEvento[]
+  documentos CulturaProjetoDocumento[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CulturaAtividade {
+  id          String   @id @default(cuid())
+  nome        String
+  modalidade  String
+  publicoAlvo String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  status      String   @default("Ativa")
+  active      Boolean  @default(true)
+
+  spaceId String?
+  space   CulturaEspaco? @relation(fields: [spaceId], references: [id])
+  instructorEmployeeId String?
+  instructorEmployee   Employee? @relation("CulturaActivityInstructor", fields: [instructorEmployeeId], references: [id])
+  agentId String?
+  agent   CulturaAgente? @relation(fields: [agentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CulturaReserva {
+  id        String   @id @default(cuid())
+  startsAt  DateTime
+  endsAt    DateTime
+  purpose   String
+  status    String   @default("Solicitada")
+  active    Boolean  @default(true)
+  notes     String?
+
+  spaceId String
+  space   CulturaEspaco @relation(fields: [spaceId], references: [id])
+  personId String?
+  person   Person? @relation("CulturaReservationPerson", fields: [personId], references: [id])
+  companyId String?
+  company   Company? @relation("CulturaReservationCompany", fields: [companyId], references: [id])
+  eventId String?
+  event   CulturaEvento? @relation(fields: [eventId], references: [id])
+
+  documentos CulturaReservaDocumento[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([spaceId, startsAt, endsAt])
+}
+
+model CulturaPatrimonio {
+  id                  String  @id @default(cuid())
+  nome                String
+  tipo                String
+  relevanciaCultural  String?
+  situacaoProtecao    String?
+  estadoConservacao   String?
+  status              String  @default("Ativo")
+  active              Boolean @default(true)
+
+  assetId String?
+  asset   Asset? @relation("CulturaHeritageAsset", fields: [assetId], references: [id])
+  realEstateId String?
+  realEstate   RealEstate? @relation("CulturaHeritageRealEstate", fields: [realEstateId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CulturaConselho {
+  id          String  @id @default(cuid())
+  nome        String
+  tipo        String
+  status      String  @default("Ativo")
+  active      Boolean @default(true)
+  responsavel String?
+
+  documentos CulturaConselhoDocumento[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CulturaFundo {
+  id          String  @id @default(cuid())
+  nome        String  @unique
+  status      String  @default("Ativo")
+  active      Boolean @default(true)
+  descricao   String?
+
+  appropriationId String?
+  appropriation   BudgetAppropriation? @relation("CulturaFundBudget", fields: [appropriationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CulturaEventoDocumento {
+  id        String  @id @default(cuid())
+  eventId   String
+  event     CulturaEvento @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  documentId String
+  document  Document @relation("CulturaEventDocument", fields: [documentId], references: [id])
+  purpose   String  @default("Comprovante")
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, documentId])
+}
+
+model CulturaProjetoDocumento {
+  id        String  @id @default(cuid())
+  projectId String
+  project   CulturaProjeto @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  documentId String
+  document  Document @relation("CulturaProjectDocument", fields: [documentId], references: [id])
+  purpose   String  @default("Prestação de contas")
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, documentId])
+}
+
+model CulturaReservaDocumento {
+  id        String  @id @default(cuid())
+  reservationId String
+  reservation CulturaReserva @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  documentId String
+  document  Document @relation("CulturaReservationDocument", fields: [documentId], references: [id])
+  purpose   String  @default("Termo de uso")
+  createdAt DateTime @default(now())
+
+  @@unique([reservationId, documentId])
+}
+
+model CulturaConselhoDocumento {
+  id        String  @id @default(cuid())
+  councilId String
+  council   CulturaConselho @relation(fields: [councilId], references: [id], onDelete: Cascade)
+  documentId String
+  document  Document @relation("CulturaCouncilDocument", fields: [documentId], references: [id])
+  purpose   String  @default("Ata")
+  createdAt DateTime @default(now())
+
+  @@unique([councilId, documentId])
 }
 
 // -----------------------------------------------------------------------------

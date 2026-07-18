@@ -15,9 +15,9 @@ import { prisma } from "@/lib/prisma";
 
 export default async function CulturaDashboard() {
   const [totalAgentes, totalEspacos, totalEventos] = await Promise.all([
-    prisma.culturaAgente.count().catch(() => 42),
-    prisma.culturaEspaco.count().catch(() => 15),
-    prisma.culturaEvento.count().catch(() => 28)
+    prisma.culturaAgente.count({ where: { active: true } }),
+    prisma.culturaEspaco.count({ where: { active: true } }),
+    prisma.culturaEvento.count({ where: { active: true } })
   ]);
 
   return (
