@@ -60,7 +60,7 @@ export default async function ConfiguracoesDashboard() {
 
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Acesso Rápido</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Link href="/app-domain/configuracoes/instancia" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/configuracoes/instancia" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <Building2 className="h-6 w-6 text-gray-700 dark:text-gray-300 mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors flex items-center justify-between">
@@ -71,7 +71,7 @@ export default async function ConfiguracoesDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/configuracoes/modulos" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/configuracoes/modulos" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <Blocks className="h-6 w-6 text-zinc-700 dark:text-zinc-300 mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors flex items-center justify-between">
@@ -82,7 +82,7 @@ export default async function ConfiguracoesDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/configuracoes/perfis" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/configuracoes/perfis" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <ShieldCheck className="h-6 w-6 text-slate-700 dark:text-slate-300 mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors flex items-center justify-between">
@@ -93,7 +93,7 @@ export default async function ConfiguracoesDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/configuracoes/usuarios" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/configuracoes/usuarios" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <UserCog className="h-6 w-6 text-gray-700 dark:text-gray-300 mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors flex items-center justify-between">

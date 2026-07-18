@@ -21,8 +21,8 @@ export async function updateInstancia(id: string, data: {
       dominio: data.dominio || null,
     },
   });
-  revalidatePath("/app-domain/configuracoes/instancia");
-  revalidatePath("/app-domain/configuracoes");
+  revalidatePath("/configuracoes/instancia");
+  revalidatePath("/configuracoes");
 }
 
 export async function createInstancia(data: {
@@ -42,8 +42,8 @@ export async function createInstancia(data: {
       status: "Ativa",
     },
   });
-  revalidatePath("/app-domain/configuracoes/instancia");
-  revalidatePath("/app-domain/configuracoes");
+  revalidatePath("/configuracoes/instancia");
+  revalidatePath("/configuracoes");
 }
 
 // --- Módulos Contratados ---
@@ -55,8 +55,8 @@ export async function toggleModulo(id: string, ativo: boolean) {
       dataAtivacao: ativo ? new Date() : null,
     },
   });
-  revalidatePath("/app-domain/configuracoes/modulos");
-  revalidatePath("/app-domain/configuracoes");
+  revalidatePath("/configuracoes/modulos");
+  revalidatePath("/configuracoes");
 }
 
 export async function createModulo(data: {
@@ -72,8 +72,8 @@ export async function createModulo(data: {
       dataAtivacao: data.ativo ? new Date() : null,
     },
   });
-  revalidatePath("/app-domain/configuracoes/modulos");
-  revalidatePath("/app-domain/configuracoes");
+  revalidatePath("/configuracoes/modulos");
+  revalidatePath("/configuracoes");
 }
 
 // --- Perfis de Acesso ---
@@ -90,8 +90,8 @@ export async function createPerfil(data: {
       ativo: true,
     },
   });
-  revalidatePath("/app-domain/configuracoes/perfis");
-  revalidatePath("/app-domain/configuracoes");
+  revalidatePath("/configuracoes/perfis");
+  revalidatePath("/configuracoes");
 }
 
 export async function togglePerfil(id: string, ativo: boolean) {
@@ -99,6 +99,6 @@ export async function togglePerfil(id: string, ativo: boolean) {
     where: { id },
     data: { ativo },
   });
-  revalidatePath("/app-domain/configuracoes/perfis");
-  revalidatePath("/app-domain/configuracoes");
+  revalidatePath("/configuracoes/perfis");
+  revalidatePath("/configuracoes");
 }

@@ -52,7 +52,7 @@ export async function upsertUsuario(data: {
       });
     }
 
-    revalidatePath("/app-domain/configuracoes/usuarios");
+    revalidatePath("/configuracoes/usuarios");
     return { error: null };
   } catch (error: any) {
     console.error(error);
@@ -66,7 +66,7 @@ export async function toggleUsuarioStatus(id: string, ativo: boolean) {
       where: { id },
       data: { ativo }
     });
-    revalidatePath("/app-domain/configuracoes/usuarios");
+    revalidatePath("/configuracoes/usuarios");
     return { error: null };
   } catch (error) {
     console.error(error);
