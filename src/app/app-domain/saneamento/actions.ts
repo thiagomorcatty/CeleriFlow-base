@@ -25,6 +25,31 @@ export async function createConsumerUnit(data: {
   revalidatePath("/saneamento");
 }
 
+export async function updateConsumerUnit(
+  id: string,
+  data: {
+    code?: string;
+    address?: string;
+    category?: string;
+    ownerName?: string;
+    ownerDocument?: string;
+    status?: string;
+  }
+) {
+  await prisma.sanConsumerUnit.update({ where: { id }, data });
+  revalidatePath("/saneamento/unidades");
+  revalidatePath("/saneamento");
+}
+
+export async function inactivateConsumerUnit(id: string) {
+  await prisma.sanConsumerUnit.update({
+    where: { id },
+    data: { status: "Inativa" },
+  });
+  revalidatePath("/saneamento/unidades");
+  revalidatePath("/saneamento");
+}
+
 export async function deleteConsumerUnit(id: string) {
   await prisma.sanConsumerUnit.delete({ where: { id } });
   revalidatePath("/saneamento/unidades");
@@ -56,6 +81,15 @@ export async function createMeterReading(data: {
   revalidatePath("/saneamento");
 }
 
+export async function updateMeterReading(
+  id: string,
+  data: { currentValue?: number; status?: string; readerName?: string }
+) {
+  await prisma.sanMeterReading.update({ where: { id }, data });
+  revalidatePath("/saneamento/leituras");
+  revalidatePath("/saneamento");
+}
+
 export async function deleteMeterReading(id: string) {
   await prisma.sanMeterReading.delete({ where: { id } });
   revalidatePath("/saneamento/leituras");
@@ -71,7 +105,7 @@ export async function createServiceOrder(data: {
   technician?: string;
 }) {
   const count = await prisma.sanServiceOrder.count();
-  const orderNumber = `OS-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
+  const orderNumber = `OS-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
 
   await prisma.sanServiceOrder.create({
     data: {
@@ -84,6 +118,21 @@ export async function createServiceOrder(data: {
       status: "Aberta",
     },
   });
+  revalidatePath("/saneamento/servicos");
+  revalidatePath("/saneamento");
+}
+
+export async function updateServiceOrder(
+  id: string,
+  data: {
+    orderType?: string;
+    description?: string;
+    priority?: string;
+    status?: string;
+    technician?: string;
+  }
+) {
+  await prisma.sanServiceOrder.update({ where: { id }, data });
   revalidatePath("/saneamento/servicos");
   revalidatePath("/saneamento");
 }
