@@ -83,7 +83,7 @@ export default async function CamaraDashboard() {
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Módulos do Sistema Legislativo</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         
-        <Link href="/app-domain/camara/legislaturas" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/camara/legislaturas" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <Landmark className="h-6 w-6 text-[#9333EA] mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-[#9333EA] transition-colors flex items-center justify-between">
@@ -94,7 +94,7 @@ export default async function CamaraDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/camara/vereadores" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/camara/vereadores" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <Users className="h-6 w-6 text-[#9333EA] mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-[#9333EA] transition-colors flex items-center justify-between">
@@ -105,7 +105,7 @@ export default async function CamaraDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/camara/comissoes" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/camara/comissoes" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <Users className="h-6 w-6 text-[#9333EA] mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-[#9333EA] transition-colors flex items-center justify-between">
@@ -116,7 +116,7 @@ export default async function CamaraDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/camara/sessoes" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/camara/sessoes" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <Calendar className="h-6 w-6 text-[#9333EA] mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-[#9333EA] transition-colors flex items-center justify-between">
@@ -127,7 +127,7 @@ export default async function CamaraDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/camara/proposicoes" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/camara/proposicoes" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <FileText className="h-6 w-6 text-[#9333EA] mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-[#9333EA] transition-colors flex items-center justify-between">
@@ -138,7 +138,7 @@ export default async function CamaraDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/camara/leis" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/camara/leis" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <Scale className="h-6 w-6 text-[#9333EA] mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-[#9333EA] transition-colors flex items-center justify-between">
@@ -149,7 +149,7 @@ export default async function CamaraDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/camara/audiencias" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/camara/audiencias" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <Mic className="h-6 w-6 text-[#9333EA] mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-[#9333EA] transition-colors flex items-center justify-between">
@@ -160,7 +160,7 @@ export default async function CamaraDashboard() {
           </div>
         </Link>
 
-        <Link href="/app-domain/camara/portal" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+        <Link href="/camara/portal" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
           <Globe className="h-6 w-6 text-[#9333EA] mb-2" />
           <div>
             <h4 className="font-medium text-gray-900 dark:text-white group-hover:text-[#9333EA] transition-colors flex items-center justify-between">

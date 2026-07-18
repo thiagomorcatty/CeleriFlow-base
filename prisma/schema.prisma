@@ -72,6 +72,7 @@ model Secretariat {
   purchaseRequests  PurchaseRequest[] @relation("SecretariatPurchaseRequests")
   purchaseProcesses PurchaseProcess[] @relation("SecretariatPurchaseProcesses")
   contracts         Contract[]        @relation("SecretariatContracts")
+  camaraLegislaturas CamLegislatura[] @relation("CamaraLegislatureSecretariat")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -192,6 +193,7 @@ model Employee {
   purchaseRequests   PurchaseRequest[] @relation("EmployeePurchaseRequests")
   managedContracts   Contract[]        @relation("ContractManager")
   inspectedContracts Contract[]        @relation("ContractInspector")
+  camaraCouncilorProfiles CamVereador[] @relation("CamaraCouncilorEmployee")
 
   // Mod 10
   personId      String?            @unique
@@ -306,6 +308,7 @@ model Person {
   legalRepresentations LegalRepresentative[] @relation("RepresentedPerson")
   representedBy        LegalRepresentative[] @relation("RepresentativePerson")
   documents            Document[]
+  camaraCouncilorProfiles CamVereador[] @relation("CamaraCouncilorPerson")
 
   // Mod 3
   processes Process[]
@@ -607,6 +610,7 @@ model Document {
   culturaProjectLinks     CulturaProjetoDocumento[]  @relation("CulturaProjectDocument")
   culturaReservationLinks CulturaReservaDocumento[]  @relation("CulturaReservationDocument")
   culturaCouncilLinks     CulturaConselhoDocumento[] @relation("CulturaCouncilDocument")
+  camaraLegislativeLinks  CamDocumentoLegislativo[]  @relation("CamaraLegislativeDocument")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3069,9 +3073,14 @@ model CamLegislatura {
   status    String   @default("Ativa") // Ativa, Encerrada, Futura
   descricao String?
 
+  secretariatId String?
+  secretariat   Secretariat? @relation("CamaraLegislatureSecretariat", fields: [secretariatId], references: [id])
+
   vereadores   CamVereador[]
   comissoes    CamComissao[]
   mesaDiretora CamMesaDiretora[]
+  sessoes      CamSessao[]
+  audiencias   CamAudiencia[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3087,6 +3096,12 @@ model CamVereador {
   telefone        String?
   foto            String?
   status          String  @default("Em Exercício") // Em Exercício, Licenciado, Afastado, Suplente, Inativo
+  active          Boolean @default(true)
+
+  personId String?
+  person   Person? @relation("CamaraCouncilorPerson", fields: [personId], references: [id])
+  employeeId String?
+  employee   Employee? @relation("CamaraCouncilorEmployee", fields: [employeeId], references: [id])
 
   legislaturaId String
   legislatura   CamLegislatura @relation(fields: [legislaturaId], references: [id], onDelete: Cascade)
@@ -3095,6 +3110,8 @@ model CamVereador {
   membroComissoes CamComissaoMembro[]
   cargosMesa      CamMesaDiretora[]
   gabinete        CamGabinete?
+  presencas       CamPresencaSessao[]
+  votos           CamVoto[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3109,11 +3126,16 @@ model CamSessao {
   status String   @default("Agendada") // Agendada, Em Preparação, Aberta, Encerrada, Cancelada
   quorum Int?
 
+  legislaturaId String?
+  legislatura   CamLegislatura? @relation(fields: [legislaturaId], references: [id])
+
   proposicoes CamProposicao[]
   pautas      CamPauta[]
   ata         CamAta?
   votacoes    CamVotacao[]
   audiencias  CamAudiencia[]
+  presencas   CamPresencaSessao[]
+  documentos  CamDocumentoLegislativo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3139,6 +3161,7 @@ model CamProposicao {
   votacao   CamVotacao?
   lei       CamLei?
   pareceres CamParecer[]
+  documentos CamDocumentoLegislativo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3156,6 +3179,7 @@ model CamComissao {
   legislatura   CamLegislatura @relation(fields: [legislaturaId], references: [id], onDelete: Cascade)
 
   membros CamComissaoMembro[]
+  pareceres CamParecer[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3236,6 +3260,8 @@ model CamVotacao {
   sessaoId String
   sessao   CamSessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
 
+  votos CamVoto[]
+
   createdAt DateTime @default(now())
 }
 
@@ -3248,6 +3274,7 @@ model CamAta {
 
   sessaoId String    @unique
   sessao   CamSessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  documentos CamDocumentoLegislativo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3265,6 +3292,7 @@ model CamLei {
 
   proposicaoId String?        @unique
   proposicao   CamProposicao? @relation(fields: [proposicaoId], references: [id], onDelete: SetNull)
+  documentos   CamDocumentoLegislativo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3279,6 +3307,10 @@ model CamParecer {
 
   proposicaoId String
   proposicao   CamProposicao @relation(fields: [proposicaoId], references: [id], onDelete: Cascade)
+
+  comissaoId String?
+  comissao   CamComissao? @relation(fields: [comissaoId], references: [id])
+  documentos CamDocumentoLegislativo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3296,9 +3328,56 @@ model CamAudiencia {
 
   sessaoId String?
   sessao   CamSessao? @relation(fields: [sessaoId], references: [id], onDelete: SetNull)
+  legislaturaId String?
+  legislatura   CamLegislatura? @relation(fields: [legislaturaId], references: [id])
+  documentos CamDocumentoLegislativo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model CamPresencaSessao {
+  id        String      @id @default(cuid())
+  status    String      @default("Presente")
+  sessaoId  String
+  sessao    CamSessao   @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  vereadorId String
+  vereador  CamVereador @relation(fields: [vereadorId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([sessaoId, vereadorId])
+}
+
+model CamVoto {
+  id        String      @id @default(cuid())
+  voto      String      // Sim, Não, Abstenção
+  votacaoId String
+  votacao   CamVotacao  @relation(fields: [votacaoId], references: [id], onDelete: Cascade)
+  vereadorId String
+  vereador  CamVereador @relation(fields: [vereadorId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([votacaoId, vereadorId])
+}
+
+model CamDocumentoLegislativo {
+  id          String  @id @default(cuid())
+  purpose     String  @default("Publicação")
+  documentId  String
+  document    Document @relation("CamaraLegislativeDocument", fields: [documentId], references: [id])
+  proposicaoId String?
+  proposicao  CamProposicao? @relation(fields: [proposicaoId], references: [id], onDelete: Cascade)
+  sessaoId    String?
+  sessao      CamSessao? @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  ataId       String?
+  ata         CamAta? @relation(fields: [ataId], references: [id], onDelete: Cascade)
+  leiId       String?
+  lei         CamLei? @relation(fields: [leiId], references: [id], onDelete: Cascade)
+  parecerId   String?
+  parecer     CamParecer? @relation(fields: [parecerId], references: [id], onDelete: Cascade)
+  audienciaId String?
+  audiencia   CamAudiencia? @relation(fields: [audienciaId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
 }
 
 // -----------------------------------------------------------------------------

@@ -58,11 +58,11 @@ async function main() {
   await prisma.camComissao.create({ data: { nome: 'Comissão de Obras, Transportes e Meio Ambiente', sigla: 'COTMA', tipo: 'Permanente', descricao: 'Acompanha projetos de infraestrutura.', status: 'Ativa', legislaturaId: legislatura.id, membros: { create: [{ cargo: 'Presidente', vereadorId: ze.id }, { cargo: 'Membro', vereadorId: carlos.id }] } } });
   console.log('3 comissoes criadas');
 
-  const sessao1 = await prisma.camSessao.upsert({ where: { numero: 1 }, update: {}, create: { numero: 1, tipo: 'Ordinária', data: new Date('2025-02-03T14:00:00'), local: 'Plenário Vereador João de Barro', status: 'Encerrada', quorum: 5 } });
-  const sessao2 = await prisma.camSessao.upsert({ where: { numero: 2 }, update: {}, create: { numero: 2, tipo: 'Ordinária', data: new Date('2025-02-17T14:00:00'), local: 'Plenário Vereador João de Barro', status: 'Encerrada', quorum: 4 } });
-  const sessao3 = await prisma.camSessao.upsert({ where: { numero: 3 }, update: {}, create: { numero: 3, tipo: 'Extraordinária', data: new Date('2025-03-05T10:00:00'), local: 'Plenário Vereador João de Barro', status: 'Encerrada', quorum: 5 } });
-  await prisma.camSessao.upsert({ where: { numero: 4 }, update: {}, create: { numero: 4, tipo: 'Ordinária', data: new Date('2025-07-21T14:00:00'), local: 'Plenário Vereador João de Barro', status: 'Agendada' } });
-  await prisma.camSessao.upsert({ where: { numero: 5 }, update: {}, create: { numero: 5, tipo: 'Solene', data: new Date('2025-09-07T09:00:00'), local: 'Auditório da Prefeitura Municipal', status: 'Agendada' } });
+  const sessao1 = await prisma.camSessao.upsert({ where: { numero: 1 }, update: { legislaturaId: legislatura.id }, create: { numero: 1, tipo: 'Ordinária', data: new Date('2025-02-03T14:00:00'), local: 'Plenário Vereador João de Barro', status: 'Encerrada', quorum: 5, legislaturaId: legislatura.id } });
+  const sessao2 = await prisma.camSessao.upsert({ where: { numero: 2 }, update: { legislaturaId: legislatura.id }, create: { numero: 2, tipo: 'Ordinária', data: new Date('2025-02-17T14:00:00'), local: 'Plenário Vereador João de Barro', status: 'Encerrada', quorum: 4, legislaturaId: legislatura.id } });
+  const sessao3 = await prisma.camSessao.upsert({ where: { numero: 3 }, update: { legislaturaId: legislatura.id }, create: { numero: 3, tipo: 'Extraordinária', data: new Date('2025-03-05T10:00:00'), local: 'Plenário Vereador João de Barro', status: 'Encerrada', quorum: 5, legislaturaId: legislatura.id } });
+  await prisma.camSessao.upsert({ where: { numero: 4 }, update: { legislaturaId: legislatura.id }, create: { numero: 4, tipo: 'Ordinária', data: new Date('2025-07-21T14:00:00'), local: 'Plenário Vereador João de Barro', status: 'Agendada', legislaturaId: legislatura.id } });
+  await prisma.camSessao.upsert({ where: { numero: 5 }, update: { legislaturaId: legislatura.id }, create: { numero: 5, tipo: 'Solene', data: new Date('2025-09-07T09:00:00'), local: 'Auditório da Prefeitura Municipal', status: 'Agendada', legislaturaId: legislatura.id } });
   console.log('5 sessoes criadas');
 
   const prop1 = await prisma.camProposicao.upsert({ where: { numero: 'PL-001/2025' }, update: {}, create: { numero: 'PL-001/2025', tipo: 'Projeto de Lei', ementa: 'Criação do Fundo Municipal de Desenvolvimento Urbano.', status: 'Aprovada', urgente: false, autorId: carlos.id, sessaoId: sessao2.id, dataProtocolo: new Date('2025-01-20') } });
@@ -91,9 +91,18 @@ async function main() {
   await prisma.camParecer.create({ data: { tipo: 'Comissão', conteudo: 'A CFOC confirma dotação orçamentária para o PL-001/2025.', resultado: 'Favorável', status: 'Emitido', proposicaoId: prop1.id } }).catch(() => {});
   console.log('Pareceres emitidos');
 
-  await prisma.camAudiencia.create({ data: { tema: 'Prestação de Contas do 1º Quadrimestre 2025', descricao: 'Audiência pública da LRF.', data: new Date('2025-05-22T14:00:00'), local: 'Câmara Municipal - Plenário', tipo: 'Pública', status: 'Realizada', ata: '47 munícipes participaram.' } }).catch(() => {});
-  await prisma.camAudiencia.create({ data: { tema: 'Plano Diretor Municipal - Revisão 2025', descricao: 'Debate sobre revisão do Plano Diretor.', data: new Date('2025-04-10T09:00:00'), local: 'Auditório da Secretaria de Obras', tipo: 'Pública', status: 'Realizada', ata: '120 presentes discutiram zoneamento urbano.' } }).catch(() => {});
-  await prisma.camAudiencia.create({ data: { tema: 'Lei Orçamentária Anual 2026 - Consulta Popular', descricao: 'Consulta sobre prioridades do orçamento 2026.', data: new Date('2025-09-15T14:00:00'), local: 'Câmara Municipal - Plenário', tipo: 'Pública', status: 'Agendada' } }).catch(() => {});
+  for (const audiencia of [
+    { tema: 'Prestação de Contas do 1º Quadrimestre 2025', descricao: 'Audiência pública da LRF.', data: new Date('2025-05-22T14:00:00'), local: 'Câmara Municipal - Plenário', tipo: 'Pública', status: 'Realizada', ata: '47 munícipes participaram.' },
+    { tema: 'Plano Diretor Municipal - Revisão 2025', descricao: 'Debate sobre revisão do Plano Diretor.', data: new Date('2025-04-10T09:00:00'), local: 'Auditório da Secretaria de Obras', tipo: 'Pública', status: 'Realizada', ata: '120 presentes discutiram zoneamento urbano.' },
+    { tema: 'Lei Orçamentária Anual 2026 - Consulta Popular', descricao: 'Consulta sobre prioridades do orçamento 2026.', data: new Date('2025-09-15T14:00:00'), local: 'Câmara Municipal - Plenário', tipo: 'Pública', status: 'Agendada' },
+  ]) {
+    const existing = await prisma.camAudiencia.findFirst({ where: { tema: audiencia.tema, data: audiencia.data } });
+    if (existing) {
+      await prisma.camAudiencia.update({ where: { id: existing.id }, data: { legislaturaId: legislatura.id } });
+    } else {
+      await prisma.camAudiencia.create({ data: { ...audiencia, legislaturaId: legislatura.id } });
+    }
+  }
   console.log('3 audiencias criadas');
 
   console.log('Seed do Módulo 19 concluído!');

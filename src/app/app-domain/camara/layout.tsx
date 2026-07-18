@@ -19,15 +19,15 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel", href: "/app-domain/camara", icon: LayoutDashboard },
-  { title: "Legislaturas", href: "/app-domain/camara/legislaturas", icon: Landmark },
-  { title: "Vereadores", href: "/app-domain/camara/vereadores", icon: Users },
-  { title: "Comissões", href: "/app-domain/camara/comissoes", icon: Users },
-  { title: "Sessões", href: "/app-domain/camara/sessoes", icon: Calendar },
-  { title: "Proposições", href: "/app-domain/camara/proposicoes", icon: FileText },
-  { title: "Leis e Atos", href: "/app-domain/camara/leis", icon: Scale },
-  { title: "Audiências", href: "/app-domain/camara/audiencias", icon: Mic },
-  { title: "Portal Legislativo", href: "/app-domain/camara/portal", icon: Globe },
+  { title: "Painel", href: "/camara", icon: LayoutDashboard },
+  { title: "Legislaturas", href: "/camara/legislaturas", icon: Landmark },
+  { title: "Vereadores", href: "/camara/vereadores", icon: Users },
+  { title: "Comissões", href: "/camara/comissoes", icon: Users },
+  { title: "Sessões", href: "/camara/sessoes", icon: Calendar },
+  { title: "Proposições", href: "/camara/proposicoes", icon: FileText },
+  { title: "Leis e Atos", href: "/camara/leis", icon: Scale },
+  { title: "Audiências", href: "/camara/audiencias", icon: Mic },
+  { title: "Portal Legislativo", href: "/camara/portal", icon: Globe },
 ];
 
 export default function CamaraLayout({ children }: { children: React.ReactNode }) {
@@ -80,8 +80,8 @@ export default function CamaraLayout({ children }: { children: React.ReactNode }
         
         <nav className="flex flex-col gap-1.5 flex-1">
           {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/app-domain/camara" 
-              ? pathname === "/app-domain/camara" 
+            const isActive = item.href === "/camara"
+              ? pathname === "/camara"
               : pathname.startsWith(item.href);
 
             return (

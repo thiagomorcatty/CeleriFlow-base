@@ -43,7 +43,10 @@ export async function createVereador(data: {
 }
 
 export async function deleteVereador(id: string) {
-  await prisma.camVereador.delete({ where: { id } });
+  await prisma.camVereador.update({
+    where: { id },
+    data: { active: false, status: "Inativo" },
+  });
   revalidatePath("/app-domain/camara/vereadores");
   revalidatePath("/app-domain/camara");
 }
@@ -69,7 +72,10 @@ export async function createSessao(data: {
 }
 
 export async function deleteSessao(id: string) {
-  await prisma.camSessao.delete({ where: { id } });
+  await prisma.camSessao.update({
+    where: { id },
+    data: { status: "Cancelada" },
+  });
   revalidatePath("/app-domain/camara/sessoes");
   revalidatePath("/app-domain/camara");
 }
@@ -99,7 +105,10 @@ export async function createProposicao(data: {
 }
 
 export async function deleteProposicao(id: string) {
-  await prisma.camProposicao.delete({ where: { id } });
+  await prisma.camProposicao.update({
+    where: { id },
+    data: { status: "Arquivada" },
+  });
   revalidatePath("/app-domain/camara/proposicoes");
   revalidatePath("/app-domain/camara");
 }
