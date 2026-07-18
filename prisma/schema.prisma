@@ -2985,10 +2985,11 @@ model SanWaterQualityAnalysis {
   result          String
   limit           String
   compliance      String   // Conforme, Não Conforme
+  active          Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  @@index([collectedAt])
+  @@index([active, collectedAt])
 }
 
 model SanPortalRequest {
@@ -2998,10 +2999,11 @@ model SanPortalRequest {
   requestedAt   DateTime @default(now())
   source        String
   status        String
+  active        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  @@index([requestedAt])
+  @@index([active, requestedAt])
 }
 
 model SanSavedReport {
@@ -3010,6 +3012,7 @@ model SanSavedReport {
   type      String
   period    String
   format    String
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

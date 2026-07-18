@@ -14,10 +14,12 @@ const readingStatuses = ["Registrada", "Revisada", "Estimada"] as const;
 const orderTypes = ["Vazamento", "Religação", "Corte", "Manutenção", "Troca de Hidrômetro"] as const;
 const orderPriorities = ["Normal", "Alta", "Urgente"] as const;
 const orderStatuses = ["Aberta", "Em Andamento", "Concluída", "Cancelada"] as const;
+const complianceStatuses = ["Conforme", "Não Conforme"] as const;
 
 const requiredText = z.string().trim().min(1, "Campo obrigatório.");
 const competence = z.string().regex(/^(0[1-9]|1[0-2])\/\d{4}$/, "Informe a competência no formato MM/AAAA.");
 const meterValue = z.number().finite().min(0, "A leitura deve ser maior ou igual a zero.");
+const inputDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data válida.").transform((value) => new Date(`${value}T12:00:00.000Z`));
 
 function databaseErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -316,5 +318,90 @@ export async function updateServiceOrder(
 
   revalidateOperationalPaths("/saneamento/servicos");
   revalidatePath("/saneamento/unidades");
+  return {};
+}
+
+// --- Qualidade, Portal e Relatórios ---
+export async function updateWaterQualityAnalysis(
+  id: string,
+  data: { collectionPoint: string; collectedAt: string; parameter: string; result: string; limit: string; compliance: string }
+): Promise<ActionResult> {
+  const parsed = z.object({ id: requiredText, collectionPoint: requiredText, collectedAt: inputDate, parameter: requiredText, result: requiredText, limit: requiredText, compliance: z.enum(complianceStatuses) }).safeParse({ id, ...data });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  try {
+    await prisma.sanWaterQualityAnalysis.update({ where: { id: parsed.data.id }, data: { collectionPoint: parsed.data.collectionPoint, collectedAt: parsed.data.collectedAt, parameter: parsed.data.parameter, result: parsed.data.result, limit: parsed.data.limit, compliance: parsed.data.compliance } });
+  } catch (error) {
+    return { error: databaseErrorMessage(error, "Não foi possível atualizar a análise.") };
+  }
+
+  revalidateOperationalPaths("/saneamento/qualidade");
+  return {};
+}
+
+export async function inactivateWaterQualityAnalysis(id: string): Promise<ActionResult> {
+  if (!requiredText.safeParse(id).success) return { error: "Análise inválida." };
+  try {
+    await prisma.sanWaterQualityAnalysis.update({ where: { id }, data: { active: false } });
+  } catch (error) {
+    return { error: databaseErrorMessage(error, "Não foi possível inativar a análise.") };
+  }
+  revalidateOperationalPaths("/saneamento/qualidade");
+  return {};
+}
+
+export async function updatePortalRequest(
+  id: string,
+  data: { requestType: string; requesterName: string; requestedAt: string; source: string; status: string }
+): Promise<ActionResult> {
+  const parsed = z.object({ id: requiredText, requestType: requiredText, requesterName: requiredText, requestedAt: inputDate, source: requiredText, status: requiredText }).safeParse({ id, ...data });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  try {
+    await prisma.sanPortalRequest.update({ where: { id: parsed.data.id }, data: { requestType: parsed.data.requestType, requesterName: parsed.data.requesterName, requestedAt: parsed.data.requestedAt, source: parsed.data.source, status: parsed.data.status } });
+  } catch (error) {
+    return { error: databaseErrorMessage(error, "Não foi possível atualizar a solicitação.") };
+  }
+
+  revalidateOperationalPaths("/saneamento/portal");
+  return {};
+}
+
+export async function inactivatePortalRequest(id: string): Promise<ActionResult> {
+  if (!requiredText.safeParse(id).success) return { error: "Solicitação inválida." };
+  try {
+    await prisma.sanPortalRequest.update({ where: { id }, data: { active: false } });
+  } catch (error) {
+    return { error: databaseErrorMessage(error, "Não foi possível inativar a solicitação.") };
+  }
+  revalidateOperationalPaths("/saneamento/portal");
+  return {};
+}
+
+export async function updateSavedReport(
+  id: string,
+  data: { name: string; type: string; period: string; format: string }
+): Promise<ActionResult> {
+  const parsed = z.object({ id: requiredText, name: requiredText, type: requiredText, period: requiredText, format: requiredText }).safeParse({ id, ...data });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  try {
+    await prisma.sanSavedReport.update({ where: { id: parsed.data.id }, data: { name: parsed.data.name, type: parsed.data.type, period: parsed.data.period, format: parsed.data.format } });
+  } catch (error) {
+    return { error: databaseErrorMessage(error, "Não foi possível atualizar o relatório.") };
+  }
+
+  revalidateOperationalPaths("/saneamento/relatorios");
+  return {};
+}
+
+export async function inactivateSavedReport(id: string): Promise<ActionResult> {
+  if (!requiredText.safeParse(id).success) return { error: "Relatório inválido." };
+  try {
+    await prisma.sanSavedReport.update({ where: { id }, data: { active: false } });
+  } catch (error) {
+    return { error: databaseErrorMessage(error, "Não foi possível inativar o relatório.") };
+  }
+  revalidateOperationalPaths("/saneamento/relatorios");
   return {};
 }
