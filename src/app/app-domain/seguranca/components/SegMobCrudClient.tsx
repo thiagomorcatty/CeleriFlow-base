@@ -98,6 +98,7 @@ export default function SegMobCrudClient({
 
   const openNew = () => {
     setEditingId(null);
+    setEditingKind(config.kind);
     setFormData({
       ...defaultForm,
       type: config.typeOptions[0] || "",
@@ -136,7 +137,7 @@ export default function SegMobCrudClient({
     event.preventDefault();
     setIsSubmitting(true);
     const result = editingId
-      ? await updateSegMobItem(config.kind, editingId, formData)
+      ? await updateSegMobItem(editingKind, editingId, formData)
       : await createSegMobItem(config.kind, formData);
     setIsSubmitting(false);
     if (result?.error) {

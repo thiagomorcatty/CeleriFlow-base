@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 const quickLinks = [
-  { title: "Guarda e Equipes", href: "/app-domain/seguranca/guardas", icon: Users, text: "Efetivo, agentes de transito e equipes de escala." },
-  { title: "Ocorrencias", href: "/app-domain/seguranca/ocorrencias", icon: AlertTriangle, text: "Registros internos, despacho e acompanhamento." },
-  { title: "Rondas e Cameras", href: "/app-domain/seguranca/rondas", icon: Camera, text: "Roteiros preventivos e pontos de videomonitoramento." },
-  { title: "Transito", href: "/app-domain/seguranca/transito", icon: CarFront, text: "Infracoes, sinalizacao e operacoes viarias." },
-  { title: "Mobilidade e Rotas", href: "/app-domain/seguranca/mobilidade", icon: Route, text: "Transporte, interdicoes, estacionamento e acessibilidade." },
-  { title: "OS e Equipamentos", href: "/app-domain/seguranca/ordens", icon: Wrench, text: "Ordens de servico, viaturas, radios, cones e ativos." },
+  { title: "Guarda e Equipes", href: "/seguranca/guardas", icon: Users, text: "Efetivo, agentes de transito e equipes de escala." },
+  { title: "Ocorrencias", href: "/seguranca/ocorrencias", icon: AlertTriangle, text: "Registros internos, despacho e acompanhamento." },
+  { title: "Rondas e Cameras", href: "/seguranca/rondas", icon: Camera, text: "Roteiros preventivos e pontos de videomonitoramento." },
+  { title: "Transito", href: "/seguranca/transito", icon: CarFront, text: "Infracoes, sinalizacao e operacoes viarias." },
+  { title: "Mobilidade e Rotas", href: "/seguranca/mobilidade", icon: Route, text: "Transporte, interdicoes, estacionamento e acessibilidade." },
+  { title: "OS e Equipamentos", href: "/seguranca/ordens", icon: Wrench, text: "Ordens de servico, viaturas, radios, cones e ativos." },
 ];
 
 export default async function SegurancaDashboard() {

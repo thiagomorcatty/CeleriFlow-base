@@ -22,15 +22,16 @@ import {
 } from "lucide-react";
 
 const sidebarNavItems = [
-  { title: "Painel", href: "/app-domain/seguranca", icon: LayoutDashboard },
-  { title: "Guarda e Equipes", href: "/app-domain/seguranca/guardas", icon: Users },
-  { title: "Ocorrencias", href: "/app-domain/seguranca/ocorrencias", icon: AlertTriangle },
-  { title: "Rondas e Cameras", href: "/app-domain/seguranca/rondas", icon: Camera },
-  { title: "Defesa Civil", href: "/app-domain/seguranca/defesa-civil", icon: Shield },
-  { title: "Transito", href: "/app-domain/seguranca/transito", icon: CarFront },
-  { title: "Mobilidade e Rotas", href: "/app-domain/seguranca/mobilidade", icon: Route },
-  { title: "OS e Equipamentos", href: "/app-domain/seguranca/ordens", icon: Wrench },
-  { title: "Documentos e Relatorios", href: "/app-domain/seguranca/documentos", icon: FileText },
+  { title: "Painel", href: "/seguranca", icon: LayoutDashboard },
+  { title: "Guarda e Equipes", href: "/seguranca/guardas", icon: Users },
+  { title: "Ocorrencias", href: "/seguranca/ocorrencias", icon: AlertTriangle },
+  { title: "Rondas e Cameras", href: "/seguranca/rondas", icon: Camera },
+  { title: "Defesa Civil", href: "/seguranca/defesa-civil", icon: Shield },
+  { title: "Transito", href: "/seguranca/transito", icon: CarFront },
+  { title: "Autos de Infracao", href: "/seguranca/infracoes", icon: ClipboardCheck },
+  { title: "Mobilidade e Rotas", href: "/seguranca/mobilidade", icon: Route },
+  { title: "OS e Equipamentos", href: "/seguranca/ordens", icon: Wrench },
+  { title: "Documentos e Relatorios", href: "/seguranca/documentos", icon: FileText },
 ];
 
 export default function SegurancaLayout({ children }: { children: React.ReactNode }) {
@@ -70,7 +71,7 @@ export default function SegurancaLayout({ children }: { children: React.ReactNod
 
         <nav className="flex flex-1 flex-col gap-1.5">
           {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/app-domain/seguranca" ? pathname === item.href : pathname.startsWith(item.href);
+            const isActive = item.href === "/seguranca" ? pathname === item.href : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
@@ -90,7 +91,7 @@ export default function SegurancaLayout({ children }: { children: React.ReactNod
         </nav>
 
         <div className="mt-6 border-t border-slate-100 pt-6">
-          <Link href="/app-domain/dashboard" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition-all duration-200 hover:bg-slate-100 hover:text-slate-900">
+          <Link href="/dashboard" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition-all duration-200 hover:bg-slate-100 hover:text-slate-900">
             <ArrowLeft className="h-[18px] w-[18px] shrink-0 text-slate-400" />
             {!isDesktopCollapsed && <span>Voltar ao Dashboard</span>}
           </Link>

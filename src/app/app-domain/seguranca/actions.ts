@@ -2,7 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
 import type { SegMobFormData, SegMobKind } from "./types";
+
+const kindSchema = z.enum(["guarda", "ocorrencia", "infracao", "registro"]);
+const formSchema = z.object({
+  code: z.string().trim().min(1).max(80),
+  title: z.string().trim().min(1).max(500),
+  type: z.string().trim().min(1).max(120),
+  status: z.string().trim().min(1).max(80),
+  isActive: z.boolean(),
+  date: z.string().optional(),
+  value: z.number().finite().nonnegative().optional(),
+});
 
 const modulePaths = [
   "/app-domain/seguranca",
@@ -35,10 +47,17 @@ function parseDate(value?: string) {
   return value ? new Date(value) : new Date();
 }
 
+function validateInput(kind: SegMobKind, data: SegMobFormData, id?: string) {
+  if (!kindSchema.safeParse(kind).success) return "Tipo de registro invalido.";
+  if (id && !z.string().cuid().safeParse(id).success) return "Identificador invalido.";
+  if (!formSchema.safeParse(data).success) return "Preencha os campos obrigatorios com valores validos.";
+  if (data.date && Number.isNaN(new Date(data.date).getTime())) return "Data invalida.";
+  return null;
+}
+
 export async function createSegMobItem(kind: SegMobKind, data: SegMobFormData) {
-  const codeError = required(data.code, "Codigo");
-  const titleError = required(data.title, "Titulo/Nome");
-  if (codeError || titleError) return { error: codeError || titleError || "Dados invalidos." };
+  const error = validateInput(kind, data);
+  if (error) return { error };
 
   try {
     if (kind === "guarda") {
@@ -116,9 +135,8 @@ export async function createSegMobItem(kind: SegMobKind, data: SegMobFormData) {
 }
 
 export async function updateSegMobItem(kind: SegMobKind, id: string, data: SegMobFormData) {
-  const codeError = required(data.code, "Codigo");
-  const titleError = required(data.title, "Titulo/Nome");
-  if (codeError || titleError) return { error: codeError || titleError || "Dados invalidos." };
+  const error = validateInput(kind, data, id);
+  if (error) return { error };
 
   try {
     if (kind === "guarda") {
@@ -200,6 +218,9 @@ export async function updateSegMobItem(kind: SegMobKind, id: string, data: SegMo
 }
 
 export async function toggleSegMobItemStatus(kind: SegMobKind, id: string, isActive: boolean) {
+  if (!kindSchema.safeParse(kind).success || !z.string().cuid().safeParse(id).success || typeof isActive !== "boolean") {
+    return { error: "Dados invalidos para alterar o status." };
+  }
   try {
     if (kind === "guarda") await prisma.segurancaGuarda.update({ where: { id }, data: { isActive } });
     if (kind === "ocorrencia") await prisma.segurancaOcorrencia.update({ where: { id }, data: { isActive } });

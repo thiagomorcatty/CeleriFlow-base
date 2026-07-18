@@ -217,6 +217,7 @@ model Employee {
   culturaSpacesResponsible CulturaEspaco[] @relation("CulturaSpaceResponsible")
   culturaEventsResponsible CulturaEvento[] @relation("CulturaEventResponsible")
   culturaActivitiesInstructor CulturaAtividade[] @relation("CulturaActivityInstructor")
+  segurancaGuardaProfiles SegurancaGuarda[] @relation("SegurancaGuardaEmployee")
 
   // Mod 12
   directedSchools School[] @relation("SchoolDirector")
@@ -611,6 +612,7 @@ model Document {
   culturaReservationLinks CulturaReservaDocumento[]  @relation("CulturaReservationDocument")
   culturaCouncilLinks     CulturaConselhoDocumento[] @relation("CulturaCouncilDocument")
   camaraLegislativeLinks  CamDocumentoLegislativo[]  @relation("CamaraLegislativeDocument")
+  segurancaRegistros      SegurancaMobilidadeRegistro[] @relation("SegurancaRegistroDocument")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1846,6 +1848,7 @@ model Asset {
   serviceEquipment ObrasServicoEquipamento[]
   culturaSpaces CulturaEspaco[] @relation("CulturaSpaceAsset")
   culturaHeritages CulturaPatrimonio[] @relation("CulturaHeritageAsset")
+  segurancaRegistros SegurancaMobilidadeRegistro[] @relation("SegurancaRegistroAsset")
 }
 
 model AssetTransfer {
@@ -3450,6 +3453,7 @@ model ObrasServico {
   documents       ObrasServicoDocumento[]
   purchases       ObrasServicoCompra[]
   materialMoves   MaterialMovement[]
+  segurancaRegistros SegurancaMobilidadeRegistro[] @relation("SegurancaRegistroObrasServico")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3822,6 +3826,10 @@ model SegurancaGuarda {
   status    String  @default("Ativo") // Ativo, Licenca, Inativo
   isActive  Boolean @default(true)
 
+  employeeId String?
+  employee   Employee? @relation("SegurancaGuardaEmployee", fields: [employeeId], references: [id])
+  ocorrenciasResponsaveis SegurancaOcorrencia[] @relation("SegurancaOcorrenciaResponsavel")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -3836,6 +3844,9 @@ model SegurancaOcorrencia {
   prioridade String  @default("Normal") // Baixa, Normal, Alta, Urgente
   status     String  @default("Registrada") // Registrada, Em Atendimento, Resolvida, Encerrada
   isActive   Boolean @default(true)
+
+  responsavelGuardaId String?
+  responsavelGuarda   SegurancaGuarda? @relation("SegurancaOcorrenciaResponsavel", fields: [responsavelGuardaId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3874,6 +3885,13 @@ model SegurancaMobilidadeRegistro {
   placa         String?
   relatedModule String?
   relatedId     String?
+
+  assetId String?
+  asset   Asset? @relation("SegurancaRegistroAsset", fields: [assetId], references: [id])
+  obrasServicoId String?
+  obrasServico   ObrasServico? @relation("SegurancaRegistroObrasServico", fields: [obrasServicoId], references: [id])
+  documentId String?
+  document   Document? @relation("SegurancaRegistroDocument", fields: [documentId], references: [id])
   isActive      Boolean   @default(true)
 
   createdAt DateTime @default(now())
