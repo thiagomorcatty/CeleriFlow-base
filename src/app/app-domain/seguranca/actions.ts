@@ -3,11 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { nextYearlyCode } from "@/lib/sequence";
 import type { SegMobFormData, SegMobKind } from "./types";
 
 const kindSchema = z.enum(["guarda", "ocorrencia", "infracao", "registro"]);
 const formSchema = z.object({
-  code: z.string().trim().min(1).max(80),
+  code: z.string().trim().max(80),
   title: z.string().trim().min(1).max(500),
   type: z.string().trim().min(1).max(120),
   status: z.string().trim().min(1).max(80),
@@ -50,12 +51,31 @@ function parseDate(value?: string) {
 function validateInput(kind: SegMobKind, data: SegMobFormData, id?: string) {
   if (!kindSchema.safeParse(kind).success) return "Tipo de registro invalido.";
   if (id && !z.string().cuid().safeParse(id).success) return "Identificador invalido.";
-  if (!formSchema.safeParse(data).success) return "Preencha os campos obrigatorios com valores validos.";
+  if (!formSchema.safeParse(data).success || (id && !data.code.trim())) return "Preencha os campos obrigatorios com valores validos.";
   if (data.date && Number.isNaN(new Date(data.date).getTime())) return "Data invalida.";
   return null;
 }
 
+async function nextSecurityCode(kind: SegMobKind) {
+  if (kind === "guarda") {
+    const items = await prisma.segurancaGuarda.findMany({ select: { matricula: true } });
+    return nextYearlyCode({ key: "seguranca-guarda", prefix: "GCM", existingCodes: items.map(({ matricula }) => ({ code: matricula })) });
+  }
+  if (kind === "ocorrencia") {
+    const items = await prisma.segurancaOcorrencia.findMany({ select: { numero: true } });
+    return nextYearlyCode({ key: "seguranca-ocorrencia", prefix: "OC", existingCodes: items.map(({ numero }) => ({ code: numero })) });
+  }
+  if (kind === "infracao") {
+    const items = await prisma.segurancaInfracao.findMany({ select: { auto: true } });
+    return nextYearlyCode({ key: "seguranca-infracao", prefix: "AIT", existingCodes: items.map(({ auto }) => ({ code: auto })) });
+  }
+  const items = await prisma.segurancaMobilidadeRegistro.findMany({ select: { codigo: true } });
+  return nextYearlyCode({ key: "seguranca-registro", prefix: "SEG", existingCodes: items.map(({ codigo }) => ({ code: codigo })) });
+}
+
 export async function createSegMobItem(kind: SegMobKind, data: SegMobFormData) {
+  if (!kindSchema.safeParse(kind).success) return { error: "Tipo de registro invalido." };
+  if (!data.code.trim()) data = { ...data, code: await nextSecurityCode(kind) };
   const error = validateInput(kind, data);
   if (error) return { error };
 

@@ -30,7 +30,7 @@ export default async function SegurancaDashboard() {
           <Shield className="h-7 w-7" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Mod 20 - Seguranca e Mobilidade</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Seguranca e Mobilidade</h1>
           <p className="text-sm text-slate-500">Painel administrativo da prefeitura para operacao urbana, seguranca municipal e mobilidade.</p>
         </div>
       </div>

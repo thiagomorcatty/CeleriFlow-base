@@ -61,7 +61,7 @@ export default function SegurancaLayout({ children }: { children: React.ReactNod
         <div className={`mb-8 hidden px-2 md:block ${isDesktopCollapsed ? "text-center" : ""}`}>
           {!isDesktopCollapsed ? (
             <>
-              <h2 className="text-lg font-bold leading-tight tracking-tight text-slate-800">Mod 20 - Seguranca e Mobilidade</h2>
+               <h2 className="text-lg font-bold leading-tight tracking-tight text-slate-800">Seguranca e Mobilidade</h2>
               <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Gestao publica municipal</p>
             </>
           ) : (

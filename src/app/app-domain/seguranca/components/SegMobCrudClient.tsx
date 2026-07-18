@@ -266,7 +266,7 @@ export default function SegMobCrudClient({
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="code">{config.codeLabel}</Label>
-                <Input id="code" required value={formData.code} onChange={(event) => setFormData({ ...formData, code: event.target.value })} />
+                <Input id="code" required={Boolean(editingId)} value={formData.code} placeholder="Deixe em branco para gerar automaticamente" onChange={(event) => setFormData({ ...formData, code: event.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="type">{config.typeLabel || "Tipo"}</Label>

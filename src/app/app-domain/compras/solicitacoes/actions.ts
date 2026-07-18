@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { nextYearlyCode } from "@/lib/sequence";
 
 export async function deletePurchaseRequest(id: string) {
   try {
@@ -28,11 +29,13 @@ export async function savePurchaseRequest(payload: any) {
   }
 
   try {
-    let finalNumber = number;
-    if (!finalNumber || finalNumber.trim() === "") {
-      const year = new Date().getFullYear();
-      const count = await prisma.purchaseRequest.count();
-      finalNumber = `REQ-${year}-${String(count + 1).padStart(3, '0')}`;
+    let finalNumber = number?.trim();
+    if (!finalNumber && !id) {
+      const requests = await prisma.purchaseRequest.findMany({ select: { number: true } });
+      finalNumber = await nextYearlyCode({ key: "compras-solicitacao", prefix: "REQ", existingCodes: requests.map(({ number }) => ({ code: number })) });
+    }
+    if (!finalNumber) {
+      return { success: false, error: "Informe o número da solicitação." };
     }
 
     const data = {

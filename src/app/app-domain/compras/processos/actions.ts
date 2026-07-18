@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { nextYearlyCode } from "@/lib/sequence";
 
 export async function deletePurchaseProcess(id: string) {
   try {
@@ -26,11 +27,13 @@ export async function savePurchaseProcess(payload: any) {
   }
 
   try {
-    let finalNumber = number;
-    if (!finalNumber || finalNumber.trim() === "") {
-      const year = new Date().getFullYear();
-      const count = await prisma.purchaseProcess.count();
-      finalNumber = `PROC-${year}-${String(count + 1).padStart(3, '0')}`;
+    let finalNumber = number?.trim();
+    if (!finalNumber && !id) {
+      const processes = await prisma.purchaseProcess.findMany({ select: { number: true } });
+      finalNumber = await nextYearlyCode({ key: "compras-processo", prefix: "PROC", existingCodes: processes.map(({ number }) => ({ code: number })) });
+    }
+    if (!finalNumber) {
+      return { success: false, error: "Informe o número do processo." };
     }
 
     const data = {

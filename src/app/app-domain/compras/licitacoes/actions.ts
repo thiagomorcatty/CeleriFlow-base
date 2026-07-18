@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { nextYearlyCode } from "@/lib/sequence";
 
 export async function inactivateBidding(id: string) {
   try {
@@ -38,8 +39,15 @@ export async function saveBidding(formData: FormData) {
     throw new Error("Nenhum processo de compra encontrado para vincular à licitação.");
   }
 
+  const finalNumber = number.trim() || (id ? null : await nextYearlyCode({
+    key: "compras-licitacao",
+    prefix: modality || "LIC",
+    existingCodes: (await prisma.bidding.findMany({ select: { number: true } })).map(({ number }) => ({ code: number })),
+  }));
+  if (!finalNumber) return { success: false, error: "Informe o número da licitação." };
+
   const data = {
-    number: number || `PE-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+    number: finalNumber,
     modality,
     status: status || "Aberto",
     publicationDate: publicationDateStr ? new Date(publicationDateStr) : null,
