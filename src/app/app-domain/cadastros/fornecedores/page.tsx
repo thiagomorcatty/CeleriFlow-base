@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import Link from "next/link";
 import { Truck, Search, Plus, Upload, Download } from "lucide-react";
 import FornecedoresClient from "./FornecedoresClient";
@@ -6,6 +6,7 @@ import FornecedoresClient from "./FornecedoresClient";
 export const dynamic = "force-dynamic";
 
 export default async function FornecedoresPage() {
+  const { prisma } = await getTenantContextForModule("CADASTROS");
   const suppliers = await prisma.supplier.findMany({
     orderBy: { createdAt: 'desc' },
     include: {

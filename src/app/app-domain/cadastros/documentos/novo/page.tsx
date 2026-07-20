@@ -1,9 +1,10 @@
 import { File, Save, ArrowLeft, Building, User, Info, Upload } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function NovoDocumentoPage() {
+  const { prisma } = await getTenantContextForModule("CADASTROS");
   const persons = await prisma.person.findMany({
     select: { id: true, fullName: true, cpf: true }
   });
@@ -14,6 +15,7 @@ export default async function NovoDocumentoPage() {
 
   async function createDocument(formData: FormData) {
     "use server";
+    const { prisma } = await getTenantContextForModule("CADASTROS");
     
     const title = formData.get("title") as string;
     const documentType = formData.get("documentType") as string;

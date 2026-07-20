@@ -1,10 +1,11 @@
 import { Users, Building2, FileText, Home, FileBox, ShieldAlert } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export const dynamic = "force-dynamic";
 
 export default async function CadastrosDashboardPage() {
+  const { prisma } = await getTenantContextForModule("CADASTROS");
   const personsCount = await prisma.person.count();
   const companiesCount = await prisma.company.count();
   const suppliersCount = await prisma.supplier.count();

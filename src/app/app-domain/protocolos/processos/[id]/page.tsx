@@ -1,11 +1,12 @@
 import { ArrowLeft, Clock, FileText, Send, User, CheckCircle2, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProcessoDetalhesPage({ params }: { params: { id: string } }) {
+  const { prisma } = await getTenantContextForModule("PROTOCOLOS");
   const processo = await prisma.process.findUnique({
     where: { id: params.id },
     include: {

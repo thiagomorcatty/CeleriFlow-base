@@ -1,9 +1,10 @@
 import { Home, Save, ArrowLeft, MapPin, Maximize, Building } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function NovoImovelPage() {
+  const { prisma } = await getTenantContextForModule("CADASTROS");
   const taxpayers = await prisma.taxpayer.findMany({
     include: {
       person: true,
@@ -17,6 +18,7 @@ export default async function NovoImovelPage() {
 
   async function createRealEstate(formData: FormData) {
     "use server";
+    const { prisma } = await getTenantContextForModule("CADASTROS");
     
     const municipalInsc = formData.get("municipalInsc") as string;
     const propertyType = formData.get("propertyType") as string;

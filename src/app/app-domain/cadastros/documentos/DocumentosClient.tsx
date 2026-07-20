@@ -130,7 +130,7 @@ export default function DocumentosClient({ documents }: { documents: Document[] 
                   ) : (
                     <div className="flex items-center justify-end gap-2">
                       {doc.fileUrl && (
-                        <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-rose-600 hover:text-rose-800 text-sm font-semibold mr-2">Ver Anexo</a>
+                        <a href={`/api/download?url=${encodeURIComponent(doc.fileUrl)}`} target="_blank" rel="noreferrer" className="text-rose-600 hover:text-rose-800 text-sm font-semibold mr-2">Ver Anexo</a>
                       )}
                       <button onClick={() => handleEditClick(doc)} className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded" title="Editar">
                         <Pencil className="w-4 h-4" />

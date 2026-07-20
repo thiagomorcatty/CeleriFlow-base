@@ -26,7 +26,21 @@ export default function LoginPage() {
     setErrorMsg("");
     
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      const idToken = await credential.user.getIdToken();
+      
+      const response = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setErrorMsg(data.error || "Erro ao validar sessão com o servidor.");
+        return;
+      }
+
       // Redireciona para o dashboard pós-login
       router.push("/dashboard");
     } catch (error: any) {

@@ -1,11 +1,16 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("CADASTROS")).prisma;
+}
 
 // Person
 export async function updatePerson(id: string, data: any) {
   const { isTaxpayer, municipalInsc, ...personData } = data;
+  const prisma = await getTenantPrisma();
   
   const result = await prisma.person.update({ where: { id }, data: personData });
   
@@ -25,11 +30,13 @@ export async function updatePerson(id: string, data: any) {
   return result;
 }
 export async function deactivatePerson(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.person.update({ where: { id }, data: { status: 'Inativo' } });
   revalidatePath("/cadastros/pessoas-fisicas");
   return result;
 }
 export async function activatePerson(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.person.update({ where: { id }, data: { status: 'Ativo' } });
   revalidatePath("/cadastros/pessoas-fisicas");
   return result;
@@ -38,6 +45,7 @@ export async function activatePerson(id: string) {
 // Company
 export async function updateCompany(id: string, data: any) {
   const { isTaxpayer, municipalInsc, ...companyData } = data;
+  const prisma = await getTenantPrisma();
   
   const result = await prisma.company.update({ where: { id }, data: companyData });
   
@@ -57,11 +65,13 @@ export async function updateCompany(id: string, data: any) {
   return result;
 }
 export async function deactivateCompany(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.company.update({ where: { id }, data: { status: 'Inativo' } });
   revalidatePath("/cadastros/pessoas-juridicas");
   return result;
 }
 export async function activateCompany(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.company.update({ where: { id }, data: { status: 'Ativo' } });
   revalidatePath("/cadastros/pessoas-juridicas");
   return result;
@@ -71,16 +81,19 @@ export async function activateCompany(id: string) {
 
 // RealEstate
 export async function updateRealEstate(id: string, data: any) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.realEstate.update({ where: { id }, data });
   revalidatePath("/cadastros/imoveis");
   return result;
 }
 export async function deactivateRealEstate(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.realEstate.update({ where: { id }, data: { status: 'Inativo' } });
   revalidatePath("/cadastros/imoveis");
   return result;
 }
 export async function activateRealEstate(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.realEstate.update({ where: { id }, data: { status: 'Regular' } });
   revalidatePath("/cadastros/imoveis");
   return result;
@@ -88,16 +101,19 @@ export async function activateRealEstate(id: string) {
 
 // Supplier
 export async function updateSupplier(id: string, data: any) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.supplier.update({ where: { id }, data });
   revalidatePath("/cadastros/fornecedores");
   return result;
 }
 export async function deactivateSupplier(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.supplier.update({ where: { id }, data: { status: 'Inativo' } });
   revalidatePath("/cadastros/fornecedores");
   return result;
 }
 export async function activateSupplier(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.supplier.update({ where: { id }, data: { status: 'Ativo' } });
   revalidatePath("/cadastros/fornecedores");
   return result;
@@ -107,11 +123,13 @@ export async function activateSupplier(id: string) {
 
 // Document
 export async function updateDocument(id: string, data: any) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.document.update({ where: { id }, data });
   revalidatePath("/cadastros/documentos");
   return result;
 }
 export async function deleteDocument(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.document.delete({ where: { id } });
   revalidatePath("/cadastros/documentos");
   return result;

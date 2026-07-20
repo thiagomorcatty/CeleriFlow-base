@@ -1,12 +1,13 @@
 import { Building2, Save, ArrowLeft, Building, Briefcase, Phone, Mail } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { MaskedInput } from "@/components/ui/MaskedInput";
 
 export default function NovaPessoaJuridicaPage() {
   async function createCompany(formData: FormData) {
     "use server";
+    const { prisma } = await getTenantContextForModule("CADASTROS");
     
     const corporateName = formData.get("corporateName") as string;
     const tradeName = formData.get("tradeName") as string;

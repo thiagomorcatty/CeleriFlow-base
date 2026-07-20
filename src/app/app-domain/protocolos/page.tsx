@@ -1,10 +1,11 @@
 import { FileBox, ClipboardList, Archive, FileText } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProtocolosDashboardPage() {
+  const { prisma } = await getTenantContextForModule("PROTOCOLOS");
   const openProcesses = await prisma.process.count({ where: { status: "Aberto" } });
   const inProgressProcesses = await prisma.process.count({ where: { status: "Em Análise" } });
   const archivedProcesses = await prisma.process.count({ where: { status: "Arquivado" } });

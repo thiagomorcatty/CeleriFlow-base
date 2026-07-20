@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import Link from "next/link";
 import { Home, Search, Plus, Upload, Download } from "lucide-react";
 import ImoveisClient from "./ImoveisClient";
@@ -6,6 +6,7 @@ import ImoveisClient from "./ImoveisClient";
 export const dynamic = "force-dynamic";
 
 export default async function ImoveisPage() {
+  const { prisma } = await getTenantContextForModule("CADASTROS");
   const realEstates = await prisma.realEstate.findMany({
     orderBy: { createdAt: 'desc' },
     include: {

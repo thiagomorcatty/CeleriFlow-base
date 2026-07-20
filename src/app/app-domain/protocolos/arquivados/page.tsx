@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import ArquivadosClient from "./ArquivadosClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function ArquivadosPage() {
+  const { prisma } = await getTenantContextForModule("PROTOCOLOS");
   const processos = await prisma.process.findMany({
     where: {
       status: 'Arquivado'

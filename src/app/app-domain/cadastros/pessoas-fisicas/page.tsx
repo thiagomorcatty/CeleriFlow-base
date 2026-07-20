@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import Link from "next/link";
 import { Users, Search, Plus } from "lucide-react";
 import { ImportExportDropdown } from "@/components/ui/ImportExportDropdown";
@@ -7,6 +7,7 @@ import PessoasFisicasClient from "./PessoasFisicasClient";
 export const dynamic = "force-dynamic";
 
 export default async function PessoasFisicasPage() {
+  const { prisma } = await getTenantContextForModule("CADASTROS");
   const persons = await prisma.person.findMany({
     orderBy: { createdAt: 'desc' },
     include: { taxpayerInfo: true },

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import Link from "next/link";
 import { File, Search, Plus, Upload, Download, FileText } from "lucide-react";
 import DocumentosClient from "./DocumentosClient";
@@ -6,6 +6,7 @@ import DocumentosClient from "./DocumentosClient";
 export const dynamic = "force-dynamic";
 
 export default async function DocumentosPage() {
+  const { prisma } = await getTenantContextForModule("CADASTROS");
   const documents = await prisma.document.findMany({
     orderBy: { createdAt: 'desc' },
     include: {
