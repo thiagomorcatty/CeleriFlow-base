@@ -1,5 +1,5 @@
 "use server";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -18,6 +18,7 @@ export async function createEmployee(formData: FormData) {
   if (!name || !cpf) return { error: "Nome e CPF são obrigatórios" };
 
   try {
+    const { prisma } = await getTenantContextForModule("ADMINISTRACAO");
     await prisma.employee.create({
       data: { name, cpf, email, phone, registration, roleId, secretariatId, departmentId, unitId }
     });

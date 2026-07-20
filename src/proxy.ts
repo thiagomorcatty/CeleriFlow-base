@@ -17,13 +17,15 @@ export const config = {
 export function proxy(req: NextRequest) {
   const url = req.nextUrl;
 
-  // Obter o host da requisição (ex: app.celeriflow.com.br ou app.localhost:3000)
-  const hostname = req.headers.get("host") || "";
+  // A aplicacao atende o painel principal e um subdominio por prefeitura.
+  const hostname = (req.headers.get("host") || "").toLowerCase().split(":")[0];
+  const appDomain = "app.celeriflow.com.br";
 
-  // Definimos quais são os domínios da aplicação (sistema)
   const isAppSubdomain =
-    hostname.startsWith("app.") ||
-    hostname === "app.celeriflow.com.br";
+    hostname === appDomain ||
+    hostname.endsWith(`.${appDomain}`) ||
+    hostname === "app.localhost" ||
+    hostname.endsWith(".localhost");
 
   // Evitar acesso direto à pasta interna /app-domain pelas URLs do marketing
   if (url.pathname.startsWith("/app-domain")) {
@@ -38,7 +40,7 @@ export function proxy(req: NextRequest) {
     // Redirecionar invisivelmente para a pasta interna /app-domain
     // Ex: app.celeriflow.com.br/ -> reescrito para /app-domain/login
     // app.celeriflow.com.br/dashboard -> reescrito para /app-domain/dashboard
-    let internalPath = url.pathname === "/" ? "/login" : url.pathname;
+    const internalPath = url.pathname === "/" ? "/login" : url.pathname;
     const newPath = `/app-domain${internalPath}`;
     return NextResponse.rewrite(new URL(newPath, req.url));
   }

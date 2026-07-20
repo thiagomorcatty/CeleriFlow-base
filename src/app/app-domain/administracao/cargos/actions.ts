@@ -1,5 +1,5 @@
 "use server";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -12,6 +12,7 @@ export async function createRole(formData: FormData) {
   if (!name) return { error: "Nome é obrigatório" };
 
   try {
+    const { prisma } = await getTenantContextForModule("ADMINISTRACAO");
     await prisma.role.create({
       data: { name, level, description, canSign }
     });

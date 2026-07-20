@@ -1,5 +1,9 @@
-import { get } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
+import { TenantAccessError, getCurrentTenantContext } from "@/lib/platform/tenant-context";
+import { downloadFilename, getTenantFile } from "@/lib/platform/blob";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -10,16 +14,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Busca o arquivo privado passando access: 'private'
-    // A Vercel vai usar automaticamente o BLOB_READ_WRITE_TOKEN do .env
-    const response = await get(url, { access: "private" });
+    const context = await getCurrentTenantContext();
+    const response = await getTenantFile(context.tenant.id, url);
 
     if (!response || !response.stream) {
       return NextResponse.json({ error: "Documento não encontrado" }, { status: 404 });
     }
 
     const contentType = response.blob?.contentType || "application/pdf";
-    const filename = response.blob?.pathname?.split("/").pop() || "documento.pdf";
+    const filename = downloadFilename(response.blob.pathname);
 
     return new NextResponse(response.stream, {
       headers: {
@@ -28,6 +31,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof TenantAccessError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("Erro no download:", error);
     return NextResponse.json({ error: "Erro interno no servidor ao baixar o documento" }, { status: 500 });
   }

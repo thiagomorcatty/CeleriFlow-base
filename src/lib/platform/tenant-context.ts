@@ -132,3 +132,19 @@ export async function getCurrentTenantContext() {
   const [headerStore, cookieStore] = await Promise.all([headers(), cookies()]);
   return resolveTenantContext(headerStore.get("host"), cookieStore.get(SESSION_COOKIE_NAME)?.value);
 }
+
+export async function getTenantContextForModule(moduleCode: string) {
+  const context = await getCurrentTenantContext();
+  if (context.user.role === "PLATFORM_ADMIN" || context.modules.includes(moduleCode)) return context;
+
+  throw new TenantAccessError("Modulo nao contratado para esta prefeitura.", 403);
+}
+
+export async function getOptionalTenantContext() {
+  try {
+    return await getCurrentTenantContext();
+  } catch (error) {
+    if (error instanceof TenantAccessError) return null;
+    throw error;
+  }
+}

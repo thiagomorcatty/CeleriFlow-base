@@ -35,6 +35,10 @@ function requiredEnvironment(name) {
   return value;
 }
 
+function demoDatabaseUrl() {
+  return process.env.DEMO_TENANT_DATABASE_URL || requiredEnvironment("DATABASE_URL");
+}
+
 function encryptDatabaseUrl(databaseUrl) {
   const key = Buffer.from(requiredEnvironment("PLATFORM_ENCRYPTION_KEY"), "base64");
   if (key.length !== 32) throw new Error("PLATFORM_ENCRYPTION_KEY deve conter 32 bytes em Base64.");
@@ -75,16 +79,18 @@ async function main() {
         municipality: "Demonstracao",
         state: "DF",
         status: "ACTIVE",
-        databaseUrlEncrypted: encryptDatabaseUrl(requiredEnvironment("DEMO_TENANT_DATABASE_URL")),
+        databaseUrlEncrypted: encryptDatabaseUrl(demoDatabaseUrl()),
       },
       update: {
         status: "ACTIVE",
-        databaseUrlEncrypted: encryptDatabaseUrl(requiredEnvironment("DEMO_TENANT_DATABASE_URL")),
+        databaseUrlEncrypted: encryptDatabaseUrl(demoDatabaseUrl()),
       },
     });
 
     await upsertDomain(prisma, "demo.app.celeriflow.com.br", tenant.id, true);
-    await upsertDomain(prisma, "demo.localhost", tenant.id, false);
+    await prisma.platformTenantDomain.deleteMany({
+      where: { host: "demo.localhost", tenantId: tenant.id },
+    });
 
     for (const [code, name] of modules) {
       const module = await prisma.platformModule.upsert({

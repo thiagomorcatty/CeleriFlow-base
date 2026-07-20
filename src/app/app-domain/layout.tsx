@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getOptionalTenantContext } from "@/lib/platform/tenant-context";
 import ClientLayout from "./ClientLayout";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +8,8 @@ export default async function AppDomainLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const institution = await prisma.institution.findFirst();
+  const context = await getOptionalTenantContext();
+  const institution = context ? await context.prisma.institution.findFirst() : null;
 
   return (
     <ClientLayout institution={institution}>

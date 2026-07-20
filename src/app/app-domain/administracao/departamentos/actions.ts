@@ -1,5 +1,5 @@
 "use server";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -11,6 +11,7 @@ export async function createDepartment(formData: FormData) {
   if (!name || !secretariatId) return { error: "Nome e Secretaria são obrigatórios" };
 
   try {
+    const { prisma } = await getTenantContextForModule("ADMINISTRACAO");
     await prisma.department.create({
       data: { name, description, secretariatId }
     });

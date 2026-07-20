@@ -7,7 +7,6 @@ Cada prefeitura utiliza um banco municipal independente. O banco de controle da 
 - Painel principal: `app.celeriflow.com.br`.
 - Prefeitura: `{cidade}.app.celeriflow.com.br`.
 - Tenant inicial: `demo.app.celeriflow.com.br`.
-- Desenvolvimento local: `demo.localhost:3000`.
 
 O dominio seleciona a prefeitura, mas nao concede acesso. Toda requisicao administrativa deve validar a sessao Firebase e o vinculo do usuario no banco de controle.
 
@@ -29,6 +28,14 @@ PLATFORM_ENCRYPTION_KEY="base64-de-32-bytes"
 
 `PLATFORM_ENCRYPTION_KEY` cifra as URLs dos bancos municipais antes de elas serem salvas no banco de controle. Gere uma chave com `openssl rand -base64 32` e armazene-a somente nos ambientes da Vercel.
 
+Para novos documentos privados, adicione tambem o token do Blob dedicado:
+
+```dotenv
+Platform_BLOB_READ_WRITE_TOKEN="vercel_blob_rw_..."
+```
+
+Todo upload e gravado em `tenants/{tenantId}/documents/` no Blob Platform. O download exige sessao valida e confirma o prefixo do tenant antes de entregar o arquivo. O Blob anterior nao deve ser usado pelo CeleriFlow.
+
 ## Bootstrap do banco de plataforma
 
 Crie um banco Neon separado do banco municipal e aplique o schema:
@@ -45,14 +52,34 @@ Enquanto o projeto municipal ainda nao possui migrations historicas, use `prisma
 Provisione o banco municipal DEMO com o schema principal e execute o provisionador idempotente:
 
 ```bash
-$env:DATABASE_URL = $env:DEMO_TENANT_DATABASE_URL
 npx prisma db push
 node scripts/provision-demo.mjs
 ```
 
-O script cria o tenant `demo`, registra `demo.app.celeriflow.com.br` e `demo.localhost`, cifra a URL do banco municipal e habilita os 21 modulos. Ele requer `PLATFORM_DATABASE_URL`, `PLATFORM_ENCRYPTION_KEY` e `DEMO_TENANT_DATABASE_URL`.
+O script cria o tenant `demo`, registra `demo.app.celeriflow.com.br`, cifra a `DATABASE_URL` municipal atual e habilita os 21 modulos. Ele requer `PLATFORM_DATABASE_URL`, `PLATFORM_ENCRYPTION_KEY` e `DATABASE_URL`.
 
 Depois de criar o usuario no Firebase, cadastre manualmente seu UID em `PlatformUser` com role `PLATFORM_ADMIN`. Esse e o unico papel permitido para atuar em mais de uma prefeitura.
+
+Como alternativa ao cadastro manual no banco, use o script abaixo depois de criar o usuario no Firebase e enviar a redefinicao de senha:
+
+```powershell
+$env:PLATFORM_USER_EMAIL = "admin@email.com"
+$env:PLATFORM_USER_NAME = "Administrador da Plataforma"
+$env:PLATFORM_USER_ROLE = "PLATFORM_ADMIN"
+node scripts/register-platform-user.mjs
+```
+
+Para o gestor de uma prefeitura, use um e-mail exclusivo e vincule-o a um unico tenant:
+
+```powershell
+$env:PLATFORM_USER_EMAIL = "admin.demo@exemplo.com"
+$env:PLATFORM_USER_NAME = "Gestor DEMO"
+$env:PLATFORM_USER_ROLE = "TENANT_ADMIN"
+$env:PLATFORM_USER_TENANT_SLUG = "demo"
+node scripts/register-platform-user.mjs
+```
+
+O script busca o UID pelo e-mail diretamente no Firebase, portanto nenhuma senha e gravada no banco de plataforma.
 
 Codigos dos 21 modulos:
 

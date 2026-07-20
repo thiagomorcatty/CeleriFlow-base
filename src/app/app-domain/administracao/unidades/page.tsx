@@ -1,10 +1,11 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import Link from "next/link";
 import UnidadesClient from "./UnidadesClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function UnidadesPage() {
+  const { prisma } = await getTenantContextForModule("ADMINISTRACAO");
   const units = await prisma.administrativeUnit.findMany({
     orderBy: { name: 'asc' },
     include: { secretariat: true }

@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { InstitutionForm } from "./InstitutionForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function InstituicaoPage() {
+  const { prisma } = await getTenantContextForModule("ADMINISTRACAO");
   const institution = await prisma.institution.findFirst();
 
   return (

@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import DemandasClient from "./DemandasClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function DemandasPage() {
+  const { prisma } = await getTenantContextForModule("ADMINISTRACAO");
   const demands = await prisma.internalDemand.findMany({
     orderBy: { createdAt: 'desc' },
     include: {

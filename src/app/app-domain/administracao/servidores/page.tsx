@@ -1,10 +1,11 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import Link from "next/link";
 import ServidoresClient from "./ServidoresClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function ServidoresPage() {
+  const { prisma } = await getTenantContextForModule("ADMINISTRACAO");
   const employees = await prisma.employee.findMany({
     orderBy: { name: 'asc' },
     include: {

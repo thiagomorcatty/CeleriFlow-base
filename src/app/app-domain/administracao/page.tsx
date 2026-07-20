@@ -1,10 +1,11 @@
 import { Building2, Network, Users, ClipboardList, MapPin, Briefcase } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdministracaoPage() {
+  const { prisma } = await getTenantContextForModule("ADMINISTRACAO");
   // We can fetch real counts from the database here
   const institution = await prisma.institution.findFirst();
   const secretariatsCount = await prisma.secretariat.count();
