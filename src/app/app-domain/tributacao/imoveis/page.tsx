@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import ImoveisClient from "./ImoveisClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function ImoveisFiscaisPage() {
+  const { prisma } = await getTenantContextForModule("TRIBUTACAO");
   const imoveis = await prisma.realEstate.findMany({
     include: {
       taxpayer: {

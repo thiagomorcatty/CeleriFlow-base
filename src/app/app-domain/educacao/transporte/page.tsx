@@ -1,11 +1,12 @@
 import React from "react";
 import { Bus, AlertCircle, Plus, Search, Filter, Edit2, Trash2 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 export default async function TransporteEscolarPage() {
+  const { prisma } = await getTenantContextForModule("EDUCACAO");
   const [buses, studentsWithTransport] = await Promise.all([
     prisma.schoolBus.findMany({
       include: {

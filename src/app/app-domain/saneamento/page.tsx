@@ -1,9 +1,10 @@
 import React from "react";
 import { Droplets, FileText, Wrench, Receipt, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function SaneamentoDashboard() {
+  const { prisma } = await getTenantContextForModule("SANEAMENTO");
   const [totalUnits, totalReadings, totalOS] = await Promise.all([
     prisma.sanConsumerUnit.count(),
     prisma.sanMeterReading.count(),

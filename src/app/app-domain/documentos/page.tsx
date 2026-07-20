@@ -1,10 +1,11 @@
 import { Folder, FileText, FileSignature, UploadCloud } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export const dynamic = "force-dynamic";
 
 export default async function DocumentosDashboardPage() {
+  const { prisma } = await getTenantContextForModule("DOCUMENTOS");
   const totalDocuments = await prisma.document.count({
     where: { documentType: { not: 'Modelo' } }
   });

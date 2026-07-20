@@ -3,13 +3,14 @@ import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { PontoRowActions } from "./PontoRowActions"
 import { format } from "date-fns"
 import { PontoFilters } from "./PontoFilters"
 import { UploadCSVButton } from "./UploadCSVButton"
 
 export default async function PontoPage({ searchParams }: { searchParams: Promise<{ q?: string, month?: string }> }) {
+  const { prisma } = await getTenantContextForModule("RH");
   const { q, month } = await searchParams;
 
   const whereClause: any = {};

@@ -1,10 +1,11 @@
 import React from "react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { FileText, Search } from "lucide-react";
 import Link from "next/link";
 import { NewProposicaoSheet } from "../components/NewProposicaoSheet";
 
 export default async function ProposicoesPage() {
+  const { prisma } = await getTenantContextForModule("CAMARA");
   const [proposicoes, vereadores] = await Promise.all([
     prisma.camProposicao.findMany({
       include: { autor: true, sessao: true },

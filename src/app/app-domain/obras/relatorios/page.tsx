@@ -6,7 +6,7 @@ import {
   Ruler,
   Wrench,
 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,7 @@ const currency = new Intl.NumberFormat("pt-BR", {
 const number = new Intl.NumberFormat("pt-BR");
 
 export default async function RelatoriosPage() {
+  const { prisma } = await getTenantContextForModule("OBRAS");
   const [obrasPorStatus, medicoes, servicosPorStatusETipo, materiaisEmitidos] = await Promise.all([
     prisma.obrasObra.groupBy({
       by: ["status"],

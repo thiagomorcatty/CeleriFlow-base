@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { DependenteRowActions } from "./DependenteRowActions"
 import { format } from "date-fns"
 import { DependenteFilters } from "./DependenteFilters"
@@ -11,6 +11,7 @@ export default async function DependentesPage(
     }>
   }
 ) {
+  const { prisma } = await getTenantContextForModule("RH");
   const searchParams = await props.searchParams;
   const q = searchParams?.q || "";
 

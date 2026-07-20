@@ -1,11 +1,12 @@
 import React from "react";
 import { Utensils, AlertCircle, TrendingUp, Calendar as CalendarIcon, DollarSign } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 export default async function MerendaEscolarPage() {
+  const { prisma } = await getTenantContextForModule("EDUCACAO");
   const [meals, studentsWithSpecialMeal, mealsCount] = await Promise.all([
     prisma.schoolMeal.findMany({
       include: { school: true },

@@ -1,5 +1,5 @@
 ﻿import React from "react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Building2, Search } from "lucide-react";
 import Link from "next/link";
 import { NewEnterpriseSheet } from "../components/NewEnterpriseSheet";
@@ -9,6 +9,7 @@ import { EnterpriseRowActions } from "../components/EnterpriseRowActions";
 export const dynamic = "force-dynamic";
 
 export default async function EmpreendimentosPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const { prisma } = await getTenantContextForModule("MEIO_AMBIENTE");
   const searchParams = await Promise.resolve(props.searchParams || {});
   const where: any = {};
   if (searchParams.atividade) where.activityType = { contains: searchParams.atividade, mode: "insensitive" };

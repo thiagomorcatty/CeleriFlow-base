@@ -1,7 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("TRIBUTACAO")).prisma;
+}
 
 export async function createRealEstate(data: {
   municipalInsc: string;
@@ -11,6 +15,7 @@ export async function createRealEstate(data: {
   landArea: number;
   builtArea: number;
 }) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.realEstate.create({
     data: {
       municipalInsc: data.municipalInsc || undefined,
@@ -35,6 +40,7 @@ export async function updateRealEstate(id: string, data: {
   landArea?: number;
   builtArea?: number;
 }) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.realEstate.update({
     where: { id },
     data
@@ -45,6 +51,7 @@ export async function updateRealEstate(id: string, data: {
 }
 
 export async function deactivateRealEstate(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.realEstate.update({
     where: { id },
     data: { status: "Inativo" }
@@ -55,6 +62,7 @@ export async function deactivateRealEstate(id: string) {
 }
 
 export async function activateRealEstate(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.realEstate.update({
     where: { id },
     data: { status: "Regular" }

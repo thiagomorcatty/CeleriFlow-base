@@ -1,7 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("TRIBUTACAO")).prisma;
+}
 
 export async function createEconomicRegistration(data: {
   municipalInsc: string;
@@ -9,6 +13,7 @@ export async function createEconomicRegistration(data: {
   taxRegime: string;
   taxpayerId: string;
 }) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.economicRegistration.create({
     data: {
       municipalInsc: data.municipalInsc,
@@ -29,6 +34,7 @@ export async function updateEconomicRegistration(id: string, data: {
   primaryCnae?: string;
   taxRegime?: string;
 }) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.economicRegistration.update({
     where: { id },
     data
@@ -39,6 +45,7 @@ export async function updateEconomicRegistration(id: string, data: {
 }
 
 export async function deactivateEconomicRegistration(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.economicRegistration.update({
     where: { id },
     data: { status: "Inativo" }
@@ -49,6 +56,7 @@ export async function deactivateEconomicRegistration(id: string) {
 }
 
 export async function activateEconomicRegistration(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.economicRegistration.update({
     where: { id },
     data: { status: "Ativo" }

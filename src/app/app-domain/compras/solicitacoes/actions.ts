@@ -1,10 +1,15 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { nextYearlyCode } from "@/lib/sequence";
 
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("COMPRAS")).prisma;
+}
+
 export async function deletePurchaseRequest(id: string) {
+  const prisma = await getTenantPrisma();
   try {
     await prisma.purchaseRequest.delete({
       where: { id },
@@ -18,6 +23,7 @@ export async function deletePurchaseRequest(id: string) {
 }
 
 export async function savePurchaseRequest(payload: any) {
+  const prisma = await getTenantPrisma();
   const { id, number, object, justification, estimatedValue, items, secretariatId, departmentId } = payload;
   
   const secretariat = secretariatId ? await prisma.secretariat.findUnique({ where: { id: secretariatId } }) : await prisma.secretariat.findFirst();

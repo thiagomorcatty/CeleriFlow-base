@@ -1,5 +1,5 @@
 ﻿import React from "react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Sprout, Search } from "lucide-react";
 import Link from "next/link";
 import { NewGreenAreaSheet } from "../components/NewGreenAreaSheet";
@@ -9,6 +9,7 @@ import { GreenAreaRowActions } from "../components/GreenAreaRowActions";
 export const dynamic = "force-dynamic";
 
 export default async function AreasVerdesPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const { prisma } = await getTenantContextForModule("MEIO_AMBIENTE");
   const searchParams = await Promise.resolve(props.searchParams || {});
   const where: any = {};
   if (searchParams.status) where.status = searchParams.status;

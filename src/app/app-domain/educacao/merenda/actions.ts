@@ -1,10 +1,15 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("EDUCACAO")).prisma;
+}
+
 export async function createSchoolMeal(formData: FormData) {
+  const prisma = await getTenantPrisma();
   const schoolId = formData.get("schoolId") as string;
   const menu = formData.get("menu") as string;
   const servedQuantity = Number(formData.get("servedQuantity")) || 0;

@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { ReportsClient } from "../components/ReportsClient";
 
 export default async function RelatoriosPage() {
+  const { prisma } = await getTenantContextForModule("SANEAMENTO");
   const reports = await prisma.sanSavedReport.findMany({
     select: { id: true, name: true, type: true, period: true, format: true, active: true },
     orderBy: { createdAt: "desc" },

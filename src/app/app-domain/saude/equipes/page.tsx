@@ -1,9 +1,10 @@
 import React from 'react';
-import { prisma } from '@/lib/prisma';
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Users } from 'lucide-react';
 import EquipesClient from './EquipesClient';
 
 export default async function Page() {
+  const { prisma } = await getTenantContextForModule("SAUDE");
   const items = await prisma.healthTeam.findMany({
     orderBy: { createdAt: 'desc' },
     include: { unit: true }

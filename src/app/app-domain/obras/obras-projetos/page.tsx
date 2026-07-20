@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { ObrasProjetosClient } from "../components/ObrasProjetosClient";
 
 export default async function ObrasProjetosPage() {
+  const { prisma } = await getTenantContextForModule("OBRAS");
   const obras = await prisma.obrasObra.findMany({
     select: {
       id: true,

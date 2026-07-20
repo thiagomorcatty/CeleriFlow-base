@@ -1,9 +1,14 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("DOCUMENTOS")).prisma;
+}
+
 export async function signDocument(id: string, newStatus: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.document.update({
     where: { id },
     data: { status: newStatus },

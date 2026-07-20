@@ -1,10 +1,11 @@
 import { Eye, FileText, Newspaper, FileOutput, Scale, Gavel, FileSignature } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export const dynamic = "force-dynamic";
 
 export default async function TransparenciaPage() {
+  const { prisma } = await getTenantContextForModule("TRANSPARENCIA");
   const newsCount = await prisma.portalNews.count();
   const pagesCount = await prisma.portalPage.count();
   const diariesCount = await prisma.officialDiary.count();

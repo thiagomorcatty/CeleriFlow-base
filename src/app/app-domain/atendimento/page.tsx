@@ -1,11 +1,12 @@
 import { Headphones, MessageSquareWarning, CheckCircle2, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import AtendimentoClient from "./AtendimentoClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function AtendimentoDashboardPage() {
+  const { prisma } = await getTenantContextForModule("ATENDIMENTO");
   const openTicketsCount = await prisma.ticket.count({ where: { status: "Aberto" } });
   const inProgressTicketsCount = await prisma.ticket.count({ where: { status: "Em Atendimento" } });
   const openOmbudsmanCount = await prisma.ombudsman.count({ where: { status: "Recebida" } });

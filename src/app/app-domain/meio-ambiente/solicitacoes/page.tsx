@@ -1,5 +1,5 @@
 import React from "react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { FileText, Search } from "lucide-react";
 import Link from "next/link";
 
@@ -7,6 +7,7 @@ import { QuickFilters } from "../components/QuickFilters";
 import { Pencil, CheckCircle, XCircle } from "lucide-react";
 
 export default async function SolicitacoesPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const { prisma } = await getTenantContextForModule("MEIO_AMBIENTE");
   const searchParams = await Promise.resolve(props.searchParams || {});
   
   const where: any = {};

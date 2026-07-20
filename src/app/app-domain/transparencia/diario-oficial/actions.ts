@@ -1,9 +1,14 @@
 "use server"
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("TRANSPARENCIA")).prisma;
+}
+
 export async function createDiary(data: FormData) {
+  const prisma = await getTenantPrisma();
   const editionNumberStr = data.get("editionNumber") as string;
   const pdfUrl = data.get("pdfUrl") as string;
   const status = data.get("status") as string;
@@ -36,6 +41,7 @@ export async function createDiary(data: FormData) {
 }
 
 export async function deleteDiary(id: string) {
+  const prisma = await getTenantPrisma();
   await prisma.officialDiary.delete({
     where: { id }
   });

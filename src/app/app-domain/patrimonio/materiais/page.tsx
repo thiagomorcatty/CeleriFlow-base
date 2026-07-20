@@ -8,11 +8,12 @@ import {
   Search
 } from "lucide-react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function MateriaisPage(
   props: { searchParams?: Promise<{ q?: string }> }
 ) {
+  const { prisma } = await getTenantContextForModule("PATRIMONIO");
   const searchParams = await props.searchParams;
   const q = searchParams?.q || "";
 

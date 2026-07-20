@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Globe } from "lucide-react";
 import Link from "next/link";
 import { PortalClient } from "../components/PortalClient";
 
 export default async function PortalPage() {
+  const { prisma } = await getTenantContextForModule("SANEAMENTO");
   const requests = await prisma.sanPortalRequest.findMany({
     select: {
       id: true,

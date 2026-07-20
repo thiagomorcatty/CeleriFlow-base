@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import CertidoesClient from "./CertidoesClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function CertidoesPage() {
+  const { prisma } = await getTenantContextForModule("TRIBUTACAO");
   const certificates = await prisma.taxCertificate.findMany({
     include: {
       taxpayer: { include: { person: true, company: true } }

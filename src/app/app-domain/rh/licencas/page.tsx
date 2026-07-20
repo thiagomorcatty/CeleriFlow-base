@@ -3,12 +3,13 @@ import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { LicencaRowActions } from "./LicencaRowActions"
 import { format } from "date-fns"
 import { LicencasFilters } from "./LicencasFilters"
 
 export default async function LicencasPage({ searchParams }: { searchParams: Promise<{ q?: string, status?: string }> }) {
+  const { prisma } = await getTenantContextForModule("RH");
   const { q, status } = await searchParams;
 
   const whereClause: any = {};

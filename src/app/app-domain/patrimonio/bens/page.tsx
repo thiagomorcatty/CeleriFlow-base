@@ -9,11 +9,12 @@ import {
   Filter
 } from "lucide-react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function BensPatrimoniaisPage(
   props: { searchParams?: Promise<{ q?: string, status?: string }> }
 ) {
+  const { prisma } = await getTenantContextForModule("PATRIMONIO");
   const searchParams = await props.searchParams;
   const q = searchParams?.q || "";
   const status = searchParams?.status || "";

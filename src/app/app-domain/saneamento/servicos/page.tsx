@@ -1,10 +1,11 @@
 import React from "react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Wrench } from "lucide-react";
 import Link from "next/link";
 import { ServicosClient } from "../components/ServicosClient";
 
 export default async function ServicosPage() {
+  const { prisma } = await getTenantContextForModule("SANEAMENTO");
   const [orders, units] = await Promise.all([
     prisma.sanServiceOrder.findMany({
       include: { unit: { select: { code: true } } },

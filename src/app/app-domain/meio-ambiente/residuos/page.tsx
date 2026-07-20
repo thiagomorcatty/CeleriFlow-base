@@ -1,5 +1,5 @@
 ﻿import React from "react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Trash2, Search } from "lucide-react";
 import Link from "next/link";
 import { NewWasteSheet } from "../components/NewWasteSheet";
@@ -9,6 +9,7 @@ import { WasteRowActions } from "../components/WasteRowActions";
 export const dynamic = "force-dynamic";
 
 export default async function ResiduosPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const { prisma } = await getTenantContextForModule("MEIO_AMBIENTE");
   const searchParams = await Promise.resolve(props.searchParams || {});
   const where: any = {};
   if (searchParams.tipo) where.wasteType = { contains: searchParams.tipo, mode: "insensitive" };

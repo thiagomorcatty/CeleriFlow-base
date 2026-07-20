@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import AlvarasClient from "./AlvarasClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function AlvarasPage() {
+  const { prisma } = await getTenantContextForModule("TRIBUTACAO");
   const licenses = await prisma.license.findMany({
     include: {
       taxpayer: { include: { person: true, company: true } }

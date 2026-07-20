@@ -1,5 +1,5 @@
 import SegMobCrudClient from "../components/SegMobCrudClient";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { mapGuarda } from "../data";
 import type { SegMobPageConfig } from "../types";
 
@@ -18,6 +18,7 @@ const config: SegMobPageConfig = {
 };
 
 export default async function GuardasPage() {
+  const { prisma } = await getTenantContextForModule("SEGURANCA");
   const guardas = await prisma.segurancaGuarda.findMany({ orderBy: { createdAt: "desc" } });
   return <SegMobCrudClient items={guardas.map(mapGuarda)} config={config} />;
 }

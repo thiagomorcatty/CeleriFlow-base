@@ -1,7 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("FINANCEIRO")).prisma;
+}
 
 export async function createBankAccount(data: {
   bankName: string;
@@ -12,6 +16,7 @@ export async function createBankAccount(data: {
   resourceSourceId?: string;
   isActive: boolean;
 }) {
+  const prisma = await getTenantPrisma();
   const account = await prisma.bankAccount.create({
     data: {
       bankName: data.bankName,
@@ -37,6 +42,7 @@ export async function updateBankAccount(id: string, data: {
   resourceSourceId?: string;
   isActive?: boolean;
 }) {
+  const prisma = await getTenantPrisma();
   const account = await prisma.bankAccount.update({
     where: { id },
     data: {
@@ -55,6 +61,7 @@ export async function updateBankAccount(id: string, data: {
 }
 
 export async function toggleBankAccountStatus(id: string, isActive: boolean) {
+  const prisma = await getTenantPrisma();
   const account = await prisma.bankAccount.update({
     where: { id },
     data: { isActive }

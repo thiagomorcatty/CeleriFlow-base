@@ -4,12 +4,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { buttonVariants } from "@/components/ui/button"
 import { ShoppingCart, Plus, Filter, Search, FileText } from "lucide-react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { SolicitacaoRowActions } from "./SolicitacaoRowActions"
 
 export default async function SolicitacoesPage() {
+  const { prisma } = await getTenantContextForModule("COMPRAS");
   const solicitacoes = await prisma.purchaseRequest.findMany({
     include: {
       secretariat: true,

@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import EmpenhosClient from "./EmpenhosClient"
 
 export default async function EmpenhosPage() {
+  const { prisma } = await getTenantContextForModule("FINANCEIRO");
   const commitments = await prisma.commitment.findMany({
     include: {
       supplier: {

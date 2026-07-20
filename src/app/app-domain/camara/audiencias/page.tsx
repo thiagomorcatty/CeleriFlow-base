@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Mic } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function AudienciasPage() {
+  const { prisma } = await getTenantContextForModule("CAMARA");
   const audiencias = await prisma.camAudiencia.findMany({
     include: { sessao: true, legislatura: true },
     orderBy: { data: "desc" },

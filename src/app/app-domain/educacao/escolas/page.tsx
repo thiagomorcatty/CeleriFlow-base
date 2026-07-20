@@ -1,10 +1,11 @@
 import React from "react";
 import { School, MapPin, Users, Building, Plus, Search, Filter, MoreVertical, Edit2, Trash2 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function EscolasPage() {
+  const { prisma } = await getTenantContextForModule("EDUCACAO");
   const schools = await prisma.school.findMany({
     include: {
       director: { include: { person: true } },

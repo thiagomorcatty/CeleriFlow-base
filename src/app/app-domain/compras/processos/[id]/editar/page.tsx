@@ -1,8 +1,9 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { ProcessoForm } from "../../ProcessoForm";
 import { notFound } from "next/navigation";
 
 export default async function EditarProcessoPage({ params }: { params: Promise<{ id: string }> }) {
+  const { prisma } = await getTenantContextForModule("COMPRAS");
   const resolvedParams = await params;
   const processoPromise = prisma.purchaseProcess.findUnique({
     where: { id: resolvedParams.id },

@@ -1,10 +1,11 @@
 import React from "react";
 import { ClipboardList, Calendar, Clock, AlertTriangle, ShieldAlert } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 import { NewAttendanceSheet } from "../components/NewAttendanceSheet";
 
 export default async function SocialAtendimentosPage() {
+  const { prisma } = await getTenantContextForModule("SOCIAL");
   const attendances = await prisma.socialAttendance.findMany({
     include: {
       family: { include: { representative: true } },

@@ -3,13 +3,14 @@ import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { Plus, Search } from "lucide-react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Input } from "@/components/ui/input"
 import { BeneficioRowActions } from "./BeneficioRowActions"
 
 export default async function BeneficiosPage(
   props: { searchParams?: Promise<{ q?: string }> }
 ) {
+  const { prisma } = await getTenantContextForModule("RH");
   const searchParams = await props.searchParams;
   const q = searchParams?.q || "";
 

@@ -1,10 +1,11 @@
 import { ClipboardList, MapPin, Trophy, Users } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import AtividadesEsporteLazerClient from "../components/AtividadesEsporteLazerClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function EsporteLazerPage() {
+  const { prisma } = await getTenantContextForModule("CULTURA");
   const activities = await prisma.culturaAtividade.findMany({
     include: {
       space: {

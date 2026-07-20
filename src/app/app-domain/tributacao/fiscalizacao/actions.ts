@@ -1,7 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("TRIBUTACAO")).prisma;
+}
 
 export async function createInfraction(data: {
   infractionType: string;
@@ -9,6 +13,7 @@ export async function createInfraction(data: {
   defenseDeadline?: string;
   taxpayerId: string;
 }) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.infraction.create({
     data: {
       infractionType: data.infractionType,
@@ -28,6 +33,7 @@ export async function updateInfraction(id: string, data: {
   penaltyValue?: number;
   defenseDeadline?: string;
 }) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.infraction.update({
     where: { id },
     data: {
@@ -42,6 +48,7 @@ export async function updateInfraction(id: string, data: {
 }
 
 export async function updateInfractionStatus(id: string, status: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.infraction.update({
     where: { id },
     data: { status }

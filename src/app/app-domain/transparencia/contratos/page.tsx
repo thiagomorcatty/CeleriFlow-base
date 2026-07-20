@@ -1,10 +1,11 @@
 import { FileSignature, Search, Download } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export const dynamic = "force-dynamic";
 
 export default async function ContratosPage() {
+  const { prisma } = await getTenantContextForModule("TRANSPARENCIA");
   const contracts = await prisma.contract.findMany({
     orderBy: { startDate: 'desc' },
     include: {

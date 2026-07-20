@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { OrdensServicoClient } from "../components/OrdensServicoClient";
 
 export default async function OrdensServicoPage() {
+  const { prisma } = await getTenantContextForModule("OBRAS");
   const ordens = await prisma.obrasServico.findMany({
     orderBy: { createdAt: "desc" },
     include: {

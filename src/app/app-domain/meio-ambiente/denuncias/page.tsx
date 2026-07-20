@@ -1,5 +1,5 @@
 ﻿import React from "react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { AlertTriangle, Search } from "lucide-react";
 import Link from "next/link";
 import { NewComplaintSheet } from "../components/NewComplaintSheet";
@@ -9,6 +9,7 @@ import { ComplaintRowActions } from "../components/ComplaintRowActions";
 export const dynamic = "force-dynamic";
 
 export default async function DenunciasPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const { prisma } = await getTenantContextForModule("MEIO_AMBIENTE");
   const searchParams = await Promise.resolve(props.searchParams || {});
   const where: any = {};
   if (searchParams.tipo) where.complaintType = { contains: searchParams.tipo, mode: "insensitive" };

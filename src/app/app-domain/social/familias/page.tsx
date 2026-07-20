@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import FamiliasClient from "./FamiliasClient";
 
 export default async function FamiliasSociaisPage() {
+  const { prisma } = await getTenantContextForModule("SOCIAL");
   const familias = await prisma.socialFamily.findMany({
     include: {
       representative: true,

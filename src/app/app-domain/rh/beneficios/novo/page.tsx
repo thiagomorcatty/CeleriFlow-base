@@ -1,7 +1,8 @@
 import { BeneficioForm } from "../BeneficioForm";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function NovoBeneficioPage() {
+  const { prisma } = await getTenantContextForModule("RH");
   const suppliers = await prisma.supplier.findMany({ 
     include: { company: true, person: true },
     orderBy: { company: { corporateName: 'asc' } } 

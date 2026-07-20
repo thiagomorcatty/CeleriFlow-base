@@ -12,9 +12,10 @@ import {
   ArrowRightLeft
 } from "lucide-react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function PatrimonioDashboard() {
+  const { prisma } = await getTenantContextForModule("PATRIMONIO");
   const totalAssets = await prisma.asset.count().catch(() => 0)
   const activeAssets = await prisma.asset.count({ where: { status: "Ativo" } }).catch(() => 0)
   const totalWarehouses = await prisma.warehouse.count().catch(() => 0)

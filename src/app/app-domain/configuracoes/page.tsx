@@ -1,9 +1,10 @@
 import React from "react";
 import { Settings, Building2, Blocks, KeyRound, ArrowRight, ShieldCheck, UserCog } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function ConfiguracoesDashboard() {
+  const { prisma } = await getTenantContextForModule("CONFIGURACOES");
   const [instancias, totalModulosAtivos, totalPerfis] = await Promise.all([
     prisma.configuracaoInstancia.count(),
     prisma.configuracaoModulo.count({ where: { ativo: true } }),

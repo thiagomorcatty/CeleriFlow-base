@@ -1,9 +1,10 @@
 import React from "react";
 import { GraduationCap, School, Users, BookOpen, ClipboardCheck, Bus, Utensils, Calendar } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function EducacaoDashboardPage() {
+  const { prisma } = await getTenantContextForModule("EDUCACAO");
   const [
     totalSchools,
     totalStudents,

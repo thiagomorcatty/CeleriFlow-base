@@ -1,8 +1,9 @@
 import React from "react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Blocks, Plus, Search } from "lucide-react";
 
 export default async function ModulosPage() {
+  const { prisma } = await getTenantContextForModule("CONFIGURACOES");
   const modulos = await prisma.configuracaoModulo.findMany({
     orderBy: { nome: "asc" },
   });

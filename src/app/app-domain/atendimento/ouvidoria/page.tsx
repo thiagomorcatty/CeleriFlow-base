@@ -1,10 +1,11 @@
 import { MessageSquareWarning, EyeOff } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import OuvidoriaClient from "./OuvidoriaClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function OuvidoriaPage() {
+  const { prisma } = await getTenantContextForModule("ATENDIMENTO");
   const manifestacoes = await prisma.ombudsman.findMany({
     take: 20,
     orderBy: { createdAt: 'desc' },

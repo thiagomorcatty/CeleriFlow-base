@@ -2,8 +2,12 @@
 
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("OBRAS")).prisma;
+}
 
 type ActionResult = { error?: string };
 
@@ -26,6 +30,7 @@ function revalidate(path: string) {
 }
 
 export async function createObra(data: { numero: string; nome: string; descricao?: string; local?: string; tipo: string; valorEstimado: number }): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   const parsed = z.object({ numero: text, nome: text, descricao: z.string().trim().optional(), local: z.string().trim().optional(), tipo: z.enum(obraTypes), valorEstimado: positiveNumber }).safeParse(data);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   try {
@@ -38,6 +43,7 @@ export async function createObra(data: { numero: string; nome: string; descricao
 }
 
 export async function updateObra(id: string, data: { numero: string; nome: string; descricao?: string; local?: string; tipo: string; valorEstimado: number; status: string }): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   const parsed = z.object({ id: text, numero: text, nome: text, descricao: z.string().trim().optional(), local: z.string().trim().optional(), tipo: z.enum(obraTypes), valorEstimado: positiveNumber, status: z.enum(obraStatuses) }).safeParse({ id, ...data });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   try {
@@ -50,6 +56,7 @@ export async function updateObra(id: string, data: { numero: string; nome: strin
 }
 
 export async function inactivateObra(id: string): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   if (!text.safeParse(id).success) return { error: "Obra inválida." };
   try {
     await prisma.obrasObra.update({ where: { id }, data: { active: false } });
@@ -61,6 +68,7 @@ export async function inactivateObra(id: string): Promise<ActionResult> {
 }
 
 export async function createMedicao(data: { numero: number; data: string; valorMedido: number; obraId: string }): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   const parsed = z.object({ numero: z.number().int().positive("Informe um número de medição válido."), data: inputDate, valorMedido: positiveNumber, obraId: text }).safeParse(data);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const obra = await prisma.obrasObra.findUnique({ where: { id: parsed.data.obraId }, select: { active: true, status: true } });
@@ -76,6 +84,7 @@ export async function createMedicao(data: { numero: number; data: string; valorM
 }
 
 export async function updateMedicao(id: string, data: { numero: number; data: string; valorMedido: number; status: string }): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   const parsed = z.object({ id: text, numero: z.number().int().positive("Informe um número de medição válido."), data: inputDate, valorMedido: positiveNumber, status: z.enum(measurementStatuses) }).safeParse({ id, ...data });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   try {
@@ -88,6 +97,7 @@ export async function updateMedicao(id: string, data: { numero: number; data: st
 }
 
 export async function inactivateMedicao(id: string): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   if (!text.safeParse(id).success) return { error: "Medição inválida." };
   try {
     await prisma.obrasMedicao.update({ where: { id }, data: { active: false } });
@@ -99,6 +109,7 @@ export async function inactivateMedicao(id: string): Promise<ActionResult> {
 }
 
 export async function createServico(data: { protocolo: string; tipo: string; descricao: string; local: string }): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   const parsed = z.object({ protocolo: text, tipo: text, descricao: text, local: text }).safeParse(data);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   try {
@@ -111,6 +122,7 @@ export async function createServico(data: { protocolo: string; tipo: string; des
 }
 
 export async function updateServico(id: string, data: { protocolo: string; tipo: string; descricao: string; local: string; status: string }): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   const parsed = z.object({ id: text, protocolo: text, tipo: text, descricao: text, local: text, status: z.enum(serviceStatuses) }).safeParse({ id, ...data });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   try {
@@ -123,6 +135,7 @@ export async function updateServico(id: string, data: { protocolo: string; tipo:
 }
 
 export async function inactivateServico(id: string): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   if (!text.safeParse(id).success) return { error: "Serviço inválido." };
   try {
     await prisma.obrasServico.update({ where: { id }, data: { active: false } });
@@ -143,6 +156,7 @@ export async function configureServicoIntegration(data: {
   scheduledFor?: string;
   estimatedCost?: number;
 }): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   const parsed = z.object({
     serviceId: text,
     departmentId: z.string().trim().optional(),
@@ -192,6 +206,7 @@ export async function configureServicoIntegration(data: {
 }
 
 export async function assignEmployeeToServico(serviceId: string, employeeId: string, role = "Executor"): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   if (!text.safeParse(serviceId).success || !text.safeParse(employeeId).success || !text.safeParse(role).success) return { error: "Dados de atribuição inválidos." };
   const [service, employee] = await Promise.all([
     prisma.obrasServico.findFirst({ where: { id: serviceId, active: true }, select: { id: true } }),
@@ -208,6 +223,7 @@ export async function assignEmployeeToServico(serviceId: string, employeeId: str
 }
 
 export async function assignTeamToServico(serviceId: string, teamId: string): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   if (!text.safeParse(serviceId).success || !text.safeParse(teamId).success) return { error: "Dados de equipe inválidos." };
   const [service, team] = await Promise.all([
     prisma.obrasServico.findFirst({ where: { id: serviceId, active: true }, select: { id: true } }),
@@ -224,6 +240,7 @@ export async function assignTeamToServico(serviceId: string, teamId: string): Pr
 }
 
 export async function assignEquipmentToServico(serviceId: string, assetId: string): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   if (!text.safeParse(serviceId).success || !text.safeParse(assetId).success) return { error: "Dados de equipamento inválidos." };
   const [service, asset] = await Promise.all([
     prisma.obrasServico.findFirst({ where: { id: serviceId, active: true }, select: { id: true } }),
@@ -241,6 +258,7 @@ export async function assignEquipmentToServico(serviceId: string, assetId: strin
 }
 
 export async function issueMaterialToServico(data: { serviceId: string; stockId: string; quantity: number }): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   const parsed = z.object({ serviceId: text, stockId: text, quantity: z.number().finite().positive("Informe uma quantidade maior que zero.") }).safeParse(data);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -286,6 +304,7 @@ export async function issueMaterialToServico(data: { serviceId: string; stockId:
 }
 
 export async function linkPurchaseToServico(data: { serviceId: string; purchaseRequestId?: string; purchaseProcessId?: string; purpose?: string }): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   const parsed = z.object({ serviceId: text, purchaseRequestId: z.string().trim().optional(), purchaseProcessId: z.string().trim().optional(), purpose: z.string().trim().optional() }).safeParse(data);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   if (!parsed.data.purchaseRequestId && !parsed.data.purchaseProcessId) return { error: "Informe uma solicitação ou processo de compra." };
@@ -305,6 +324,7 @@ export async function linkPurchaseToServico(data: { serviceId: string; purchaseR
 }
 
 export async function attachDocumentToServico(data: { serviceId: string; documentId: string; purpose?: string }): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   const parsed = z.object({ serviceId: text, documentId: text, purpose: z.string().trim().optional() }).safeParse(data);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const [service, document] = await Promise.all([

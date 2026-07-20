@@ -1,8 +1,9 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { DispensaForm } from "../../DispensaForm";
 import { notFound } from "next/navigation";
 
 export default async function EditarDispensaPage({ params }: { params: Promise<{ id: string }> }) {
+  const { prisma } = await getTenantContextForModule("COMPRAS");
   const resolvedParams = await params;
   const [dispensa, processos, fornecedores] = await Promise.all([
     prisma.directContracting.findUnique({

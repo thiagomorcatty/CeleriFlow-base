@@ -1,9 +1,10 @@
 import React from "react";
 import { Landmark, Users, Calendar, FileText, ArrowRight, Scale, Mic, Globe } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function CamaraDashboard() {
+  const { prisma } = await getTenantContextForModule("CAMARA");
   const [
     totalVereadores, 
     totalSessoes, 

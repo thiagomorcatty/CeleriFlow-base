@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { ServidorRowActions } from "./ServidorRowActions"
 import { EmployeeFilters } from "./EmployeeFilters"
 
@@ -17,6 +17,7 @@ export default async function ServidoresPage(
     }>
   }
 ) {
+  const { prisma } = await getTenantContextForModule("RH");
   const searchParams = await props.searchParams;
   const q = searchParams?.q || "";
   const status = searchParams?.status || "";

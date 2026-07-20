@@ -8,8 +8,8 @@ export default async function BuscarProcessoPage({
 }: {
   searchParams?: { [key: string]: string | string[] | undefined }
 }) {
-  const query = searchParams?.q as string | undefined;
   const { prisma } = await getTenantContextForModule("PROTOCOLOS");
+  const query = searchParams?.q as string | undefined;
 
   const processos = await prisma.process.findMany({
     where: query ? {

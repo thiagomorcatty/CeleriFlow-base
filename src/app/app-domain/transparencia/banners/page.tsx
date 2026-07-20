@@ -1,10 +1,11 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import Link from "next/link";
 import { Eye } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function BannersPage() {
+  const { prisma } = await getTenantContextForModule("TRANSPARENCIA");
   const banners = await prisma.portalBanner.findMany({
     orderBy: { order: 'asc' },
   });

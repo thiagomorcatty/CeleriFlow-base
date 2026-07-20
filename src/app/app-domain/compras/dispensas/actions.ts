@@ -1,9 +1,14 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("COMPRAS")).prisma;
+}
+
 export async function deleteDispensa(id: string) {
+  const prisma = await getTenantPrisma();
   try {
     await prisma.directContracting.delete({ where: { id } });
     revalidatePath("/compras/licitacoes");
@@ -15,6 +20,7 @@ export async function deleteDispensa(id: string) {
 }
 
 export async function saveDispensa(formData: FormData) {
+  const prisma = await getTenantPrisma();
   const id = formData.get("id") as string | null;
   const type = formData.get("type") as string;
   const status = formData.get("status") as string;

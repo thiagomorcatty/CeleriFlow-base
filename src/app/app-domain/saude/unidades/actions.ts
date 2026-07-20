@@ -1,9 +1,14 @@
 "use server";
 
-import { prisma } from '@/lib/prisma';
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from 'next/cache';
 
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("SAUDE")).prisma;
+}
+
 export async function createHealthUnit(data: any) {
+  const prisma = await getTenantPrisma();
   try {
     await prisma.healthUnit.create({
       data: {
@@ -22,6 +27,7 @@ export async function createHealthUnit(data: any) {
 }
 
 export async function updateHealthUnit(id: string, data: any) {
+  const prisma = await getTenantPrisma();
   try {
     await prisma.healthUnit.update({
       where: { id },
@@ -40,6 +46,7 @@ export async function updateHealthUnit(id: string, data: any) {
 }
 
 export async function toggleHealthUnitStatus(id: string, isActive: boolean) {
+  const prisma = await getTenantPrisma();
   try {
     await prisma.healthUnit.update({
       where: { id },
@@ -53,6 +60,7 @@ export async function toggleHealthUnitStatus(id: string, isActive: boolean) {
 }
 
 export async function deleteHealthUnit(id: string) {
+  const prisma = await getTenantPrisma();
   try {
     await prisma.healthUnit.delete({
       where: { id },

@@ -1,8 +1,9 @@
 import { AtoForm } from "../../AtoForm";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { notFound } from "next/navigation";
 
 export default async function EditarAtoPage({ params }: { params: Promise<{ id: string }> }) {
+  const { prisma } = await getTenantContextForModule("RH");
   const { id } = await params;
   const act = await prisma.personnelAct.findUnique({
     where: { id }

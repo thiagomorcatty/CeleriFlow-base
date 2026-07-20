@@ -1,7 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("CONFIGURACOES")).prisma;
+}
 
 export async function upsertUsuario(data: {
   id?: string;
@@ -11,6 +15,7 @@ export async function upsertUsuario(data: {
   ativo: boolean;
   permissoes: { moduloId: string; canView: boolean; canEdit: boolean }[];
 }) {
+  const prisma = await getTenantPrisma();
   try {
     if (data.id) {
       // Update
@@ -61,6 +66,7 @@ export async function upsertUsuario(data: {
 }
 
 export async function toggleUsuarioStatus(id: string, ativo: boolean) {
+  const prisma = await getTenantPrisma();
   try {
     await prisma.usuario.update({
       where: { id },

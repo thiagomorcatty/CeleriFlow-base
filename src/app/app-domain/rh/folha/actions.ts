@@ -1,9 +1,14 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("RH")).prisma;
+}
+
 export async function saveFolha(formData: FormData) {
+  const prisma = await getTenantPrisma();
   try {
     const id = formData.get("id") as string | null;
     const competence = formData.get("competence") as string;
@@ -40,6 +45,7 @@ export async function saveFolha(formData: FormData) {
 }
 
 export async function deleteFolha(id: string) {
+  const prisma = await getTenantPrisma();
   try {
     await prisma.payroll.delete({
       where: { id },
@@ -53,6 +59,7 @@ export async function deleteFolha(id: string) {
 }
 
 export async function processPayroll(payrollId: string) {
+  const prisma = await getTenantPrisma();
   try {
     const employees = await prisma.employee.findMany({
       where: { isActive: true },

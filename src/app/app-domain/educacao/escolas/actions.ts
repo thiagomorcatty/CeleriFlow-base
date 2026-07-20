@@ -1,10 +1,15 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("EDUCACAO")).prisma;
+}
+
 export async function createSchool(formData: FormData) {
+  const prisma = await getTenantPrisma();
   const name = formData.get("name") as string;
   const inepCode = formData.get("inepCode") as string;
   const cnpj = formData.get("cnpj") as string;

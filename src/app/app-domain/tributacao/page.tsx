@@ -1,10 +1,11 @@
 import { Building2, Receipt, MapPin, Search, PlusCircle, BarChart3, Users } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export const dynamic = "force-dynamic";
 
 export default async function TributacaoDashboardPage() {
+  const { prisma } = await getTenantContextForModule("TRIBUTACAO");
   const taxpayersCount = await prisma.taxpayer.count();
   const guidesCount = await prisma.taxGuide.count();
   const economyCount = await prisma.economicRegistration.count();

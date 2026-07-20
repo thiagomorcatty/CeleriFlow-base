@@ -1,5 +1,9 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import type { SegMobItem } from "./types";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("SEGURANCA")).prisma;
+}
 
 export function mapGuarda(item: any): SegMobItem {
   return {
@@ -72,6 +76,7 @@ export function mapRegistro(item: any): SegMobItem {
 }
 
 export async function getRegistrosByCategorias(categories: string[]) {
+  const prisma = await getTenantPrisma();
   const records = await prisma.segurancaMobilidadeRegistro.findMany({
     where: { categoria: { in: categories } },
     orderBy: { createdAt: "desc" },

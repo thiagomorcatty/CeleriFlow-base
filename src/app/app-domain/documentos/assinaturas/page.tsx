@@ -1,10 +1,11 @@
 import { FileSignature, Search } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import AssinaturasClient from "./AssinaturasClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function AssinaturasPage() {
+  const { prisma } = await getTenantContextForModule("DOCUMENTOS");
   const pendentes = await prisma.document.findMany({
     where: { status: 'Pendente Assinatura' },
     orderBy: { createdAt: 'asc' }

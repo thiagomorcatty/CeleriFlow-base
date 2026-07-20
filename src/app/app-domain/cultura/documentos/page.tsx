@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { CulturaDocumentosClient, type CulturaDocumento } from "../components/CulturaDocumentosClient";
 
 export default async function DocumentosPage() {
+  const { prisma } = await getTenantContextForModule("CULTURA");
   const [eventDocuments, projectDocuments, reservationDocuments, councilDocuments] = await Promise.all([
     prisma.culturaEventoDocumento.findMany({
       include: { event: { select: { nome: true } }, document: { include: { folder: true } } },

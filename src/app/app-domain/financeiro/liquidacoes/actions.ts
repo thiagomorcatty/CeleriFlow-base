@@ -1,7 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("FINANCEIRO")).prisma;
+}
 
 export async function createSettlement(data: {
   date: Date;
@@ -11,6 +15,7 @@ export async function createSettlement(data: {
   authorId: string;
   notes: string;
 }) {
+  const prisma = await getTenantPrisma();
   const settlement = await prisma.settlement.create({
     data: {
       date: data.date,
@@ -28,6 +33,7 @@ export async function createSettlement(data: {
 }
 
 export async function cancelSettlement(id: string) {
+  const prisma = await getTenantPrisma();
   const settlement = await prisma.settlement.update({
     where: { id },
     data: { status: "Cancelado" }
@@ -45,6 +51,7 @@ export async function updateSettlement(id: string, data: {
   authorId: string;
   notes: string;
 }) {
+  const prisma = await getTenantPrisma();
   const settlement = await prisma.settlement.update({
     where: { id },
     data: {

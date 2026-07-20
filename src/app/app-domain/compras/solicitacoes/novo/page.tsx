@@ -1,7 +1,8 @@
 import { SolicitacaoForm } from "../SolicitacaoForm";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function NovaSolicitacaoPage() {
+  const { prisma } = await getTenantContextForModule("COMPRAS");
   const [materials, secretarias] = await Promise.all([
     prisma.material.findMany({
       orderBy: { name: 'asc' }

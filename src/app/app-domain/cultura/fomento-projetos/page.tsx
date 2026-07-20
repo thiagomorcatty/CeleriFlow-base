@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import CulturaProjetosClient, { type CulturaProjetoListItem } from "../components/CulturaProjetosClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function FomentoProjetosPage() {
+  const { prisma } = await getTenantContextForModule("CULTURA");
   const projetos = await prisma.culturaProjeto.findMany({
     include: {
       agente: {

@@ -4,13 +4,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { buttonVariants } from "@/components/ui/button"
 import { Gavel, Plus, Filter, Search } from "lucide-react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { LicitacaoRowActions } from "./LicitacaoRowActions"
 import { DispensaRowActions } from "../dispensas/DispensaRowActions"
 
 export default async function LicitacoesPage() {
+  const { prisma } = await getTenantContextForModule("COMPRAS");
   const biddings = await prisma.bidding.findMany({
     include: {
       process: true

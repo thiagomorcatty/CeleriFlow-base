@@ -1,9 +1,14 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("ATENDIMENTO")).prisma;
+}
+
 export async function updateTicketStatus(id: string, status: string) {
+  const prisma = await getTenantPrisma();
   try {
     await prisma.ticket.update({
       where: { id },
@@ -18,6 +23,7 @@ export async function updateTicketStatus(id: string, status: string) {
 }
 
 export async function updateOmbudsmanStatus(id: string, status: string) {
+  const prisma = await getTenantPrisma();
   try {
     await prisma.ombudsman.update({
       where: { id },

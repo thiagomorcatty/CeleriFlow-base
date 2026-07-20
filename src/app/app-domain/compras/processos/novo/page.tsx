@@ -1,7 +1,8 @@
 import { ProcessoForm } from "../ProcessoForm";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function NovoProcessoPage() {
+  const { prisma } = await getTenantContextForModule("COMPRAS");
   const materials = await prisma.material.findMany({
     orderBy: { name: 'asc' }
   }).catch(() => []);

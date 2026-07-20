@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import ProntuarioClient from "./ProntuarioClient";
 
 export default async function ProntuarioSocialPage() {
+  const { prisma } = await getTenantContextForModule("SOCIAL");
   const atendimentos = await prisma.socialAttendance.findMany({
     include: {
       family: true,

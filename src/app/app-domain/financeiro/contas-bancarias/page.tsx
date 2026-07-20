@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import ContasBancariasClient from "./ContasBancariasClient"
 
 export default async function ContasBancariasPage() {
+  const { prisma } = await getTenantContextForModule("FINANCEIRO");
   const accounts = await prisma.bankAccount.findMany({
     include: {
       resourceSource: true

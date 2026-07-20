@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import NfseClient from "./NfseClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function NfsePage() {
+  const { prisma } = await getTenantContextForModule("TRIBUTACAO");
   const invoices = await prisma.invoice.findMany({
     include: {
       provider: { include: { person: true, company: true } },

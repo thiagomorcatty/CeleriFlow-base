@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import LiquidacoesClient from "./LiquidacoesClient"
 
 export default async function LiquidacoesPage() {
+  const { prisma } = await getTenantContextForModule("FINANCEIRO");
   const settlements = await prisma.settlement.findMany({
     include: {
       commitment: {

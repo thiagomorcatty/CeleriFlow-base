@@ -3,10 +3,11 @@ import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { FolhaRowActions } from "./FolhaRowActions"
 
 export default async function FolhaPage() {
+  const { prisma } = await getTenantContextForModule("RH");
   const payrolls = await prisma.payroll.findMany({
     take: 20,
     orderBy: { createdAt: 'desc' }

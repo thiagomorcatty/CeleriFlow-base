@@ -1,5 +1,5 @@
 import SegMobCrudClient from "../components/SegMobCrudClient";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { mapInfracao } from "../data";
 import type { SegMobPageConfig } from "../types";
 
@@ -21,6 +21,7 @@ const config: SegMobPageConfig = {
 };
 
 export default async function InfracoesPage() {
+  const { prisma } = await getTenantContextForModule("SEGURANCA");
   const infracoes = await prisma.segurancaInfracao.findMany({ orderBy: { createdAt: "desc" } });
   return <SegMobCrudClient items={infracoes.map(mapInfracao)} config={config} />;
 }

@@ -1,8 +1,9 @@
 import React from 'react';
-import { prisma } from '@/lib/prisma';
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Syringe } from 'lucide-react';
 
 export default async function Page() {
+  const { prisma } = await getTenantContextForModule("SAUDE");
   const items = await prisma.vaccinationRecord.findMany({
     orderBy: { createdAt: 'desc' },
     include: { patient: { include: { person: true } }, vaccine: true }

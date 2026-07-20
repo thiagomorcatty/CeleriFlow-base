@@ -1,11 +1,12 @@
 import { Gavel, Search, Download } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import UploadLicitacoesForm from "./UploadLicitacoesForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function LicitacoesPage() {
+  const { prisma } = await getTenantContextForModule("TRANSPARENCIA");
   const biddings = await prisma.bidding.findMany({
     orderBy: { publicationDate: 'desc' },
     include: {

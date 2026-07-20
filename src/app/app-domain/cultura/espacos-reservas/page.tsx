@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { ReservasAgendaClient } from "../components/ReservasAgendaClient";
 
 export default async function EspacosReservasPage() {
+  const { prisma } = await getTenantContextForModule("CULTURA");
   const reservas = await prisma.culturaReserva.findMany({
     orderBy: [{ startsAt: "asc" }, { createdAt: "desc" }],
     include: {

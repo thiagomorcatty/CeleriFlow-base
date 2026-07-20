@@ -1,10 +1,15 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { nextYearlyCode } from "@/lib/sequence";
 
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("COMPRAS")).prisma;
+}
+
 export async function inactivateBidding(id: string) {
+  const prisma = await getTenantPrisma();
   try {
     await prisma.bidding.update({
       where: { id },
@@ -19,6 +24,7 @@ export async function inactivateBidding(id: string) {
 }
 
 export async function saveBidding(formData: FormData) {
+  const prisma = await getTenantPrisma();
   const id = formData.get("id") as string | null;
   const number = formData.get("number") as string;
   const modality = formData.get("modality") as string;

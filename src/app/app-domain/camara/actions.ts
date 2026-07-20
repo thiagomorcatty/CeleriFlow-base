@@ -1,7 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("CAMARA")).prisma;
+}
 
 // --- Legislaturas ---
 export async function createLegislatura(data: {
@@ -9,6 +13,7 @@ export async function createLegislatura(data: {
   inicio: Date;
   fim: Date;
 }) {
+  const prisma = await getTenantPrisma();
   await prisma.camLegislatura.create({
     data: {
       numero: data.numero,
@@ -28,6 +33,7 @@ export async function createVereador(data: {
   partido?: string;
   legislaturaId: string;
 }) {
+  const prisma = await getTenantPrisma();
   await prisma.camVereador.create({
     data: {
       nomeCompleto: data.nomeCompleto,
@@ -43,6 +49,7 @@ export async function createVereador(data: {
 }
 
 export async function deleteVereador(id: string) {
+  const prisma = await getTenantPrisma();
   await prisma.camVereador.update({
     where: { id },
     data: { active: false, status: "Inativo" },
@@ -58,6 +65,7 @@ export async function createSessao(data: {
   data: Date;
   local: string;
 }) {
+  const prisma = await getTenantPrisma();
   await prisma.camSessao.create({
     data: {
       numero: data.numero,
@@ -72,6 +80,7 @@ export async function createSessao(data: {
 }
 
 export async function deleteSessao(id: string) {
+  const prisma = await getTenantPrisma();
   await prisma.camSessao.update({
     where: { id },
     data: { status: "Cancelada" },
@@ -89,6 +98,7 @@ export async function createProposicao(data: {
   autorId: string;
   sessaoId?: string;
 }) {
+  const prisma = await getTenantPrisma();
   await prisma.camProposicao.create({
     data: {
       numero: data.numero,
@@ -105,6 +115,7 @@ export async function createProposicao(data: {
 }
 
 export async function deleteProposicao(id: string) {
+  const prisma = await getTenantPrisma();
   await prisma.camProposicao.update({
     where: { id },
     data: { status: "Arquivada" },

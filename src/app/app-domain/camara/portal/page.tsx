@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { FileText, Globe, Scale, Users } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function PortalLegislativoPage() {
+  const { prisma } = await getTenantContextForModule("CAMARA");
   const [vereadores, proposicoes, leis, sessoes] = await Promise.all([
     prisma.camVereador.count({ where: { active: true, status: "Em Exercício" } }),
     prisma.camProposicao.count(),

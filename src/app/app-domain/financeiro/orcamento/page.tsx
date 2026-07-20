@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import OrcamentoClient from "./OrcamentoClient"
 
 export const dynamic = 'force-dynamic'
 
 export default async function OrcamentoPage() {
+  const { prisma } = await getTenantContextForModule("FINANCEIRO");
   const appropriations = await prisma.budgetAppropriation.findMany({
     include: {
       budgetUnit: true,

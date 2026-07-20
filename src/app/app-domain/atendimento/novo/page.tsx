@@ -1,12 +1,13 @@
 import { ArrowLeft, Headphones } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { redirect } from "next/navigation";
 import NovoChamadoForm from "./NovoChamadoForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function NovoChamadoPage() {
+  const { prisma } = await getTenantContextForModule("ATENDIMENTO");
   const channels = await prisma.supportChannel.findMany({ where: { isActive: true } });
   
   if (channels.length === 0) {

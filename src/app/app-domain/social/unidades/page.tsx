@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import UnidadesClient from "./UnidadesClient";
 
 export default async function UnidadesSociaisPage() {
+  const { prisma } = await getTenantContextForModule("SOCIAL");
   const unidades = await prisma.socialUnit.findMany({
     include: {
       realEstate: true,

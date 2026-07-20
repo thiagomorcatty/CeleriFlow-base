@@ -1,7 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("FINANCEIRO")).prisma;
+}
 
 export async function createPayment(data: {
   orderNumber: string;
@@ -13,6 +17,7 @@ export async function createPayment(data: {
   supplierId: string;
   paymentMethod: string;
 }) {
+  const prisma = await getTenantPrisma();
   const payment = await prisma.payment.create({
     data: {
       orderNumber: data.orderNumber,
@@ -32,6 +37,7 @@ export async function createPayment(data: {
 }
 
 export async function cancelPayment(id: string) {
+  const prisma = await getTenantPrisma();
   const payment = await prisma.payment.update({
     where: { id },
     data: { status: "Cancelada" }
@@ -42,6 +48,7 @@ export async function cancelPayment(id: string) {
 }
 
 export async function updatePaymentStatus(id: string, status: string) {
+  const prisma = await getTenantPrisma();
   const payment = await prisma.payment.update({
     where: { id },
     data: { status }

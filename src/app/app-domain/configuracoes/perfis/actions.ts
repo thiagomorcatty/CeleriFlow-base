@@ -1,7 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("CONFIGURACOES")).prisma;
+}
 
 export async function upsertPerfil(data: {
   id?: string;
@@ -10,6 +14,7 @@ export async function upsertPerfil(data: {
   permissoes?: string;
   ativo: boolean;
 }) {
+  const prisma = await getTenantPrisma();
   try {
     if (data.id) {
       await prisma.configuracaoPerfil.update({
@@ -40,6 +45,7 @@ export async function upsertPerfil(data: {
 }
 
 export async function togglePerfilStatus(id: string, ativo: boolean) {
+  const prisma = await getTenantPrisma();
   try {
     await prisma.configuracaoPerfil.update({
       where: { id },

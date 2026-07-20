@@ -1,7 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("CONFIGURACOES")).prisma;
+}
 
 // --- Instância da Prefeitura ---
 export async function updateInstancia(id: string, data: {
@@ -11,6 +15,7 @@ export async function updateInstancia(id: string, data: {
   uf: string;
   dominio?: string;
 }) {
+  const prisma = await getTenantPrisma();
   await prisma.configuracaoInstancia.update({
     where: { id },
     data: {
@@ -32,6 +37,7 @@ export async function createInstancia(data: {
   uf: string;
   dominio?: string;
 }) {
+  const prisma = await getTenantPrisma();
   await prisma.configuracaoInstancia.create({
     data: {
       nomePrefeitura: data.nomePrefeitura,
@@ -48,6 +54,7 @@ export async function createInstancia(data: {
 
 // --- Módulos Contratados ---
 export async function toggleModulo(id: string, ativo: boolean) {
+  const prisma = await getTenantPrisma();
   await prisma.configuracaoModulo.update({
     where: { id },
     data: {
@@ -64,6 +71,7 @@ export async function createModulo(data: {
   codigo: string;
   ativo?: boolean;
 }) {
+  const prisma = await getTenantPrisma();
   await prisma.configuracaoModulo.create({
     data: {
       nome: data.nome,
@@ -82,6 +90,7 @@ export async function createPerfil(data: {
   descricao?: string;
   permissoes: string;
 }) {
+  const prisma = await getTenantPrisma();
   await prisma.configuracaoPerfil.create({
     data: {
       nome: data.nome,
@@ -95,6 +104,7 @@ export async function createPerfil(data: {
 }
 
 export async function togglePerfil(id: string, ativo: boolean) {
+  const prisma = await getTenantPrisma();
   await prisma.configuracaoPerfil.update({
     where: { id },
     data: { ativo },

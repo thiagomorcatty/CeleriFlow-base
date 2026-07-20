@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import Link from "next/link";
 import { Newspaper } from "lucide-react";
 import NoticiasTable from "./NoticiasTable";
@@ -6,6 +6,7 @@ import NoticiasTable from "./NoticiasTable";
 export const dynamic = "force-dynamic";
 
 export default async function NoticiasPage() {
+  const { prisma } = await getTenantContextForModule("TRANSPARENCIA");
   const news = await prisma.portalNews.findMany({
     orderBy: { createdAt: 'desc' },
     include: { author: true }

@@ -1,7 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("TRIBUTACAO")).prisma;
+}
 
 export async function createInvoice(data: {
   serviceValue: number;
@@ -10,6 +14,7 @@ export async function createInvoice(data: {
   takerId?: string;
   verificationCode?: string;
 }) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.invoice.create({
     data: {
       serviceValue: data.serviceValue,
@@ -27,6 +32,7 @@ export async function createInvoice(data: {
 }
 
 export async function cancelInvoice(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.invoice.update({
     where: { id },
     data: { status: "Cancelada" }

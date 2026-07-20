@@ -1,9 +1,14 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("TRIBUTACAO")).prisma;
+}
+
 export async function payGuide(guideId: string, amount: number) {
+  const prisma = await getTenantPrisma();
   // Atualiza o status da guia e lança o pagamento
   const result = await prisma.taxGuide.update({
     where: { id: guideId },
@@ -24,6 +29,7 @@ export async function payGuide(guideId: string, amount: number) {
 }
 
 export async function cancelGuide(guideId: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.taxGuide.update({
     where: { id: guideId },
     data: { status: "Cancelada" }
@@ -34,6 +40,7 @@ export async function cancelGuide(guideId: string) {
 }
 
 export async function createMockGuide() {
+  const prisma = await getTenantPrisma();
   // Ensure we have a Tax
   let tax = await prisma.tax.findFirst({ where: { name: "IPTU" } });
   if (!tax) {

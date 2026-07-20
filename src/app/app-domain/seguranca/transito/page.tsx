@@ -1,5 +1,5 @@
 import SegMobCrudClient from "../components/SegMobCrudClient";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { getRegistrosByCategorias, mapInfracao } from "../data";
 import type { SegMobItem, SegMobPageConfig } from "../types";
 
@@ -28,6 +28,7 @@ const config: SegMobPageConfig = {
 };
 
 export default async function TransitoPage() {
+  const { prisma } = await getTenantContextForModule("SEGURANCA");
   const [infracoes, registros] = await Promise.all([
     prisma.segurancaInfracao.findMany({ orderBy: { createdAt: "desc" } }),
     getRegistrosByCategorias(categories),

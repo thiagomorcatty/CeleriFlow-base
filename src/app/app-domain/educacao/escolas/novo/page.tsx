@@ -1,12 +1,13 @@
 import React from "react";
 import Link from "next/link";
 import { ArrowLeft, Save, Building, MapPin, Users } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { createSchool } from "../actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function NovaEscolaPage() {
+  const { prisma } = await getTenantContextForModule("EDUCACAO");
   const [employees, realEstates] = await Promise.all([
     prisma.employee.findMany({
       where: { isActive: true },

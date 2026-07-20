@@ -13,9 +13,10 @@ import {
   AlertCircle
 } from "lucide-react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function ComprasDashboard() {
+  const { prisma } = await getTenantContextForModule("COMPRAS");
   const totalRequests = await prisma.purchaseRequest.count().catch(() => 0)
   const totalProcesses = await prisma.purchaseProcess.count().catch(() => 0)
   const totalBiddings = await prisma.bidding.count().catch(() => 0)

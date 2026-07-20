@@ -3,9 +3,10 @@ import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { Plus, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function EventosPage() {
+  const { prisma } = await getTenantContextForModule("RH");
   const events = await prisma.payrollEvent.findMany({
     orderBy: { code: 'asc' }
   })

@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Droplet } from "lucide-react";
 import Link from "next/link";
 import { QualityClient } from "../components/QualityClient";
 
 export default async function QualidadePage() {
+  const { prisma } = await getTenantContextForModule("SANEAMENTO");
   const analyses = await prisma.sanWaterQualityAnalysis.findMany({
     select: {
       id: true,

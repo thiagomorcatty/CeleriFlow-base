@@ -1,13 +1,18 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("TRIBUTACAO")).prisma;
+}
 
 export async function createCertificate(data: {
   certificateType: string;
   taxpayerId: string;
   validUntil: string;
 }) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.taxCertificate.create({
     data: {
       certificateType: data.certificateType,
@@ -23,6 +28,7 @@ export async function createCertificate(data: {
 }
 
 export async function cancelCertificate(id: string) {
+  const prisma = await getTenantPrisma();
   const result = await prisma.taxCertificate.update({
     where: { id },
     data: { status: "Revogada" }

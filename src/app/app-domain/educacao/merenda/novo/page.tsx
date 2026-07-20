@@ -1,12 +1,13 @@
 import React from "react";
 import Link from "next/link";
 import { ArrowLeft, Save, Utensils, AlertCircle } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { createSchoolMeal } from "../actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function NovaMerendaPage() {
+  const { prisma } = await getTenantContextForModule("EDUCACAO");
   const schools = await prisma.school.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },

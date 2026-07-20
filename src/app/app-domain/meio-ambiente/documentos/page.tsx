@@ -1,5 +1,5 @@
-﻿import React from "react";
-import { prisma } from "@/lib/prisma";
+import React from "react";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { FolderOpen, Search, Download } from "lucide-react";
 import Link from "next/link";
 import { NewDocumentSheet } from "../components/NewDocumentSheet";
@@ -9,6 +9,7 @@ import { DocumentRowActions } from "../components/DocumentRowActions";
 export const dynamic = "force-dynamic";
 
 export default async function DocumentosAmbientaisPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const { prisma } = await getTenantContextForModule("MEIO_AMBIENTE");
   const searchParams = await Promise.resolve(props.searchParams || {});
   const where: any = {};
   if (searchParams.tipo) where.docType = searchParams.tipo;
@@ -73,7 +74,7 @@ export default async function DocumentosAmbientaisPage(props: { searchParams: Pr
                     <td className="px-6 py-4 text-gray-500">{new Date(doc.createdAt).toLocaleDateString("pt-BR")}</td>
                     <td className="px-6 py-4 text-center">
                       {doc.fileUrl ? (
-                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors" title="Baixar arquivo">
+                        <a href={doc.fileUrl.startsWith("http") ? `/api/download?url=${encodeURIComponent(doc.fileUrl)}` : doc.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors" title="Baixar arquivo">
                           <Download className="h-4 w-4" />
                         </a>
                       ) : (

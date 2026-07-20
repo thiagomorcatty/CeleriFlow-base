@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default async function LicitacaoDetalhesPage({ params }: { params: Promise<{ id: string }> }) {
+  const { prisma } = await getTenantContextForModule("COMPRAS");
   const resolvedParams = await params;
   const licitacao = await prisma.bidding.findUnique({
     where: { id: resolvedParams.id },

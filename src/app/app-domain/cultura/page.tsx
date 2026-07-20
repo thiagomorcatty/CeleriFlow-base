@@ -11,9 +11,10 @@ import {
   FileText 
 } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function CulturaDashboard() {
+  const { prisma } = await getTenantContextForModule("CULTURA");
   const [totalAgentes, totalEspacos, totalEventos] = await Promise.all([
     prisma.culturaAgente.count({ where: { active: true } }),
     prisma.culturaEspaco.count({ where: { active: true } }),

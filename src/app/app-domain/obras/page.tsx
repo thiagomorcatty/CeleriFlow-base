@@ -12,9 +12,10 @@ import {
   BarChart3 
 } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function ObrasDashboard() {
+  const { prisma } = await getTenantContextForModule("OBRAS");
   const [totalObras, totalMedicoes, totalServicos] = await Promise.all([
     prisma.obrasObra.count({ where: { active: true, status: "Em Execução" } }),
     prisma.obrasMedicao.count({ where: { active: true } }),

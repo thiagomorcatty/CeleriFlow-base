@@ -1,6 +1,6 @@
 import { Folder as FolderIcon, Clock, ArrowLeft, LayoutGrid } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import GEDClient from "./GEDClient";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +10,7 @@ export default async function GEDPage({
 }: {
   searchParams: Promise<{ folderId?: string; view?: string }>;
 }) {
+  const { prisma } = await getTenantContextForModule("DOCUMENTOS");
   const resolved = await searchParams;
   const currentFolderId = resolved?.folderId || null;
   const view = resolved?.view || null;

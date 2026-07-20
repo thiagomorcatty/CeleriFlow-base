@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import FiscalizacaoClient from "./FiscalizacaoClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function FiscalizacaoPage() {
+  const { prisma } = await getTenantContextForModule("TRIBUTACAO");
   const infractions = await prisma.infraction.findMany({
     include: {
       taxpayer: { include: { person: true, company: true } }

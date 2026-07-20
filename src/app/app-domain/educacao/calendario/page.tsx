@@ -1,10 +1,11 @@
 import React from "react";
 import { Calendar as CalendarIcon, Plus, Filter, Search, Edit2, Trash2 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export const dynamic = "force-dynamic";
 
 export default async function CalendarioEscolarPage() {
+  const { prisma } = await getTenantContextForModule("EDUCACAO");
   const events = await prisma.schoolCalendarEvent.findMany({
     orderBy: { date: "asc" },
   });

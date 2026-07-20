@@ -2,8 +2,12 @@
 
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("CULTURA")).prisma;
+}
 
 type ActionResult = { error?: string };
 
@@ -22,6 +26,7 @@ function revalidate(path: string) {
 }
 
 export async function createAgente(data: { nome: string; tipo: string; segmento: string; personId?: string; companyId?: string }): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   const parsed = z.object({ nome: text, tipo: z.enum(agentTypes), segmento: text, personId: z.string().trim().optional(), companyId: z.string().trim().optional() }).safeParse(data);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   if (Boolean(parsed.data.personId) === Boolean(parsed.data.companyId)) return { error: "Vincule o agente a uma pessoa ou empresa do Cadastro Geral." };
@@ -40,6 +45,7 @@ export async function createAgente(data: { nome: string; tipo: string; segmento:
 }
 
 export async function inactivateAgente(id: string): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   if (!text.safeParse(id).success) return { error: "Agente inválido." };
   try { await prisma.culturaAgente.update({ where: { id }, data: { active: false, status: "Inativo" } }); }
   catch (error) { return { error: databaseError(error, "Não foi possível inativar o agente.") }; }
@@ -48,6 +54,7 @@ export async function inactivateAgente(id: string): Promise<ActionResult> {
 }
 
 export async function createEspaco(data: { nome: string; tipo: string; capacidade?: number; realEstateId?: string; assetId?: string; responsibleEmployeeId?: string }): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   const parsed = z.object({ nome: text, tipo: z.enum(spaceTypes), capacidade: z.number().int().positive().optional(), realEstateId: z.string().trim().optional(), assetId: z.string().trim().optional(), responsibleEmployeeId: z.string().trim().optional() }).safeParse(data);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const [property, asset, employee] = await Promise.all([
@@ -65,6 +72,7 @@ export async function createEspaco(data: { nome: string; tipo: string; capacidad
 }
 
 export async function inactivateEspaco(id: string): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   if (!text.safeParse(id).success) return { error: "Espaço inválido." };
   const hasFutureReservation = await prisma.culturaReserva.findFirst({ where: { spaceId: id, active: true, status: "Aprovada", endsAt: { gt: new Date() } }, select: { id: true } });
   if (hasFutureReservation) return { error: "Não é possível inativar um espaço com reserva aprovada futura." };
@@ -76,6 +84,7 @@ export async function inactivateEspaco(id: string): Promise<ActionResult> {
 }
 
 export async function createEvento(data: { nome: string; tipo: string; startsAt: string; endsAt?: string; spaceId?: string; responsibleEmployeeId?: string; projectId?: string; publicoAlvo?: string }): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   const parsed = z.object({ nome: text, tipo: text, startsAt: text, endsAt: z.string().trim().optional(), spaceId: z.string().trim().optional(), responsibleEmployeeId: z.string().trim().optional(), projectId: z.string().trim().optional(), publicoAlvo: z.string().trim().optional() }).safeParse(data);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const startsAt = new Date(parsed.data.startsAt);
@@ -95,6 +104,7 @@ export async function createEvento(data: { nome: string; tipo: string; startsAt:
 }
 
 export async function cancelEvento(id: string): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   if (!text.safeParse(id).success) return { error: "Evento inválido." };
   try { await prisma.culturaEvento.update({ where: { id }, data: { status: "Cancelado", active: false } }); }
   catch (error) { return { error: databaseError(error, "Não foi possível cancelar o evento.") }; }
@@ -103,6 +113,7 @@ export async function cancelEvento(id: string): Promise<ActionResult> {
 }
 
 export async function createReserva(data: { spaceId: string; personId?: string; companyId?: string; eventId?: string; startsAt: string; endsAt: string; purpose: string }): Promise<ActionResult> {
+  const prisma = await getTenantPrisma();
   const parsed = z.object({ spaceId: text, personId: z.string().trim().optional(), companyId: z.string().trim().optional(), eventId: z.string().trim().optional(), startsAt: text, endsAt: text, purpose: text }).safeParse(data);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   if (Boolean(parsed.data.personId) === Boolean(parsed.data.companyId)) return { error: "Informe uma pessoa ou empresa solicitante." };

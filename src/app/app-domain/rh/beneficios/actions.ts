@@ -1,9 +1,14 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("RH")).prisma;
+}
+
 export async function saveBeneficio(formData: FormData) {
+  const prisma = await getTenantPrisma();
   try {
     const id = formData.get("id") as string;
     const name = formData.get("name") as string;
@@ -44,6 +49,7 @@ export async function saveBeneficio(formData: FormData) {
 }
 
 export async function toggleBeneficioStatus(id: string, isActive: boolean) {
+  const prisma = await getTenantPrisma();
   try {
     await prisma.benefitConfig.update({
       where: { id },
@@ -58,6 +64,7 @@ export async function toggleBeneficioStatus(id: string, isActive: boolean) {
 }
 
 export async function deleteBeneficio(id: string) {
+  const prisma = await getTenantPrisma();
   try {
     // Should check if it has payroll benefits linked before deleting
     const count = await prisma.payrollBenefit.count({ where: { benefitConfigId: id } });

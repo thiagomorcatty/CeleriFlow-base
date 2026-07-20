@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import GuiasClient from "./GuiasClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function GuiasPage() {
+  const { prisma } = await getTenantContextForModule("TRIBUTACAO");
   const guias = await prisma.taxGuide.findMany({
     include: {
       assessment: {

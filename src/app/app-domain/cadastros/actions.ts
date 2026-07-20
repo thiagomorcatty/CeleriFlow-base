@@ -9,8 +9,8 @@ async function getTenantPrisma() {
 
 // Person
 export async function updatePerson(id: string, data: any) {
-  const { isTaxpayer, municipalInsc, ...personData } = data;
   const prisma = await getTenantPrisma();
+  const { isTaxpayer, municipalInsc, ...personData } = data;
   
   const result = await prisma.person.update({ where: { id }, data: personData });
   
@@ -44,8 +44,8 @@ export async function activatePerson(id: string) {
 
 // Company
 export async function updateCompany(id: string, data: any) {
-  const { isTaxpayer, municipalInsc, ...companyData } = data;
   const prisma = await getTenantPrisma();
+  const { isTaxpayer, municipalInsc, ...companyData } = data;
   
   const result = await prisma.company.update({ where: { id }, data: companyData });
   

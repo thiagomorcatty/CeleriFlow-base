@@ -1,5 +1,5 @@
 import { Landmark, Palette, Users } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { GestaoCulturalClient, type CulturalRecord } from "../components/GestaoCulturalClient";
 
 function assetReference(asset: { patrimonyNumber: string; name: string } | null) {
@@ -20,6 +20,7 @@ function realEstateReference(realEstate: { municipalInsc: string | null; registr
 }
 
 export default async function GestaoCulturalPage() {
+  const { prisma } = await getTenantContextForModule("CULTURA");
   const [agents, spaces, heritages] = await Promise.all([
     prisma.culturaAgente.findMany({
       include: { person: true, company: true },

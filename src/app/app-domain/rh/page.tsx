@@ -12,9 +12,10 @@ import {
   Briefcase
 } from "lucide-react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function RHDashboard() {
+  const { prisma } = await getTenantContextForModule("RH");
   const totalEmployees = await prisma.employee.count().catch(() => 0)
   const activeEmployees = await prisma.employee.count({ where: { isActive: true } }).catch(() => 0)
   const totalRoles = await prisma.role.count().catch(() => 0)

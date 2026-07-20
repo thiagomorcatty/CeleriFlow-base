@@ -1,7 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("FINANCEIRO")).prisma;
+}
 
 export async function createCommitment(data: {
   number: string;
@@ -12,6 +16,7 @@ export async function createCommitment(data: {
   appropriationId: string;
   supplierId: string;
 }) {
+  const prisma = await getTenantPrisma();
   const commitment = await prisma.commitment.create({
     data: {
       number: data.number,
@@ -38,6 +43,7 @@ export async function updateCommitment(id: string, data: {
   appropriationId?: string;
   supplierId?: string;
 }) {
+  const prisma = await getTenantPrisma();
   const commitment = await prisma.commitment.update({
     where: { id },
     data: {
@@ -56,6 +62,7 @@ export async function updateCommitment(id: string, data: {
 }
 
 export async function cancelCommitment(id: string) {
+  const prisma = await getTenantPrisma();
   const commitment = await prisma.commitment.update({
     where: { id },
     data: { status: "Anulado" }

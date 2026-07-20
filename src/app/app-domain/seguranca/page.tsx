@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, BarChart3, Camera, CarFront, ClipboardCheck, Route, Shield, Users, Wrench } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -14,6 +14,7 @@ const quickLinks = [
 ];
 
 export default async function SegurancaDashboard() {
+  const { prisma } = await getTenantContextForModule("SEGURANCA");
   const [guardas, ocorrencias, infracoes, registros, urgentes, recentes] = await Promise.all([
     prisma.segurancaGuarda.count({ where: { isActive: true } }),
     prisma.segurancaOcorrencia.count({ where: { isActive: true } }),

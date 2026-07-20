@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { IluminacaoEnergiaClient } from "../components/IluminacaoEnergiaClient";
 
 export default async function IluminacaoEnergiaPage() {
+  const { prisma } = await getTenantContextForModule("OBRAS");
   const servicos = await prisma.obrasServico.findMany({
     where: { tipo: "Iluminação" },
     orderBy: { createdAt: "desc" },

@@ -1,9 +1,10 @@
 import React from 'react';
-import { prisma } from '@/lib/prisma';
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Building2 } from 'lucide-react';
 import UnidadesClient from './UnidadesClient';
 
 export default async function Page() {
+  const { prisma } = await getTenantContextForModule("SAUDE");
   const items = await prisma.healthUnit.findMany({
     orderBy: { createdAt: 'desc' },
   });

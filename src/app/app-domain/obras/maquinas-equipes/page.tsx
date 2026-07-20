@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { MaquinasEquipesClient } from "../components/MaquinasEquipesClient";
 
 export default async function MaquinasEquipesPage() {
+  const { prisma } = await getTenantContextForModule("OBRAS");
   const [teams, assets] = await Promise.all([
     prisma.obrasEquipe.findMany({
       select: {

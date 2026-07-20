@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import BeneficiosClient from "./BeneficiosClient";
 
 export default async function BeneficiosSociaisPage() {
+  const { prisma } = await getTenantContextForModule("SOCIAL");
   const beneficios = await prisma.socialBenefit.findMany({
     orderBy: { name: 'asc' }
   });

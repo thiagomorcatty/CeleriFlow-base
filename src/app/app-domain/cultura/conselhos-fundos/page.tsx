@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { Coins, FileText, Landmark, Search, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 type ConselhosFundosPageProps = {
   searchParams?: Promise<{ q?: string; tipo?: string }>;
@@ -11,6 +11,7 @@ type ConselhosFundosPageProps = {
 export default async function ConselhosFundosPage({
   searchParams,
 }: ConselhosFundosPageProps) {
+  const { prisma } = await getTenantContextForModule("CULTURA");
   const params = await searchParams;
   const q = params?.q?.trim() ?? "";
   const tipo = params?.tipo === "conselhos" || params?.tipo === "fundos" ? params.tipo : "";

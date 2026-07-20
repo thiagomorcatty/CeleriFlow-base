@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Scale } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 function formatDate(date: Date | null) {
   return date ? new Intl.DateTimeFormat("pt-BR").format(date) : "-";
 }
 
 export default async function LeisPage() {
+  const { prisma } = await getTenantContextForModule("CAMARA");
   const leis = await prisma.camLei.findMany({
     include: { proposicao: { include: { autor: true } } },
     orderBy: { dataPublicacao: "desc" },

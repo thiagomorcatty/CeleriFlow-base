@@ -1,8 +1,9 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { ContratoForm } from "../../ContratoForm";
 import { notFound } from "next/navigation";
 
 export default async function EditarContratoPage({ params }: { params: Promise<{ id: string }> }) {
+  const { prisma } = await getTenantContextForModule("COMPRAS");
   const resolvedParams = await params;
   const [contrato, processos, secretarias, fornecedores] = await Promise.all([
     prisma.contract.findUnique({

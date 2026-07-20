@@ -1,9 +1,10 @@
 import React from "react";
 import { Stethoscope, HeartPulse, Users, Activity, Pill, CalendarCheck, ClipboardType } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function SaudeDashboardPage() {
+  const { prisma } = await getTenantContextForModule("SAUDE");
   const [
     totalUnits,
     totalPatients,

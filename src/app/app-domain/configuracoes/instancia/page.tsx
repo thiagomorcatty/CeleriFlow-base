@@ -1,8 +1,9 @@
 import React from "react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Building2, Save } from "lucide-react";
 
 export default async function InstanciaPage() {
+  const { prisma } = await getTenantContextForModule("CONFIGURACOES");
   const instancia = await prisma.configuracaoInstancia.findFirst();
 
   return (

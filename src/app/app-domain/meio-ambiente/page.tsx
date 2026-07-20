@@ -12,11 +12,12 @@ import {
   FolderOpen 
 } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export const dynamic = "force-dynamic";
 
 export default async function MeioAmbienteDashboardPage() {
+  const { prisma } = await getTenantContextForModule("MEIO_AMBIENTE");
   const [
     totalEnterprises,
     totalLicenses,

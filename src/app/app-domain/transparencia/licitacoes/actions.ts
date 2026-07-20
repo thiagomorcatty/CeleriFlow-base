@@ -1,9 +1,14 @@
 "use server"
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("TRANSPARENCIA")).prisma;
+}
+
 export async function uploadBiddingsCsv(formData: FormData) {
+  const prisma = await getTenantPrisma();
   const file = formData.get("file") as File;
   if (!file) throw new Error("Nenhum arquivo enviado.");
 

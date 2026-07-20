@@ -1,10 +1,11 @@
 import React from "react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { FileText } from "lucide-react";
 import Link from "next/link";
 import { LeiturasClient } from "../components/LeiturasClient";
 
 export default async function LeiturasPage() {
+  const { prisma } = await getTenantContextForModule("SANEAMENTO");
   const [readings, units] = await Promise.all([
     prisma.sanMeterReading.findMany({
       include: { unit: { select: { code: true } } },

@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import EconomicoClient from "./EconomicoClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function CadastroEconomicoPage() {
+  const { prisma } = await getTenantContextForModule("TRIBUTACAO");
   const registrations = await prisma.economicRegistration.findMany({
     include: {
       taxpayer: {

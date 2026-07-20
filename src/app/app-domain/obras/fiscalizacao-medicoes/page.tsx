@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import MedicoesClient from "../components/MedicoesClient";
 
 export default async function FiscalizacaoMedicoesPage() {
+  const { prisma } = await getTenantContextForModule("OBRAS");
   const [medicoes, obras] = await Promise.all([
     prisma.obrasMedicao.findMany({
       include: {

@@ -1,10 +1,11 @@
 import React from "react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Receipt } from "lucide-react";
 import Link from "next/link";
 import { FaturasClient } from "../components/FaturasClient";
 
 export default async function FaturasPage() {
+  const { prisma } = await getTenantContextForModule("SANEAMENTO");
   const invoices = await prisma.sanInvoice.findMany({
     select: {
       id: true,

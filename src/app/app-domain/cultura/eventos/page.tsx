@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { CulturaEventosClient } from "../components/CulturaEventosClient";
 
 export default async function EventosPage() {
+  const { prisma } = await getTenantContextForModule("CULTURA");
   const eventos = await prisma.culturaEvento.findMany({
     orderBy: { data: "asc" },
     include: {

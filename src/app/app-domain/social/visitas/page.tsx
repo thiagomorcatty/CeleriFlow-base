@@ -1,8 +1,9 @@
 import React from "react";
 import { Home, Calendar, MapPin, CheckCircle2, Clock, XCircle } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export default async function SocialVisitasPage() {
+  const { prisma } = await getTenantContextForModule("SOCIAL");
   const visits = await prisma.socialVisit.findMany({
     include: {
       family: { include: { representative: true, address: true } },

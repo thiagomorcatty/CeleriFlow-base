@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import Link from "next/link";
 import { FileOutput } from "lucide-react";
 import PaginasTable from "./PaginasTable";
@@ -6,6 +6,7 @@ import PaginasTable from "./PaginasTable";
 export const dynamic = "force-dynamic";
 
 export default async function PaginasPage() {
+  const { prisma } = await getTenantContextForModule("TRANSPARENCIA");
   const pages = await prisma.portalPage.findMany({
     orderBy: { createdAt: 'desc' },
   });

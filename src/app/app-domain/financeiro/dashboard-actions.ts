@@ -1,8 +1,13 @@
 "use server"
 
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("FINANCEIRO")).prisma;
+}
 
 export async function getFinanceiroDashboardStats(month: string, year: string) {
+  const prisma = await getTenantPrisma();
   let dateFilter = {}
   
   if (month && year) {

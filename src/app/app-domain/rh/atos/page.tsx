@@ -3,12 +3,13 @@ import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { Plus, ExternalLink } from "lucide-react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { AtoRowActions } from "./AtoRowActions"
 import { format } from "date-fns"
 import { AtosFilters } from "./AtosFilters"
 
 export default async function AtosPage({ searchParams }: { searchParams: Promise<{ q?: string, type?: string }> }) {
+  const { prisma } = await getTenantContextForModule("RH");
   const { q, type } = await searchParams;
 
   const whereClause: any = {};

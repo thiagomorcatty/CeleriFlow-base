@@ -1,10 +1,11 @@
 import React from "react";
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Droplets } from "lucide-react";
 import Link from "next/link";
 import { UnidadesClient } from "../components/UnidadesClient";
 
 export default async function UnidadesPage() {
+  const { prisma } = await getTenantContextForModule("SANEAMENTO");
   const units = await prisma.sanConsumerUnit.findMany({
     select: {
       id: true,

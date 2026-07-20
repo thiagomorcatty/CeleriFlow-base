@@ -1,9 +1,14 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
+async function getTenantPrisma() {
+  return (await getTenantContextForModule("COMPRAS")).prisma;
+}
+
 export async function saveCatalogItem(formData: any) {
+  const prisma = await getTenantPrisma();
   try {
     let finalCode = formData.code;
 
@@ -65,6 +70,7 @@ export async function saveCatalogItem(formData: any) {
 }
 
 export async function toggleCatalogItemStatus(id: string, isActive: boolean) {
+  const prisma = await getTenantPrisma();
   try {
     await prisma.catalogItem.update({
       where: { id },

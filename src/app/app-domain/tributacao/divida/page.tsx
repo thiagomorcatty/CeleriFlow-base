@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import DividaClient from "./DividaClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function DividaPage() {
+  const { prisma } = await getTenantContextForModule("TRIBUTACAO");
   const activeDebts = await prisma.activeDebt.findMany({
     include: {
       taxpayer: { include: { person: true, company: true } }
