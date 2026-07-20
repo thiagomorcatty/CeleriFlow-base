@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/platform-prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Banco de controle da plataforma. Dados municipais nunca devem ser gravados
+// neste schema; cada prefeitura possui seu proprio banco com schema.prisma.
+model PlatformTenant {
+  id                       String                 @id @default(cuid())
+  slug                     String                 @unique
+  name                     String
+  municipality             String
+  state                    String
+  cnpj                     String?
+  status                   String                 @default("ACTIVE")
+  databaseUrlEncrypted     String
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  domains                  PlatformTenantDomain[]
+  users                    PlatformUser[]
+  enabledModules           PlatformTenantModule[]
+  auditLogs                PlatformAuditLog[]
+}
+
+model PlatformTenantDomain {
+  id        String         @id @default(cuid())
+  host      String         @unique
+  isPrimary Boolean        @default(false)
+  tenantId  String
+  tenant    PlatformTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([tenantId])
+}
+
+model PlatformUser {
+  id          String          @id @default(cuid())
+  firebaseUid String          @unique
+  email       String          @unique
+  name        String
+  role        String          @default("TENANT_USER")
+  active      Boolean         @default(true)
+  tenantId    String?
+  tenant      PlatformTenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([tenantId])
+}
+
+model PlatformModule {
+  id          String                 @id @default(cuid())
+  code        String                 @unique
+  name        String
+  description String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  tenants     PlatformTenantModule[]
+}
+
+model PlatformTenantModule {
+  id        String         @id @default(cuid())
+  tenantId  String
+  moduleId  String
+  enabled   Boolean        @default(false)
+  enabledAt DateTime?
+  tenant    PlatformTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  module    PlatformModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([tenantId, moduleId])
+  @@index([moduleId])
+}
+
+model PlatformAuditLog {
+  id          String          @id @default(cuid())
+  tenantId    String?
+  tenant      PlatformTenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  actorUserId String?
+  action      String
+  resource    String
+  resourceId  String?
+  metadata    String?
+  ipAddress   String?
+  createdAt   DateTime        @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([actorUserId, createdAt])
+}

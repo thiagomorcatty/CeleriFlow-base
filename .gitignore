@@ -45,6 +45,7 @@ docs/doc_extracted/
 docs/doc.zip
 
 /src/generated/prisma
+/src/generated/platform-prisma
 *.json
 !package.json
 !package-lock.json
