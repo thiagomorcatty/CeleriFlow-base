@@ -38,7 +38,7 @@ export async function savePurchaseRequest(payload: any) {
     let finalNumber = number?.trim();
     if (!finalNumber && !id) {
       const requests = await prisma.purchaseRequest.findMany({ select: { number: true } });
-      finalNumber = await nextYearlyCode({ key: "compras-solicitacao", prefix: "REQ", existingCodes: requests.map(({ number }) => ({ code: number })) });
+      finalNumber = await nextYearlyCode({ prisma, key: "compras-solicitacao", prefix: "REQ", existingCodes: requests.map(({ number }) => ({ code: number })) });
     }
     if (!finalNumber) {
       return { success: false, error: "Informe o número da solicitação." };

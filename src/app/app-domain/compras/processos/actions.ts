@@ -36,7 +36,7 @@ export async function savePurchaseProcess(payload: any) {
     let finalNumber = number?.trim();
     if (!finalNumber && !id) {
       const processes = await prisma.purchaseProcess.findMany({ select: { number: true } });
-      finalNumber = await nextYearlyCode({ key: "compras-processo", prefix: "PROC", existingCodes: processes.map(({ number }) => ({ code: number })) });
+      finalNumber = await nextYearlyCode({ prisma, key: "compras-processo", prefix: "PROC", existingCodes: processes.map(({ number }) => ({ code: number })) });
     }
     if (!finalNumber) {
       return { success: false, error: "Informe o número do processo." };

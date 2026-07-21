@@ -64,18 +64,18 @@ async function nextSecurityCode(kind: SegMobKind) {
   const prisma = await getTenantPrisma();
   if (kind === "guarda") {
     const items = await prisma.segurancaGuarda.findMany({ select: { matricula: true } });
-    return nextYearlyCode({ key: "seguranca-guarda", prefix: "GCM", existingCodes: items.map(({ matricula }) => ({ code: matricula })) });
+    return nextYearlyCode({ prisma, key: "seguranca-guarda", prefix: "GCM", existingCodes: items.map(({ matricula }) => ({ code: matricula })) });
   }
   if (kind === "ocorrencia") {
     const items = await prisma.segurancaOcorrencia.findMany({ select: { numero: true } });
-    return nextYearlyCode({ key: "seguranca-ocorrencia", prefix: "OC", existingCodes: items.map(({ numero }) => ({ code: numero })) });
+    return nextYearlyCode({ prisma, key: "seguranca-ocorrencia", prefix: "OC", existingCodes: items.map(({ numero }) => ({ code: numero })) });
   }
   if (kind === "infracao") {
     const items = await prisma.segurancaInfracao.findMany({ select: { auto: true } });
-    return nextYearlyCode({ key: "seguranca-infracao", prefix: "AIT", existingCodes: items.map(({ auto }) => ({ code: auto })) });
+    return nextYearlyCode({ prisma, key: "seguranca-infracao", prefix: "AIT", existingCodes: items.map(({ auto }) => ({ code: auto })) });
   }
   const items = await prisma.segurancaMobilidadeRegistro.findMany({ select: { codigo: true } });
-  return nextYearlyCode({ key: "seguranca-registro", prefix: "SEG", existingCodes: items.map(({ codigo }) => ({ code: codigo })) });
+  return nextYearlyCode({ prisma, key: "seguranca-registro", prefix: "SEG", existingCodes: items.map(({ codigo }) => ({ code: codigo })) });
 }
 
 export async function createSegMobItem(kind: SegMobKind, data: SegMobFormData) {

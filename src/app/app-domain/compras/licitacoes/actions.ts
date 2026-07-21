@@ -45,7 +45,7 @@ export async function saveBidding(formData: FormData) {
     throw new Error("Nenhum processo de compra encontrado para vincular à licitação.");
   }
 
-  const finalNumber = number.trim() || (id ? null : await nextYearlyCode({
+  const finalNumber = number.trim() || (id ? null : await nextYearlyCode({ prisma,
     key: "compras-licitacao",
     prefix: modality || "LIC",
     existingCodes: (await prisma.bidding.findMany({ select: { number: true } })).map(({ number }) => ({ code: number })),
