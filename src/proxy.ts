@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE_NAME } from "@/lib/platform/session";
+
+// ATENÇÃO: O proxy roda no Edge Runtime — NÃO importar módulos Node.js aqui.
+// O nome do cookie precisa ser mantido em sincronia com session.ts manualmente.
+const SESSION_COOKIE_NAME = "celeriflow_session";
 
 export const config = {
   matcher: [
@@ -52,4 +55,3 @@ export function proxy(req: NextRequest) {
 
   return NextResponse.next();
 }
-
