@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { SESSION_COOKIE_NAME } from "@/lib/platform/session";
 
 export const config = {
   matcher: [
@@ -30,20 +31,25 @@ export function proxy(req: NextRequest) {
   // Evitar acesso direto à pasta interna /app-domain pelas URLs do marketing
   if (url.pathname.startsWith("/app-domain")) {
     if (!isAppSubdomain) {
-      // Se não for o subdomínio app, redireciona pra home do marketing
       return NextResponse.redirect(new URL("/", req.url));
     }
   }
 
   // Se o usuário estiver acessando via subdomínio app
   if (isAppSubdomain) {
-    // Redirecionar invisivelmente para a pasta interna /app-domain
-    // Ex: app.celeriflow.com.br/ -> reescrito para /app-domain/login
-    // app.celeriflow.com.br/dashboard -> reescrito para /app-domain/dashboard
     const internalPath = url.pathname === "/" ? "/login" : url.pathname;
     const newPath = `/app-domain${internalPath}`;
+
+    // Redireciona para /login se não há sessão e não está já na página de login
+    const hasSession = req.cookies.has(SESSION_COOKIE_NAME);
+    if (!hasSession && internalPath !== "/login") {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+
+    // Reescrita invisível: app.celeriflow.com.br/dashboard → /app-domain/dashboard
     return NextResponse.rewrite(new URL(newPath, req.url));
   }
 
   return NextResponse.next();
 }
+

@@ -11,12 +11,36 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+type UserInfo = {
+  id: string;
+  firebaseUid: string;
+  email: string;
+  name: string;
+  role: string;
+};
+
+function getRoleLabel(role: string) {
+  switch (role) {
+    case "PLATFORM_ADMIN": return "Administrador da Plataforma";
+    case "TENANT_ADMIN": return "Administrador Municipal";
+    default: return "Usuário do Sistema";
+  }
+}
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export default function ClientLayout({
   children,
-  institution
+  institution,
+  user,
 }: {
   children: React.ReactNode;
-  institution?: { name?: string | null, logoUrl?: string | null } | null;
+  institution?: { name?: string | null; logoUrl?: string | null } | null;
+  user?: UserInfo | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -35,6 +59,10 @@ export default function ClientLayout({
   if (isLoginPage) {
     return <>{children}</>;
   }
+
+  const userName = user?.name ?? "Usuário";
+  const userRole = user?.role ? getRoleLabel(user.role) : "Gestor do Sistema";
+  const initials = getInitials(userName);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -72,12 +100,12 @@ export default function ClientLayout({
         {/* Right: User Menu */}
         <div className="w-1/3 flex justify-end items-center gap-2 sm:gap-4">
           <div className="hidden lg:flex flex-col text-right mr-1">
-            <span className="text-sm font-semibold text-slate-800 leading-tight">Admin Principal</span>
-            <span className="text-[11px] text-muted-foreground leading-tight">Gestor do Sistema</span>
+            <span className="text-sm font-semibold text-slate-800 leading-tight">{userName}</span>
+            <span className="text-[11px] text-muted-foreground leading-tight">{userRole}</span>
           </div>
           
-          <div className="h-9 w-9 shrink-0 rounded-full bg-gradient-to-tr from-primary to-primary/40 flex items-center justify-center text-white font-bold shadow-sm ring-2 ring-primary/20">
-            AD
+          <div className="h-9 w-9 shrink-0 rounded-full bg-gradient-to-tr from-primary to-primary/40 flex items-center justify-center text-white font-bold shadow-sm ring-2 ring-primary/20 text-xs">
+            {initials}
           </div>
 
           <div className="h-6 w-px bg-border hidden sm:block mx-1"></div>

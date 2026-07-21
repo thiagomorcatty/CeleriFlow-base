@@ -88,9 +88,8 @@ async function main() {
     });
 
     await upsertDomain(prisma, "demo.app.celeriflow.com.br", tenant.id, true);
-    await prisma.platformTenantDomain.deleteMany({
-      where: { host: "demo.localhost", tenantId: tenant.id },
-    });
+    // Mantém demo.localhost para desenvolvimento local
+    await upsertDomain(prisma, "demo.localhost", tenant.id, false);
 
     for (const [code, name] of modules) {
       const module = await prisma.platformModule.upsert({

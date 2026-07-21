@@ -12,8 +12,9 @@ export default async function AppDomainLayout({
   const institution = context ? await context.prisma.institution.findFirst() : null;
 
   return (
-    <ClientLayout institution={institution}>
+    <ClientLayout institution={institution} user={context?.user ?? null}>
       {children}
     </ClientLayout>
   );
 }
+
