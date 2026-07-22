@@ -41,11 +41,9 @@ export default function LoginPage() {
         return;
       }
 
-      // Redireciona para o dashboard pós-login
       router.push("/dashboard");
     } catch (error: any) {
       console.error(error);
-      // Extrair a mensagem do Firebase para sabermos se é erro de API KEY ou de senha
       const errorMessage = error?.message || "E-mail ou senha incorretos. Tente novamente.";
       setErrorMsg(`Erro: ${errorMessage}`);
     } finally {

@@ -1,20 +1,19 @@
-import { cookies, headers } from "next/headers";
-import { PrismaClient } from "@prisma/client";
-import { decryptDatabaseUrl } from "@/lib/platform/encryption";
-import { getPlatformPrisma } from "@/lib/platform/prisma";
-import { createPrismaClient } from "@/lib/prisma";
-import { getSessionPrincipal, SESSION_COOKIE_NAME } from "@/lib/platform/session";
+import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
+import { adminAuth } from "@/lib/firebase/server";
+import { SESSION_COOKIE_NAME } from "@/lib/platform/session";
+import type { PrismaClient } from "@prisma/client";
 
-const MAX_CACHED_TENANT_CLIENTS = 20;
-
-type TenantClientEntry = {
-  client: PrismaClient;
-  lastUsedAt: number;
-};
-
-const globalForTenantClients = globalThis as unknown as {
-  tenantClients: Map<string, TenantClientEntry> | undefined;
-};
+// ───────────────────────────────────────────────────────────────────
+// Single-tenant wrapper.
+//
+// This module keeps the SAME interface that ~250 consuming files
+// expect (TenantContext, getTenantContextForModule, etc.)
+// but simply returns the singleton prisma client bound to DATABASE_URL.
+//
+// When multi-tenant support is needed in the future, replace the
+// implementation here without touching callers.
+// ───────────────────────────────────────────────────────────────────
 
 export class TenantAccessError extends Error {
   constructor(message: string, readonly status: 401 | 403 | 404 | 423) {
@@ -42,105 +41,59 @@ export type TenantContext = {
   prisma: PrismaClient;
 };
 
-export function normalizeHost(value: string | null) {
-  if (!value) return null;
+async function resolveUserFromSession(): Promise<TenantContext["user"] | null> {
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  if (!sessionCookie) return null;
 
-  const host = value.trim().toLowerCase().replace(/\.$/, "").split(":")[0];
-  return host || null;
+  try {
+    const token = await adminAuth.verifySessionCookie(sessionCookie, true);
+    return {
+      id: token.uid,
+      firebaseUid: token.uid,
+      email: token.email ?? "",
+      name: token.name ?? token.email ?? "Usuário",
+      role: "ADMIN",
+    };
+  } catch {
+    return null;
+  }
 }
 
-function getTenantClient(databaseUrl: string) {
-  const clients = globalForTenantClients.tenantClients ?? new Map<string, TenantClientEntry>();
-  globalForTenantClients.tenantClients = clients;
-
-  const cached = clients.get(databaseUrl);
-  if (cached) {
-    cached.lastUsedAt = Date.now();
-    return cached.client;
-  }
-
-  if (clients.size >= MAX_CACHED_TENANT_CLIENTS) {
-    const oldest = [...clients.entries()].sort(([, left], [, right]) => left.lastUsedAt - right.lastUsedAt)[0];
-    if (oldest) {
-      clients.delete(oldest[0]);
-      void oldest[1].client.$disconnect();
-    }
-  }
-
-  const client = createPrismaClient(databaseUrl);
-  clients.set(databaseUrl, { client, lastUsedAt: Date.now() });
-  return client;
-}
-
-export async function resolveTenantContext(hostHeader: string | null, sessionCookie: string | undefined): Promise<TenantContext> {
-  const host = normalizeHost(hostHeader);
-  if (!host) throw new TenantAccessError("Dominio da prefeitura nao informado.", 404);
-
-  const [principal, domain] = await Promise.all([
-    getSessionPrincipal(sessionCookie),
-    getPlatformPrisma().platformTenantDomain.findUnique({
-      where: { host },
-      include: {
-        tenant: {
-          include: {
-            enabledModules: {
-              where: { enabled: true },
-              include: { module: { select: { code: true } } },
-            },
-          },
-        },
-      },
-    }),
-  ]);
-
-  if (!principal) throw new TenantAccessError("Sessao invalida ou expirada.", 401);
-  if (!domain || domain.tenant.status !== "ACTIVE") {
-    throw new TenantAccessError("Prefeitura indisponivel.", domain ? 423 : 404);
-  }
-
-  const user = await getPlatformPrisma().platformUser.findUnique({
-    where: { firebaseUid: principal.firebaseUid },
-  });
-
-  if (!user || !user.active) throw new TenantAccessError("Usuario sem acesso a plataforma.", 403);
-  if (user.role !== "PLATFORM_ADMIN" && user.tenantId !== domain.tenantId) {
-    throw new TenantAccessError("Usuario nao pertence a esta prefeitura.", 403);
-  }
-
+function buildSingleTenantContext(user: TenantContext["user"]): TenantContext {
   return {
     tenant: {
-      id: domain.tenant.id,
-      slug: domain.tenant.slug,
-      name: domain.tenant.name,
-      municipality: domain.tenant.municipality,
-      state: domain.tenant.state,
-      status: domain.tenant.status,
+      id: "single",
+      slug: "celeriflow",
+      name: "CeleriFlow",
+      municipality: "",
+      state: "",
+      status: "ACTIVE",
     },
-    user: {
-      id: user.id,
-      firebaseUid: user.firebaseUid,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    },
-    modules: domain.tenant.enabledModules.map(({ module }) => module.code),
-    prisma: getTenantClient(decryptDatabaseUrl(domain.tenant.databaseUrlEncrypted)),
+    user,
+    modules: [
+      "ADMINISTRACAO", "CADASTROS", "PROTOCOLOS", "DOCUMENTOS",
+      "ATENDIMENTO", "TRANSPARENCIA", "TRIBUTARIO", "FINANCEIRO",
+      "COMPRAS", "RH", "PATRIMONIO", "EDUCACAO", "SAUDE",
+      "SOCIAL", "MEIO_AMBIENTE", "SANEAMENTO", "OBRAS",
+      "CULTURA", "CAMARA", "SEGURANCA", "CONFIGURACOES",
+      "INDICADORES", "PROCESSOS",
+    ],
+    prisma,
   };
 }
 
-export async function getCurrentTenantContext() {
-  const [headerStore, cookieStore] = await Promise.all([headers(), cookies()]);
-  return resolveTenantContext(headerStore.get("host"), cookieStore.get(SESSION_COOKIE_NAME)?.value);
+export async function getCurrentTenantContext(): Promise<TenantContext> {
+  const user = await resolveUserFromSession();
+  if (!user) throw new TenantAccessError("Sessao invalida ou expirada.", 401);
+  return buildSingleTenantContext(user);
 }
 
-export async function getTenantContextForModule(moduleCode: string) {
-  const context = await getCurrentTenantContext();
-  if (context.user.role === "PLATFORM_ADMIN" || context.modules.includes(moduleCode)) return context;
-
-  throw new TenantAccessError("Modulo nao contratado para esta prefeitura.", 403);
+export async function getTenantContextForModule(_moduleCode: string): Promise<TenantContext> {
+  return getCurrentTenantContext();
 }
 
-export async function getOptionalTenantContext() {
+export async function getOptionalTenantContext(): Promise<TenantContext | null> {
   try {
     return await getCurrentTenantContext();
   } catch (error) {

@@ -9,12 +9,17 @@ export default async function AppDomainLayout({
   children: React.ReactNode;
 }) {
   const context = await getOptionalTenantContext();
-  const institution = context ? await context.prisma.institution.findFirst() : null;
+
+  const institution = context
+    ? await context.prisma.institution.findFirst()
+    : null;
 
   return (
-    <ClientLayout institution={institution} user={context?.user ?? null}>
+    <ClientLayout
+      institution={institution}
+      user={context?.user ?? null}
+    >
       {children}
     </ClientLayout>
   );
 }
-
