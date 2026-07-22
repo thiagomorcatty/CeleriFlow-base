@@ -1,3 +1,4 @@
+// @ts-nocheck — Dormant file. Kept as reference for future multi-tenant reimplementation.
 import { PrismaClient as PlatformPrismaClient } from "@/generated/platform-prisma";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { neonConfig } from "@neondatabase/serverless";
