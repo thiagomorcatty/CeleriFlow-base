@@ -25,7 +25,7 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
         orderBy: { movedAt: 'desc' }
       },
       documents: {
-        include: { employee: true },
+        include: { employee: true, document: true },
         orderBy: { createdAt: 'desc' }
       },
       events: {
@@ -193,11 +193,11 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
                 <div className="p-4 text-center text-slate-500 text-sm">Nenhum anexo.</div>
               ) : (
                 processo.documents.map(doc => (
-                  <a key={doc.id} href={`/api/download?url=${encodeURIComponent(doc.fileUrl)}`} target="_blank" rel="noreferrer" className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                  <a key={doc.id} href={`/api/download?url=${encodeURIComponent(doc.document?.fileUrl || doc.fileUrl)}`} target="_blank" rel="noreferrer" className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                     <div className="flex items-center gap-3">
                       <FileText className="w-5 h-5 text-indigo-500" />
                       <div>
-                        <p className="text-sm font-medium text-slate-800">{doc.title}</p>
+                        <p className="text-sm font-medium text-slate-800">{doc.document?.title || doc.title}</p>
                         <p className="text-xs text-slate-400">{new Date(doc.createdAt).toLocaleDateString('pt-BR')}</p>
                       </div>
                     </div>

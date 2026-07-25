@@ -11,12 +11,14 @@ import {
   X,
   FileSignature,
   FileSearch,
-  Archive
+  Archive,
+  ChartNoAxesCombined
 } from "lucide-react";
 
 const sidebarNavItems = [
   { title: "Painel de Protocolos", href: "/protocolos", icon: LayoutDashboard },
   { title: "Caixa do Setor", href: "/protocolos/processos", icon: FileBox },
+  { title: "Acompanhamento", href: "/protocolos/acompanhamento", icon: ChartNoAxesCombined },
   { title: "Buscar Processo", href: "/protocolos/busca", icon: FileSearch },
   { title: "Assinaturas", href: "/protocolos/assinaturas", icon: FileSignature },
   { title: "Arquivados", href: "/protocolos/arquivados", icon: Archive },

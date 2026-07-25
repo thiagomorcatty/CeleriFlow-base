@@ -622,6 +622,7 @@ model Document {
   culturaCouncilLinks     CulturaConselhoDocumento[]    @relation("CulturaCouncilDocument")
   camaraLegislativeLinks  CamDocumentoLegislativo[]     @relation("CamaraLegislativeDocument")
   segurancaRegistros      SegurancaMobilidadeRegistro[] @relation("SegurancaRegistroDocument")
+  processDocuments        ProcessDocument[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -749,11 +750,16 @@ model ProcessDocument {
   title        String
   fileUrl      String
   documentType String?
+  documentId   String?
+  document     Document? @relation(fields: [documentId], references: [id])
+  purpose      String?
 
   employeeId String?
   employee   Employee? @relation("DocumentEmployee", fields: [employeeId], references: [id]) // Quem anexou
 
   createdAt DateTime @default(now())
+
+  @@index([documentId])
 }
 
 // Despachos e Pareceres

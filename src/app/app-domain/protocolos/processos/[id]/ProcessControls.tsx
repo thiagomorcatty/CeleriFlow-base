@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FileUp, FileText, Send, X } from "lucide-react";
-import { addProcessDispatch, addProcessDocument, archiveProcess, concludeProcess, forwardProcess, receiveProcess, reopenProcess } from "../../actions";
+import { addProcessDispatch, archiveProcess, concludeProcess, forwardProcess, receiveProcess, reopenProcess } from "../../actions";
 
 type Department = { id: string; name: string };
 type Mode = "dispatch" | "forward" | "document" | "conclude" | "archive" | "reopen" | null;
@@ -102,13 +102,17 @@ export default function ProcessControls({
     startTransition(async () => {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("processId", processId);
+      formData.append("title", documentTitle);
+      formData.append("documentType", documentType);
       const response = await fetch("/api/protocolos/upload", { method: "POST", body: formData });
       const payload = await response.json();
       if (!response.ok) {
         setError(payload.error || "Erro ao enviar o arquivo.");
         return;
       }
-      handleResult(await addProcessDocument({ processId, title: documentTitle, documentType, fileUrl: payload.url }));
+      setMode(null);
+      router.refresh();
     });
   }
 

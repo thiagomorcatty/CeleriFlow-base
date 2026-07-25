@@ -15,7 +15,7 @@ function safeFilename(filename: string) {
 }
 
 function isDocumentPath(pathname: string) {
-  return pathname.startsWith("documents/");
+  return pathname.startsWith("documents/") || pathname.startsWith("process-documents/");
 }
 
 // Tipos de arquivo aceitos para upload na plataforma
@@ -78,7 +78,7 @@ export async function uploadProcessFile(file: File) {
     throw new Error("Envie apenas arquivos PDF, JPG ou PNG.");
   }
 
-  return put(`process-documents/${crypto.randomUUID()}-${safeFilename(file.name)}`, file, {
+  return put(`documents/processos/${crypto.randomUUID()}-${safeFilename(file.name)}`, file, {
     access: "private",
     token: getBlobToken(),
   });

@@ -312,60 +312,6 @@ export async function addProcessDispatch(data: {
   }
 }
 
-export async function addProcessDocument(data: {
-  processId: string;
-  title: string;
-  fileUrl: string;
-  documentType: string;
-}): Promise<{ error: string | null }> {
-  try {
-    const { prisma, employee, departmentId } = await getOperationalContext();
-    const title = data.title.trim();
-    if (!title || !data.fileUrl) throw new Error("Informe o titulo e envie o arquivo.");
-    const url = new URL(data.fileUrl);
-    const isVercelBlobHost = url.hostname === "blob.vercel-storage.com" || url.hostname.endsWith(".blob.vercel-storage.com");
-    if (url.protocol !== "https:" || !isVercelBlobHost || !url.pathname.startsWith("/process-documents/")) {
-      throw new Error("O arquivo enviado nao e valido para Protocolos.");
-    }
-
-    await prisma.$transaction(async (tx) => {
-      const process = await tx.process.findUnique({
-        where: { id: data.processId },
-        select: { id: true, status: true, currentDepartmentId: true },
-      });
-      if (!process) throw new Error("Processo nao encontrado.");
-      if (process.currentDepartmentId !== departmentId) throw new Error("Este processo nao pertence ao seu setor.");
-      if (["Arquivado", "Cancelado"].includes(process.status)) throw new Error("Este processo nao aceita novas operacoes.");
-      if (process.status === AWAITING_RECEIPT) throw new Error("Receba o processo antes de anexar documentos.");
-
-      await tx.processDocument.create({
-        data: {
-          processId: process.id,
-          title,
-          fileUrl: data.fileUrl,
-          documentType: data.documentType || "Anexo",
-          employeeId: employee.id,
-        },
-      });
-      await tx.processEvent.create({
-        data: {
-          processId: process.id,
-          eventType: "DOCUMENT_ADDED",
-          description: `Documento ${title} anexado ao processo.`,
-          departmentId,
-          employeeId: employee.id,
-        },
-      });
-    });
-
-    revalidateProtocolPages();
-    return { error: null };
-  } catch (error) {
-    console.error(error);
-    return { error: error instanceof Error ? error.message : "Erro ao anexar o documento." };
-  }
-}
-
 export async function concludeProcess(processId: string, reason: string): Promise<{ error: string | null }> {
   try {
     const { prisma, employee, departmentId } = await getOperationalContext();
