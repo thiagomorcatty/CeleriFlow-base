@@ -21,21 +21,17 @@ export const config = {
 export function proxy(req: NextRequest) {
   const url = req.nextUrl;
 
-  // A aplicacao atende o painel principal e um subdominio por prefeitura.
+  // A aplicacao atende somente o painel principal neste ambiente single-tenant.
   const hostname = (req.headers.get("host") || "").toLowerCase().split(":")[0];
   const appDomain = "app.celeriflow.com.br";
 
   const isAppSubdomain =
     hostname === appDomain ||
-    hostname.endsWith(`.${appDomain}`) ||
-    hostname === "app.localhost" ||
-    hostname.endsWith(".localhost");
+    hostname === "app.localhost";
 
-  // Evitar acesso direto à pasta interna /app-domain pelas URLs do marketing
+  // A pasta interna nunca deve ser exposta, inclusive no dominio do painel.
   if (url.pathname.startsWith("/app-domain")) {
-    if (!isAppSubdomain) {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
   // Se o usuário estiver acessando via subdomínio app

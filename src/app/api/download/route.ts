@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { TenantAccessError, getCurrentTenantContext } from "@/lib/platform/tenant-context";
-import { downloadFilename, getTenantFile } from "@/lib/platform/blob";
+import { AccessError, getCurrentTenantContext } from "@/lib/platform/tenant-context";
+import { downloadFilename, getFile } from "@/lib/platform/blob";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const context = await getCurrentTenantContext();
-    const response = await getTenantFile(context.tenant.id, url);
+    await getCurrentTenantContext();
+    const response = await getFile(url);
 
     if (!response || !response.stream) {
       return NextResponse.json({ error: "Documento não encontrado" }, { status: 404 });
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    if (error instanceof TenantAccessError) {
+    if (error instanceof AccessError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error("Erro no download:", error);

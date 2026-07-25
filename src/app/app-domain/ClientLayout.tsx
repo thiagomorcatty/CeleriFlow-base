@@ -20,11 +20,7 @@ type UserInfo = {
 };
 
 function getRoleLabel(role: string) {
-  switch (role) {
-    case "PLATFORM_ADMIN": return "Administrador da Plataforma";
-    case "TENANT_ADMIN": return "Administrador Municipal";
-    default: return "Usuário do Sistema";
-  }
+  return role;
 }
 
 function getInitials(name: string) {

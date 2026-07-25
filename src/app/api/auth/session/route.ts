@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createSession, SESSION_COOKIE_NAME, SESSION_DURATION_MS } from "@/lib/platform/session";
 import { checkRateLimit } from "@/lib/platform/rate-limit";
+import { AccessError, authorizeIdToken } from "@/lib/platform/tenant-context";
 
 const bodySchema = z.object({
   idToken: z.string().min(100),
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const { idToken } = bodySchema.parse(await request.json());
+    await authorizeIdToken(idToken);
     const sessionCookie = await createSession(idToken);
 
     const response = NextResponse.json({ ok: true });
@@ -40,6 +42,10 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
+    if (error instanceof AccessError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Token de autenticacao invalido." }, { status: 400 });
     }

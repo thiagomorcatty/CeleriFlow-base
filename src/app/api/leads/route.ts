@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { checkRateLimit } from "@/lib/platform/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,6 +21,19 @@ const leadSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
+  const rateLimit = checkRateLimit(`lead:${ip}`);
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente novamente em ${rateLimit.retryAfterSeconds} segundos.` },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+    );
+  }
+
   try {
     const body = await req.json();
 

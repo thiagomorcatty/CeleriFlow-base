@@ -2,9 +2,9 @@ import { get, put } from "@vercel/blob";
 
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 
-function getPlatformBlobToken() {
-  const token = process.env.Platform_BLOB_READ_WRITE_TOKEN;
-  if (!token) throw new Error("Platform_BLOB_READ_WRITE_TOKEN nao configurada.");
+function getBlobToken() {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) throw new Error("BLOB_READ_WRITE_TOKEN nao configurada.");
   return token;
 }
 
@@ -14,8 +14,8 @@ function safeFilename(filename: string) {
   return sanitized.slice(0, 120) || "arquivo";
 }
 
-function isTenantPath(pathname: string, tenantId: string) {
-  return pathname.startsWith(`tenants/${tenantId}/`);
+function isDocumentPath(pathname: string) {
+  return pathname.startsWith("documents/");
 }
 
 // Tipos de arquivo aceitos para upload na plataforma
@@ -37,7 +37,6 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/png",
   "image/gif",
   "image/webp",
-  "image/svg+xml",
   // Compactados
   "application/zip",
   "application/x-rar-compressed",
@@ -57,19 +56,19 @@ export function validateUpload(file: File) {
 }
 
 
-export async function uploadTenantFile(tenantId: string, file: File) {
+export async function uploadFile(file: File) {
   validateUpload(file);
 
-  return put(`tenants/${tenantId}/documents/${crypto.randomUUID()}-${safeFilename(file.name)}`, file, {
+  return put(`documents/${crypto.randomUUID()}-${safeFilename(file.name)}`, file, {
     access: "private",
-    token: getPlatformBlobToken(),
+    token: getBlobToken(),
   });
 }
 
-export async function getTenantFile(tenantId: string, url: string) {
+export async function getFile(url: string) {
   try {
-    const platformFile = await get(url, { access: "private", token: getPlatformBlobToken() });
-    return platformFile && isTenantPath(platformFile.blob.pathname, tenantId) ? platformFile : null;
+    const file = await get(url, { access: "private", token: getBlobToken() });
+    return file && isDocumentPath(file.blob.pathname) ? file : null;
   } catch {
     return null;
   }

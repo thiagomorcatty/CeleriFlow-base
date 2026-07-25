@@ -1,35 +1,19 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { adminAuth } from "@/lib/firebase/server";
-import { SESSION_COOKIE_NAME } from "@/lib/platform/session";
+import { getIdTokenPrincipal, getSessionPrincipal, SESSION_COOKIE_NAME, type SessionPrincipal } from "@/lib/platform/session";
 import type { PrismaClient } from "@prisma/client";
 
-// ───────────────────────────────────────────────────────────────────
-// Single-tenant wrapper.
-//
-// This module keeps the SAME interface that ~250 consuming files
-// expect (TenantContext, getTenantContextForModule, etc.)
-// but simply returns the singleton prisma client bound to DATABASE_URL.
-//
-// When multi-tenant support is needed in the future, replace the
-// implementation here without touching callers.
-// ───────────────────────────────────────────────────────────────────
+// Compatibility layer for the existing module pages and Server Actions.
+// Access is resolved from the municipal database, which is the only active
+// application database.
 
-export class TenantAccessError extends Error {
+export class AccessError extends Error {
   constructor(message: string, readonly status: 401 | 403 | 404 | 423) {
     super(message);
   }
 }
 
-export type TenantContext = {
-  tenant: {
-    id: string;
-    slug: string;
-    name: string;
-    municipality: string;
-    state: string;
-    status: string;
-  };
+export type AppContext = {
   user: {
     id: string;
     firebaseUid: string;
@@ -37,67 +21,57 @@ export type TenantContext = {
     name: string;
     role: string;
   };
-  modules: string[];
   prisma: PrismaClient;
 };
 
-async function resolveUserFromSession(): Promise<TenantContext["user"] | null> {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  if (!sessionCookie) return null;
+async function resolveUser(principal: SessionPrincipal | null): Promise<AppContext["user"]> {
+  if (!principal) throw new AccessError("Sessao invalida ou expirada.", 401);
 
-  try {
-    const token = await adminAuth.verifySessionCookie(sessionCookie, true);
-    return {
-      id: token.uid,
-      firebaseUid: token.uid,
-      email: token.email ?? "",
-      name: token.name ?? token.email ?? "Usuário",
-      role: "ADMIN",
-    };
-  } catch {
-    return null;
+  const usuario = await prisma.usuario.findUnique({
+    where: { email: principal.email },
+    include: { perfil: true },
+  });
+
+  if (!usuario || !usuario.ativo || !usuario.perfil.ativo) {
+    throw new AccessError("Usuario sem acesso ao sistema.", 403);
   }
+
+  return {
+    id: usuario.id,
+    firebaseUid: principal.firebaseUid,
+    email: usuario.email,
+    name: usuario.nome || principal.name,
+    role: usuario.perfil.nome,
+  };
 }
 
-function buildSingleTenantContext(user: TenantContext["user"]): TenantContext {
+function buildAppContext(user: AppContext["user"]): AppContext {
   return {
-    tenant: {
-      id: "single",
-      slug: "celeriflow",
-      name: "CeleriFlow",
-      municipality: "",
-      state: "",
-      status: "ACTIVE",
-    },
     user,
-    modules: [
-      "ADMINISTRACAO", "CADASTROS", "PROTOCOLOS", "DOCUMENTOS",
-      "ATENDIMENTO", "TRANSPARENCIA", "TRIBUTARIO", "FINANCEIRO",
-      "COMPRAS", "RH", "PATRIMONIO", "EDUCACAO", "SAUDE",
-      "SOCIAL", "MEIO_AMBIENTE", "SANEAMENTO", "OBRAS",
-      "CULTURA", "CAMARA", "SEGURANCA", "CONFIGURACOES",
-      "INDICADORES", "PROCESSOS",
-    ],
     prisma,
   };
 }
 
-export async function getCurrentTenantContext(): Promise<TenantContext> {
-  const user = await resolveUserFromSession();
-  if (!user) throw new TenantAccessError("Sessao invalida ou expirada.", 401);
-  return buildSingleTenantContext(user);
+export async function getCurrentTenantContext(): Promise<AppContext> {
+  const cookieStore = await cookies();
+  const principal = await getSessionPrincipal(cookieStore.get(SESSION_COOKIE_NAME)?.value);
+  return buildAppContext(await resolveUser(principal));
 }
 
-export async function getTenantContextForModule(_moduleCode: string): Promise<TenantContext> {
+export async function authorizeIdToken(idToken: string): Promise<AppContext["user"]> {
+  return resolveUser(await getIdTokenPrincipal(idToken));
+}
+
+// Kept until module permissions are enabled in ConfiguracaoModulo.
+export async function getTenantContextForModule(_moduleCode: string): Promise<AppContext> {
   return getCurrentTenantContext();
 }
 
-export async function getOptionalTenantContext(): Promise<TenantContext | null> {
+export async function getOptionalTenantContext(): Promise<AppContext | null> {
   try {
     return await getCurrentTenantContext();
   } catch (error) {
-    if (error instanceof TenantAccessError) return null;
+    if (error instanceof AccessError) return null;
     throw error;
   }
 }

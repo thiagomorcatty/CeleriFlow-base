@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { TenantAccessError, getCurrentTenantContext } from "@/lib/platform/tenant-context";
-import { uploadTenantFile } from "@/lib/platform/blob";
+import { AccessError, getCurrentTenantContext } from "@/lib/platform/tenant-context";
+import { uploadFile } from "@/lib/platform/blob";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    const context = await getCurrentTenantContext();
+    await getCurrentTenantContext();
     const form = await request.formData();
     const file = form.get("file");
 
@@ -15,10 +15,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Nenhum arquivo enviado" }, { status: 400 });
     }
 
-    const blob = await uploadTenantFile(context.tenant.id, file);
+    const blob = await uploadFile(file);
     return NextResponse.json({ url: blob.url, pathname: blob.pathname }, { status: 201 });
   } catch (error) {
-    if (error instanceof TenantAccessError) {
+    if (error instanceof AccessError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     if (error instanceof Error) {

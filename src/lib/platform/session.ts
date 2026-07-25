@@ -5,6 +5,8 @@ export const SESSION_DURATION_MS = 5 * 24 * 60 * 60 * 1000;
 
 export type SessionPrincipal = {
   firebaseUid: string;
+  email: string;
+  name: string;
 };
 
 export async function createSession(idToken: string) {
@@ -16,7 +18,28 @@ export async function getSessionPrincipal(sessionCookie: string | undefined): Pr
 
   try {
     const token = await adminAuth.verifySessionCookie(sessionCookie, true);
-    return { firebaseUid: token.uid };
+    if (!token.email || token.email_verified !== true) return null;
+
+    return {
+      firebaseUid: token.uid,
+      email: token.email.toLowerCase(),
+      name: token.name ?? token.email,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getIdTokenPrincipal(idToken: string): Promise<SessionPrincipal | null> {
+  try {
+    const token = await adminAuth.verifyIdToken(idToken);
+    if (!token.email || token.email_verified !== true) return null;
+
+    return {
+      firebaseUid: token.uid,
+      email: token.email.toLowerCase(),
+      name: token.name ?? token.email,
+    };
   } catch {
     return null;
   }
