@@ -45,6 +45,12 @@ const ALLOWED_MIME_TYPES = new Set([
   "text/csv",
 ]);
 
+const PROCESS_ALLOWED_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+]);
+
 export function validateUpload(file: File) {
   if (!file.name || file.size === 0) throw new Error("Selecione um arquivo valido.");
   if (file.size > MAX_FILE_SIZE_BYTES) throw new Error("O arquivo deve ter no maximo 20 MB.");
@@ -60,6 +66,19 @@ export async function uploadFile(file: File) {
   validateUpload(file);
 
   return put(`documents/${crypto.randomUUID()}-${safeFilename(file.name)}`, file, {
+    access: "private",
+    token: getBlobToken(),
+  });
+}
+
+export async function uploadProcessFile(file: File) {
+  if (!file.name || file.size === 0) throw new Error("Selecione um arquivo valido.");
+  if (file.size > 10 * 1024 * 1024) throw new Error("O anexo do processo deve ter no maximo 10 MB.");
+  if (!PROCESS_ALLOWED_MIME_TYPES.has(file.type)) {
+    throw new Error("Envie apenas arquivos PDF, JPG ou PNG.");
+  }
+
+  return put(`process-documents/${crypto.randomUUID()}-${safeFilename(file.name)}`, file, {
     access: "private",
     token: getBlobToken(),
   });

@@ -12,6 +12,7 @@ export async function upsertUsuario(data: {
   nome: string;
   email: string;
   perfilId: string;
+  employeeId?: string;
   ativo: boolean;
   permissoes: { moduloId: string; canView: boolean; canEdit: boolean }[];
 }) {
@@ -25,6 +26,7 @@ export async function upsertUsuario(data: {
           nome: data.nome,
           email: data.email,
           perfilId: data.perfilId,
+          employeeId: data.employeeId || null,
           ativo: data.ativo,
           permissoesModulo: {
             deleteMany: {}, // Clear old permissions
@@ -45,6 +47,7 @@ export async function upsertUsuario(data: {
           email: data.email,
           senha: "auth-firebase-placeholder", 
           perfilId: data.perfilId,
+          employeeId: data.employeeId || null,
           ativo: data.ativo,
           permissoesModulo: {
             create: data.permissoes.map(p => ({

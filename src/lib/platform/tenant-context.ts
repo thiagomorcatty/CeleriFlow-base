@@ -20,6 +20,9 @@ export type AppContext = {
     email: string;
     name: string;
     role: string;
+    employeeId: string | null;
+    departmentId: string | null;
+    secretariatId: string | null;
   };
   prisma: PrismaClient;
 };
@@ -29,7 +32,7 @@ async function resolveUser(principal: SessionPrincipal | null): Promise<AppConte
 
   const usuario = await prisma.usuario.findUnique({
     where: { email: principal.email },
-    include: { perfil: true },
+    include: { perfil: true, employee: true },
   });
 
   if (!usuario || !usuario.ativo || !usuario.perfil.ativo) {
@@ -42,6 +45,9 @@ async function resolveUser(principal: SessionPrincipal | null): Promise<AppConte
     email: usuario.email,
     name: usuario.nome || principal.name,
     role: usuario.perfil.nome,
+    employeeId: usuario.employee?.id ?? null,
+    departmentId: usuario.employee?.departmentId ?? null,
+    secretariatId: usuario.employee?.secretariatId ?? null,
   };
 }
 

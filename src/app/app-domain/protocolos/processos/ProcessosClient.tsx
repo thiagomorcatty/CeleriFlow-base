@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { FileBox, Search, Plus, FileText, Pencil, CheckCircle, XCircle } from "lucide-react";
-import { updateProcessData } from "../actions";
+import { FileBox, Search, Plus, FileText } from "lucide-react";
+import { receiveProcess } from "../actions";
 
 type Processo = {
   id: string;
@@ -16,12 +17,10 @@ type Processo = {
   company: { corporateName: string } | null;
 };
 
-export default function ProcessosClient({ initialProcessos }: { initialProcessos: Processo[] }) {
+export default function ProcessosClient({ initialProcessos, canReceive }: { initialProcessos: Processo[]; canReceive: boolean }) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<{ status: string }>({ status: "" });
 
   const filteredProcessos = initialProcessos.filter(p => {
     const term = searchTerm.toLowerCase();
@@ -42,23 +41,14 @@ export default function ProcessosClient({ initialProcessos }: { initialProcessos
     return matchesSearch && matchesStatus;
   });
 
-  const handleEditClick = (processo: Processo) => {
-    setEditingId(processo.id);
-    setEditForm({ status: processo.status });
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingId) return;
-    if (confirm("Deseja salvar as alterações deste processo?")) {
-      try {
-        await updateProcessData(editingId, { status: editForm.status });
-        setEditingId(null);
-      } catch (e) {
-        console.error(e);
-        alert("Erro ao salvar");
-      }
+  async function handleReceive(processId: string) {
+    const result = await receiveProcess(processId);
+    if (result.error) {
+      alert(result.error);
+      return;
     }
-  };
+    router.refresh();
+  }
 
   return (
     <div className="max-w-6xl animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -95,8 +85,9 @@ export default function ProcessosClient({ initialProcessos }: { initialProcessos
               className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 text-slate-600"
             >
               <option value="">Status Ativos</option>
-              <option value="Aberto">Aberto</option>
-              <option value="Em Análise">Em Análise</option>
+              <option value="Aguardando Recebimento">Aguardando Recebimento</option>
+              <option value="Recebido">Recebido</option>
+              <option value="Em Analise">Em Analise</option>
               <option value="Concluído">Concluído</option>
               <option value="Arquivado">Arquivado</option>
             </select>
@@ -141,51 +132,29 @@ export default function ProcessosClient({ initialProcessos }: { initialProcessos
                         {interessadoNome}
                       </td>
                       <td className="px-6 py-4">
-                        {editingId === processo.id ? (
-                          <select
-                            value={editForm.status}
-                            onChange={(e) => setEditForm({ status: e.target.value })}
-                            className="w-full border rounded px-2 py-1 font-normal bg-white text-xs"
-                          >
-                            <option value="Aberto">Aberto</option>
-                            <option value="Em Análise">Em Análise</option>
-                            <option value="Concluído">Concluído</option>
-                            <option value="Arquivado">Arquivado</option>
-                          </select>
-                        ) : (
-                          <span className={`px-2 py-1 rounded-md text-xs font-semibold ${
-                            processo.status === 'Concluído' ? 'bg-emerald-100 text-emerald-700' : 
-                            processo.status === 'Aberto' ? 'bg-blue-100 text-blue-700' :
-                            processo.status === 'Arquivado' ? 'bg-slate-100 text-slate-600' :
-                            'bg-amber-100 text-amber-700'
-                          }`}>
-                            {processo.status}
-                          </span>
-                        )}
+                        <span className={`px-2 py-1 rounded-md text-xs font-semibold ${
+                          processo.status === 'Concluído' ? 'bg-emerald-100 text-emerald-700' :
+                          processo.status === 'Aguardando Recebimento' ? 'bg-blue-100 text-blue-700' :
+                          processo.status === 'Arquivado' ? 'bg-slate-100 text-slate-600' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {processo.status}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-slate-500">
                         {new Date(processo.createdAt).toLocaleDateString('pt-BR')}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {editingId === processo.id ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <button onClick={handleSaveEdit} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded" title="Salvar">
-                              <CheckCircle className="w-5 h-5" />
+                        <div className="flex items-center justify-end gap-4">
+                          <Link href={`/protocolos/processos/${processo.id}`} className="text-emerald-600 hover:text-emerald-800 text-sm font-semibold">
+                            Visualizar
+                          </Link>
+                          {canReceive && processo.status === "Aguardando Recebimento" && (
+                            <button onClick={() => handleReceive(processo.id)} className="text-sm font-semibold text-blue-700 hover:text-blue-900">
+                              Receber
                             </button>
-                            <button onClick={() => setEditingId(null)} className="p-1 text-slate-400 hover:bg-slate-100 rounded" title="Cancelar">
-                              <XCircle className="w-5 h-5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-4">
-                            <Link href={`/protocolos/processos/${processo.id}`} className="text-emerald-600 hover:text-emerald-800 text-sm font-semibold">
-                              Visualizar
-                            </Link>
-                            <button onClick={() => handleEditClick(processo)} className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded" title="Editar Status">
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { FileSignature, CheckCircle2, PenTool, CheckCircle, XCircle } from "lucide-react";
-import { updateProcessStatus } from "../actions";
+import { FileSignature, CheckCircle2 } from "lucide-react";
 
 type Processo = {
   id: string;
@@ -15,20 +13,6 @@ type Processo = {
 };
 
 export default function AssinaturasClient({ initialProcessos }: { initialProcessos: Processo[] }) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  const handleAssinar = async (id: string) => {
-    if (confirm("Confirma a assinatura digital deste documento?")) {
-      try {
-        await updateProcessStatus(id, "Concluído");
-        alert("Documento assinado com sucesso!");
-      } catch (e) {
-        console.error(e);
-        alert("Erro ao assinar documento");
-      }
-    }
-  };
-
   return (
     <div className="max-w-6xl animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -37,7 +21,7 @@ export default function AssinaturasClient({ initialProcessos }: { initialProcess
             <FileSignature className="w-6 h-6 text-emerald-600" />
             Assinaturas Pendentes
           </h1>
-          <p className="text-slate-500 mt-1">Gerencie os documentos que aguardam sua assinatura digital.</p>
+          <p className="text-slate-500 mt-1">A assinatura será liberada após a implantação do serviço central de documentos.</p>
         </div>
       </div>
 
@@ -58,7 +42,7 @@ export default function AssinaturasClient({ initialProcessos }: { initialProcess
                   <th className="px-6 py-3">Documento / Processo</th>
                   <th className="px-6 py-3">Assunto</th>
                   <th className="px-6 py-3">Data de Solicitação</th>
-                  <th className="px-6 py-3 text-right">Ações</th>
+                    <th className="px-6 py-3 text-right">Situação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -76,10 +60,7 @@ export default function AssinaturasClient({ initialProcessos }: { initialProcess
                       {new Date(processo.createdAt).toLocaleDateString('pt-BR')}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button onClick={() => handleAssinar(processo.id)} className="px-3 py-1.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ml-auto">
-                        <PenTool className="w-4 h-4" />
-                        Assinar
-                      </button>
+                      <span className="text-sm font-semibold text-slate-500">Aguardando serviço central</span>
                     </td>
                   </tr>
                 ))}

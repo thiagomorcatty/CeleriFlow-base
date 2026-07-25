@@ -1,12 +1,13 @@
-import { ArrowLeft, Clock, FileText, Send, User, CheckCircle2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Clock, FileText, User, CheckCircle2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { notFound } from "next/navigation";
+import ProcessControls from "./ProcessControls";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProcessoDetalhesPage({ params }: { params: { id: string } }) {
-  const { prisma } = await getTenantContextForModule("PROTOCOLOS");
+  const { prisma, user } = await getTenantContextForModule("PROTOCOLOS");
   const processo = await prisma.process.findUnique({
     where: { id: params.id },
     include: {
@@ -26,6 +27,10 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
       documents: {
         include: { employee: true },
         orderBy: { createdAt: 'desc' }
+      },
+      events: {
+        include: { employee: true, department: true },
+        orderBy: { createdAt: 'desc' }
       }
     }
   });
@@ -33,6 +38,15 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
   if (!processo) {
     notFound();
   }
+
+  const departamentos = await prisma.department.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+  const canOperate = Boolean(
+    user.employeeId && user.departmentId && user.departmentId === processo.currentDepartmentId,
+  );
 
   const interessadoNome = processo.person?.fullName || processo.company?.corporateName || "Não Informado";
   const interessadoDoc = processo.person?.cpf || processo.company?.cnpj || "";
@@ -59,16 +73,13 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
           <p className="text-slate-500 mt-1">{processo.processType.name} - {processo.subject.name}</p>
         </div>
         
-        <div className="flex gap-2">
-          <button className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
-            <FileText className="w-4 h-4" />
-            Adicionar Despacho
-          </button>
-          <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
-            <Send className="w-4 h-4" />
-            Tramitar
-          </button>
-        </div>
+        <ProcessControls
+          processId={processo.id}
+          status={processo.status}
+          currentDepartmentId={processo.currentDepartmentId}
+          canOperate={canOperate}
+          departments={departamentos}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -112,6 +123,28 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
                   </div>
                 ))
               )}
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-200 bg-slate-50/50">
+              <h3 className="text-sm font-semibold text-slate-800">Timeline do Processo</h3>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {processo.events.length === 0 ? (
+                <p className="p-6 text-center text-sm text-slate-500">Nenhum evento operacional registrado.</p>
+              ) : processo.events.map(event => (
+                <div key={event.id} className="p-4 sm:p-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm font-semibold text-slate-800">{event.description || event.eventType}</p>
+                    <p className="whitespace-nowrap text-xs text-slate-400">{new Date(event.createdAt).toLocaleString('pt-BR')}</p>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {event.employee?.name || "Sistema"}{event.department ? ` · ${event.department.name}` : ""}
+                    {event.previousStatus && event.newStatus ? ` · ${event.previousStatus} → ${event.newStatus}` : ""}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -160,7 +193,7 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
                 <div className="p-4 text-center text-slate-500 text-sm">Nenhum anexo.</div>
               ) : (
                 processo.documents.map(doc => (
-                  <div key={doc.id} className="p-4 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition-colors">
+                  <a key={doc.id} href={`/api/download?url=${encodeURIComponent(doc.fileUrl)}`} target="_blank" rel="noreferrer" className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                     <div className="flex items-center gap-3">
                       <FileText className="w-5 h-5 text-indigo-500" />
                       <div>
@@ -168,7 +201,7 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
                         <p className="text-xs text-slate-400">{new Date(doc.createdAt).toLocaleDateString('pt-BR')}</p>
                       </div>
                     </div>
-                  </div>
+                  </a>
                 ))
               )}
             </div>

@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { FileSearch, Search, FileText, Pencil, CheckCircle, XCircle } from "lucide-react";
-import { updateProcessStatus } from "../actions";
+import { FileSearch, Search } from "lucide-react";
 
 type Processo = {
   id: string;
@@ -16,27 +14,6 @@ type Processo = {
 };
 
 export default function BuscaClient({ initialProcessos, query }: { initialProcessos: Processo[], query: string }) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<{ status: string }>({ status: "" });
-
-  const handleEditClick = (processo: Processo) => {
-    setEditingId(processo.id);
-    setEditForm({ status: processo.status });
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingId) return;
-    if (confirm("Deseja salvar as alterações neste processo?")) {
-      try {
-        await updateProcessStatus(editingId, editForm.status);
-        setEditingId(null);
-      } catch (e) {
-        console.error(e);
-        alert("Erro ao salvar");
-      }
-    }
-  };
-
   return (
     <div className="max-w-6xl animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -117,48 +94,19 @@ export default function BuscaClient({ initialProcessos, query }: { initialProces
                         {interessadoNome}
                       </td>
                       <td className="px-6 py-4">
-                        {editingId === processo.id ? (
-                          <select
-                            value={editForm.status}
-                            onChange={(e) => setEditForm({ status: e.target.value })}
-                            className="w-full border rounded px-2 py-1 font-normal bg-white text-xs"
-                          >
-                            <option value="Aberto">Aberto</option>
-                            <option value="Em Análise">Em Análise</option>
-                            <option value="Concluído">Concluído</option>
-                            <option value="Arquivado">Arquivado</option>
-                          </select>
-                        ) : (
-                          <span className={`px-2 py-1 rounded-md text-xs font-semibold ${
-                            processo.status === 'Concluído' ? 'bg-emerald-100 text-emerald-700' : 
-                            processo.status === 'Em Análise' ? 'bg-blue-100 text-blue-700' :
-                            processo.status === 'Arquivado' ? 'bg-slate-100 text-slate-600' :
-                            'bg-amber-100 text-amber-700'
-                          }`}>
-                            {processo.status}
-                          </span>
-                        )}
+                        <span className={`px-2 py-1 rounded-md text-xs font-semibold ${
+                          processo.status === 'Concluído' ? 'bg-emerald-100 text-emerald-700' :
+                          processo.status === 'Aguardando Recebimento' ? 'bg-blue-100 text-blue-700' :
+                          processo.status === 'Arquivado' ? 'bg-slate-100 text-slate-600' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {processo.status}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {editingId === processo.id ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <button onClick={handleSaveEdit} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded" title="Salvar">
-                              <CheckCircle className="w-5 h-5" />
-                            </button>
-                            <button onClick={() => setEditingId(null)} className="p-1 text-slate-400 hover:bg-slate-100 rounded" title="Cancelar">
-                              <XCircle className="w-5 h-5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-4">
-                            <Link href={`/protocolos/processos/${processo.id}`} className="text-emerald-600 hover:text-emerald-800 text-sm font-semibold">
-                              Visualizar
-                            </Link>
-                            <button onClick={() => handleEditClick(processo)} className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded" title="Editar Status">
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
+                        <Link href={`/protocolos/processos/${processo.id}`} className="text-emerald-600 hover:text-emerald-800 text-sm font-semibold">
+                          Visualizar
+                        </Link>
                       </td>
                     </tr>
                   );

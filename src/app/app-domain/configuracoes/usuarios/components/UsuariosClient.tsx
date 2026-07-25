@@ -15,17 +15,25 @@ type Usuario = {
   ativo: boolean;
   perfilId: string;
   perfil: { nome: string };
+  employeeId: string | null;
   permissoesModulo: UsuarioModulo[];
+};
+type Servidor = {
+  id: string;
+  name: string;
+  department: { name: string } | null;
 };
 
 export default function UsuariosClient({
   usuarios,
   perfis,
-  modulos
+  modulos,
+  servidores
 }: {
   usuarios: Usuario[];
   perfis: Perfil[];
   modulos: Modulo[];
+  servidores: Servidor[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,12 +44,14 @@ export default function UsuariosClient({
     nome: string;
     email: string;
     perfilId: string;
+    employeeId: string;
     ativo: boolean;
     permissoes: Record<string, { canView: boolean; canEdit: boolean }>;
   }>({
     nome: "",
     email: "",
     perfilId: perfis[0]?.id || "",
+    employeeId: "",
     ativo: true,
     permissoes: {}
   });
@@ -59,6 +69,7 @@ export default function UsuariosClient({
       nome: "",
       email: "",
       perfilId: perfis[0]?.id || "",
+      employeeId: "",
       ativo: true,
       permissoes: {}
     });
@@ -76,6 +87,7 @@ export default function UsuariosClient({
       nome: usuario.nome,
       email: usuario.email,
       perfilId: usuario.perfilId,
+      employeeId: usuario.employeeId || "",
       ativo: usuario.ativo,
       permissoes: permMap
     });
@@ -97,6 +109,7 @@ export default function UsuariosClient({
       nome: formData.nome,
       email: formData.email,
       perfilId: formData.perfilId,
+      employeeId: formData.employeeId || undefined,
       ativo: formData.ativo,
       permissoes: permissoesArray
     });
@@ -246,6 +259,22 @@ export default function UsuariosClient({
                       <option key={p.id} value={p.id}>{p.nome}</option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Servidor vinculado</label>
+                  <select
+                    value={formData.employeeId}
+                    onChange={e => setFormData({...formData, employeeId: e.target.value})}
+                    className="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-900 outline-none"
+                  >
+                    <option value="">Sem vinculo operacional</option>
+                    {servidores.map(servidor => (
+                      <option key={servidor.id} value={servidor.id}>
+                        {servidor.name}{servidor.department ? ` - ${servidor.department.name}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">Obrigatorio para operar Protocolos e Processos.</p>
                 </div>
                 <div className="flex items-center mt-6">
                   <label className="flex items-center gap-2 cursor-pointer">

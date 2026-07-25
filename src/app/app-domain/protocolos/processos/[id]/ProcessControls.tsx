@@ -1,0 +1,226 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { FileUp, FileText, Send, X } from "lucide-react";
+import { addProcessDispatch, addProcessDocument, archiveProcess, concludeProcess, forwardProcess, receiveProcess, reopenProcess } from "../../actions";
+
+type Department = { id: string; name: string };
+type Mode = "dispatch" | "forward" | "document" | "conclude" | "archive" | "reopen" | null;
+
+export default function ProcessControls({
+  processId,
+  status,
+  currentDepartmentId,
+  canOperate,
+  departments,
+}: {
+  processId: string;
+  status: string;
+  currentDepartmentId: string | null;
+  canOperate: boolean;
+  departments: Department[];
+}) {
+  const router = useRouter();
+  const [mode, setMode] = useState<Mode>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const [destinationDepartmentId, setDestinationDepartmentId] = useState("");
+  const [reason, setReason] = useState("");
+  const [dueAt, setDueAt] = useState("");
+  const [dispatchType, setDispatchType] = useState("Despacho");
+  const [content, setContent] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [documentTitle, setDocumentTitle] = useState("");
+  const [documentType, setDocumentType] = useState("Anexo");
+
+  const isTerminal = ["Arquivado", "Cancelado"].includes(status);
+  const disabled = !canOperate || isTerminal || status === "Aguardando Recebimento";
+
+  function close() {
+    if (isPending) return;
+    setMode(null);
+    setError(null);
+  }
+
+  function handleResult(result: { error: string | null }) {
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setMode(null);
+    setError(null);
+    router.refresh();
+  }
+
+  function handleReceive() {
+    setError(null);
+    startTransition(async () => handleResult(await receiveProcess(processId)));
+  }
+
+  function handleForward() {
+    setError(null);
+    startTransition(async () => {
+      handleResult(await forwardProcess({ processId, destinationDepartmentId, reason, dueAt }));
+    });
+  }
+
+  function handleDispatch() {
+    setError(null);
+    startTransition(async () => {
+      handleResult(await addProcessDispatch({ processId, dispatchType, content }));
+    });
+  }
+
+  function handleLifecycle() {
+    setError(null);
+    startTransition(async () => {
+      const result = mode === "conclude"
+        ? await concludeProcess(processId, reason)
+        : mode === "archive"
+          ? await archiveProcess(processId, reason)
+          : await reopenProcess(processId, reason);
+      handleResult(result);
+    });
+  }
+
+  function handleDocument() {
+    if (!file) {
+      setError("Selecione um arquivo.");
+      return;
+    }
+    if (!documentTitle.trim()) {
+      setError("Informe o titulo do documento.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024 || !["application/pdf", "image/jpeg", "image/png"].includes(file.type)) {
+      setError("Envie apenas PDF, JPG ou PNG de ate 10 MB.");
+      return;
+    }
+
+    setError(null);
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/protocolos/upload", { method: "POST", body: formData });
+      const payload = await response.json();
+      if (!response.ok) {
+        setError(payload.error || "Erro ao enviar o arquivo.");
+        return;
+      }
+      handleResult(await addProcessDocument({ processId, title: documentTitle, documentType, fileUrl: payload.url }));
+    });
+  }
+
+  return (
+    <>
+      <div className="flex flex-wrap gap-2">
+        {status === "Aguardando Recebimento" && (
+          <button disabled={!canOperate || isTerminal || isPending} onClick={handleReceive} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
+            Receber Processo
+          </button>
+        )}
+        <button disabled={disabled} onClick={() => setMode("document")} className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-700 text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+          <FileUp className="w-4 h-4" />
+          Anexar Documento
+        </button>
+        <button disabled={disabled} onClick={() => setMode("dispatch")} className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-700 text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+          <FileText className="w-4 h-4" />
+          Adicionar Despacho
+        </button>
+        <button disabled={disabled} onClick={() => setMode("forward")} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+          <Send className="w-4 h-4" />
+          Tramitar
+        </button>
+        {status === "Recebido" || status === "Em Analise" || status === "Reaberto" ? (
+          <button disabled={!canOperate || isPending} onClick={() => setMode("conclude")} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
+            Concluir
+          </button>
+        ) : null}
+        {status === "Concluido" ? (
+          <button disabled={!canOperate || isPending} onClick={() => setMode("archive")} className="px-4 py-2 bg-slate-700 hover:bg-slate-800 disabled:opacity-50 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
+            Arquivar
+          </button>
+        ) : null}
+        {status === "Arquivado" ? (
+          <button disabled={!canOperate || isPending} onClick={() => setMode("reopen")} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
+            Reabrir
+          </button>
+        ) : null}
+      </div>
+
+      {!canOperate && <p className="mt-2 text-xs text-slate-500">Ações operacionais exigem vínculo ativo com o setor atual do processo.</p>}
+
+      {mode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 p-5">
+              <h2 className="text-lg font-bold text-slate-900">
+                {mode === "forward" ? "Tramitar processo" : mode === "dispatch" ? "Adicionar despacho" : mode === "document" ? "Anexar documento" : mode === "conclude" ? "Concluir processo" : mode === "archive" ? "Arquivar processo" : "Reabrir processo"}
+              </h2>
+              <button onClick={close} disabled={isPending} className="text-slate-400 hover:text-slate-600"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="space-y-4 p-5">
+              {mode === "forward" && (
+                <>
+                  <label className="block text-sm font-medium text-slate-700">Setor de destino
+                    <select value={destinationDepartmentId} onChange={event => setDestinationDepartmentId(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2">
+                      <option value="">Selecione o setor</option>
+                      {departments.filter(department => department.id !== currentDepartmentId).map(department => <option key={department.id} value={department.id}>{department.name}</option>)}
+                    </select>
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700">Prazo da etapa
+                    <input type="date" value={dueAt} onChange={event => setDueAt(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700">Motivo
+                    <textarea value={reason} onChange={event => setReason(event.target.value)} rows={4} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" />
+                  </label>
+                </>
+              )}
+              {mode === "dispatch" && (
+                <>
+                  <label className="block text-sm font-medium text-slate-700">Tipo
+                    <select value={dispatchType} onChange={event => setDispatchType(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2">
+                      <option>Despacho</option><option>Parecer</option><option>Decisao</option>
+                    </select>
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700">Conteúdo
+                    <textarea value={content} onChange={event => setContent(event.target.value)} rows={7} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" />
+                  </label>
+                </>
+              )}
+              {mode === "document" && (
+                <>
+                  <label className="block text-sm font-medium text-slate-700">Titulo
+                    <input value={documentTitle} onChange={event => setDocumentTitle(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700">Tipo
+                    <input value={documentType} onChange={event => setDocumentType(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" />
+                  </label>
+                  <input type="file" accept="application/pdf,image/jpeg,image/png" onChange={event => {
+                    const selectedFile = event.target.files?.[0] || null;
+                    setFile(selectedFile);
+                    if (selectedFile && !documentTitle) setDocumentTitle(selectedFile.name);
+                  }} className="block w-full text-sm text-slate-600" />
+                  <p className="text-xs text-slate-500">PDF, JPG ou PNG, com até 10 MB.</p>
+                </>
+              )}
+              {(mode === "conclude" || mode === "archive" || mode === "reopen") && (
+                <label className="block text-sm font-medium text-slate-700">Justificativa
+                  <textarea value={reason} onChange={event => setReason(event.target.value)} rows={5} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" />
+                </label>
+              )}
+              {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+            </div>
+            <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 p-5">
+              <button onClick={close} disabled={isPending} className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600">Cancelar</button>
+              <button disabled={isPending} onClick={mode === "forward" ? handleForward : mode === "dispatch" ? handleDispatch : mode === "document" ? handleDocument : handleLifecycle} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                {isPending ? "Salvando..." : mode === "forward" ? "Tramitar" : mode === "dispatch" ? "Adicionar" : mode === "document" ? "Anexar" : mode === "conclude" ? "Concluir" : mode === "archive" ? "Arquivar" : "Reabrir"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
