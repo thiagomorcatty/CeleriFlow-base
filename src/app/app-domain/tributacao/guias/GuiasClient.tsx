@@ -1,12 +1,14 @@
 "use client";
 
-import { Search, Plus, Receipt, DollarSign, CheckCircle2, Trash2 } from "lucide-react";
-import { payGuide, cancelGuide, createMockGuide } from "./actions";
+import { Search, Receipt, DollarSign, CheckCircle2, Trash2 } from "lucide-react";
+import { payGuide, cancelGuide } from "./actions";
 
 type Guide = {
   id: string;
   barcode: string;
+  guideNumber?: string | null;
   totalValue: number;
+  outstandingValue: number;
   dueDate: Date;
   status: string;
   assessment: {
@@ -43,15 +45,6 @@ export default function GuiasClient({ guias }: { guias: Guide[] }) {
     }
   };
 
-  const handleCreateMock = async () => {
-    try {
-      await createMockGuide();
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao gerar guia fictícia.");
-    }
-  };
-
   return (
     <>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -62,13 +55,6 @@ export default function GuiasClient({ guias }: { guias: Guide[] }) {
           </h1>
           <p className="text-slate-500 mt-1">Emissão e controle de pagamentos de tributos municipais.</p>
         </div>
-        <button 
-          onClick={handleCreateMock} 
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Gerar Guia Fictícia
-        </button>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -109,7 +95,7 @@ export default function GuiasClient({ guias }: { guias: Guide[] }) {
                 {guias.map((guia) => (
                   <tr key={guia.id} className="hover:bg-slate-50 transition-colors group">
                     <td className="px-6 py-4 font-mono text-slate-600 text-xs">
-                      {guia.barcode || "-"}
+                        {guia.guideNumber || guia.barcode || "-"}
                     </td>
                     <td className="px-6 py-4 font-bold text-slate-800">
                       {guia.assessment.tax.name} ({guia.assessment.year})
@@ -133,9 +119,9 @@ export default function GuiasClient({ guias }: { guias: Guide[] }) {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {guia.status === 'Emitida' ? (
+                      {['Emitida', 'Parcial'].includes(guia.status) ? (
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => handlePay(guia.id, guia.totalValue)} className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-lg flex items-center gap-1 transition-colors">
+                          <button onClick={() => handlePay(guia.id, guia.outstandingValue)} className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-lg flex items-center gap-1 transition-colors">
                             <DollarSign className="w-4 h-4" />
                             Baixa Manual
                           </button>

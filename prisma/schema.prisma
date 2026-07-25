@@ -90,13 +90,13 @@ model Department {
   demands       InternalDemand[]
 
   // Mod 3
-  currentProcesses    Process[]         @relation("CurrentDepartment")
-  movementsFrom       ProcessMovement[] @relation("MovementFrom")
-  movementsTo         ProcessMovement[] @relation("MovementTo")
-  dispatches          ProcessDispatch[] @relation("DispatchDepartment")
-  initialProcessTypes ProcessType[]     @relation("ProcessTypeInitialDepartment")
-  initialSubjects     Subject[]         @relation("SubjectInitialDepartment")
-  processEvents       ProcessEvent[]    @relation("ProcessEventDepartment")
+  currentProcesses    Process[]              @relation("CurrentDepartment")
+  movementsFrom       ProcessMovement[]      @relation("MovementFrom")
+  movementsTo         ProcessMovement[]      @relation("MovementTo")
+  dispatches          ProcessDispatch[]      @relation("DispatchDepartment")
+  initialProcessTypes ProcessType[]          @relation("ProcessTypeInitialDepartment")
+  initialSubjects     Subject[]              @relation("SubjectInitialDepartment")
+  processEvents       ProcessEvent[]         @relation("ProcessEventDepartment")
   workflowStages      ProcessWorkflowStage[]
 
   // Mod 4 e 5
@@ -197,8 +197,13 @@ model Employee {
   officialDiaries OfficialDiary[] @relation("DiaryAuthor")
 
   // Mod 8
-  settlements       Settlement[]      @relation("SettlementAuthor")
-  accountingEntries AccountingEntry[] @relation("AccountingEntryAuthor")
+  settlements             Settlement[]             @relation("SettlementAuthor")
+  accountingEntries       AccountingEntry[]        @relation("AccountingEntryAuthor")
+  financialAuditLogs      FinancialAuditLog[]      @relation("FinancialAuditEmployee")
+  taxAuditLogs            TaxAuditLog[]            @relation("TaxAuditEmployee")
+  accountingTransactions  AccountingTransaction[]  @relation("AccountingTransactionEmployee")
+  monthlyAccountingCloses MonthlyAccountingClose[] @relation("MonthlyCloseEmployee")
+  annualAccountingCloses  AnnualAccountingClose[]  @relation("AnnualCloseEmployee")
 
   // Mod 9
   purchaseRequests        PurchaseRequest[] @relation("EmployeePurchaseRequests")
@@ -317,6 +322,7 @@ model Person {
   addresses               Address[]
   taxpayerInfo            Taxpayer?
   supplierInfo            Supplier?
+  creditorInfo            Creditor?
   legalRepresentations    LegalRepresentative[] @relation("RepresentedPerson")
   representedBy           LegalRepresentative[] @relation("RepresentativePerson")
   documents               Document[]
@@ -381,6 +387,7 @@ model Company {
   addresses       Address[]
   taxpayerInfo    Taxpayer?
   supplierInfo    Supplier?
+  creditorInfo    Creditor?
   representatives LegalRepresentative[] @relation("RepresentedCompany")
   documents       Document[]
 
@@ -412,16 +419,20 @@ model Taxpayer {
   companyId String?  @unique
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  realEstates           RealEstate[]
-  economicRegistrations EconomicRegistration[]
-  taxAssessments        TaxAssessment[]
-  licenses              License[]
-  debtInstallments      DebtInstallment[]
-  activeDebts           ActiveDebt[]
-  taxCertificates       TaxCertificate[]
-  infractions           Infraction[]
-  providedInvoices      Invoice[]              @relation("InvoiceProvider")
-  takenInvoices         Invoice[]              @relation("InvoiceTaker")
+  realEstates               RealEstate[]
+  economicRegistrations     EconomicRegistration[]
+  taxAssessments            TaxAssessment[]
+  licenses                  License[]
+  debtInstallments          DebtInstallment[]
+  activeDebts               ActiveDebt[]
+  taxCertificates           TaxCertificate[]
+  infractions               Infraction[]
+  taxServiceRequests        TaxServiceRequest[]
+  taxDeclarations           TaxDeclaration[]
+  taxCaseLinks              TaxCaseLink[]
+  taxCertificateEvaluations TaxCertificateEvaluation[]
+  providedInvoices          Invoice[]                  @relation("InvoiceProvider")
+  takenInvoices             Invoice[]                  @relation("InvoiceTaker")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -446,6 +457,7 @@ model Supplier {
   // Mod 8
   commitments Commitment[] @relation("SupplierCommitments")
   payments    Payment[]    @relation("SupplierPayments")
+  creditor    Creditor?    @relation("SupplierCreditor")
 
   // Mod 9
   priceQuotes       PriceQuote[]        @relation("SupplierPriceQuotes")
@@ -586,7 +598,9 @@ model RealEstate {
   taxpayerId String?
   taxpayer   Taxpayer? @relation(fields: [taxpayerId], references: [id])
 
-  taxAssessments TaxAssessment[]
+  taxAssessments  TaxAssessment[]
+  taxDeclarations TaxDeclaration[]
+  valuations      PropertyValuation[]
 
   assets           Asset[]
   schools          School[]
@@ -624,12 +638,18 @@ model Document {
   culturaCouncilLinks     CulturaConselhoDocumento[]    @relation("CulturaCouncilDocument")
   camaraLegislativeLinks  CamDocumentoLegislativo[]     @relation("CamaraLegislativeDocument")
   segurancaRegistros      SegurancaMobilidadeRegistro[] @relation("SegurancaRegistroDocument")
+  settlementDocuments     Settlement[]                  @relation("SettlementDocument")
+  taxGuideDocuments       TaxGuide[]                    @relation("TaxGuideDocument")
+  taxPaymentProofs        TaxPayment[]                  @relation("TaxPaymentProofDocument")
+  taxServiceRequests      TaxServiceRequest[]
+  taxCaseLinks            TaxCaseLink[]
   processDocuments        ProcessDocument[]
   versions                DocumentVersion[]
   signatures              DocumentSignature[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  taxCertificates TaxCertificate[]
 }
 
 // Versoes finalizadas sao snapshots imutaveis do arquivo usado em uma assinatura.
@@ -704,8 +724,8 @@ model ProcessType {
   requiresInterested    Boolean     @default(false)
   allowsInternalOpening Boolean     @default(true)
 
-  subjects  Subject[]
-  processes Process[]
+  subjects       Subject[]
+  processes      Process[]
   workflowStages ProcessWorkflowStage[]
 
   createdAt DateTime @default(now())
@@ -727,7 +747,7 @@ model Subject {
   requiresInterested    Boolean     @default(false)
   allowsInternalOpening Boolean     @default(true)
 
-  processes Process[]
+  processes      Process[]
   workflowStages ProcessWorkflowStage[]
 
   createdAt DateTime @default(now())
@@ -756,24 +776,27 @@ model Process {
 
   // Setor atual onde o processo está
   currentDepartmentId          String?
-  currentDepartment            Department? @relation("CurrentDepartment", fields: [currentDepartmentId], references: [id])
+  currentDepartment            Department?           @relation("CurrentDepartment", fields: [currentDepartmentId], references: [id])
   currentResponsibleEmployeeId String?
-  currentResponsibleEmployee   Employee?   @relation("CurrentProcessResponsible", fields: [currentResponsibleEmployeeId], references: [id])
+  currentResponsibleEmployee   Employee?             @relation("CurrentProcessResponsible", fields: [currentResponsibleEmployeeId], references: [id])
   expectedCompletionAt         DateTime?
   receivedAt                   DateTime?
   completedAt                  DateTime?
   archivedAt                   DateTime?
   archiveReason                String?
   archivedByEmployeeId         String?
-  archivedByEmployee           Employee?   @relation("ProcessArchivedBy", fields: [archivedByEmployeeId], references: [id])
+  archivedByEmployee           Employee?             @relation("ProcessArchivedBy", fields: [archivedByEmployeeId], references: [id])
   currentWorkflowStageId       String?
   currentWorkflowStage         ProcessWorkflowStage? @relation("CurrentWorkflowStage", fields: [currentWorkflowStageId], references: [id])
 
-  movements  ProcessMovement[]
-  documents  ProcessDocument[]
-  dispatches ProcessDispatch[]
-  events     ProcessEvent[]
-  notifications ProtocolNotification[]
+  movements            ProcessMovement[]
+  documents            ProcessDocument[]
+  dispatches           ProcessDispatch[]
+  events               ProcessEvent[]
+  notifications        ProtocolNotification[]
+  financialCommitments Commitment[]           @relation("FinancialCommitmentProcess")
+  taxServiceRequests   TaxServiceRequest[]
+  taxCaseLinks         TaxCaseLink[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -889,17 +912,17 @@ model ProcessEvent {
 }
 
 model ProtocolNotification {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  user      Usuario  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      Usuario   @relation(fields: [userId], references: [id], onDelete: Cascade)
   processId String
-  process   Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+  process   Process   @relation(fields: [processId], references: [id], onDelete: Cascade)
   type      String
   title     String
   message   String
   dedupeKey String?
   readAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([userId, readAt, createdAt])
   @@index([processId, createdAt])
@@ -1153,9 +1176,10 @@ model EconomicRegistration {
 
   taxAssessments TaxAssessment[]
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  licenses  License[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  licenses        License[]
+  taxDeclarations TaxDeclaration[]
 }
 
 // Tabela de Parametrização de Tributos (Ex: IPTU, ISS, Taxa de Alvará)
@@ -1165,7 +1189,10 @@ model Tax {
   taxType  String // Imposto, Taxa, Contribuição
   isActive Boolean @default(true)
 
-  assessments TaxAssessment[]
+  assessments       TaxAssessment[]
+  financialMapping  TaxFinancialMapping?
+  parameters        TaxParameter[]
+  serviceActivities TaxServiceActivity[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1173,10 +1200,21 @@ model Tax {
 
 // Lançamento Tributário (Dívida gerada para um contribuinte/imóvel/empresa)
 model TaxAssessment {
-  id            String @id @default(cuid())
-  year          Int // Exercício (Ex: 2026)
-  originalValue Float
-  status        String @default("Lançado") // Lançado, Emitido, Pago, Dívida Ativa, Cancelado
+  id                     String    @id @default(cuid())
+  year                   Int // Exercício (Ex: 2026)
+  originalValue          Float
+  originalValueDecimal   Decimal?  @db.Decimal(18, 2)
+  assessmentNumber       String?   @unique
+  competence             DateTime?
+  taxableBaseDecimal     Decimal?  @db.Decimal(18, 2)
+  rate                   Decimal?  @db.Decimal(9, 6)
+  discountValueDecimal   Decimal?  @db.Decimal(18, 2)
+  interestValueDecimal   Decimal?  @db.Decimal(18, 2)
+  penaltyValueDecimal    Decimal?  @db.Decimal(18, 2)
+  correctionValueDecimal Decimal?  @db.Decimal(18, 2)
+  finalValueDecimal      Decimal?  @db.Decimal(18, 2)
+  calculationSnapshot    Json?
+  status                 String    @default("Lançado") // Lançado, Emitido, Pago, Dívida Ativa, Cancelado
 
   taxId String
   tax   Tax    @relation(fields: [taxId], references: [id])
@@ -1191,7 +1229,9 @@ model TaxAssessment {
   economicRegistrationId String?
   economicRegistration   EconomicRegistration? @relation(fields: [economicRegistrationId], references: [id])
 
-  guides TaxGuide[]
+  guides          TaxGuide[]
+  activeDebt      ActiveDebt?
+  serviceRequests TaxServiceRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1199,11 +1239,16 @@ model TaxAssessment {
 
 // Guia de Arrecadação (Boleto/DAM emitido)
 model TaxGuide {
-  id         String   @id @default(cuid())
-  barcode    String?  @unique
-  totalValue Float
-  dueDate    DateTime
-  status     String   @default("Emitida") // Emitida, Paga, Vencida, Cancelada
+  id                  String    @id @default(cuid())
+  barcode             String?   @unique
+  totalValue          Float
+  totalValueDecimal   Decimal?  @db.Decimal(18, 2)
+  guideNumber         String?   @unique
+  calculationSnapshot Json?
+  documentId          String?
+  document            Document? @relation("TaxGuideDocument", fields: [documentId], references: [id])
+  dueDate             DateTime
+  status              String    @default("Emitida") // Emitida, Paga, Vencida, Cancelada
 
   assessmentId String
   assessment   TaxAssessment @relation(fields: [assessmentId], references: [id])
@@ -1216,14 +1261,26 @@ model TaxGuide {
 
 // Pagamento / Baixa
 model TaxPayment {
-  id            String   @id @default(cuid())
-  amountPaid    Float
-  paymentDate   DateTime
-  clearanceDate DateTime @default(now()) // Data da baixa no sistema
-  paymentMethod String // PIX, Boleto, Manual
+  id                String    @id @default(cuid())
+  amountPaid        Float
+  amountPaidDecimal Decimal?  @db.Decimal(18, 2)
+  status            String    @default("Confirmado")
+  idempotencyKey    String?   @unique
+  sourceModule      String    @default("TRIBUTARIO")
+  sourceType        String    @default("TAX_PAYMENT")
+  sourceId          String?
+  eventType         String    @default("TAX_PAYMENT_CONFIRMED")
+  proofDocumentId   String?
+  proofDocument     Document? @relation("TaxPaymentProofDocument", fields: [proofDocumentId], references: [id])
+  paymentDate       DateTime
+  clearanceDate     DateTime  @default(now()) // Data da baixa no sistema
+  paymentMethod     String // PIX, Boleto, Manual
 
-  guideId String
-  guide   TaxGuide @relation(fields: [guideId], references: [id])
+  guideId            String
+  guide              TaxGuide                    @relation(fields: [guideId], references: [id])
+  bankAccountId      String?
+  bankAccount        BankAccount?                @relation(fields: [bankAccountId], references: [id])
+  revenueIntegration TaxRevenueIntegrationEvent?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1244,20 +1301,27 @@ model License {
   economicRegistrationId String?
   economicRegistration   EconomicRegistration? @relation(fields: [economicRegistrationId], references: [id])
 
+  serviceRequests TaxServiceRequest[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 // Parcelamentos de Débitos
 model DebtInstallment {
-  id                String @id @default(cuid())
-  totalValue        Float
-  downPayment       Float? // Entrada
-  installmentsCount Int
-  status            String @default("Ativo") // Ativo, Pago, Rescindido
+  id                 String   @id @default(cuid())
+  totalValue         Float
+  totalValueDecimal  Decimal? @db.Decimal(18, 2)
+  downPayment        Float? // Entrada
+  downPaymentDecimal Decimal? @db.Decimal(18, 2)
+  installmentsCount  Int
+  status             String   @default("Ativo") // Ativo, Pago, Rescindido
 
-  taxpayerId String
-  taxpayer   Taxpayer @relation(fields: [taxpayerId], references: [id])
+  taxpayerId   String
+  taxpayer     Taxpayer                  @relation(fields: [taxpayerId], references: [id])
+  activeDebtId String?
+  activeDebt   ActiveDebt?               @relation(fields: [activeDebtId], references: [id])
+  schedules    DebtInstallmentSchedule[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1265,16 +1329,21 @@ model DebtInstallment {
 
 // Dívida Ativa e CDA
 model ActiveDebt {
-  id             String  @id @default(cuid())
-  originDebtType String // Ex: IPTU, ISS
-  year           Int
-  originalValue  Float
-  updatedValue   Float
-  cdaNumber      String? @unique
-  status         String  @default("Inscrita") // Inscrita, Em Cobrança, Parcelada, Protestada, Ajuizada, Paga
+  id                   String   @id @default(cuid())
+  originDebtType       String // Ex: IPTU, ISS
+  year                 Int
+  originalValue        Float
+  originalValueDecimal Decimal? @db.Decimal(18, 2)
+  updatedValue         Float
+  updatedValueDecimal  Decimal? @db.Decimal(18, 2)
+  cdaNumber            String?  @unique
+  status               String   @default("Inscrita") // Inscrita, Em Cobrança, Parcelada, Protestada, Ajuizada, Paga
 
-  taxpayerId String
-  taxpayer   Taxpayer @relation(fields: [taxpayerId], references: [id])
+  taxpayerId   String
+  taxpayer     Taxpayer          @relation(fields: [taxpayerId], references: [id])
+  assessmentId String?           @unique
+  assessment   TaxAssessment?    @relation(fields: [assessmentId], references: [id])
+  installments DebtInstallment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1289,7 +1358,10 @@ model TaxCertificate {
   status          String   @default("Emitida") // Emitida, Revogada
 
   taxpayerId String
-  taxpayer   Taxpayer @relation(fields: [taxpayerId], references: [id])
+  taxpayer   Taxpayer                  @relation(fields: [taxpayerId], references: [id])
+  documentId String?
+  document   Document?                 @relation(fields: [documentId], references: [id])
+  evaluation TaxCertificateEvaluation?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1297,11 +1369,12 @@ model TaxCertificate {
 
 // Autos de Infração e Fiscalização
 model Infraction {
-  id              String    @id @default(cuid())
-  infractionType  String // Omissão de ISS, Falta de Alvará
-  penaltyValue    Float
-  defenseDeadline DateTime?
-  status          String    @default("Emitido") // Emitido, Cientificado, Em Defesa, Pago, Inscrito em Dívida Ativa
+  id                  String    @id @default(cuid())
+  infractionType      String // Omissão de ISS, Falta de Alvará
+  penaltyValue        Float
+  penaltyValueDecimal Decimal?  @db.Decimal(18, 2)
+  defenseDeadline     DateTime?
+  status              String    @default("Emitido") // Emitido, Cientificado, Em Defesa, Pago, Inscrito em Dívida Ativa
 
   taxpayerId String
   taxpayer   Taxpayer @relation(fields: [taxpayerId], references: [id])
@@ -1312,15 +1385,18 @@ model Infraction {
 
 // Nota Fiscal de Serviço Eletrônica (NFS-e)
 model Invoice {
-  id               String  @id @default(cuid())
-  invoiceNumber    Int     @default(autoincrement())
-  verificationCode String  @unique
-  serviceValue     Float
-  deductions       Float   @default(0)
-  issRetained      Boolean @default(false)
-  issValue         Float
-  competence       String // Ex: "07/2026"
-  status           String  @default("Emitida") // Emitida, Cancelada, Substituída
+  id                  String   @id @default(cuid())
+  invoiceNumber       Int      @default(autoincrement())
+  verificationCode    String   @unique
+  serviceValue        Float
+  serviceValueDecimal Decimal? @db.Decimal(18, 2)
+  deductions          Float    @default(0)
+  deductionsDecimal   Decimal? @db.Decimal(18, 2)
+  issRetained         Boolean  @default(false)
+  issValue            Float
+  issValueDecimal     Decimal? @db.Decimal(18, 2)
+  competence          String // Ex: "07/2026"
+  status              String   @default("Emitida") // Emitida, Cancelada, Substituída
 
   providerId String
   provider   Taxpayer @relation("InvoiceProvider", fields: [providerId], references: [id])
@@ -1332,18 +1408,170 @@ model Invoice {
   updatedAt DateTime @updatedAt
 }
 
+// Configuracao interna de calculo; requer validacao juridica antes de uso oficial.
+model TaxParameter {
+  id              String    @id @default(cuid())
+  taxId           String
+  tax             Tax       @relation(fields: [taxId], references: [id])
+  code            String
+  name            String
+  calculationType String
+  configuration   Json
+  effectiveFrom   DateTime
+  effectiveUntil  DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([taxId, code, effectiveFrom])
+  @@index([taxId, isActive, effectiveFrom])
+}
+
+model PropertyValuation {
+  id                    String     @id @default(cuid())
+  realEstateId          String
+  realEstate            RealEstate @relation(fields: [realEstateId], references: [id])
+  year                  Int
+  landUnitValue         Decimal?   @db.Decimal(18, 6)
+  constructionUnitValue Decimal?   @db.Decimal(18, 6)
+  venalValueDecimal     Decimal    @db.Decimal(18, 2)
+  source                String     @default("INTERNA")
+  notes                 String?
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+
+  @@unique([realEstateId, year])
+}
+
+model TaxServiceActivity {
+  id           String           @id @default(cuid())
+  taxId        String
+  tax          Tax              @relation(fields: [taxId], references: [id])
+  code         String
+  name         String
+  issRate      Decimal?         @db.Decimal(9, 6)
+  isActive     Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  declarations TaxDeclaration[]
+
+  @@unique([taxId, code])
+}
+
+model TaxDeclaration {
+  id                     String                @id @default(cuid())
+  taxpayerId             String
+  taxpayer               Taxpayer              @relation(fields: [taxpayerId], references: [id])
+  economicRegistrationId String?
+  economicRegistration   EconomicRegistration? @relation(fields: [economicRegistrationId], references: [id])
+  activityId             String
+  activity               TaxServiceActivity    @relation(fields: [activityId], references: [id])
+  competence             DateTime
+  serviceValueDecimal    Decimal               @db.Decimal(18, 2)
+  deductionValueDecimal  Decimal               @default(0) @db.Decimal(18, 2)
+  issValueDecimal        Decimal               @db.Decimal(18, 2)
+  status                 String                @default("APURADA_INTERNA")
+  calculationSnapshot    Json
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  realEstate             RealEstate?           @relation(fields: [realEstateId], references: [id])
+  realEstateId           String?
+
+  @@index([taxpayerId, competence])
+  @@index([activityId, competence])
+}
+
+// Solicita Processo e GED existentes, sem criar fluxo paralelo de documentos.
+model TaxServiceRequest {
+  id           String         @id @default(cuid())
+  serviceType  String
+  status       String         @default("EM_ANALISE_INTERNA")
+  taxpayerId   String
+  taxpayer     Taxpayer       @relation(fields: [taxpayerId], references: [id])
+  processId    String?
+  process      Process?       @relation(fields: [processId], references: [id])
+  documentId   String?
+  document     Document?      @relation(fields: [documentId], references: [id])
+  assessmentId String?
+  assessment   TaxAssessment? @relation(fields: [assessmentId], references: [id])
+  licenseId    String?
+  license      License?       @relation(fields: [licenseId], references: [id])
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([taxpayerId, serviceType, status])
+  @@index([processId])
+  @@index([documentId])
+}
+
+model TaxCaseLink {
+  id         String    @id @default(cuid())
+  taxpayerId String
+  taxpayer   Taxpayer  @relation(fields: [taxpayerId], references: [id])
+  processId  String?
+  process    Process?  @relation(fields: [processId], references: [id])
+  documentId String?
+  document   Document? @relation(fields: [documentId], references: [id])
+  entityType String
+  entityId   String
+  purpose    String?
+  createdAt  DateTime  @default(now())
+
+  @@index([entityType, entityId])
+  @@index([processId])
+  @@index([documentId])
+}
+
+model DebtInstallmentSchedule {
+  id                String          @id @default(cuid())
+  debtInstallmentId String
+  debtInstallment   DebtInstallment @relation(fields: [debtInstallmentId], references: [id], onDelete: Cascade)
+  installmentNumber Int
+  dueDate           DateTime
+  valueDecimal      Decimal         @db.Decimal(18, 2)
+  status            String          @default("PENDENTE")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([debtInstallmentId, installmentNumber])
+  @@index([status, dueDate])
+}
+
+// Resultado interno, sem emissao ou validade de certidao oficial.
+model TaxCertificateEvaluation {
+  id            String          @id @default(cuid())
+  taxpayerId    String
+  taxpayer      Taxpayer        @relation(fields: [taxpayerId], references: [id])
+  certificateId String?         @unique
+  certificate   TaxCertificate? @relation(fields: [certificateId], references: [id])
+  result        String
+  pendingCount  Int             @default(0)
+  details       Json
+  evaluatedAt   DateTime        @default(now())
+  createdAt     DateTime        @default(now())
+
+  @@index([taxpayerId, evaluatedAt])
+}
+
 // --- Módulo 8: Financeiro e Contábil ---
 
 model FinancialYear {
   id        String   @id @default(cuid())
   year      Int      @unique
-  status    String   @default("Aberto") // Aberto, Encerrado
+  status    String   @default("Preparação") // Preparação, Aberto, Em Encerramento, Encerrado
   startDate DateTime
   endDate   DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  budgetAppropriations BudgetAppropriation[]
+  budgetAppropriations    BudgetAppropriation[]
+  revenues                Revenue[]
+  treasuryMovements       TreasuryMovement[]
+  accountingTransactions  AccountingTransaction[]
+  monthlyAccountingCloses MonthlyAccountingClose[]
+  annualAccountingCloses  AnnualAccountingClose[]
+  payableCarryForwards    PayableCarryForward[]
 }
 
 model BudgetUnit {
@@ -1365,9 +1593,10 @@ model ResourceSource {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  appropriations BudgetAppropriation[]
-  bankAccounts   BankAccount[]
-  revenues       Revenue[]
+  appropriations       BudgetAppropriation[]
+  bankAccounts         BankAccount[]
+  revenues             Revenue[]
+  taxFinancialMappings TaxFinancialMapping[]
 }
 
 model RevenueNature {
@@ -1377,7 +1606,8 @@ model RevenueNature {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  revenues Revenue[]
+  revenues             Revenue[]
+  taxFinancialMappings TaxFinancialMapping[]
 }
 
 model ExpenseNature {
@@ -1391,24 +1621,28 @@ model ExpenseNature {
 }
 
 model BudgetAppropriation {
-  id               String         @id @default(cuid())
-  code             String         @unique
-  financialYearId  String
-  financialYear    FinancialYear  @relation(fields: [financialYearId], references: [id])
-  budgetUnitId     String
-  budgetUnit       BudgetUnit     @relation(fields: [budgetUnitId], references: [id])
-  expenseNatureId  String
-  expenseNature    ExpenseNature  @relation(fields: [expenseNatureId], references: [id])
-  resourceSourceId String
-  resourceSource   ResourceSource @relation(fields: [resourceSourceId], references: [id])
-  initialValue     Float          @default(0)
-  updatedValue     Float          @default(0)
-  committedValue   Float          @default(0)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id                    String         @id @default(cuid())
+  code                  String         @unique
+  financialYearId       String
+  financialYear         FinancialYear  @relation(fields: [financialYearId], references: [id])
+  budgetUnitId          String
+  budgetUnit            BudgetUnit     @relation(fields: [budgetUnitId], references: [id])
+  expenseNatureId       String
+  expenseNature         ExpenseNature  @relation(fields: [expenseNatureId], references: [id])
+  resourceSourceId      String
+  resourceSource        ResourceSource @relation(fields: [resourceSourceId], references: [id])
+  initialValue          Float          @default(0)
+  initialValueDecimal   Decimal?       @db.Decimal(18, 2)
+  updatedValue          Float          @default(0)
+  updatedValueDecimal   Decimal?       @db.Decimal(18, 2)
+  committedValue        Float          @default(0)
+  committedValueDecimal Decimal?       @db.Decimal(18, 2)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
 
   reservations    BudgetReservation[]
   commitments     Commitment[]
+  movements       BudgetMovement[]
   expenses        Expense[]
   obrasServices   ObrasServico[]      @relation("ObrasServicoBudget")
   culturaProjects CulturaProjeto[]    @relation("CulturaProjectBudget")
@@ -1416,21 +1650,31 @@ model BudgetAppropriation {
 }
 
 model Revenue {
-  id               String         @id @default(cuid())
-  date             DateTime       @default(now())
+  id               String                      @id @default(cuid())
+  date             DateTime                    @default(now())
   value            Float
+  valueDecimal     Decimal?                    @db.Decimal(18, 2)
+  financialYearId  String?
+  financialYear    FinancialYear?              @relation(fields: [financialYearId], references: [id])
   revenueNatureId  String
-  revenueNature    RevenueNature  @relation(fields: [revenueNatureId], references: [id])
+  revenueNature    RevenueNature               @relation(fields: [revenueNatureId], references: [id])
   resourceSourceId String
-  resourceSource   ResourceSource @relation(fields: [resourceSourceId], references: [id])
+  resourceSource   ResourceSource              @relation(fields: [resourceSourceId], references: [id])
   bankAccountId    String?
-  bankAccount      BankAccount?   @relation(fields: [bankAccountId], references: [id])
+  bankAccount      BankAccount?                @relation(fields: [bankAccountId], references: [id])
   secretariatId    String?
-  secretariat      Secretariat?   @relation("SecretariatRevenues", fields: [secretariatId], references: [id])
-  status           String         @default("Arrecadada")
+  secretariat      Secretariat?                @relation("SecretariatRevenues", fields: [secretariatId], references: [id])
+  status           String                      @default("Arrecadada")
   history          String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  sourceModule     String                      @default("MANUAL")
+  sourceType       String                      @default("REVENUE")
+  sourceId         String?
+  eventType        String                      @default("REVENUE_CONFIRMED")
+  idempotencyKey   String?                     @unique
+  treasuryMovement TreasuryMovement?
+  taxIntegration   TaxRevenueIntegrationEvent?
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @updatedAt
 }
 
 model Expense {
@@ -1438,17 +1682,25 @@ model Expense {
   date            DateTime            @default(now())
   description     String
   value           Float
+  valueDecimal    Decimal?            @db.Decimal(18, 2)
   appropriationId String
   appropriation   BudgetAppropriation @relation(fields: [appropriationId], references: [id])
   secretariatId   String
   secretariat     Secretariat         @relation("SecretariatExpenses", fields: [secretariatId], references: [id])
   status          String              @default("Solicitada") // Solicitada, Reservada, Empenhada
+  sourceModule    String              @default("MANUAL")
+  sourceType      String              @default("EXPENSE_REQUEST")
+  sourceId        String?
+  eventType       String              @default("EXPENSE_REQUEST")
+  idempotencyKey  String?             @unique
 
   socialProgramId String?
   socialProgram   SocialProgram? @relation(fields: [socialProgramId], references: [id])
 
   socialBenefitId String?
   socialBenefit   SocialBenefit? @relation(fields: [socialBenefitId], references: [id])
+
+  reservations BudgetReservation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1459,12 +1711,52 @@ model BudgetReservation {
   number          String              @unique
   date            DateTime            @default(now())
   value           Float
+  valueDecimal    Decimal?            @db.Decimal(18, 2)
   appropriationId String
   appropriation   BudgetAppropriation @relation(fields: [appropriationId], references: [id])
+  expenseId       String?
+  expense         Expense?            @relation(fields: [expenseId], references: [id])
   justification   String?
   status          String              @default("Ativa") // Ativa, Cancelada, Empenhada
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
+
+  commitment Commitment?
+}
+
+model BudgetMovement {
+  id              String              @id @default(cuid())
+  date            DateTime            @default(now())
+  type            String
+  valueDecimal    Decimal             @db.Decimal(18, 2)
+  justification   String
+  appropriationId String
+  appropriation   BudgetAppropriation @relation(fields: [appropriationId], references: [id])
+  sourceModule    String              @default("MANUAL")
+  sourceType      String              @default("BUDGET_MOVEMENT")
+  sourceId        String?
+  eventType       String              @default("BUDGET_MOVEMENT")
+  idempotencyKey  String?             @unique
+  createdAt       DateTime            @default(now())
+}
+
+model Creditor {
+  id                  String               @id @default(cuid())
+  type                String               @default("Fornecedor")
+  name                String
+  document            String?              @unique
+  status              String               @default("Ativo")
+  personId            String?              @unique
+  person              Person?              @relation(fields: [personId], references: [id])
+  companyId           String?              @unique
+  company             Company?             @relation(fields: [companyId], references: [id])
+  supplierId          String?              @unique
+  supplier            Supplier?            @relation("SupplierCreditor", fields: [supplierId], references: [id])
+  commitments         Commitment[]
+  payments            Payment[]
+  withholdingPayables WithholdingPayable[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 }
 
 model Commitment {
@@ -1472,27 +1764,54 @@ model Commitment {
   number          String              @unique
   date            DateTime            @default(now())
   value           Float
+  valueDecimal    Decimal?            @db.Decimal(18, 2)
   type            String              @default("Ordinário") // Ordinário, Estimativo, Global
   history         String
   appropriationId String
   appropriation   BudgetAppropriation @relation(fields: [appropriationId], references: [id])
   supplierId      String
   supplier        Supplier            @relation("SupplierCommitments", fields: [supplierId], references: [id])
+  creditorId      String?
+  creditor        Creditor?           @relation(fields: [creditorId], references: [id])
+  processId       String?
+  process         Process?            @relation("FinancialCommitmentProcess", fields: [processId], references: [id])
+  contractId      String?
+  contract        Contract?           @relation("FinancialCommitmentContract", fields: [contractId], references: [id])
+  reservationId   String?             @unique
+  reservation     BudgetReservation?  @relation(fields: [reservationId], references: [id])
   status          String              @default("Emitido") // Emitido, Liquidado, Pago, Anulado
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
-  settlements     Settlement[]
-  payments        Payment[]
-  obrasServices   ObrasServico[]   @relation("ObrasServicoCommitment")
-  culturaProjects CulturaProjeto[] @relation("CulturaProjectCommitment")
+  settlements          Settlement[]
+  payments             Payment[]
+  movements            CommitmentMovement[]
+  obrasServices        ObrasServico[]        @relation("ObrasServicoCommitment")
+  culturaProjects      CulturaProjeto[]      @relation("CulturaProjectCommitment")
+  payableCarryForwards PayableCarryForward[]
+}
+
+model CommitmentMovement {
+  id            String     @id @default(cuid())
+  date          DateTime   @default(now())
+  type          String // Reforço, Anulação
+  valueDecimal  Decimal    @db.Decimal(18, 2)
+  justification String
+  commitmentId  String
+  commitment    Commitment @relation(fields: [commitmentId], references: [id])
+  createdAt     DateTime   @default(now())
+
+  @@index([commitmentId, date])
 }
 
 model Settlement {
   id           String     @id @default(cuid())
   date         DateTime   @default(now())
   value        Float
+  valueDecimal Decimal?   @db.Decimal(18, 2)
   documentRef  String? // NF, Recibo, etc
+  documentId   String?
+  document     Document?  @relation("SettlementDocument", fields: [documentId], references: [id])
   commitmentId String
   commitment   Commitment @relation(fields: [commitmentId], references: [id])
   authorId     String
@@ -1503,57 +1822,218 @@ model Settlement {
   updatedAt    DateTime   @updatedAt
 
   payments Payment[]
+
+  @@index([documentId])
 }
 
 model Payment {
-  id            String      @id @default(cuid())
-  orderNumber   String      @unique
-  date          DateTime    @default(now())
-  value         Float
-  commitmentId  String
-  commitment    Commitment  @relation(fields: [commitmentId], references: [id])
-  settlementId  String?
-  settlement    Settlement? @relation(fields: [settlementId], references: [id])
-  bankAccountId String
-  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
-  supplierId    String
-  supplier      Supplier    @relation("SupplierPayments", fields: [supplierId], references: [id])
-  paymentMethod String      @default("Transferência")
-  status        String      @default("Pago") // Pago, Cancelado
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id                     String      @id @default(cuid())
+  orderNumber            String      @unique
+  date                   DateTime    @default(now())
+  value                  Float
+  valueDecimal           Decimal?    @db.Decimal(18, 2)
+  commitmentId           String
+  commitment             Commitment  @relation(fields: [commitmentId], references: [id])
+  settlementId           String?
+  settlement             Settlement? @relation(fields: [settlementId], references: [id])
+  bankAccountId          String
+  bankAccount            BankAccount @relation(fields: [bankAccountId], references: [id])
+  supplierId             String
+  supplier               Supplier    @relation("SupplierPayments", fields: [supplierId], references: [id])
+  creditorId             String?
+  creditor               Creditor?   @relation(fields: [creditorId], references: [id])
+  isExceptional          Boolean     @default(false)
+  exceptionJustification String?
+  netValueDecimal        Decimal?    @db.Decimal(18, 2)
+  paymentMethod          String      @default("Transferência")
+  status                 String      @default("Pago") // Pago, Cancelado
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+
+  retentions PaymentRetention[]
+}
+
+model PaymentRetention {
+  id                  String              @id @default(cuid())
+  paymentId           String
+  payment             Payment             @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  type                String
+  description         String?
+  valueDecimal        Decimal             @db.Decimal(18, 2)
+  beneficiaryName     String
+  beneficiaryDocument String?
+  withholdingPayable  WithholdingPayable?
+  createdAt           DateTime            @default(now())
+
+  @@index([paymentId])
+}
+
+model WithholdingPayable {
+  id           String           @id @default(cuid())
+  retentionId  String           @unique
+  retention    PaymentRetention @relation(fields: [retentionId], references: [id], onDelete: Restrict)
+  creditorId   String?
+  creditor     Creditor?        @relation(fields: [creditorId], references: [id])
+  dueDate      DateTime?
+  valueDecimal Decimal          @db.Decimal(18, 2)
+  status       String           @default("Pendente") // Pendente, Recolhida, Cancelada
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([status, dueDate])
 }
 
 model BankAccount {
-  id               String          @id @default(cuid())
-  bankName         String
-  agency           String
-  accountNumber    String
-  accountType      String          @default("Movimento")
-  currentBalance   Float           @default(0)
-  resourceSourceId String?
-  resourceSource   ResourceSource? @relation(fields: [resourceSourceId], references: [id])
-  isActive         Boolean         @default(true)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  id                    String          @id @default(cuid())
+  bankName              String
+  agency                String
+  accountNumber         String
+  accountType           String          @default("Movimento")
+  currentBalance        Float           @default(0)
+  currentBalanceDecimal Decimal?        @db.Decimal(18, 2)
+  resourceSourceId      String?
+  resourceSource        ResourceSource? @relation(fields: [resourceSourceId], references: [id])
+  isActive              Boolean         @default(true)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
 
-  revenues        Revenue[]
-  payments        Payment[]
-  reconciliations BankReconciliation[]
+  revenues             Revenue[]
+  payments             Payment[]
+  reconciliations      BankReconciliation[]
+  treasuryMovements    TreasuryMovement[]
+  transferOrigins      TreasuryTransfer[]    @relation("TreasuryTransferOrigin")
+  transferDestinations TreasuryTransfer[]    @relation("TreasuryTransferDestination")
+  statementImports     BankStatementImport[]
+  taxPayments          TaxPayment[]
+  taxFinancialMappings TaxFinancialMapping[]
+}
+
+model TreasuryMovement {
+  id                  String              @id @default(cuid())
+  date                DateTime            @default(now())
+  type                String
+  direction           String
+  valueDecimal        Decimal             @db.Decimal(18, 2)
+  history             String?
+  status              String              @default("Confirmado")
+  bankAccountId       String
+  bankAccount         BankAccount         @relation(fields: [bankAccountId], references: [id])
+  financialYearId     String
+  financialYear       FinancialYear       @relation(fields: [financialYearId], references: [id])
+  revenueId           String?             @unique
+  revenue             Revenue?            @relation(fields: [revenueId], references: [id])
+  sourceModule        String              @default("MANUAL")
+  sourceType          String              @default("TREASURY_MOVEMENT")
+  sourceId            String?
+  eventType           String              @default("TREASURY_MOVEMENT")
+  idempotencyKey      String?             @unique
+  createdAt           DateTime            @default(now())
+  transferOrigin      TreasuryTransfer?   @relation("TreasuryTransferOriginMovement")
+  transferDestination TreasuryTransfer?   @relation("TreasuryTransferDestinationMovement")
+  statementItems      BankStatementItem[]
+
+  @@index([bankAccountId, date])
+  @@index([financialYearId, date])
+}
+
+model TreasuryTransfer {
+  id                       String           @id @default(cuid())
+  date                     DateTime         @default(now())
+  valueDecimal             Decimal          @db.Decimal(18, 2)
+  history                  String?
+  sourceBankAccountId      String
+  sourceBankAccount        BankAccount      @relation("TreasuryTransferOrigin", fields: [sourceBankAccountId], references: [id])
+  destinationBankAccountId String
+  destinationBankAccount   BankAccount      @relation("TreasuryTransferDestination", fields: [destinationBankAccountId], references: [id])
+  sourceMovementId         String           @unique
+  sourceMovement           TreasuryMovement @relation("TreasuryTransferOriginMovement", fields: [sourceMovementId], references: [id])
+  destinationMovementId    String           @unique
+  destinationMovement      TreasuryMovement @relation("TreasuryTransferDestinationMovement", fields: [destinationMovementId], references: [id])
+  idempotencyKey           String?          @unique
+  createdAt                DateTime         @default(now())
+}
+
+model BankStatementImport {
+  id            String              @id @default(cuid())
+  bankAccountId String
+  bankAccount   BankAccount         @relation(fields: [bankAccountId], references: [id])
+  format        String
+  fileName      String?
+  checksum      String
+  status        String              @default("Importado")
+  importedAt    DateTime            @default(now())
+  items         BankStatementItem[]
+
+  @@unique([bankAccountId, checksum])
+}
+
+model BankStatementItem {
+  id                 String              @id @default(cuid())
+  statementImportId  String
+  statementImport    BankStatementImport @relation(fields: [statementImportId], references: [id])
+  date               DateTime
+  description        String?
+  reference          String?
+  direction          String
+  valueDecimal       Decimal             @db.Decimal(18, 2)
+  status             String              @default("Pendente")
+  treasuryMovementId String?
+  treasuryMovement   TreasuryMovement?   @relation(fields: [treasuryMovementId], references: [id])
+
+  @@index([statementImportId, date])
+  @@index([treasuryMovementId])
+}
+
+model TaxFinancialMapping {
+  id                   String         @id @default(cuid())
+  taxId                String         @unique
+  tax                  Tax            @relation(fields: [taxId], references: [id])
+  revenueNatureId      String
+  revenueNature        RevenueNature  @relation(fields: [revenueNatureId], references: [id])
+  resourceSourceId     String
+  resourceSource       ResourceSource @relation(fields: [resourceSourceId], references: [id])
+  defaultBankAccountId String
+  defaultBankAccount   BankAccount    @relation(fields: [defaultBankAccountId], references: [id])
+  isActive             Boolean        @default(true)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+}
+
+model TaxDocumentSequence {
+  id           String   @id @default(cuid())
+  year         Int
+  documentType String
+  currentValue Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([year, documentType])
+}
+
+model TaxRevenueIntegrationEvent {
+  id             String     @id @default(cuid())
+  taxPaymentId   String     @unique
+  taxPayment     TaxPayment @relation(fields: [taxPaymentId], references: [id])
+  revenueId      String     @unique
+  revenue        Revenue    @relation(fields: [revenueId], references: [id])
+  idempotencyKey String     @unique
+  status         String     @default("Confirmado")
+  createdAt      DateTime   @default(now())
 }
 
 model BankReconciliation {
-  id            String      @id @default(cuid())
-  date          DateTime    @default(now())
-  periodStart   DateTime
-  periodEnd     DateTime
-  bankAccountId String
-  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
-  systemBalance Float
-  bankBalance   Float
-  status        String      @default("Pendente") // Pendente, Conciliado, Divergente
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id                   String      @id @default(cuid())
+  date                 DateTime    @default(now())
+  periodStart          DateTime
+  periodEnd            DateTime
+  bankAccountId        String
+  bankAccount          BankAccount @relation(fields: [bankAccountId], references: [id])
+  systemBalance        Float
+  systemBalanceDecimal Decimal?    @db.Decimal(18, 2)
+  bankBalance          Float
+  bankBalanceDecimal   Decimal?    @db.Decimal(18, 2)
+  status               String      @default("Pendente") // Pendente, Conciliado, Divergente
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 }
 
 model AccountingPlan {
@@ -1564,21 +2044,133 @@ model AccountingPlan {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  entries AccountingEntry[]
+  entries            AccountingEntry[]
+  debitPostingRules  AccountingPostingRule[] @relation("PostingRuleDebitAccount")
+  creditPostingRules AccountingPostingRule[] @relation("PostingRuleCreditAccount")
 }
 
 model AccountingEntry {
-  id        String         @id @default(cuid())
-  date      DateTime       @default(now())
-  value     Float
-  type      String // Débito, Crédito
-  history   String
-  accountId String
-  account   AccountingPlan @relation(fields: [accountId], references: [id])
-  authorId  String
-  author    Employee       @relation("AccountingEntryAuthor", fields: [authorId], references: [id])
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  id            String                 @id @default(cuid())
+  date          DateTime               @default(now())
+  value         Float
+  valueDecimal  Decimal?               @db.Decimal(18, 2)
+  type          String // Débito, Crédito
+  history       String
+  accountId     String
+  account       AccountingPlan         @relation(fields: [accountId], references: [id])
+  authorId      String
+  author        Employee               @relation("AccountingEntryAuthor", fields: [authorId], references: [id])
+  transactionId String?
+  transaction   AccountingTransaction? @relation(fields: [transactionId], references: [id])
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  @@index([transactionId, accountId])
+}
+
+model AccountingTransaction {
+  id               String                 @id @default(cuid())
+  financialYearId  String
+  financialYear    FinancialYear          @relation(fields: [financialYearId], references: [id])
+  date             DateTime
+  history          String
+  status           String                 @default("RASCUNHO")
+  sourceModule     String                 @default("MANUAL")
+  sourceType       String                 @default("ACCOUNTING_TRANSACTION")
+  sourceId         String?
+  eventType        String                 @default("MANUAL_POSTING")
+  idempotencyKey   String?                @unique
+  authorUsuarioId  String
+  authorUsuario    Usuario                @relation("AccountingTransactionUsuario", fields: [authorUsuarioId], references: [id])
+  authorEmployeeId String?
+  authorEmployee   Employee?              @relation("AccountingTransactionEmployee", fields: [authorEmployeeId], references: [id])
+  postedAt         DateTime?
+  reversalOfId     String?                @unique
+  reversalOf       AccountingTransaction? @relation("AccountingReversal", fields: [reversalOfId], references: [id])
+  reversedBy       AccountingTransaction? @relation("AccountingReversal")
+  entries          AccountingEntry[]
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  @@index([financialYearId, date, status])
+  @@index([sourceModule, sourceType, sourceId])
+}
+
+model AccountingEventCatalog {
+  id          String                  @id @default(cuid())
+  code        String                  @unique
+  name        String
+  description String?
+  isActive    Boolean                 @default(true)
+  rules       AccountingPostingRule[]
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+}
+
+model AccountingPostingRule {
+  id              String                 @id @default(cuid())
+  eventId         String
+  event           AccountingEventCatalog @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  debitAccountId  String
+  debitAccount    AccountingPlan         @relation("PostingRuleDebitAccount", fields: [debitAccountId], references: [id])
+  creditAccountId String
+  creditAccount   AccountingPlan         @relation("PostingRuleCreditAccount", fields: [creditAccountId], references: [id])
+  description     String?
+  isActive        Boolean                @default(true)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@unique([eventId, debitAccountId, creditAccountId])
+}
+
+model MonthlyAccountingClose {
+  id                 String        @id @default(cuid())
+  financialYearId    String
+  financialYear      FinancialYear @relation(fields: [financialYearId], references: [id])
+  competence         DateTime
+  status             String        @default("ABERTO")
+  pendingSummary     Json?
+  closedByUsuarioId  String?
+  closedByUsuario    Usuario?      @relation("MonthlyCloseUsuario", fields: [closedByUsuarioId], references: [id])
+  closedByEmployeeId String?
+  closedByEmployee   Employee?     @relation("MonthlyCloseEmployee", fields: [closedByEmployeeId], references: [id])
+  closedAt           DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@unique([financialYearId, competence])
+}
+
+model AnnualAccountingClose {
+  id                 String        @id @default(cuid())
+  financialYearId    String        @unique
+  financialYear      FinancialYear @relation(fields: [financialYearId], references: [id])
+  status             String        @default("EM_PREPARACAO")
+  pendingSummary     Json?
+  closedByUsuarioId  String?
+  closedByUsuario    Usuario?      @relation("AnnualCloseUsuario", fields: [closedByUsuarioId], references: [id])
+  closedByEmployeeId String?
+  closedByEmployee   Employee?     @relation("AnnualCloseEmployee", fields: [closedByEmployeeId], references: [id])
+  closedAt           DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+}
+
+model PayableCarryForward {
+  id              String        @id @default(cuid())
+  financialYearId String
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id])
+  commitmentId    String
+  commitment      Commitment    @relation(fields: [commitmentId], references: [id])
+  valueDecimal    Decimal       @db.Decimal(18, 2)
+  type            String
+  status          String        @default("PENDENTE")
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([financialYearId, commitmentId])
+  @@index([status])
 }
 
 // --- Módulo 9: Compras e Contratos ---
@@ -1808,6 +2400,7 @@ model Contract {
 
   amendments      ContractAmendment[]
   culturaProjects CulturaProjeto[]    @relation("CulturaProjectContract")
+  commitments     Commitment[]        @relation("FinancialCommitmentContract")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -4136,12 +4729,49 @@ model Usuario {
   employeeId String?   @unique
   employee   Employee? @relation(fields: [employeeId], references: [id])
 
-  permissoesModulo   UsuarioModulo[]
-  documentSignatures DocumentSignature[] @relation("DocumentSignatureUsuario")
-  protocolNotifications ProtocolNotification[]
+  permissoesModulo        UsuarioModulo[]
+  documentSignatures      DocumentSignature[]      @relation("DocumentSignatureUsuario")
+  protocolNotifications   ProtocolNotification[]
+  financialAuditLogs      FinancialAuditLog[]      @relation("FinancialAuditUsuario")
+  taxAuditLogs            TaxAuditLog[]            @relation("TaxAuditUsuario")
+  accountingTransactions  AccountingTransaction[]  @relation("AccountingTransactionUsuario")
+  monthlyAccountingCloses MonthlyAccountingClose[] @relation("MonthlyCloseUsuario")
+  annualAccountingCloses  AnnualAccountingClose[]  @relation("AnnualCloseUsuario")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model FinancialAuditLog {
+  id               String    @id @default(cuid())
+  action           String
+  entityType       String
+  entityId         String
+  financialYearId  String?
+  payload          Json?
+  authorUsuarioId  String
+  authorUsuario    Usuario   @relation("FinancialAuditUsuario", fields: [authorUsuarioId], references: [id])
+  authorEmployeeId String?
+  authorEmployee   Employee? @relation("FinancialAuditEmployee", fields: [authorEmployeeId], references: [id])
+  createdAt        DateTime  @default(now())
+
+  @@index([entityType, entityId])
+  @@index([financialYearId, createdAt])
+}
+
+model TaxAuditLog {
+  id               String    @id @default(cuid())
+  action           String
+  entityType       String
+  entityId         String
+  payload          Json?
+  authorUsuarioId  String
+  authorUsuario    Usuario   @relation("TaxAuditUsuario", fields: [authorUsuarioId], references: [id])
+  authorEmployeeId String?
+  authorEmployee   Employee? @relation("TaxAuditEmployee", fields: [authorEmployeeId], references: [id])
+  createdAt        DateTime  @default(now())
+
+  @@index([entityType, entityId])
 }
 
 model UsuarioModulo {

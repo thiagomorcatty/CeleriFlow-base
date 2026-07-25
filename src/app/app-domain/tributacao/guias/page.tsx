@@ -12,15 +12,26 @@ export default async function GuiasPage() {
           taxpayer: { include: { person: true, company: true } },
           tax: true
         }
-      }
+      },
+      payments: { where: { status: "Confirmado" }, select: { amountPaidDecimal: true } },
     },
     orderBy: { createdAt: 'desc' },
     take: 30
   });
 
+  const displayGuides = guias.map(({ totalValueDecimal, payments, ...guide }) => {
+    const totalValue = Number(totalValueDecimal ?? guide.totalValue);
+    const paidValue = payments.reduce((total, payment) => total + Number(payment.amountPaidDecimal ?? 0), 0);
+    return {
+    ...guide,
+      totalValue,
+      outstandingValue: totalValue - paidValue,
+    };
+  });
+
   return (
     <div className="max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-      <GuiasClient guias={guias as any} />
+      <GuiasClient guias={displayGuides as any} />
     </div>
   );
 }

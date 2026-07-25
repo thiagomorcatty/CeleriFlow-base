@@ -13,11 +13,13 @@ import {
   ArrowLeft,
   Menu,
   X
+  , BookOpenCheck
 } from "lucide-react";
 
 const sidebarNavItems = [
   { title: "Painel Financeiro", href: "/financeiro", icon: LayoutDashboard },
   { title: "Orçamento e Plano", href: "/financeiro/orcamento", icon: Scale },
+  { title: "Cadastros Orçamentários", href: "/financeiro/orcamento/cadastros", icon: FileText },
   { title: "Tesouraria (Contas)", href: "/financeiro/contas-bancarias", icon: Landmark },
   { title: "Gestão de Empenhos", href: "/financeiro/empenhos", icon: FileText },
   { title: "Liquidações", href: "/financeiro/liquidacoes", icon: Receipt },

@@ -2,6 +2,7 @@
 
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
 
 async function getTenantPrisma() {
   return (await getTenantContextForModule("TRIBUTACAO")).prisma;
@@ -18,12 +19,14 @@ export async function createInvoice(data: {
   const result = await prisma.invoice.create({
     data: {
       serviceValue: data.serviceValue,
-      issValue: data.serviceValue * 0.05, // Exemplo de cálculo 5%
+      serviceValueDecimal: data.serviceValue,
+      issValue: 0,
+      issValueDecimal: 0,
       competence: data.competence,
       providerId: data.providerId,
       takerId: data.takerId || undefined,
-      verificationCode: data.verificationCode || `VER-${Math.floor(100000 + Math.random() * 900000)}`,
-      status: "Emitida"
+      verificationCode: data.verificationCode || `INTERNO-${randomUUID()}`,
+      status: "Rascunho Interno"
     }
   });
 

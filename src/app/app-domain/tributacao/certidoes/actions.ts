@@ -2,6 +2,7 @@
 
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
 
 async function getTenantPrisma() {
   return (await getTenantContextForModule("TRIBUTACAO")).prisma;
@@ -18,8 +19,8 @@ export async function createCertificate(data: {
       certificateType: data.certificateType,
       taxpayerId: data.taxpayerId,
       validUntil: new Date(data.validUntil),
-      authCode: Math.random().toString(36).substring(2, 10).toUpperCase() + "-" + Math.random().toString(36).substring(2, 6).toUpperCase(),
-      status: "Ativa"
+      authCode: `INTERNO-${randomUUID()}`,
+      status: "Rascunho Interno"
     }
   });
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { Wallet, Plus, Search, Ban, CheckCircle, RefreshCcw } from "lucide-react";
+import { Wallet, Plus, Search, Ban, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,8 +26,12 @@ type Payment = {
   orderNumber: string;
   date: Date;
   value: number;
+  netValue: number;
+  retentionValue: number;
   paymentMethod: string;
   status: string;
+  isExceptional: boolean;
+  settlement: { id: string; documentRef: string | null } | null;
   commitment: {
     id: string;
     number: string;
@@ -48,11 +52,13 @@ type Payment = {
 export default function PagamentosClient({
   payments,
   commitments,
+  settlements,
   bankAccounts,
   suppliers
 }: {
   payments: Payment[];
   commitments: any[];
+  settlements: any[];
   bankAccounts: any[];
   suppliers: any[];
 }) {
@@ -71,9 +77,16 @@ export default function PagamentosClient({
     date: new Date().toISOString().substring(0, 10),
     value: 0,
     commitmentId: "",
+    settlementId: "",
     bankAccountId: "",
     supplierId: "",
-    paymentMethod: "Transferência"
+    paymentMethod: "Transferência",
+    isExceptional: false,
+    exceptionJustification: "",
+    retentionType: "",
+    retentionValue: 0,
+    retentionBeneficiary: "",
+    retentionDueDate: "",
   });
 
   const filteredPayments = payments.filter(p => {
@@ -98,9 +111,16 @@ export default function PagamentosClient({
       date: new Date().toISOString().substring(0, 10),
       value: 0,
       commitmentId: "",
+      settlementId: "",
       bankAccountId: "",
       supplierId: "",
-      paymentMethod: "Transferência"
+      paymentMethod: "Transferência",
+      isExceptional: false,
+      exceptionJustification: "",
+      retentionType: "",
+      retentionValue: 0,
+      retentionBeneficiary: "",
+      retentionDueDate: "",
     });
     setIsModalOpen(true);
   };
@@ -111,14 +131,22 @@ export default function PagamentosClient({
     try {
       const dataToSubmit = {
         ...formData,
-        date: new Date(formData.date)
+        date: new Date(formData.date),
+        settlementId: formData.settlementId || undefined,
+        retentions: formData.retentionValue > 0 ? [{
+          type: formData.retentionType,
+          value: formData.retentionValue,
+          beneficiaryName: formData.retentionBeneficiary,
+          dueDate: formData.retentionDueDate ? new Date(formData.retentionDueDate) : undefined,
+        }] : undefined,
       };
       
-      await createPayment(dataToSubmit);
+      const result = await createPayment(dataToSubmit);
+      if (result.error) throw new Error(result.error);
       setIsModalOpen(false);
     } catch (error) {
       console.error("Error creating payment:", error);
-      alert("Ocorreu um erro ao salvar o pagamento.");
+      alert(error instanceof Error ? error.message : "Ocorreu um erro ao salvar o pagamento.");
     } finally {
       setIsSubmitting(false);
     }
@@ -127,10 +155,12 @@ export default function PagamentosClient({
   const handleChangeStatus = async (id: string, newStatus: string) => {
     if (newStatus === "Cancelada") {
       if (window.confirm('Deseja realmente cancelar este pagamento? Esta ação não pode ser desfeita.')) {
-        await cancelPayment(id);
+        const result = await cancelPayment(id);
+        if (result.error) alert(result.error);
       }
     } else {
-      await updatePaymentStatus(id, newStatus);
+      const result = await updatePaymentStatus(id, newStatus);
+      if (result.error) alert(result.error);
     }
   };
 
@@ -230,7 +260,7 @@ export default function PagamentosClient({
                 <TableHead>Empenho Ref.</TableHead>
                 <TableHead>Conta Bancária</TableHead>
                 <TableHead>Forma Pgto.</TableHead>
-                <TableHead>Valor (R$)</TableHead>
+                <TableHead>Bruto / Líquido (R$)</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -260,6 +290,8 @@ export default function PagamentosClient({
                     <TableCell>{payment.paymentMethod}</TableCell>
                     <TableCell>
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payment.value)}
+                      {(payment.retentionValue > 0 || payment.netValue !== payment.value) && <span className="block text-xs text-muted-foreground">Líquido: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payment.netValue)}{payment.retentionValue > 0 ? ` | Retido: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payment.retentionValue)}` : ''}</span>}
+                      {payment.isExceptional && <span className="block text-xs text-amber-600">Exceção justificada</span>}
                     </TableCell>
                     <TableCell>
                       <Badge variant={
@@ -277,12 +309,7 @@ export default function PagamentosClient({
                           <CheckCircle className="h-4 w-4 text-emerald-500" />
                         </Button>
                       )}
-                      {payment.status === 'Paga' && (
-                        <Button variant="ghost" size="icon" onClick={() => handleChangeStatus(payment.id, 'Emitida')} title="Reverter para Emitida">
-                          <RefreshCcw className="h-4 w-4 text-blue-500" />
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="icon" onClick={() => handleChangeStatus(payment.id, 'Cancelada')} title="Cancelar Pagamento" disabled={payment.status === 'Cancelada'}>
+                      <Button variant="ghost" size="icon" onClick={() => handleChangeStatus(payment.id, 'Cancelada')} title="Cancelar Pagamento" disabled={payment.status !== 'Emitida'}>
                         <Ban className="h-4 w-4 text-rose-500" />
                       </Button>
                     </TableCell>
@@ -346,7 +373,10 @@ export default function PagamentosClient({
 
             <div className="space-y-2">
               <Label htmlFor="commitmentId">Empenho de Referência</Label>
-              <Select value={formData.commitmentId} onValueChange={v => setFormData({...formData, commitmentId: v as string})}>
+              <Select value={formData.commitmentId} onValueChange={v => {
+                const commitment = commitments.find(c => c.id === v);
+                setFormData({...formData, commitmentId: v as string, settlementId: "", supplierId: commitment?.supplierId ?? formData.supplierId});
+              }}>
                 <SelectTrigger><SelectValue placeholder="Selecione o empenho" /></SelectTrigger>
                 <SelectContent>
                   {commitments.map(c => (
@@ -354,6 +384,45 @@ export default function PagamentosClient({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="settlementId">Liquidação de Referência</Label>
+              <Select value={formData.settlementId} onValueChange={v => setFormData({...formData, settlementId: v as string, isExceptional: false, exceptionJustification: ""})}>
+                <SelectTrigger><SelectValue placeholder="Selecione a liquidação" /></SelectTrigger>
+                <SelectContent>
+                  {settlements.filter(s => !formData.commitmentId || s.commitmentId === formData.commitmentId).map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.documentRef || "Liquidação"} - Saldo: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.availableToPay)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                <input type="checkbox" checked={formData.isExceptional} onChange={e => setFormData({...formData, isExceptional: e.target.checked, settlementId: e.target.checked ? "" : formData.settlementId})} />
+                Pagamento excepcional sem liquidação
+              </label>
+              {formData.isExceptional && <Input required placeholder="Justificativa obrigatória da exceção" value={formData.exceptionJustification} onChange={e => setFormData({...formData, exceptionJustification: e.target.value})} />}
+            </div>
+
+            <div className="rounded-md border p-3 space-y-3">
+              <p className="text-sm font-medium">Retenção (opcional)</p>
+              <div className="grid grid-cols-2 gap-4">
+                <Select value={formData.retentionType} onValueChange={v => setFormData({...formData, retentionType: v as string})}>
+                  <SelectTrigger><SelectValue placeholder="Tipo de retenção" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INSS">INSS</SelectItem>
+                    <SelectItem value="IRRF">IRRF</SelectItem>
+                    <SelectItem value="ISS">ISS</SelectItem>
+                    <SelectItem value="Consignação">Consignação</SelectItem>
+                    <SelectItem value="Glosa">Glosa</SelectItem>
+                    <SelectItem value="Retenção Contratual">Retenção contratual</SelectItem>
+                  </SelectContent>
+                </Select>
+                <MoneyInput value={formData.retentionValue} onChange={val => setFormData({...formData, retentionValue: val})} />
+              </div>
+              {formData.retentionValue > 0 && <div className="grid grid-cols-2 gap-4">
+                <Input required placeholder="Beneficiário do recolhimento" value={formData.retentionBeneficiary} onChange={e => setFormData({...formData, retentionBeneficiary: e.target.value})} />
+                <Input type="date" value={formData.retentionDueDate} onChange={e => setFormData({...formData, retentionDueDate: e.target.value})} />
+              </div>}
             </div>
             
             <div className="space-y-2">

@@ -15,7 +15,9 @@ export default async function LiquidacoesPage() {
           }
         }
       },
-      author: true
+      author: true,
+      document: { select: { id: true, title: true } },
+      payments: { where: { status: { in: ["Emitida", "Paga"] } }, select: { valueDecimal: true, value: true } },
     },
     orderBy: {
       date: 'desc'
@@ -25,7 +27,7 @@ export default async function LiquidacoesPage() {
 
   const commitments = await prisma.commitment.findMany({
     where: {
-      status: "Emitido"
+      status: { in: ["Emitido", "Liquidado", "Pago"] }
     },
     include: {
       supplier: {
@@ -33,7 +35,9 @@ export default async function LiquidacoesPage() {
           person: true,
           company: true
         }
-      }
+      },
+      movements: { select: { type: true, valueDecimal: true } },
+      settlements: { where: { status: "Liquidado" }, select: { valueDecimal: true, value: true } },
     }
   })
 
@@ -46,5 +50,25 @@ export default async function LiquidacoesPage() {
     }
   })
 
-  return <LiquidacoesClient settlements={settlements} commitments={commitments} employees={employees} />
+  const documents = await prisma.document.findMany({
+    where: { status: "Válido", documentType: { not: "Modelo" } },
+    select: { id: true, title: true, documentType: true },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
+
+  const displaySettlements = settlements.map(({ valueDecimal, payments, ...settlement }) => ({
+    ...settlement,
+    value: Number(valueDecimal ?? settlement.value),
+    paidValue: payments.reduce((total, payment) => total + Number(payment.valueDecimal ?? payment.value), 0),
+  }))
+
+  const displayCommitments = commitments.map(({ valueDecimal, movements, settlements, ...commitment }) => {
+    const originalValue = Number(valueDecimal ?? commitment.value);
+    const value = movements.reduce((total, movement) => total + (movement.type === "Reforço" ? Number(movement.valueDecimal) : -Number(movement.valueDecimal)), originalValue);
+    const settledValue = settlements.reduce((total, settlement) => total + Number(settlement.valueDecimal ?? settlement.value), 0);
+    return { ...commitment, value, settledValue, availableToSettle: value - settledValue };
+  })
+
+  return <LiquidacoesClient settlements={displaySettlements} commitments={displayCommitments} employees={employees} documents={documents} />
 }

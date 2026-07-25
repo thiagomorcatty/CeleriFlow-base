@@ -81,7 +81,7 @@ export default function ContasBancariasClient({
       agency: account.agency,
       accountNumber: account.accountNumber,
       accountType: account.accountType,
-      currentBalance: account.currentBalance,
+      currentBalance: 0,
       resourceSourceId: account.resourceSourceId || "",
       isActive: account.isActive
     });
@@ -203,7 +203,7 @@ export default function ContasBancariasClient({
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar Conta Bancária" : "Nova Conta Bancária"}</DialogTitle>
-            <DialogDescription>Preencha os dados da conta bancária. O saldo inicial pode ser informado.</DialogDescription>
+            <DialogDescription>O saldo é derivado dos movimentos. O saldo de abertura só pode ser informado na inclusão e fica auditado.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -232,10 +232,10 @@ export default function ContasBancariasClient({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              {!editingId && <div className="space-y-2">
                 <Label htmlFor="currentBalance">Saldo Atual (R$)</Label>
                 <MoneyInput id="currentBalance" required value={formData.currentBalance} onChange={val => setFormData({...formData, currentBalance: val})} />
-              </div>
+              </div>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="resourceSourceId">Fonte de Recurso (Opcional)</Label>

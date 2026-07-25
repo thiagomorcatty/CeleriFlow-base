@@ -1,10 +1,13 @@
 "use server";
 
+import { FinanceError, cancelCommitment as cancelOfficialCommitment, createCommitment as createOfficialCommitment } from "@/lib/financeiro";
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
-async function getTenantPrisma() {
-  return (await getTenantContextForModule("FINANCEIRO")).prisma;
+type ActionResult = { error?: string };
+
+function message(error: unknown) {
+  return error instanceof FinanceError ? error.message : "Não foi possível concluir o empenho.";
 }
 
 export async function createCommitment(data: {
@@ -15,26 +18,23 @@ export async function createCommitment(data: {
   history: string;
   appropriationId: string;
   supplierId: string;
-}) {
-  const prisma = await getTenantPrisma();
-  const commitment = await prisma.commitment.create({
-    data: {
-      number: data.number,
-      date: data.date,
-      value: data.value,
-      type: data.type,
-      history: data.history,
-      appropriationId: data.appropriationId,
-      supplierId: data.supplierId,
-      status: "Emitido"
-    }
-  });
-
-  revalidatePath("/financeiro/empenhos");
-  return commitment;
+  reservationId: string;
+  processId?: string;
+  contractId?: string;
+}): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModule("FINANCEIRO");
+    await createOfficialCommitment(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, data);
+    revalidatePath("/financeiro/empenhos");
+    revalidatePath("/financeiro/orcamento");
+    return {};
+  } catch (error) {
+    return { error: message(error) };
+  }
 }
 
-export async function updateCommitment(id: string, data: {
+// Financial values are corrected through cancellation and a new official record.
+export async function updateCommitment(_id: string, _data: {
   number?: string;
   date?: Date;
   value?: number;
@@ -42,32 +42,20 @@ export async function updateCommitment(id: string, data: {
   history?: string;
   appropriationId?: string;
   supplierId?: string;
-}) {
-  const prisma = await getTenantPrisma();
-  const commitment = await prisma.commitment.update({
-    where: { id },
-    data: {
-      number: data.number,
-      date: data.date,
-      value: data.value,
-      type: data.type,
-      history: data.history,
-      appropriationId: data.appropriationId,
-      supplierId: data.supplierId,
-    }
-  });
-
-  revalidatePath("/financeiro/empenhos");
-  return commitment;
+  processId?: string;
+  contractId?: string;
+}): Promise<ActionResult> {
+  return { error: "Empenhos não podem ser editados. Anule o registro e emita um novo empenho." };
 }
 
-export async function cancelCommitment(id: string) {
-  const prisma = await getTenantPrisma();
-  const commitment = await prisma.commitment.update({
-    where: { id },
-    data: { status: "Anulado" }
-  });
-
-  revalidatePath("/financeiro/empenhos");
-  return commitment;
+export async function cancelCommitment(id: string): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModule("FINANCEIRO");
+    await cancelOfficialCommitment(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, id);
+    revalidatePath("/financeiro/empenhos");
+    revalidatePath("/financeiro/orcamento");
+    return {};
+  } catch (error) {
+    return { error: message(error) };
+  }
 }

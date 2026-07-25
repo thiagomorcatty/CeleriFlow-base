@@ -41,18 +41,19 @@ export async function getFinanceiroDashboardStats(month: string, year: string) {
     }
   }
 
-  const revenues = await prisma.revenue.aggregate({
-    _sum: { value: true },
-    where: dateFilter
-  })
+  const [revenues, expenses] = await Promise.all([
+    prisma.revenue.findMany({
+      select: { value: true, valueDecimal: true },
+      where: dateFilter,
+    }),
+    prisma.expense.findMany({
+      select: { value: true, valueDecimal: true },
+      where: dateFilter,
+    }),
+  ])
 
-  const expenses = await prisma.expense.aggregate({
-    _sum: { value: true },
-    where: dateFilter
-  })
-
-  const totalReceita = revenues._sum.value || 0
-  const totalDespesa = expenses._sum.value || 0
+  const totalReceita = revenues.reduce((total, revenue) => total + Number(revenue.valueDecimal ?? revenue.value), 0)
+  const totalDespesa = expenses.reduce((total, expense) => total + Number(expense.valueDecimal ?? expense.value), 0)
   const resultadoOperacional = totalReceita - totalDespesa
 
   return {

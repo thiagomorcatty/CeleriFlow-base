@@ -1,10 +1,11 @@
 "use server";
 
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { createBankAccountWithOpeningBalance, updateBankAccountDetails } from "@/lib/financeiro";
 import { revalidatePath } from "next/cache";
 
 async function getTenantPrisma() {
-  return (await getTenantContextForModule("FINANCEIRO")).prisma;
+  return getTenantContextForModule("FINANCEIRO");
 }
 
 export async function createBankAccount(data: {
@@ -16,17 +17,10 @@ export async function createBankAccount(data: {
   resourceSourceId?: string;
   isActive: boolean;
 }) {
-  const prisma = await getTenantPrisma();
-  const account = await prisma.bankAccount.create({
-    data: {
-      bankName: data.bankName,
-      agency: data.agency,
-      accountNumber: data.accountNumber,
-      accountType: data.accountType,
-      currentBalance: data.currentBalance,
-      resourceSourceId: data.resourceSourceId || undefined,
-      isActive: data.isActive
-    }
+  const context = await getTenantPrisma();
+  const account = await createBankAccountWithOpeningBalance(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, {
+    ...data,
+    openingBalance: data.currentBalance,
   });
 
   revalidatePath("/financeiro/contas-bancarias");
@@ -42,30 +36,16 @@ export async function updateBankAccount(id: string, data: {
   resourceSourceId?: string;
   isActive?: boolean;
 }) {
-  const prisma = await getTenantPrisma();
-  const account = await prisma.bankAccount.update({
-    where: { id },
-    data: {
-      bankName: data.bankName,
-      agency: data.agency,
-      accountNumber: data.accountNumber,
-      accountType: data.accountType,
-      currentBalance: data.currentBalance,
-      resourceSourceId: data.resourceSourceId || undefined,
-      isActive: data.isActive
-    }
-  });
+  const context = await getTenantPrisma();
+  const account = await updateBankAccountDetails(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, id, data);
 
   revalidatePath("/financeiro/contas-bancarias");
   return account;
 }
 
 export async function toggleBankAccountStatus(id: string, isActive: boolean) {
-  const prisma = await getTenantPrisma();
-  const account = await prisma.bankAccount.update({
-    where: { id },
-    data: { isActive }
-  });
+  const context = await getTenantPrisma();
+  const account = await updateBankAccountDetails(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, id, { isActive });
 
   revalidatePath("/financeiro/contas-bancarias");
   return account;

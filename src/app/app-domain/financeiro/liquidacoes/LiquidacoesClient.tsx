@@ -26,8 +26,10 @@ type Settlement = {
   date: Date;
   value: number;
   documentRef: string | null;
+  document: { id: string; title: string } | null;
   notes: string | null;
   status: string;
+  paidValue: number;
   commitment: {
     id: string;
     number: string;
@@ -45,11 +47,13 @@ type Settlement = {
 export default function LiquidacoesClient({
   settlements,
   commitments,
-  employees
+  employees,
+  documents,
 }: {
   settlements: Settlement[];
   commitments: any[];
   employees: any[];
+  documents: { id: string; title: string; documentType: string }[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -64,6 +68,7 @@ export default function LiquidacoesClient({
     date: new Date().toISOString().substring(0, 10),
     value: 0,
     documentRef: "",
+    documentId: "",
     commitmentId: "",
     authorId: "",
     notes: ""
@@ -86,6 +91,7 @@ export default function LiquidacoesClient({
       date: new Date().toISOString().substring(0, 10),
       value: 0,
       documentRef: "",
+      documentId: "",
       commitmentId: "",
       authorId: "",
       notes: ""
@@ -99,6 +105,7 @@ export default function LiquidacoesClient({
       date: new Date(settlement.date).toISOString().substring(0, 10),
       value: settlement.value,
       documentRef: settlement.documentRef || "",
+      documentId: settlement.document?.id || "",
       commitmentId: settlement.commitment.id,
       authorId: settlement.author.id,
       notes: settlement.notes || ""
@@ -116,14 +123,16 @@ export default function LiquidacoesClient({
       };
       
       if (editingId) {
-        await updateSettlement(editingId, dataToSubmit);
+        const result = await updateSettlement(editingId, dataToSubmit);
+        if (result.error) throw new Error(result.error);
       } else {
-        await createSettlement(dataToSubmit);
+        const result = await createSettlement(dataToSubmit);
+        if (result.error) throw new Error(result.error);
       }
       setIsModalOpen(false);
     } catch (error) {
       console.error("Error saving settlement:", error);
-      alert("Ocorreu um erro ao salvar a liquidação.");
+      alert(error instanceof Error ? error.message : "Ocorreu um erro ao salvar a liquidação.");
     } finally {
       setIsSubmitting(false);
     }
@@ -131,7 +140,8 @@ export default function LiquidacoesClient({
 
   const handleCancelSettlement = async (id: string) => {
     if (window.confirm('Deseja realmente cancelar esta liquidação? Esta ação não pode ser desfeita.')) {
-      await cancelSettlement(id);
+      const result = await cancelSettlement(id);
+      if (result.error) alert(result.error);
     }
   };
 
@@ -233,10 +243,11 @@ export default function LiquidacoesClient({
                     <TableCell>
                       {settlement.commitment.supplier.company?.corporateName || settlement.commitment.supplier.person?.fullName || 'Não identificado'}
                     </TableCell>
-                    <TableCell>{settlement.documentRef || '-'}</TableCell>
+                      <TableCell>{settlement.document?.title || settlement.documentRef || '-'}</TableCell>
                     <TableCell>{settlement.author.name}</TableCell>
                     <TableCell>
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(settlement.value)}
+                      {settlement.paidValue > 0 && <span className="block text-xs text-muted-foreground">Pago: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(settlement.paidValue)}</span>}
                     </TableCell>
                     <TableCell>
                       <Badge variant={
@@ -248,9 +259,6 @@ export default function LiquidacoesClient({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(settlement)} title="Editar Liquidação" disabled={settlement.status === 'Cancelado'}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleCancelSettlement(settlement.id)} title="Cancelar Liquidação" disabled={settlement.status === 'Cancelado'}>
                         <Ban className="h-4 w-4 text-rose-500" />
                       </Button>
@@ -287,7 +295,7 @@ export default function LiquidacoesClient({
                 <SelectTrigger><SelectValue placeholder="Selecione o empenho" /></SelectTrigger>
                 <SelectContent>
                   {commitments.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.number} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.value)}</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>{c.number} - Saldo: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.availableToSettle)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -295,8 +303,19 @@ export default function LiquidacoesClient({
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
+                <Label htmlFor="documentId">Documento GED</Label>
+                <Select value={formData.documentId} onValueChange={v => setFormData({...formData, documentId: v as string})}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o documento GED" /></SelectTrigger>
+                  <SelectContent>
+                    {documents.map(document => (
+                      <SelectItem key={document.id} value={document.id}>{document.title} ({document.documentType})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="documentRef">Documento Ref. (NF, Recibo)</Label>
-                <Input id="documentRef" required value={formData.documentRef} onChange={e => setFormData({...formData, documentRef: e.target.value})} />
+                <Input id="documentRef" value={formData.documentRef} onChange={e => setFormData({...formData, documentRef: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="authorId">Responsável pelo Ateste</Label>

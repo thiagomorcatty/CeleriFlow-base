@@ -4,6 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { FileText } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/ui/MoneyInput";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cancelBudgetReservationAction, createBudgetMovementAction, createBudgetReservationAction, setFinancialYearStatusAction } from "./actions";
 
 type Appropriation = {
   id: string;
@@ -14,13 +22,42 @@ type Appropriation = {
   initialValue: number;
   updatedValue: number;
   committedValue: number;
+  reservedValue: number;
+  availableValue: number;
 };
 
 export default function OrcamentoClient({
-  appropriations
+  appropriations,
+  reservations,
+  financialYears,
 }: {
   appropriations: Appropriation[];
+  reservations: any[];
+  financialYears: any[];
 }) {
+  const [movement, setMovement] = useState({ appropriationId: "", type: "Suplementação", value: 0, justification: "" });
+  const [reservation, setReservation] = useState({ number: "", appropriationId: "", value: 0, justification: "" });
+  const [pending, setPending] = useState(false);
+  const submitMovement = async (event: React.FormEvent) => {
+    event.preventDefault(); setPending(true);
+    const result = await createBudgetMovementAction({ ...movement, date: new Date() }); setPending(false);
+    if (result.error) return alert(result.error);
+    setMovement({ appropriationId: "", type: "Suplementação", value: 0, justification: "" });
+  };
+  const submitReservation = async (event: React.FormEvent) => {
+    event.preventDefault(); setPending(true);
+    const result = await createBudgetReservationAction({ ...reservation, date: new Date() }); setPending(false);
+    if (result.error) return alert(result.error);
+    setReservation({ number: "", appropriationId: "", value: 0, justification: "" });
+  };
+  const cancelReservation = async (id: string) => {
+    const result = await cancelBudgetReservationAction(id);
+    if (result.error) alert(result.error);
+  };
+  const changeYearStatus = async (id: string, status: string) => {
+    const result = await setFinancialYearStatusAction(id, status);
+    if (result.error) alert(result.error);
+  };
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -28,6 +65,14 @@ export default function OrcamentoClient({
           <h2 className="text-3xl font-bold tracking-tight">Orçamento e Plano de Contas</h2>
           <p className="text-muted-foreground">Gestão de dotações orçamentárias</p>
         </div>
+        <Link href="/financeiro/orcamento/cadastros" className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm hover:bg-accent">Cadastros Orçamentários</Link>
+      </div>
+
+      <Card><CardHeader><CardTitle>Exercícios Financeiros</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{financialYears.map(year => <div key={year.id} className="flex items-center justify-between rounded border p-3"><span className="font-medium">{year.year}</span><Select value={year.status} onValueChange={status => status && changeYearStatus(year.id, status)}><SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Preparação">Preparação</SelectItem><SelectItem value="Aberto">Aberto</SelectItem><SelectItem value="Em Encerramento">Em Encerramento</SelectItem><SelectItem value="Encerrado">Encerrado</SelectItem></SelectContent></Select></div>)}</CardContent></Card>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Card><CardHeader><CardTitle>Movimento Orçamentário</CardTitle></CardHeader><CardContent><form onSubmit={submitMovement} className="grid gap-3 md:grid-cols-2"><Select value={movement.appropriationId} onValueChange={appropriationId => setMovement({ ...movement, appropriationId: appropriationId ?? "" })}><SelectTrigger><SelectValue placeholder="Dotação" /></SelectTrigger><SelectContent>{appropriations.map(app => <SelectItem key={app.id} value={app.id}>{app.code}</SelectItem>)}</SelectContent></Select><Select value={movement.type} onValueChange={type => setMovement({ ...movement, type: type ?? "Suplementação" })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Dotação Inicial">Dotação Inicial</SelectItem><SelectItem value="Crédito Adicional">Crédito Adicional</SelectItem><SelectItem value="Suplementação">Suplementação</SelectItem><SelectItem value="Remanejamento">Remanejamento</SelectItem><SelectItem value="Anulação">Anulação</SelectItem></SelectContent></Select><MoneyInput value={movement.value} onChange={value => setMovement({ ...movement, value })} /><Input required placeholder="Justificativa" value={movement.justification} onChange={event => setMovement({ ...movement, justification: event.target.value })} /><Button type="submit" disabled={pending}>Registrar movimento</Button></form></CardContent></Card>
+        <Card><CardHeader><CardTitle>Reserva Orçamentária</CardTitle></CardHeader><CardContent><form onSubmit={submitReservation} className="grid gap-3 md:grid-cols-2"><Input required placeholder="Número da reserva" value={reservation.number} onChange={event => setReservation({ ...reservation, number: event.target.value })} /><Select value={reservation.appropriationId} onValueChange={appropriationId => setReservation({ ...reservation, appropriationId: appropriationId ?? "" })}><SelectTrigger><SelectValue placeholder="Dotação" /></SelectTrigger><SelectContent>{appropriations.map(app => <SelectItem key={app.id} value={app.id}>{app.code} (saldo: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(app.availableValue)})</SelectItem>)}</SelectContent></Select><MoneyInput value={reservation.value} onChange={value => setReservation({ ...reservation, value })} /><Input placeholder="Justificativa" value={reservation.justification} onChange={event => setReservation({ ...reservation, justification: event.target.value })} /><Button type="submit" disabled={pending}>Criar reserva</Button></form></CardContent></Card>
       </div>
 
       <Card>
@@ -43,6 +88,7 @@ export default function OrcamentoClient({
                 <TableHead>Unidade Orçamentária</TableHead>
                 <TableHead>Fonte</TableHead>
                 <TableHead className="text-right">Valor Atualizado (R$)</TableHead>
+                <TableHead className="text-right">Reservado (R$)</TableHead>
                 <TableHead className="text-right">Valor Empenhado (R$)</TableHead>
                 <TableHead className="text-right">Saldo (R$)</TableHead>
               </TableRow>
@@ -50,7 +96,7 @@ export default function OrcamentoClient({
             <TableBody>
               {appropriations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground h-32">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground h-32">
                     <div className="flex flex-col items-center justify-center">
                       <FileText className="h-8 w-8 mb-2 opacity-20" />
                       Nenhuma dotação encontrada.
@@ -70,10 +116,13 @@ export default function OrcamentoClient({
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(app.updatedValue)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-amber-600">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(app.reservedValue)}
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-amber-600">
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(app.committedValue)}
                     </TableCell>
                     <TableCell className="text-right font-medium text-blue-600">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(app.updatedValue - app.committedValue)}
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(app.availableValue)}
                     </TableCell>
                   </TableRow>
                 ))
@@ -82,6 +131,8 @@ export default function OrcamentoClient({
           </Table>
         </CardContent>
       </Card>
+
+      <Card><CardHeader><CardTitle>Reservas recentes</CardTitle></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Número</TableHead><TableHead>Dotação</TableHead><TableHead>Valor</TableHead><TableHead>Status</TableHead><TableHead /></TableRow></TableHeader><TableBody>{reservations.map(reservation => <TableRow key={reservation.id}><TableCell>{reservation.number}</TableCell><TableCell>{reservation.appropriation.code}</TableCell><TableCell>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(reservation.value)}</TableCell><TableCell>{reservation.status}</TableCell><TableCell>{reservation.status === "Ativa" && <Button variant="outline" size="sm" onClick={() => cancelReservation(reservation.id)}>Cancelar</Button>}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
     </div>
   );
 }

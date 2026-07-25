@@ -7,6 +7,10 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "finance:decimal:reconcile": "node scripts/finance-decimal-reconcile.mjs",
+    "finance:decimal:backfill": "node scripts/finance-decimal-reconcile.mjs --backfill",
+    "finance:treasury:opening-backfill": "node scripts/finance-treasury-opening-backfill.mjs",
+    "finance:creditor:backfill": "node scripts/finance-creditor-backfill.mjs",
     "bootstrap:admin": "node scripts/bootstrap-admin.mjs",
     "reset:firebase-password": "node scripts/reset-firebase-password.mjs",
     "postinstall": "prisma generate"

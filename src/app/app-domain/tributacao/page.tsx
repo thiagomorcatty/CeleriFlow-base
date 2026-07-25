@@ -10,12 +10,11 @@ export default async function TributacaoDashboardPage() {
   const guidesCount = await prisma.taxGuide.count();
   const economyCount = await prisma.economicRegistration.count();
 
-  // Soma o valor total de guias pagas (exemplo de métrica)
-  const paidGuides = await prisma.taxGuide.aggregate({
-    where: { status: "Paga" },
-    _sum: { totalValue: true }
+  const paidPayments = await prisma.taxPayment.aggregate({
+    where: { status: "Confirmado" },
+    _sum: { amountPaidDecimal: true }
   });
-  const totalArrecadado = paidGuides._sum.totalValue || 0;
+  const totalArrecadado = Number(paidPayments._sum.amountPaidDecimal ?? 0);
 
   const stats = [
     { title: "Arrecadação do Mês", value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalArrecadado), icon: BarChart3, href: "/tributacao/guias", color: "text-emerald-600", bg: "bg-emerald-100" },
@@ -34,7 +33,7 @@ export default async function TributacaoDashboardPage() {
         <div className="flex gap-2">
           <Link href="/tributacao/guias" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-2">
             <PlusCircle className="w-4 h-4" />
-            Nova Guia Rápida
+            Consultar Guias
           </Link>
         </div>
       </div>

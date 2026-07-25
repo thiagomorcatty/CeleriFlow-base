@@ -16,6 +16,7 @@ import {
   FileText,
   FileBadge,
   ShieldAlert
+  , Scale
 } from "lucide-react";
 
 const sidebarNavItems = [
@@ -28,6 +29,7 @@ const sidebarNavItems = [
   { title: "Dívida Ativa", href: "/tributacao/divida", icon: Banknote },
   { title: "Certidões", href: "/tributacao/certidoes", icon: FileBadge },
   { title: "Fiscalização", href: "/tributacao/fiscalizacao", icon: ShieldAlert },
+  { title: "Operações Internas", href: "/tributacao/operacoes", icon: Scale },
 ];
 
 export default function TributacaoLayout({ children }: { children: React.ReactNode }) {

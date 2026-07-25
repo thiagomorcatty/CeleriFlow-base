@@ -46,11 +46,17 @@ type Commitment = {
 export default function EmpenhosClient({
   commitments,
   suppliers,
-  appropriations
+  appropriations,
+  reservations,
+  processes,
+  contracts,
 }: {
   commitments: Commitment[];
   suppliers: any[];
   appropriations: any[];
+  reservations: any[];
+  processes: any[];
+  contracts: any[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,7 +70,10 @@ export default function EmpenhosClient({
     type: "Ordinário",
     history: "",
     supplierId: "",
-    appropriationId: ""
+    appropriationId: "",
+    reservationId: "",
+    processId: "",
+    contractId: "",
   });
 
   const filteredCommitments = commitments.filter(c =>
@@ -82,7 +91,10 @@ export default function EmpenhosClient({
       type: "Ordinário",
       history: "",
       supplierId: "",
-      appropriationId: ""
+      appropriationId: "",
+      reservationId: "",
+      processId: "",
+      contractId: "",
     });
     setIsModalOpen(true);
   };
@@ -96,7 +108,10 @@ export default function EmpenhosClient({
       type: c.type,
       history: c.history,
       supplierId: c.supplierId,
-      appropriationId: c.appropriationId
+      appropriationId: c.appropriationId,
+      reservationId: "",
+      processId: "",
+      contractId: "",
     });
     setIsModalOpen(true);
   };
@@ -111,9 +126,11 @@ export default function EmpenhosClient({
       };
       
       if (editingId) {
-        await updateCommitment(editingId, dataToSubmit);
+        const result = await updateCommitment(editingId, dataToSubmit);
+        if (result.error) throw new Error(result.error);
       } else {
-        await createCommitment(dataToSubmit);
+        const result = await createCommitment(dataToSubmit);
+        if (result.error) throw new Error(result.error);
       }
       setIsModalOpen(false);
     } catch (error) {
@@ -126,7 +143,8 @@ export default function EmpenhosClient({
 
   const handleCancelCommitment = async (id: string) => {
     if (window.confirm('Deseja realmente anular este empenho? Esta ação não pode ser desfeita.')) {
-      await cancelCommitment(id);
+      const result = await cancelCommitment(id);
+      if (result.error) alert(result.error);
     }
   };
 
@@ -210,9 +228,6 @@ export default function EmpenhosClient({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(commitment)} title="Editar" disabled={commitment.status === 'Anulado'}>
-                        <Pencil className="h-4 w-4 text-amber-500" />
-                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleCancelCommitment(commitment.id)} title="Anular" disabled={commitment.status === 'Anulado'}>
                         <Ban className="h-4 w-4 text-rose-500" />
                       </Button>
@@ -229,7 +244,7 @@ export default function EmpenhosClient({
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar Empenho" : "Novo Empenho"}</DialogTitle>
-            <DialogDescription>Preencha os dados do empenho para reserva de dotação.</DialogDescription>
+            <DialogDescription>Todo empenho novo deve consumir uma reserva ativa de mesmo valor.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -271,6 +286,23 @@ export default function EmpenhosClient({
                 </SelectContent>
               </Select>
             </div>
+
+            {!editingId && (
+              <div className="space-y-2">
+                <Label htmlFor="reservationId">Reserva Orçamentária</Label>
+                <Select value={formData.reservationId} onValueChange={v => {
+                  const reservation = reservations.find(r => r.id === v);
+                  setFormData({ ...formData, reservationId: v as string, appropriationId: reservation?.appropriationId ?? formData.appropriationId, value: reservation?.value ?? formData.value });
+                }}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a reserva ativa" /></SelectTrigger>
+                  <SelectContent>
+                    {reservations.map(r => (
+                      <SelectItem key={r.id} value={r.id}>{r.number} - {r.appropriation.code} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(r.value)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             
             <div className="space-y-2">
               <Label htmlFor="supplierId">Fornecedor / Credor</Label>
@@ -289,6 +321,27 @@ export default function EmpenhosClient({
             <div className="space-y-2">
               <Label htmlFor="history">Histórico / Descrição</Label>
               <Input id="history" required value={formData.history} onChange={e => setFormData({...formData, history: e.target.value})} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="processId">Processo (opcional)</Label>
+                <Select value={formData.processId} onValueChange={v => setFormData({...formData, processId: v as string})}>
+                  <SelectTrigger><SelectValue placeholder="Sem processo" /></SelectTrigger>
+                  <SelectContent>
+                    {processes.map(process => <SelectItem key={process.id} value={process.id}>{process.protocolNumber}{process.description ? ` - ${process.description}` : ""}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contractId">Contrato (opcional)</Label>
+                <Select value={formData.contractId} onValueChange={v => setFormData({...formData, contractId: v as string})}>
+                  <SelectTrigger><SelectValue placeholder="Sem contrato" /></SelectTrigger>
+                  <SelectContent>
+                    {contracts.filter(contract => !formData.supplierId || contract.supplierId === formData.supplierId).map(contract => <SelectItem key={contract.id} value={contract.id}>{contract.number} - {contract.object}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <DialogFooter>

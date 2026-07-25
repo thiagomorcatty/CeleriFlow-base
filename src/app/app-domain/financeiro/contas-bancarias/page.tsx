@@ -1,4 +1,5 @@
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getBankAccountBalances } from "@/lib/financeiro";
 import ContasBancariasClient from "./ContasBancariasClient"
 
 export default async function ContasBancariasPage() {
@@ -16,5 +17,11 @@ export default async function ContasBancariasPage() {
     orderBy: { name: 'asc' }
   })
 
-  return <ContasBancariasClient accounts={accounts} resourceSources={resourceSources} />
+  const balances = await getBankAccountBalances(prisma, accounts.map((account) => account.id));
+  const displayAccounts = accounts.map(({ currentBalanceDecimal: _currentBalanceDecimal, ...account }) => ({
+    ...account,
+    currentBalance: Number(balances[account.id] ?? 0),
+  }))
+
+  return <ContasBancariasClient accounts={displayAccounts} resourceSources={resourceSources} />
 }

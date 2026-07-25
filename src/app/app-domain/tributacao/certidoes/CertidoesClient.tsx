@@ -63,7 +63,7 @@ export default function CertidoesClient({
       });
     } catch (err) {
       console.error(err);
-      alert("Erro ao emitir certidão.");
+      alert("Erro ao registrar rascunho interno.");
     }
   };
 
@@ -73,16 +73,16 @@ export default function CertidoesClient({
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <FileBadge className="w-6 h-6 text-sky-600" />
-            Certidões
+            Avaliações e Rascunhos de Certidão
           </h1>
-          <p className="text-slate-500 mt-1">Emissão e controle de Certidões Negativas de Débitos (CND).</p>
+          <p className="text-slate-500 mt-1">Registros internos sem validade jurídica ou emissão de certidão oficial.</p>
         </div>
         <button 
           onClick={() => setIsCreateModalOpen(true)}
           className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Emitir Certidão
+          Registrar rascunho
         </button>
       </div>
 
@@ -103,8 +103,8 @@ export default function CertidoesClient({
             <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
               <FileBadge className="text-slate-400 w-8 h-8" />
             </div>
-            <h3 className="text-lg font-bold text-slate-700">Nenhuma certidão emitida</h3>
-            <p className="text-slate-500 mt-1">As certidões geradas aparecerão aqui.</p>
+            <h3 className="text-lg font-bold text-slate-700">Nenhum rascunho registrado</h3>
+            <p className="text-slate-500 mt-1">Use Operações Internas para avaliar a situação fiscal.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -163,7 +163,7 @@ export default function CertidoesClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h2 className="text-lg font-bold text-slate-800">Emitir Certidão</h2>
+              <h2 className="text-lg font-bold text-slate-800">Registrar rascunho interno</h2>
               <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <XCircle className="w-5 h-5" />
               </button>
@@ -218,7 +218,7 @@ export default function CertidoesClient({
                   type="submit"
                   className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-medium transition-colors"
                 >
-                  Emitir
+                  Registrar
                 </button>
               </div>
             </form>

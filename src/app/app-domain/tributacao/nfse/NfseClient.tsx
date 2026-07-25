@@ -74,7 +74,7 @@ export default function NfseClient({
       });
     } catch (err) {
       console.error(err);
-      alert("Erro ao emitir NFS-e.");
+      alert("Erro ao registrar rascunho interno.");
     }
   };
 
@@ -84,16 +84,16 @@ export default function NfseClient({
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <FileText className="w-6 h-6 text-blue-600" />
-            Nota Fiscal Eletrônica (NFS-e)
+            Registros Internos de NFS-e
           </h1>
-          <p className="text-slate-500 mt-1">Controle de emissão e retenção do ISSQN.</p>
+          <p className="text-slate-500 mt-1">Rascunhos internos sem validade fiscal, emissão municipal ou cálculo de ISS.</p>
         </div>
         <button 
           onClick={() => setIsCreateModalOpen(true)}
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Emitir Avulsa
+          Registrar rascunho
         </button>
       </div>
 
@@ -114,8 +114,8 @@ export default function NfseClient({
             <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
               <FileText className="text-slate-400 w-8 h-8" />
             </div>
-            <h3 className="text-lg font-bold text-slate-700">Nenhuma NFS-e emitida</h3>
-            <p className="text-slate-500 mt-1">As notas fiscais de serviço emitidas no município aparecerão aqui.</p>
+            <h3 className="text-lg font-bold text-slate-700">Nenhum rascunho interno</h3>
+            <p className="text-slate-500 mt-1">A emissão fiscal depende de adapter municipal contratado e regras validadas.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -180,7 +180,7 @@ export default function NfseClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h2 className="text-lg font-bold text-slate-800">Emitir NFS-e Avulsa</h2>
+              <h2 className="text-lg font-bold text-slate-800">Registrar rascunho interno</h2>
               <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <XCircle className="w-5 h-5" />
               </button>
@@ -249,7 +249,7 @@ export default function NfseClient({
                   type="submit"
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
                 >
-                  Emitir
+                  Registrar
                 </button>
               </div>
             </form>
