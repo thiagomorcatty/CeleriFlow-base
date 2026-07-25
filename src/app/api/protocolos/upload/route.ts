@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AccessError, getCurrentTenantContext } from "@/lib/platform/tenant-context";
+import { AccessError } from "@/lib/platform/tenant-context";
+import { getProtocolContext } from "@/lib/protocols/access";
 import { uploadProcessFile } from "@/lib/platform/blob";
 
 export const runtime = "nodejs";
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    const context = await getCurrentTenantContext();
+    const context = await getProtocolContext("edit");
     if (!context.user.employeeId) {
       throw new Error("Seu usuario precisa estar vinculado a um servidor para anexar documentos.");
     }
@@ -59,10 +60,6 @@ export async function POST(request: NextRequest) {
           documentId: document.id,
           purpose: documentType,
           employeeId: employee.id,
-          // Mantidos durante a migracao dos anexos existentes.
-          title,
-          fileUrl: blob.url,
-          documentType,
         },
       });
       await tx.processEvent.create({

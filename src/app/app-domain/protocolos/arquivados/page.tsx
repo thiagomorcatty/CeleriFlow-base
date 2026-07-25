@@ -1,12 +1,14 @@
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getProtocolContext, protocolScope } from "@/lib/protocols/access";
 import ArquivadosClient from "./ArquivadosClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function ArquivadosPage() {
-  const { prisma } = await getTenantContextForModule("PROTOCOLOS");
+  const context = await getProtocolContext();
+  const { prisma } = context;
   const processos = await prisma.process.findMany({
     where: {
+      ...protocolScope(context),
       status: 'Arquivado'
     },
     include: {

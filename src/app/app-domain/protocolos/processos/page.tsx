@@ -1,14 +1,14 @@
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getProtocolContext, protocolScope } from "@/lib/protocols/access";
 import ProcessosClient from "./ProcessosClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProcessosPage() {
-  const { prisma, user } = await getTenantContextForModule("PROTOCOLOS");
-  const isAdmin = user.role.toLowerCase().includes("administrador");
-  const canViewSectorBox = isAdmin || Boolean(user.departmentId);
+  const context = await getProtocolContext();
+  const { prisma, user } = context;
+  const canViewSectorBox = context.protocolAccess.isAdmin || Boolean(user.departmentId);
   const processos = await prisma.process.findMany({
-    where: canViewSectorBox && !isAdmin ? { currentDepartmentId: user.departmentId! } : canViewSectorBox ? undefined : { id: "__sem-departamento__" },
+    where: canViewSectorBox ? protocolScope(context) : { id: "__sem-departamento__" },
     include: {
       processType: true,
       subject: true,
@@ -19,5 +19,5 @@ export default async function ProcessosPage() {
     take: 50
   });
 
-  return <ProcessosClient initialProcessos={processos} canReceive={Boolean(user.departmentId)} />;
+  return <ProcessosClient initialProcessos={processos} canReceive={context.protocolAccess.canEdit && Boolean(user.departmentId)} canCreate={context.protocolAccess.canEdit} />;
 }

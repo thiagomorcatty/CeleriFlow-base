@@ -1,16 +1,16 @@
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getProtocolContext } from "@/lib/protocols/access";
 import { createProtocol } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function NovoProtocoloPage() {
-  const { prisma } = await getTenantContextForModule("PROTOCOLOS");
+  const { prisma } = await getProtocolContext("edit");
   // Buscar os tipos de processo e pessoas para o formulário
   const tiposProcesso = await prisma.processType.findMany({
     where: { isActive: true },
-    include: { subjects: true }
+    include: { subjects: { where: { isActive: true } } }
   });
   
   const pessoas = await prisma.person.findMany({

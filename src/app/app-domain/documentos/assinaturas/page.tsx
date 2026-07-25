@@ -7,8 +7,11 @@ export const dynamic = "force-dynamic";
 export default async function AssinaturasPage() {
   const { prisma } = await getTenantContextForModule("DOCUMENTOS");
   const pendentes = await prisma.document.findMany({
-    where: { status: 'Pendente Assinatura' },
-    orderBy: { createdAt: 'asc' }
+    where: {
+      status: "Pendente Assinatura",
+      signatures: { none: { status: "SIGNED" } },
+    },
+    orderBy: { createdAt: "asc" },
   });
 
   return (
@@ -19,7 +22,7 @@ export default async function AssinaturasPage() {
             <FileSignature className="w-6 h-6 text-indigo-600" />
             Assinaturas Eletrônicas
           </h1>
-          <p className="text-slate-500 mt-1">Gerencie os documentos que aguardam sua assinatura.</p>
+          <p className="text-slate-500 mt-1">Registre uma manifestação interna vinculada a uma versão imutável do documento.</p>
         </div>
       </div>
 

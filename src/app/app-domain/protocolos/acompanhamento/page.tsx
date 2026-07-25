@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AlertTriangle, Clock3, Eye, FileSearch, Inbox, Timer } from "lucide-react";
 import type { Prisma } from "@prisma/client";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getProtocolContext, protocolScope } from "@/lib/protocols/access";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +29,11 @@ function deadlineState(expectedCompletionAt: Date | null) {
 }
 
 export default async function AcompanhamentoPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const { prisma, user } = await getTenantContextForModule("PROTOCOLOS");
+  const context = await getProtocolContext();
+  const { prisma, user } = context;
   const filters = await searchParams;
-  const isAdmin = user.role.toLowerCase().includes("administrador");
-  const scope: Prisma.ProcessWhereInput = isAdmin ? {} : user.departmentId ? { currentDepartmentId: user.departmentId } : { id: "__sem-departamento__" };
+  const isAdmin = context.protocolAccess.isAdmin;
+  const scope: Prisma.ProcessWhereInput = protocolScope(context);
   const where: Prisma.ProcessWhereInput = { ...scope };
 
   if (filters.status) where.status = filters.status;

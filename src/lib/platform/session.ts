@@ -7,6 +7,7 @@ export type SessionPrincipal = {
   firebaseUid: string;
   email: string;
   name: string;
+  authTime: number;
 };
 
 export async function createSession(idToken: string) {
@@ -24,6 +25,7 @@ export async function getSessionPrincipal(sessionCookie: string | undefined): Pr
       firebaseUid: token.uid,
       email: token.email.toLowerCase(),
       name: token.name ?? token.email,
+      authTime: token.auth_time,
     };
   } catch {
     return null;
@@ -39,6 +41,7 @@ export async function getIdTokenPrincipal(idToken: string): Promise<SessionPrinc
       firebaseUid: token.uid,
       email: token.email.toLowerCase(),
       name: token.name ?? token.email,
+      authTime: token.auth_time,
     };
   } catch {
     return null;

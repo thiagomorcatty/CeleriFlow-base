@@ -1,13 +1,14 @@
 "use server";
 
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getProtocolContext } from "@/lib/protocols/access";
+import { notifyProtocolDepartment, notifyProtocolUsers } from "@/lib/protocols/notifications";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 const AWAITING_RECEIPT = "Aguardando Recebimento";
 
 async function getOperationalContext() {
-  const context = await getTenantContextForModule("PROTOCOLOS");
+  const context = await getProtocolContext("edit");
   if (!context.user.employeeId) {
     throw new Error("Seu usuario precisa estar vinculado a um servidor para realizar esta operacao.");
   }
@@ -29,9 +30,13 @@ function revalidateProtocolPages() {
     "/protocolos/processos",
     "/protocolos/arquivados",
     "/protocolos/busca",
+    "/protocolos/notificacoes",
+    "/protocolos/relatorios",
     "/app-domain/protocolos/processos",
     "/app-domain/protocolos/arquivados",
     "/app-domain/protocolos/busca",
+    "/app-domain/protocolos/notificacoes",
+    "/app-domain/protocolos/relatorios",
   ]) {
     revalidatePath(path);
   }
@@ -66,7 +71,18 @@ export async function createProtocol(formData: FormData): Promise<void> {
       throw new Error("Este processo exige a selecao de um interessado.");
     }
 
-    const initialDepartmentId = subject.initialDepartmentId || subject.processType.initialDepartmentId || selectedDepartmentId;
+    const subjectStages = await tx.processWorkflowStage.findMany({
+      where: { processTypeId, subjectId, isActive: true },
+      orderBy: { position: "asc" },
+    });
+    const workflowStages = subjectStages.length
+      ? subjectStages
+      : await tx.processWorkflowStage.findMany({
+          where: { processTypeId, subjectId: null, isActive: true },
+          orderBy: { position: "asc" },
+        });
+    const initialStage = workflowStages[0] || null;
+    const initialDepartmentId = initialStage?.departmentId || subject.initialDepartmentId || subject.processType.initialDepartmentId || selectedDepartmentId;
     if (!initialDepartmentId) throw new Error("Selecione o setor inicial responsavel pelo processo.");
 
     const department = await tx.department.findFirst({
@@ -83,11 +99,11 @@ export async function createProtocol(formData: FormData): Promise<void> {
       select: { nextNumber: true },
     });
     const protocolNumber = `PROC-${year}-${String(sequence.nextNumber - 1).padStart(6, "0")}`;
-    const slaDays = subject.slaDays ?? subject.processType.defaultSlaDays;
+    const slaDays = initialStage?.slaDays ?? subject.slaDays ?? subject.processType.defaultSlaDays;
     const expectedCompletionAt = slaDays ? new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000) : null;
     const priority = requestedPriority || subject.defaultPriority || subject.processType.defaultPriority || "Normal";
 
-    return tx.process.create({
+    const createdProcess = await tx.process.create({
       data: {
         protocolNumber,
         personId,
@@ -98,6 +114,7 @@ export async function createProtocol(formData: FormData): Promise<void> {
         description,
         status: AWAITING_RECEIPT,
         currentDepartmentId: department.id,
+        currentWorkflowStageId: initialStage?.id || null,
         expectedCompletionAt,
         movements: {
           create: {
@@ -118,8 +135,23 @@ export async function createProtocol(formData: FormData): Promise<void> {
           },
         },
       },
-      select: { id: true },
+      select: { id: true, protocolNumber: true, expectedCompletionAt: true },
     });
+    await notifyProtocolDepartment(tx, department.id, {
+      processId: createdProcess.id,
+      type: "RECEIVE",
+      title: `Novo processo ${createdProcess.protocolNumber}`,
+      message: "Um processo aguarda recebimento no seu setor.",
+    });
+    if (createdProcess.expectedCompletionAt) {
+      await notifyProtocolDepartment(tx, department.id, {
+        processId: createdProcess.id,
+        type: "DEADLINE",
+        title: `Prazo definido: ${createdProcess.protocolNumber}`,
+        message: `Prazo da etapa: ${createdProcess.expectedCompletionAt.toLocaleDateString("pt-BR")}.`,
+      });
+    }
+    return createdProcess;
   });
 
   revalidateProtocolPages();
@@ -151,7 +183,7 @@ export async function receiveProcess(processId: string): Promise<{ error: string
           status: "AWAITING_RECEIPT",
         },
         orderBy: { movedAt: "desc" },
-        select: { id: true },
+        select: { id: true, employeeId: true, process: { select: { protocolNumber: true } } },
       });
       if (!movement) throw new Error("Nao foi encontrada uma tramitacao pendente para este processo.");
 
@@ -177,6 +209,17 @@ export async function receiveProcess(processId: string): Promise<{ error: string
           employeeId: employee.id,
         },
       });
+      const sender = movement.employeeId
+        ? await tx.usuario.findUnique({ where: { employeeId: movement.employeeId }, select: { id: true } })
+        : null;
+      if (sender) {
+        await notifyProtocolUsers(tx, [sender.id], {
+          processId,
+          type: "RECEIVED",
+          title: `Processo recebido: ${movement.process.protocolNumber}`,
+          message: "O setor de destino confirmou o recebimento do processo.",
+        });
+      }
     });
 
     revalidateProtocolPages();
@@ -207,7 +250,16 @@ export async function forwardProcess(data: {
     await prisma.$transaction(async (tx) => {
       const process = await tx.process.findUnique({
         where: { id: data.processId },
-        select: { id: true, status: true, currentDepartmentId: true },
+        select: {
+          id: true,
+          protocolNumber: true,
+          status: true,
+          currentDepartmentId: true,
+          processTypeId: true,
+          subjectId: true,
+          currentWorkflowStageId: true,
+          expectedCompletionAt: true,
+        },
       });
       if (!process) throw new Error("Processo nao encontrado.");
       if (process.currentDepartmentId !== departmentId) throw new Error("Este processo nao pertence ao seu setor.");
@@ -228,6 +280,28 @@ export async function forwardProcess(data: {
         if (!destinationEmployee) throw new Error("O servidor de destino nao pertence ao setor selecionado.");
       }
 
+      const subjectStages = await tx.processWorkflowStage.findMany({
+        where: { processTypeId: process.processTypeId, subjectId: process.subjectId, isActive: true },
+        orderBy: { position: "asc" },
+      });
+      const workflowStages = subjectStages.length
+        ? subjectStages
+        : await tx.processWorkflowStage.findMany({
+            where: { processTypeId: process.processTypeId, subjectId: null, isActive: true },
+            orderBy: { position: "asc" },
+          });
+      const currentStage = workflowStages.find((stage) => stage.id === process.currentWorkflowStageId)
+        || workflowStages.find((stage) => stage.departmentId === departmentId)
+        || null;
+      const nextStage = currentStage
+        ? workflowStages.find((stage) => stage.position > currentStage.position) || null
+        : null;
+      if (currentStage && !nextStage) throw new Error("O fluxo configurado terminou nesta etapa. Conclua o processo ou ajuste o fluxo.");
+      if (nextStage && nextStage.departmentId !== destinationDepartment.id) {
+        throw new Error("O setor selecionado nao corresponde a proxima etapa configurada do fluxo.");
+      }
+      const effectiveDueAt = dueAt || (nextStage?.slaDays ? new Date(Date.now() + nextStage.slaDays * 24 * 60 * 60 * 1000) : null);
+
       await tx.processMovement.create({
         data: {
           processId: process.id,
@@ -237,7 +311,7 @@ export async function forwardProcess(data: {
           destinationEmployeeId,
           reason,
           status: "AWAITING_RECEIPT",
-          dueAt,
+          dueAt: effectiveDueAt,
         },
       });
       await tx.process.update({
@@ -246,6 +320,8 @@ export async function forwardProcess(data: {
           status: AWAITING_RECEIPT,
           currentDepartmentId: destinationDepartment.id,
           currentResponsibleEmployeeId: destinationEmployeeId,
+          currentWorkflowStageId: nextStage?.id || process.currentWorkflowStageId,
+          expectedCompletionAt: effectiveDueAt || process.expectedCompletionAt,
         },
       });
       await tx.processEvent.create({
@@ -259,6 +335,20 @@ export async function forwardProcess(data: {
           employeeId: employee.id,
         },
       });
+      await notifyProtocolDepartment(tx, destinationDepartment.id, {
+        processId: process.id,
+        type: "FORWARDED",
+        title: `Processo encaminhado: ${process.protocolNumber}`,
+        message: `O processo foi encaminhado pelo seu setor de origem${reason ? `: ${reason}` : "."}`,
+      });
+      if (effectiveDueAt) {
+        await notifyProtocolDepartment(tx, destinationDepartment.id, {
+          processId: process.id,
+          type: "DEADLINE",
+          title: `Prazo definido: ${process.protocolNumber}`,
+          message: `Prazo da etapa: ${effectiveDueAt.toLocaleDateString("pt-BR")}.`,
+        });
+      }
     });
 
     revalidateProtocolPages();
@@ -393,5 +483,20 @@ export async function reopenProcess(processId: string, reason: string): Promise<
   } catch (error) {
     console.error(error);
     return { error: error instanceof Error ? error.message : "Erro ao reabrir o processo." };
+  }
+}
+
+export async function markProtocolNotificationRead(notificationId: string): Promise<{ error: string | null }> {
+  try {
+    const { prisma, user } = await getProtocolContext();
+    const updated = await prisma.protocolNotification.updateMany({
+      where: { id: notificationId, userId: user.id, readAt: null },
+      data: { readAt: new Date() },
+    });
+    if (!updated.count) throw new Error("Notificacao nao encontrada ou ja lida.");
+    revalidatePath("/protocolos/notificacoes");
+    return { error: null };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Erro ao atualizar notificacao." };
   }
 }

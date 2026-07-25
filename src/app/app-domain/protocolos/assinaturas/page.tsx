@@ -1,22 +1,25 @@
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getProtocolContext, protocolScope } from "@/lib/protocols/access";
 import AssinaturasClient from "./AssinaturasClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function AssinaturasPage() {
-  const { prisma } = await getTenantContextForModule("PROTOCOLOS");
-  const processos = await prisma.process.findMany({
+  const context = await getProtocolContext();
+  const { prisma } = context;
+  const documentos = await prisma.processDocument.findMany({
     where: {
-      status: 'Aguardando Assinatura'
+      document: {
+        status: "Pendente Assinatura",
+        signatures: { none: { status: "SIGNED" } },
+      },
+      process: { is: protocolScope(context) },
     },
     include: {
-      processType: true,
-      subject: true,
-      person: true,
-      company: true,
+      process: { select: { id: true, protocolNumber: true } },
+      document: { select: { id: true, title: true, documentType: true, createdAt: true } },
     },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: "desc" },
   });
 
-  return <AssinaturasClient initialProcessos={processos} />;
+  return <AssinaturasClient initialDocuments={documentos.filter((item) => item.document !== null)} />;
 }

@@ -1,15 +1,16 @@
 import { ArrowLeft, Clock, FileText, User, CheckCircle2, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getProtocolContext, protocolScope } from "@/lib/protocols/access";
 import { notFound } from "next/navigation";
 import ProcessControls from "./ProcessControls";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProcessoDetalhesPage({ params }: { params: { id: string } }) {
-  const { prisma, user } = await getTenantContextForModule("PROTOCOLOS");
-  const processo = await prisma.process.findUnique({
-    where: { id: params.id },
+  const context = await getProtocolContext();
+  const { prisma, user } = context;
+  const processo = await prisma.process.findFirst({
+    where: { id: params.id, ...protocolScope(context) },
     include: {
       processType: true,
       subject: true,
@@ -44,12 +45,15 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
-  const canOperate = Boolean(
+  const canOperate = context.protocolAccess.canEdit && Boolean(
     user.employeeId && user.departmentId && user.departmentId === processo.currentDepartmentId,
   );
 
   const interessadoNome = processo.person?.fullName || processo.company?.corporateName || "Não Informado";
   const interessadoDoc = processo.person?.cpf || processo.company?.cnpj || "";
+  const daysToDeadline = processo.expectedCompletionAt
+    ? Math.ceil((processo.expectedCompletionAt.getTime() - Date.now()) / 86_400_000)
+    : null;
 
   return (
     <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -175,6 +179,11 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
             </div>
 
             <div>
+              <p className="text-xs text-slate-400 font-medium">Prazo previsto</p>
+              {processo.expectedCompletionAt ? <><p className="text-sm font-semibold text-slate-800 mt-1">{new Date(processo.expectedCompletionAt).toLocaleDateString('pt-BR')}</p><p className={`text-xs mt-0.5 ${daysToDeadline !== null && daysToDeadline < 0 ? "text-red-600" : daysToDeadline !== null && daysToDeadline <= 3 ? "text-amber-600" : "text-emerald-600"}`}>{daysToDeadline !== null && daysToDeadline < 0 ? `${Math.abs(daysToDeadline)} dia(s) atrasado` : `${daysToDeadline} dia(s) restante(s)`}</p></> : <p className="text-sm text-slate-500 mt-1">Sem prazo definido</p>}
+            </div>
+
+            <div>
               <p className="text-xs text-slate-400 font-medium">Prioridade</p>
               <div className="flex items-center gap-1.5 mt-1">
                 {processo.priority === 'Urgente' ? <AlertCircle className="w-4 h-4 text-red-500" /> : <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
@@ -193,15 +202,15 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
                 <div className="p-4 text-center text-slate-500 text-sm">Nenhum anexo.</div>
               ) : (
                 processo.documents.map(doc => (
-                  <a key={doc.id} href={`/api/download?url=${encodeURIComponent(doc.document?.fileUrl || doc.fileUrl)}`} target="_blank" rel="noreferrer" className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                  doc.document ? <a key={doc.id} href={`/api/download?url=${encodeURIComponent(doc.document.fileUrl)}`} target="_blank" rel="noreferrer" className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                     <div className="flex items-center gap-3">
                       <FileText className="w-5 h-5 text-indigo-500" />
                       <div>
-                        <p className="text-sm font-medium text-slate-800">{doc.document?.title || doc.title}</p>
+                        <p className="text-sm font-medium text-slate-800">{doc.document.title}</p>
                         <p className="text-xs text-slate-400">{new Date(doc.createdAt).toLocaleDateString('pt-BR')}</p>
                       </div>
                     </div>
-                  </a>
+                  </a> : null
                 ))
               )}
             </div>

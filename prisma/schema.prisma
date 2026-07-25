@@ -97,6 +97,7 @@ model Department {
   initialProcessTypes ProcessType[]     @relation("ProcessTypeInitialDepartment")
   initialSubjects     Subject[]         @relation("SubjectInitialDepartment")
   processEvents       ProcessEvent[]    @relation("ProcessEventDepartment")
+  workflowStages      ProcessWorkflowStage[]
 
   // Mod 4 e 5
   folders    Folder[]    @relation("FolderDepartment")
@@ -176,14 +177,15 @@ model Employee {
 
   // Mod 3
   usuario                     Usuario?
-  processMovements            ProcessMovement[] @relation("MovementEmployee")
-  destinationProcessMovements ProcessMovement[] @relation("MovementDestinationEmployee")
-  receivedProcessMovements    ProcessMovement[] @relation("MovementReceiverEmployee")
-  processDocuments            ProcessDocument[] @relation("DocumentEmployee")
-  processDispatches           ProcessDispatch[] @relation("DispatchEmployee")
-  currentProcesses            Process[]         @relation("CurrentProcessResponsible")
-  archivedProcesses           Process[]         @relation("ProcessArchivedBy")
-  processEvents               ProcessEvent[]    @relation("ProcessEventEmployee")
+  processMovements            ProcessMovement[]   @relation("MovementEmployee")
+  destinationProcessMovements ProcessMovement[]   @relation("MovementDestinationEmployee")
+  receivedProcessMovements    ProcessMovement[]   @relation("MovementReceiverEmployee")
+  processDocuments            ProcessDocument[]   @relation("DocumentEmployee")
+  processDispatches           ProcessDispatch[]   @relation("DispatchEmployee")
+  currentProcesses            Process[]           @relation("CurrentProcessResponsible")
+  archivedProcesses           Process[]           @relation("ProcessArchivedBy")
+  processEvents               ProcessEvent[]      @relation("ProcessEventEmployee")
+  documentSignatures          DocumentSignature[] @relation("DocumentSignatureEmployee")
 
   // Mod 4 e 5
   tickets            Ticket[]            @relation("TicketAssignee")
@@ -623,9 +625,68 @@ model Document {
   camaraLegislativeLinks  CamDocumentoLegislativo[]     @relation("CamaraLegislativeDocument")
   segurancaRegistros      SegurancaMobilidadeRegistro[] @relation("SegurancaRegistroDocument")
   processDocuments        ProcessDocument[]
+  versions                DocumentVersion[]
+  signatures              DocumentSignature[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Versoes finalizadas sao snapshots imutaveis do arquivo usado em uma assinatura.
+model DocumentVersion {
+  id            String    @id @default(cuid())
+  documentId    String
+  document      Document  @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  versionNumber Int
+  fileUrl       String
+  hashSha256    String
+  status        String    @default("FINAL") // FINAL, SIGNED, SUPERSEDED, CANCELLED
+  lockedAt      DateTime?
+  finalizedAt   DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+
+  signatures DocumentSignature[]
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId, status])
+  @@index([hashSha256])
+}
+
+// Manifestacoes sao registradas no documento, nunca em um modulo especifico.
+model DocumentSignature {
+  id                String          @id @default(cuid())
+  documentId        String
+  document          Document        @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  documentVersionId String
+  documentVersion   DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: Restrict)
+
+  signerUsuarioId  String
+  signerUsuario    Usuario   @relation("DocumentSignatureUsuario", fields: [signerUsuarioId], references: [id], onDelete: Restrict)
+  signerEmployeeId String?
+  signerEmployee   Employee? @relation("DocumentSignatureEmployee", fields: [signerEmployeeId], references: [id], onDelete: SetNull)
+  signerName       String
+  signerEmail      String
+
+  signatureType        String    @default("SIGN")
+  provider             String    @default("INTERNAL")
+  authenticationMethod String
+  reauthenticatedAt    DateTime?
+  documentHash         String
+  verificationCode     String    @unique
+  status               String    @default("PENDING") // PENDING, SIGNED, REJECTED, CANCELLED
+  requestedAt          DateTime  @default(now())
+  signedAt             DateTime?
+  rejectedAt           DateTime?
+  cancelledAt          DateTime?
+  ipAddress            String?
+  userAgent            String?
+  metadata             String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([documentVersionId, signerUsuarioId])
+  @@index([documentId, status])
+  @@index([signerUsuarioId, createdAt])
 }
 
 // --- Módulo 3: Protocolos e Processos ---
@@ -645,6 +706,7 @@ model ProcessType {
 
   subjects  Subject[]
   processes Process[]
+  workflowStages ProcessWorkflowStage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -666,6 +728,7 @@ model Subject {
   allowsInternalOpening Boolean     @default(true)
 
   processes Process[]
+  workflowStages ProcessWorkflowStage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -703,11 +766,14 @@ model Process {
   archiveReason                String?
   archivedByEmployeeId         String?
   archivedByEmployee           Employee?   @relation("ProcessArchivedBy", fields: [archivedByEmployeeId], references: [id])
+  currentWorkflowStageId       String?
+  currentWorkflowStage         ProcessWorkflowStage? @relation("CurrentWorkflowStage", fields: [currentWorkflowStageId], references: [id])
 
   movements  ProcessMovement[]
   documents  ProcessDocument[]
   dispatches ProcessDispatch[]
   events     ProcessEvent[]
+  notifications ProtocolNotification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -741,14 +807,36 @@ model ProcessMovement {
   updatedAt  DateTime  @default(now()) @updatedAt
 }
 
+// Ordered workflow stages can be configured for a type or overridden by a subject.
+model ProcessWorkflowStage {
+  id            String      @id @default(cuid())
+  processTypeId String
+  processType   ProcessType @relation(fields: [processTypeId], references: [id], onDelete: Cascade)
+  subjectId     String?
+  subject       Subject?    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  departmentId  String
+  department    Department  @relation(fields: [departmentId], references: [id])
+  position      Int
+  slaDays       Int?
+  isActive      Boolean     @default(true)
+  label         String?
+  processes     Process[]   @relation("CurrentWorkflowStage")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([processTypeId, subjectId, position])
+  @@index([processTypeId, subjectId, isActive, position])
+}
+
 // Documentos/Anexos do Processo
 model ProcessDocument {
   id        String  @id @default(cuid())
   processId String
   process   Process @relation(fields: [processId], references: [id], onDelete: Cascade)
 
-  title        String
-  fileUrl      String
+  // Deprecated after GED consolidation. Kept nullable for an additive rollout.
+  title        String?
+  fileUrl      String?
   documentType String?
   documentId   String?
   document     Document? @relation(fields: [documentId], references: [id])
@@ -798,6 +886,24 @@ model ProcessEvent {
 
   @@index([processId, createdAt])
   @@index([departmentId, createdAt])
+}
+
+model ProtocolNotification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      Usuario  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  processId String
+  process   Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  message   String
+  dedupeKey String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@index([processId, createdAt])
+  @@index([userId, dedupeKey])
 }
 
 model ProcessSequence {
@@ -4030,7 +4136,9 @@ model Usuario {
   employeeId String?   @unique
   employee   Employee? @relation(fields: [employeeId], references: [id])
 
-  permissoesModulo UsuarioModulo[]
+  permissoesModulo   UsuarioModulo[]
+  documentSignatures DocumentSignature[] @relation("DocumentSignatureUsuario")
+  protocolNotifications ProtocolNotification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

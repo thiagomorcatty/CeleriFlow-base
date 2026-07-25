@@ -1,4 +1,4 @@
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getProtocolContext, protocolScope } from "@/lib/protocols/access";
 import BuscaClient from "./BuscaClient"; // Force IDE reload
 
 export const dynamic = "force-dynamic";
@@ -8,16 +8,18 @@ export default async function BuscarProcessoPage({
 }: {
   searchParams?: { [key: string]: string | string[] | undefined }
 }) {
-  const { prisma } = await getTenantContextForModule("PROTOCOLOS");
+  const context = await getProtocolContext();
+  const { prisma } = context;
   const query = searchParams?.q as string | undefined;
 
   const processos = await prisma.process.findMany({
-    where: query ? {
-      OR: [
+    where: {
+      ...protocolScope(context),
+      ...(query ? { OR: [
         { protocolNumber: { contains: query, mode: 'insensitive' } },
         { description: { contains: query, mode: 'insensitive' } }
-      ]
-    } : undefined,
+      ] } : {}),
+    },
     include: {
       processType: true,
       subject: true,

@@ -17,7 +17,7 @@ type Processo = {
   company: { corporateName: string } | null;
 };
 
-export default function ProcessosClient({ initialProcessos, canReceive }: { initialProcessos: Processo[]; canReceive: boolean }) {
+export default function ProcessosClient({ initialProcessos, canReceive, canCreate }: { initialProcessos: Processo[]; canReceive: boolean; canCreate: boolean }) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -60,10 +60,10 @@ export default function ProcessosClient({ initialProcessos, canReceive }: { init
           </h1>
           <p className="text-slate-500 mt-1">Gerencie os processos e protocolos que estão sob responsabilidade do seu setor.</p>
         </div>
-        <Link href="/protocolos/processos/novo" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+        {canCreate && <Link href="/protocolos/processos/novo" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
           <Plus className="w-4 h-4" />
           Novo Protocolo
-        </Link>
+        </Link>}
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
