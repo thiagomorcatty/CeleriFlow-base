@@ -20,9 +20,13 @@ if (!getApps().length) {
 
 const email = requiredEnvironment("FIREBASE_USER_EMAIL").trim().toLowerCase();
 const password = requiredEnvironment("FIREBASE_USER_PASSWORD");
+const markEmailVerified = process.env.FIREBASE_MARK_EMAIL_VERIFIED === "true";
 
 const auth = getAuth();
 const user = await auth.getUserByEmail(email);
-await auth.updateUser(user.uid, { password });
+await auth.updateUser(user.uid, {
+  password,
+  ...(markEmailVerified ? { emailVerified: true } : {}),
+});
 
-console.log(`Senha atualizada para ${email}.`);
+console.log(`Senha atualizada para ${email}${markEmailVerified ? " e e-mail marcado como verificado" : ""}.`);
