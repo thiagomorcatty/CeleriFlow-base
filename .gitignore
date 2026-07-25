@@ -51,3 +51,6 @@ docs/doc.zip
 !package-lock.json
 !tsconfig.json
 !components.json
+
+.vercel
+.env*
