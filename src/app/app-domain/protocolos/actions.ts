@@ -2,6 +2,7 @@
 
 import { getProtocolContext } from "@/lib/protocols/access";
 import { notifyProtocolDepartment, notifyProtocolUsers } from "@/lib/protocols/notifications";
+import { createValidatedProcess } from "@/lib/protocols/service";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -55,104 +56,9 @@ export async function createProtocol(formData: FormData): Promise<void> {
   if (!processTypeId || !subjectId) throw new Error("Selecione o Tipo e o Assunto do processo.");
   if (personId && companyId) throw new Error("Selecione apenas um interessado: pessoa ou empresa.");
 
-  const process = await prisma.$transaction(async (tx) => {
-    const subject = await tx.subject.findFirst({
-      where: { id: subjectId, processTypeId, isActive: true },
-      include: { processType: true },
-    });
-
-    if (!subject || !subject.processType.isActive) {
-      throw new Error("O Assunto selecionado nao pertence a um Tipo de Processo ativo.");
-    }
-    if (!subject.allowsInternalOpening || !subject.processType.allowsInternalOpening) {
-      throw new Error("Este processo nao permite abertura interna.");
-    }
-    if ((subject.requiresInterested || subject.processType.requiresInterested) && !personId && !companyId) {
-      throw new Error("Este processo exige a selecao de um interessado.");
-    }
-
-    const subjectStages = await tx.processWorkflowStage.findMany({
-      where: { processTypeId, subjectId, isActive: true },
-      orderBy: { position: "asc" },
-    });
-    const workflowStages = subjectStages.length
-      ? subjectStages
-      : await tx.processWorkflowStage.findMany({
-          where: { processTypeId, subjectId: null, isActive: true },
-          orderBy: { position: "asc" },
-        });
-    const initialStage = workflowStages[0] || null;
-    const initialDepartmentId = initialStage?.departmentId || subject.initialDepartmentId || subject.processType.initialDepartmentId || selectedDepartmentId;
-    if (!initialDepartmentId) throw new Error("Selecione o setor inicial responsavel pelo processo.");
-
-    const department = await tx.department.findFirst({
-      where: { id: initialDepartmentId, isActive: true },
-      select: { id: true },
-    });
-    if (!department) throw new Error("O setor inicial selecionado nao esta ativo.");
-
-    const year = new Date().getFullYear();
-    const sequence = await tx.processSequence.upsert({
-      where: { year },
-      create: { year, nextNumber: 2 },
-      update: { nextNumber: { increment: 1 } },
-      select: { nextNumber: true },
-    });
-    const protocolNumber = `PROC-${year}-${String(sequence.nextNumber - 1).padStart(6, "0")}`;
-    const slaDays = initialStage?.slaDays ?? subject.slaDays ?? subject.processType.defaultSlaDays;
-    const expectedCompletionAt = slaDays ? new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000) : null;
-    const priority = requestedPriority || subject.defaultPriority || subject.processType.defaultPriority || "Normal";
-
-    const createdProcess = await tx.process.create({
-      data: {
-        protocolNumber,
-        personId,
-        companyId,
-        processTypeId,
-        subjectId,
-        priority,
-        description,
-        status: AWAITING_RECEIPT,
-        currentDepartmentId: department.id,
-        currentWorkflowStageId: initialStage?.id || null,
-        expectedCompletionAt,
-        movements: {
-          create: {
-            toDepartmentId: department.id,
-            employeeId: employee.id,
-            reason: "Distribuicao inicial",
-            status: "AWAITING_RECEIPT",
-            dueAt: expectedCompletionAt,
-          },
-        },
-        events: {
-          create: {
-            eventType: "OPENED",
-            description: "Processo protocolado e encaminhado ao setor inicial.",
-            newStatus: AWAITING_RECEIPT,
-            departmentId: department.id,
-            employeeId: employee.id,
-          },
-        },
-      },
-      select: { id: true, protocolNumber: true, expectedCompletionAt: true },
-    });
-    await notifyProtocolDepartment(tx, department.id, {
-      processId: createdProcess.id,
-      type: "RECEIVE",
-      title: `Novo processo ${createdProcess.protocolNumber}`,
-      message: "Um processo aguarda recebimento no seu setor.",
-    });
-    if (createdProcess.expectedCompletionAt) {
-      await notifyProtocolDepartment(tx, department.id, {
-        processId: createdProcess.id,
-        type: "DEADLINE",
-        title: `Prazo definido: ${createdProcess.protocolNumber}`,
-        message: `Prazo da etapa: ${createdProcess.expectedCompletionAt.toLocaleDateString("pt-BR")}.`,
-      });
-    }
-    return createdProcess;
-  });
+  const process = await prisma.$transaction((tx) => createValidatedProcess(tx, employee, {
+    processTypeId, subjectId, personId, companyId, initialDepartmentId: selectedDepartmentId, priority: requestedPriority, description,
+  }));
 
   revalidateProtocolPages();
   redirect(`/protocolos/processos/${process.id}`);

@@ -100,9 +100,14 @@ model Department {
   workflowStages      ProcessWorkflowStage[]
 
   // Mod 4 e 5
-  folders    Folder[]    @relation("FolderDepartment")
-  tickets    Ticket[]    @relation("TicketDepartment")
-  ombudsmans Ombudsman[] @relation("OmbudsmanDepartment")
+  folders                Folder[]            @relation("FolderDepartment")
+  tickets                Ticket[]            @relation("TicketDepartment")
+  ombudsmans             Ombudsman[]         @relation("OmbudsmanDepartment")
+  serviceSubjects        ServiceSubject[]    @relation("ServiceSubjectDepartment")
+  ticketMovementsFrom    TicketMovement[]    @relation("TicketMovementFromDepartment")
+  ticketMovementsTo      TicketMovement[]    @relation("TicketMovementToDepartment")
+  ombudsmanMovementsFrom OmbudsmanMovement[] @relation("OmbudsmanMovementFromDepartment")
+  ombudsmanMovementsTo   OmbudsmanMovement[] @relation("OmbudsmanMovementToDepartment")
 
   // Mod 9
   purchaseRequests PurchaseRequest[] @relation("DepartmentPurchaseRequests")
@@ -188,8 +193,20 @@ model Employee {
   documentSignatures          DocumentSignature[] @relation("DocumentSignatureEmployee")
 
   // Mod 4 e 5
-  tickets            Ticket[]            @relation("TicketAssignee")
-  ticketInteractions TicketInteraction[] @relation("InteractionEmployee")
+  tickets               Ticket[]               @relation("TicketAssignee")
+  ticketInteractions    TicketInteraction[]    @relation("InteractionEmployee")
+  resolvedTickets       Ticket[]               @relation("TicketResolvedBy")
+  concludedTickets      Ticket[]               @relation("TicketConcludedBy")
+  ticketMovements       TicketMovement[]       @relation("TicketMovementEmployee")
+  ticketAudits          TicketAuditLog[]       @relation("TicketAuditEmployee")
+  ombudsmanAudits       OmbudsmanAuditLog[]    @relation("OmbudsmanAuditEmployee")
+  ticketDocuments       TicketDocument[]       @relation("TicketDocumentEmployee")
+  ombudsmanDocuments    OmbudsmanDocument[]    @relation("OmbudsmanDocumentEmployee")
+  ombudsmanMovements    OmbudsmanMovement[]    @relation("OmbudsmanMovementEmployee")
+  ombudsmanInteractions OmbudsmanInteraction[] @relation("OmbudsmanInteractionEmployee")
+  assignedOmbudsmans    Ombudsman[]            @relation("OmbudsmanAssignee")
+  respondedOmbudsmans   Ombudsman[]            @relation("OmbudsmanRespondedBy")
+  concludedOmbudsmans   Ombudsman[]            @relation("OmbudsmanConcludedBy")
 
   // Mod 6
   portalPages     PortalPage[]    @relation("PageAuthor")
@@ -332,8 +349,9 @@ model Person {
   processes Process[]
 
   // Mod 4 e 5
-  tickets    Ticket[]
-  ombudsmans Ombudsman[]
+  tickets             Ticket[]
+  ombudsmans          Ombudsman[]
+  ombudsmanIdentities OmbudsmanIdentity[]
 
   // Mod 10
   dependents Dependent[] @relation("PersonDependent")
@@ -644,6 +662,8 @@ model Document {
   taxServiceRequests      TaxServiceRequest[]
   taxCaseLinks            TaxCaseLink[]
   processDocuments        ProcessDocument[]
+  ticketLinks             TicketDocument[]
+  ombudsmanLinks          OmbudsmanDocument[]
   versions                DocumentVersion[]
   signatures              DocumentSignature[]
 
@@ -797,6 +817,8 @@ model Process {
   financialCommitments Commitment[]           @relation("FinancialCommitmentProcess")
   taxServiceRequests   TaxServiceRequest[]
   taxCaseLinks         TaxCaseLink[]
+  ticket               Ticket?
+  ombudsman            Ombudsman?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -962,21 +984,45 @@ model SupportChannel {
   name        String // e.g., 'Portal', 'Presencial', 'WhatsApp', 'Telefone'
   description String?
   isActive    Boolean @default(true)
+  sortOrder   Int     @default(0)
 
   tickets    Ticket[]
   ombudsmans Ombudsman[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+model ServiceSubject {
+  id                  String      @id @default(cuid())
+  name                String      @unique
+  description         String?
+  defaultDepartmentId String?
+  defaultDepartment   Department? @relation("ServiceSubjectDepartment", fields: [defaultDepartmentId], references: [id])
+  defaultPriority     String      @default("Normal")
+  defaultDueDays      Int?
+  isActive            Boolean     @default(true)
+  tickets             Ticket[]
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@index([isActive, name])
 }
 
 model Ticket {
-  id           String @id @default(cuid())
-  ticketNumber String @unique // e.g., TKT-2026-0001
+  id           String    @id @default(cuid())
+  ticketNumber String    @unique // e.g., TKT-2026-0001
   subject      String
   description  String
-  status       String @default("Aberto") // Aberto, Em Atendimento, Resolvido, Fechado
-  priority     String @default("Normal")
+  status       String    @default("Aberto") // Aberto, Encaminhado, Aguardando Recebimento, Em Atendimento, Aguardando Informação, Resolvido, Concluído, Cancelado, Reaberto
+  priority     String    @default("Normal")
+  isAnonymous  Boolean   @default(false)
+  dueAt        DateTime?
+  resolvedAt   DateTime?
+  solution     String?
+  concludedAt  DateTime?
 
   channelId String
   channel   SupportChannel @relation(fields: [channelId], references: [id])
@@ -992,11 +1038,29 @@ model Ticket {
   assigneeId String?
   assignee   Employee? @relation("TicketAssignee", fields: [assigneeId], references: [id])
 
+  serviceSubjectId String?
+  serviceSubject   ServiceSubject? @relation(fields: [serviceSubjectId], references: [id])
+
+  resolvedById  String?
+  resolvedBy    Employee? @relation("TicketResolvedBy", fields: [resolvedById], references: [id])
+  concludedById String?
+  concludedBy   Employee? @relation("TicketConcludedBy", fields: [concludedById], references: [id])
+
+  processId String?  @unique
+  process   Process? @relation(fields: [processId], references: [id])
+
   interactions TicketInteraction[]
+  movements    TicketMovement[]
+  auditLogs    TicketAuditLog[]
+  documents    TicketDocument[]
   satisfaction SatisfactionSurvey?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([departmentId, status, dueAt])
+  @@index([assigneeId, status])
+  @@index([serviceSubjectId])
 }
 
 model Ombudsman {
@@ -1018,8 +1082,30 @@ model Ombudsman {
   departmentId String?
   department   Department? @relation("OmbudsmanDepartment", fields: [departmentId], references: [id])
 
+  assigneeId    String?
+  assignee      Employee? @relation("OmbudsmanAssignee", fields: [assigneeId], references: [id])
+  processId     String?   @unique
+  process       Process?  @relation(fields: [processId], references: [id])
+  response      String?
+  respondedAt   DateTime?
+  respondedById String?
+  respondedBy   Employee? @relation("OmbudsmanRespondedBy", fields: [respondedById], references: [id])
+  concludedAt   DateTime?
+  concludedById String?
+  concludedBy   Employee? @relation("OmbudsmanConcludedBy", fields: [concludedById], references: [id])
+
+  accessGrants OmbudsmanAccess[]
+  auditLogs    OmbudsmanAuditLog[]
+  identity     OmbudsmanIdentity?
+  movements    OmbudsmanMovement[]
+  interactions OmbudsmanInteraction[]
+  documents    OmbudsmanDocument[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([departmentId, status])
+  @@index([isConfidential, createdAt])
 }
 
 model TicketInteraction {
@@ -1028,12 +1114,150 @@ model TicketInteraction {
   ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   message    String
+  type       String  @default("Registro") // Registro, Comentário, Encaminhamento, Assunção, Resposta, Solicitação de Informação, Solução, Conclusão, Reabertura
   isInternal Boolean @default(false)
 
   employeeId String?
   employee   Employee? @relation("InteractionEmployee", fields: [employeeId], references: [id])
 
   createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+}
+
+model TicketDocument {
+  id         String    @id @default(cuid())
+  ticketId   String
+  ticket     Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  documentId String
+  document   Document  @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  employeeId String?
+  employee   Employee? @relation("TicketDocumentEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
+  purpose    String?
+  createdAt  DateTime  @default(now())
+
+  @@unique([ticketId, documentId])
+  @@index([documentId])
+}
+
+model TicketMovement {
+  id               String      @id @default(cuid())
+  ticketId         String
+  ticket           Ticket      @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fromDepartmentId String?
+  fromDepartment   Department? @relation("TicketMovementFromDepartment", fields: [fromDepartmentId], references: [id])
+  toDepartmentId   String
+  toDepartment     Department  @relation("TicketMovementToDepartment", fields: [toDepartmentId], references: [id])
+  fromAssigneeId   String?
+  toAssigneeId     String?
+  employeeId       String
+  employee         Employee    @relation("TicketMovementEmployee", fields: [employeeId], references: [id])
+  reason           String
+  createdAt        DateTime    @default(now())
+
+  @@index([ticketId, createdAt])
+  @@index([toDepartmentId, createdAt])
+}
+
+model TicketAuditLog {
+  id         String    @id @default(cuid())
+  ticketId   String
+  ticket     Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId     String
+  user       Usuario   @relation("TicketAuditUsuario", fields: [userId], references: [id])
+  employeeId String?
+  employee   Employee? @relation("TicketAuditEmployee", fields: [employeeId], references: [id])
+  action     String
+  details    Json?
+  createdAt  DateTime  @default(now())
+
+  @@index([ticketId, createdAt])
+}
+
+model OmbudsmanAccess {
+  id              String    @id @default(cuid())
+  ombudsmanId     String
+  ombudsman       Ombudsman @relation(fields: [ombudsmanId], references: [id], onDelete: Cascade)
+  userId          String
+  user            Usuario   @relation("OmbudsmanAccessUsuario", fields: [userId], references: [id], onDelete: Cascade)
+  grantedById     String
+  grantedBy       Usuario   @relation("OmbudsmanAccessGrantedBy", fields: [grantedById], references: [id])
+  canViewIdentity Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  @@unique([ombudsmanId, userId])
+  @@index([userId])
+}
+
+// Identifying data is isolated from the manifestation content for new records.
+model OmbudsmanIdentity {
+  id          String    @id @default(cuid())
+  ombudsmanId String    @unique
+  ombudsman   Ombudsman @relation(fields: [ombudsmanId], references: [id], onDelete: Cascade)
+  personId    String
+  person      Person    @relation(fields: [personId], references: [id])
+  createdAt   DateTime  @default(now())
+}
+
+model OmbudsmanMovement {
+  id               String      @id @default(cuid())
+  ombudsmanId      String
+  ombudsman        Ombudsman   @relation(fields: [ombudsmanId], references: [id], onDelete: Cascade)
+  fromDepartmentId String?
+  fromDepartment   Department? @relation("OmbudsmanMovementFromDepartment", fields: [fromDepartmentId], references: [id])
+  toDepartmentId   String
+  toDepartment     Department  @relation("OmbudsmanMovementToDepartment", fields: [toDepartmentId], references: [id])
+  employeeId       String
+  employee         Employee    @relation("OmbudsmanMovementEmployee", fields: [employeeId], references: [id])
+  reason           String
+  createdAt        DateTime    @default(now())
+
+  @@index([ombudsmanId, createdAt])
+  @@index([toDepartmentId, createdAt])
+}
+
+model OmbudsmanInteraction {
+  id          String    @id @default(cuid())
+  ombudsmanId String
+  ombudsman   Ombudsman @relation(fields: [ombudsmanId], references: [id], onDelete: Cascade)
+  type        String
+  message     String
+  isInternal  Boolean   @default(true)
+  employeeId  String?
+  employee    Employee? @relation("OmbudsmanInteractionEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+
+  @@index([ombudsmanId, createdAt])
+}
+
+model OmbudsmanDocument {
+  id          String    @id @default(cuid())
+  ombudsmanId String
+  ombudsman   Ombudsman @relation(fields: [ombudsmanId], references: [id], onDelete: Cascade)
+  documentId  String
+  document    Document  @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  employeeId  String?
+  employee    Employee? @relation("OmbudsmanDocumentEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
+  purpose     String?
+  createdAt   DateTime  @default(now())
+
+  @@unique([ombudsmanId, documentId])
+  @@index([documentId])
+}
+
+model OmbudsmanAuditLog {
+  id          String    @id @default(cuid())
+  ombudsmanId String
+  ombudsman   Ombudsman @relation(fields: [ombudsmanId], references: [id], onDelete: Cascade)
+  userId      String
+  user        Usuario   @relation("OmbudsmanAuditUsuario", fields: [userId], references: [id])
+  employeeId  String?
+  employee    Employee? @relation("OmbudsmanAuditEmployee", fields: [employeeId], references: [id])
+  action      String
+  details     Json?
+  createdAt   DateTime  @default(now())
+
+  @@index([ombudsmanId, createdAt])
 }
 
 model SatisfactionSurvey {
@@ -4729,14 +4953,18 @@ model Usuario {
   employeeId String?   @unique
   employee   Employee? @relation(fields: [employeeId], references: [id])
 
-  permissoesModulo        UsuarioModulo[]
-  documentSignatures      DocumentSignature[]      @relation("DocumentSignatureUsuario")
-  protocolNotifications   ProtocolNotification[]
-  financialAuditLogs      FinancialAuditLog[]      @relation("FinancialAuditUsuario")
-  taxAuditLogs            TaxAuditLog[]            @relation("TaxAuditUsuario")
-  accountingTransactions  AccountingTransaction[]  @relation("AccountingTransactionUsuario")
-  monthlyAccountingCloses MonthlyAccountingClose[] @relation("MonthlyCloseUsuario")
-  annualAccountingCloses  AnnualAccountingClose[]  @relation("AnnualCloseUsuario")
+  permissoesModulo         UsuarioModulo[]
+  documentSignatures       DocumentSignature[]      @relation("DocumentSignatureUsuario")
+  protocolNotifications    ProtocolNotification[]
+  financialAuditLogs       FinancialAuditLog[]      @relation("FinancialAuditUsuario")
+  taxAuditLogs             TaxAuditLog[]            @relation("TaxAuditUsuario")
+  ticketAuditLogs          TicketAuditLog[]         @relation("TicketAuditUsuario")
+  ombudsmanAccesses        OmbudsmanAccess[]        @relation("OmbudsmanAccessUsuario")
+  grantedOmbudsmanAccesses OmbudsmanAccess[]        @relation("OmbudsmanAccessGrantedBy")
+  ombudsmanAuditLogs       OmbudsmanAuditLog[]      @relation("OmbudsmanAuditUsuario")
+  accountingTransactions   AccountingTransaction[]  @relation("AccountingTransactionUsuario")
+  monthlyAccountingCloses  MonthlyAccountingClose[] @relation("MonthlyCloseUsuario")
+  annualAccountingCloses   AnnualAccountingClose[]  @relation("AnnualCloseUsuario")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

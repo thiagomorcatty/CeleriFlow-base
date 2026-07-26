@@ -10,13 +10,20 @@ import {
   Menu,
   X,
   MessageSquareWarning,
-  Plus
+  Plus,
+  ListTodo,
+  Settings2,
+  BarChart3
 } from "lucide-react";
 
 const sidebarNavItems = [
   { title: "Painel Geral", href: "/atendimento", icon: LayoutDashboard },
   { title: "Novo Chamado", href: "/atendimento/novo", icon: Plus },
-  { title: "Ouvidoria (Denúncias)", href: "/atendimento/ouvidoria", icon: MessageSquareWarning },
+  { title: "Central de Demandas", href: "/atendimento/central", icon: ListTodo },
+  { title: "Fila do Setor", href: "/atendimento/fila", icon: Headphones },
+  { title: "Ouvidoria", href: "/atendimento/ouvidoria", icon: MessageSquareWarning },
+  { title: "Canais e Assuntos", href: "/atendimento/configuracoes", icon: Settings2 },
+  { title: "Relatórios", href: "/atendimento/relatorios", icon: BarChart3 },
 ];
 
 export default function AtendimentoLayout({ children }: { children: React.ReactNode }) {

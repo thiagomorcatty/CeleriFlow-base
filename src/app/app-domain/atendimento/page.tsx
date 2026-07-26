@@ -1,30 +1,61 @@
-import { Headphones, MessageSquareWarning, CheckCircle2, AlertCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, Headphones, MessageSquareWarning, Timer } from "lucide-react";
 import Link from "next/link";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
-import AtendimentoClient from "./AtendimentoClient";
+import { getAttendanceContext, ombudsmanScope, ticketScope } from "@/lib/attendance/access";
 
 export const dynamic = "force-dynamic";
 
 export default async function AtendimentoDashboardPage() {
-  const { prisma } = await getTenantContextForModule("ATENDIMENTO");
-  const openTicketsCount = await prisma.ticket.count({ where: { status: "Aberto" } });
-  const inProgressTicketsCount = await prisma.ticket.count({ where: { status: "Em Atendimento" } });
-  const openOmbudsmanCount = await prisma.ombudsman.count({ where: { status: "Recebida" } });
-
-  const tickets = await prisma.ticket.findMany({
-    take: 20,
-    orderBy: { createdAt: "desc" },
-    include: {
-      person: { select: { fullName: true } },
-      channel: { select: { name: true } }
-    }
-  });
+  const context = await getAttendanceContext();
+  const { prisma } = context;
+  const now = new Date();
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const deadlineWarning = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+  const activeTicketStatuses = { notIn: ["Concluído", "Cancelado"] };
+  const [openedToday, inProgressTicketsCount, awaitingInformationCount, resolvedTicketsCount, overdueTicketsCount, upcomingTicketsCount, pendingOmbudsmanCount, investigatingOmbudsmanCount, concludedOmbudsmanCount, ombudsmanTypes, ticketsByDepartment, ticketsByChannel, ticketsByPriority, tickets] = await Promise.all([
+    prisma.ticket.count({ where: { AND: [ticketScope(context), { createdAt: { gte: today } }] } }),
+    prisma.ticket.count({ where: { AND: [ticketScope(context), { status: "Em Atendimento" }] } }),
+    prisma.ticket.count({ where: { AND: [ticketScope(context), { status: "Aguardando Informação" }] } }),
+    prisma.ticket.count({ where: { AND: [ticketScope(context), { status: "Resolvido" }] } }),
+    prisma.ticket.count({ where: { AND: [ticketScope(context), { dueAt: { lt: now }, status: activeTicketStatuses }] } }),
+    prisma.ticket.count({ where: { AND: [ticketScope(context), { dueAt: { gte: now, lte: deadlineWarning }, status: activeTicketStatuses }] } }),
+    prisma.ombudsman.count({ where: { AND: [ombudsmanScope(context), { status: { not: "Concluída" } }] } }),
+    prisma.ombudsman.count({ where: { AND: [ombudsmanScope(context), { status: "Em Apuração" }] } }),
+    prisma.ombudsman.count({ where: { AND: [ombudsmanScope(context), { status: "Concluída" }] } }),
+    prisma.ombudsman.groupBy({ by: ["type"], where: ombudsmanScope(context), _count: { _all: true } }),
+    prisma.ticket.groupBy({ by: ["departmentId"], where: ticketScope(context), _count: { _all: true }, orderBy: { _count: { departmentId: "desc" } }, take: 5 }),
+    prisma.ticket.groupBy({ by: ["channelId"], where: ticketScope(context), _count: { _all: true }, orderBy: { _count: { channelId: "desc" } }, take: 5 }),
+    prisma.ticket.groupBy({ by: ["priority"], where: ticketScope(context), _count: { _all: true }, orderBy: { _count: { priority: "desc" } } }),
+    prisma.ticket.findMany({
+      where: ticketScope(context),
+      take: 8,
+      orderBy: { createdAt: "desc" },
+      include: {
+        person: { select: { fullName: true } },
+        company: { select: { corporateName: true } },
+        channel: { select: { name: true } },
+      },
+    }),
+  ]);
+  const departmentIds = ticketsByDepartment.flatMap((row) => row.departmentId ? [row.departmentId] : []);
+  const channelIds = ticketsByChannel.map((row) => row.channelId);
+  const [departments, channels] = await Promise.all([
+    prisma.department.findMany({ where: { id: { in: departmentIds } }, select: { id: true, name: true } }),
+    prisma.supportChannel.findMany({ where: { id: { in: channelIds } }, select: { id: true, name: true } }),
+  ]);
+  const departmentNames = new Map(departments.map((department) => [department.id, department.name]));
+  const channelNames = new Map(channels.map((channel) => [channel.id, channel.name]));
+  const typeCounts = new Map(ombudsmanTypes.map((row) => [row.type, row._count._all]));
 
   const stats = [
-    { title: "Chamados Abertos", value: openTicketsCount.toString(), icon: Headphones, href: "/atendimento/novo", color: "text-violet-600", bg: "bg-violet-100" },
-    { title: "Em Atendimento", value: inProgressTicketsCount.toString(), icon: CheckCircle2, href: "/atendimento", color: "text-blue-600", bg: "bg-blue-100" },
-    { title: "Denúncias Pendentes", value: openOmbudsmanCount.toString(), icon: MessageSquareWarning, href: "/atendimento/ouvidoria", color: "text-amber-600", bg: "bg-amber-100" },
+    { title: "Abertos hoje", value: openedToday.toString(), icon: Headphones, href: "/atendimento/central", color: "text-violet-600", bg: "bg-violet-100" },
+    { title: "Em Atendimento", value: inProgressTicketsCount.toString(), icon: CheckCircle2, href: "/atendimento/fila?status=Em%20Atendimento", color: "text-blue-600", bg: "bg-blue-100" },
+    { title: "Aguardando informação", value: awaitingInformationCount.toString(), icon: Clock3, href: "/atendimento/fila?status=Aguardando%20Informa%C3%A7%C3%A3o", color: "text-sky-600", bg: "bg-sky-100" },
+    { title: "Resolvidos", value: resolvedTicketsCount.toString(), icon: CheckCircle2, href: "/atendimento/central?status=Resolvido", color: "text-emerald-600", bg: "bg-emerald-100" },
+    { title: "Atrasados", value: overdueTicketsCount.toString(), icon: AlertTriangle, href: "/atendimento/central?overdue=1", color: "text-red-600", bg: "bg-red-100" },
+    { title: "Próximos do prazo", value: upcomingTicketsCount.toString(), icon: Timer, href: "/atendimento/central?deadline=upcoming", color: "text-amber-600", bg: "bg-amber-100" },
   ];
+  const table = (title: string, rows: Array<[string, number]>) => <section className="rounded-xl border border-slate-200 bg-white"><h2 className="border-b border-slate-100 px-5 py-4 font-semibold text-slate-800">{title}</h2><div className="divide-y divide-slate-100">{rows.length ? rows.map(([label, value]) => <div key={label} className="flex items-center justify-between px-5 py-3 text-sm"><span className="text-slate-600">{label}</span><span className="font-semibold text-slate-900">{value}</span></div>) : <p className="px-5 py-6 text-sm text-slate-500">Sem dados no escopo autorizado.</p>}</div></section>;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -40,7 +71,7 @@ export default async function AtendimentoDashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {stats.map((stat) => (
           <Link key={stat.title} href={stat.href} className="block group">
             <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200 flex items-center justify-between">
@@ -54,11 +85,20 @@ export default async function AtendimentoDashboardPage() {
             </div>
           </Link>
         ))}
-      </div>
-      
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mt-8">
-        <AtendimentoClient initialTickets={tickets} />
-      </div>
+       </div>
+
+       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+         <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold text-amber-950">Ouvidoria</h2><p className="mt-1 text-sm text-amber-800">Indicadores agregados, sem identidade, contato ou narrativa de manifestantes.</p></div><Link href="/atendimento/ouvidoria" className="text-sm font-semibold text-amber-800">Ver manifestações</Link></div>
+         <div className="mt-4 grid gap-3 sm:grid-cols-3"><div className="rounded-xl bg-white p-4"><p className="text-sm text-slate-500">Manifestações Pendentes</p><p className="mt-1 text-2xl font-bold text-slate-900">{pendingOmbudsmanCount}</p></div><div className="rounded-xl bg-white p-4"><p className="text-sm text-slate-500">Em apuração</p><p className="mt-1 text-2xl font-bold text-slate-900">{investigatingOmbudsmanCount}</p></div><div className="rounded-xl bg-white p-4"><p className="text-sm text-slate-500">Concluídas</p><p className="mt-1 text-2xl font-bold text-slate-900">{concludedOmbudsmanCount}</p></div></div>
+         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{["Denúncia", "Reclamação", "Sugestão", "Elogio"].map((type) => <div key={type} className="rounded-lg border border-amber-100 bg-white px-4 py-3 text-sm"><span className="text-slate-600">{type}</span><strong className="float-right text-slate-900">{typeCounts.get(type) || 0}</strong></div>)}</div>
+       </section>
+
+       <div className="grid gap-5 lg:grid-cols-3">{table("Atendimentos por setor", ticketsByDepartment.map((row) => [row.departmentId ? departmentNames.get(row.departmentId) || "Setor removido" : "Sem setor", row._count._all]))}{table("Atendimentos por canal", ticketsByChannel.map((row) => [channelNames.get(row.channelId) || "Canal removido", row._count._all]))}{table("Atendimentos por prioridade", ticketsByPriority.map((row) => [row.priority, row._count._all]))}</div>
+
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="p-4 border-b flex justify-between"><h2 className="font-semibold">Chamados recentes</h2><Link href="/atendimento/central" className="text-sm text-violet-700">Ver central</Link></div>
+          <div className="divide-y">{tickets.map((ticket) => <Link key={ticket.id} href={`/atendimento/chamados/${ticket.id}`} className="block p-4 hover:bg-slate-50"><strong>{ticket.ticketNumber}</strong><span className="ml-3">{ticket.subject}</span><small className="block text-slate-500 mt-1">{ticket.isAnonymous ? "Anônimo" : ticket.person?.fullName || ticket.company?.corporateName || "Não informado"} · {ticket.channel.name} · {ticket.status}</small></Link>)}{tickets.length === 0 && <p className="p-8 text-center text-slate-500">Nenhum chamado no escopo autorizado.</p>}</div>
+       </div>
     </div>
   );
 }
