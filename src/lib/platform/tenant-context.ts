@@ -20,6 +20,7 @@ export type AppContext = {
     email: string;
     name: string;
     role: string;
+    permissions?: string | null;
     employeeId: string | null;
     departmentId: string | null;
     secretariatId: string | null;
@@ -45,6 +46,7 @@ async function resolveUser(principal: SessionPrincipal | null): Promise<AppConte
     email: usuario.email,
     name: usuario.nome || principal.name,
     role: usuario.perfil.nome,
+    permissions: usuario.perfil.permissoes ?? null,
     employeeId: usuario.employee?.id ?? null,
     departmentId: usuario.employee?.departmentId ?? null,
     secretariatId: usuario.employee?.secretariatId ?? null,
@@ -68,9 +70,36 @@ export async function authorizeIdToken(idToken: string): Promise<AppContext["use
   return resolveUser(await getIdTokenPrincipal(idToken));
 }
 
-// Kept until module permissions are enabled in ConfiguracaoModulo.
-export async function getTenantContextForModule(_moduleCode: string): Promise<AppContext> {
-  return getCurrentTenantContext();
+// Enforces granular module RBAC based on user profile permissions.
+export async function getTenantContextForModule(moduleCode: string): Promise<AppContext> {
+  const context = await getCurrentTenantContext();
+
+  const isSystemAdmin =
+    context.user.role.toLowerCase().includes("admin") ||
+    context.user.role === "Administrador";
+
+  if (isSystemAdmin) {
+    return context;
+  }
+
+  if (context.user.permissions) {
+    try {
+      const parsed = JSON.parse(context.user.permissions);
+      const codeUpper = moduleCode.toUpperCase();
+
+      if (Array.isArray(parsed.modulosBloqueados) && parsed.modulosBloqueados.includes(codeUpper)) {
+        throw new AccessError(`Acesso negado ao módulo ${moduleCode}.`, 403);
+      }
+
+      if (Array.isArray(parsed.modulosPermitidos) && !parsed.modulosPermitidos.includes(codeUpper)) {
+        throw new AccessError(`Acesso negado ao módulo ${moduleCode}.`, 403);
+      }
+    } catch (err) {
+      if (err instanceof AccessError) throw err;
+    }
+  }
+
+  return context;
 }
 
 export async function getOptionalTenantContext(): Promise<AppContext | null> {
