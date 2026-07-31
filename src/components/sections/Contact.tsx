@@ -8,6 +8,8 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { ShieldCheck, Send, CheckCircle2, Building2 } from "lucide-react";
 
 const leadSchema = z.object({
   name: z.string().min(2, "Informe seu nome"),
@@ -20,7 +22,7 @@ const leadSchema = z.object({
   moduleInterest: z.string().optional(),
   message: z.string().optional(),
   consent: z.boolean().refine((val) => val === true, {
-    message: "É necessário aceitar a política de privacidade",
+    message: "É necessário aceitar a política de privacidade e LGPD",
   }),
 });
 
@@ -71,92 +73,111 @@ export function Contact() {
   }
 
   return (
-    <section id="contato" className="py-20 bg-muted/50 border-t">
-      <div className="container mx-auto px-4 md:px-6 max-w-2xl">
+    <section id="contato" className="py-24 bg-muted/30 border-t relative overflow-hidden">
+      <div className="container mx-auto px-4 md:px-6 max-w-3xl relative z-10">
+        
         <div className="text-center mb-12">
-          <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl mb-4">
-            Solicite uma Demonstração
+          <Badge variant="outline" className="mb-4 px-4 py-1 border-primary/30 text-primary font-medium">
+            Atendimento para Prefeituras & Órgãos Públicos
+          </Badge>
+          <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl mb-4">
+            Agende uma Demonstração Executiva
           </h2>
-          <p className="text-muted-foreground text-lg">
-            Preencha o formulário abaixo e nossa equipe entrará em contato para agendar uma apresentação focada na sua prefeitura.
+          <p className="text-muted-foreground text-base md:text-lg leading-relaxed max-w-xl mx-auto">
+            Descubra como o CeleriFlow pode transformar a gestão da sua prefeitura. Nossa equipe técnica apresentará a solução focada nas necessidades do seu município.
           </p>
         </div>
         
-        <div className="bg-card rounded-xl p-6 sm:p-8 shadow-sm border">
+        <div className="bg-card rounded-2xl p-6 sm:p-10 shadow-xl border backdrop-blur-md">
           {isSuccess ? (
             <div className="text-center py-12">
-              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-secondary/20 mb-6">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-secondary"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 mb-6">
+                <CheckCircle2 className="h-10 w-10" />
               </div>
-              <h3 className="text-2xl font-bold mb-2">Solicitação Enviada!</h3>
-              <p className="text-muted-foreground mb-6">Nossa equipe entrará em contato em breve.</p>
-              <Button onClick={() => setIsSuccess(false)}>Enviar nova solicitação</Button>
+              <h3 className="text-2xl font-bold font-heading mb-2">Solicitação Recebida com Sucesso!</h3>
+              <p className="text-muted-foreground max-w-md mx-auto mb-8 text-sm">
+                Nossos especialistas em gestão pública entrarão em contato em até 24 horas úteis para agendar a demonstração técnica.
+              </p>
+              <Button onClick={() => setIsSuccess(false)} variant="outline">
+                Enviar nova solicitação
+              </Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome Completo *</Label>
-                  <Input id="name" placeholder="Seu nome" {...register("name")} />
-                  {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+                  <Label htmlFor="name" className="font-semibold">Nome Completo *</Label>
+                  <Input id="name" placeholder="Ex: Maria Silva" {...register("name")} />
+                  {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="role">Cargo (Opcional)</Label>
-                  <Input id="role" placeholder="Ex: Secretário de Finanças" {...register("role")} />
+                  <Label htmlFor="role" className="font-semibold">Cargo no Órgão Público</Label>
+                  <Input id="role" placeholder="Ex: Prefeito(a), Secretário(a), Diretor(a)" {...register("role")} />
                 </div>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="organization">Órgão Público / Prefeitura *</Label>
-                <Input id="organization" placeholder="Ex: Prefeitura de São Paulo" {...register("organization")} />
-                {errors.organization && <p className="text-sm text-destructive">{errors.organization.message}</p>}
+                <Label htmlFor="organization" className="font-semibold">Prefeitura ou Órgão Público *</Label>
+                <Input id="organization" placeholder="Ex: Prefeitura Municipal de..." {...register("organization")} />
+                {errors.organization && <p className="text-xs text-destructive">{errors.organization.message}</p>}
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="email">E-mail Institucional *</Label>
-                  <Input id="email" type="email" placeholder="seu@email.gov.br" {...register("email")} />
-                  {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+                  <Label htmlFor="email" className="font-semibold">E-mail Institucional *</Label>
+                  <Input id="email" type="email" placeholder="seu.nome@municipio.gov.br" {...register("email")} />
+                  {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone (Opcional)</Label>
+                  <Label htmlFor="phone" className="font-semibold">Telefone / WhatsApp de Contato</Label>
                   <Input id="phone" placeholder="(00) 00000-0000" {...register("phone")} />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="city">Cidade *</Label>
-                  <Input id="city" placeholder="Sua cidade" {...register("city")} />
-                  {errors.city && <p className="text-sm text-destructive">{errors.city.message}</p>}
+                  <Label htmlFor="city" className="font-semibold">Cidade *</Label>
+                  <Input id="city" placeholder="Nome do Município" {...register("city")} />
+                  {errors.city && <p className="text-xs text-destructive">{errors.city.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="state">Estado *</Label>
-                  <Input id="state" placeholder="UF" {...register("state")} />
-                  {errors.state && <p className="text-sm text-destructive">{errors.state.message}</p>}
+                  <Label htmlFor="state" className="font-semibold">Estado (UF) *</Label>
+                  <Input id="state" placeholder="UF (ex: SP, MG, RJ)" {...register("state")} />
+                  {errors.state && <p className="text-xs text-destructive">{errors.state.message}</p>}
                 </div>
               </div>
 
-              <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <div className="space-y-2">
+                <Label htmlFor="moduleInterest" className="font-semibold">Área de Maior Interesse</Label>
+                <Input id="moduleInterest" placeholder="Ex: Ecossistema Completo, Processo Eletrônico, Tributos ou Financeiro" {...register("moduleInterest")} />
+              </div>
+
+              <div className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border p-4 bg-muted/20">
                 <input 
                   type="checkbox"
                   id="consent"
-                  className="mt-1"
+                  className="mt-1 accent-primary h-4 w-4 rounded"
                   {...register("consent")} 
                 />
                 <div className="space-y-1 leading-none">
-                  <Label htmlFor="consent">
-                    Aceito a política de privacidade
+                  <Label htmlFor="consent" className="text-xs font-semibold cursor-pointer">
+                    Concordo com o tratamento de dados segundo a LGPD
                   </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Você concorda com nossos termos e políticas de LGPD.
+                  <p className="text-[11px] text-muted-foreground">
+                    Seus dados serão utilizados exclusivamente para agendamento e contato institucional.
                   </p>
-                  {errors.consent && <p className="text-sm text-destructive mt-2">{errors.consent.message}</p>}
+                  {errors.consent && <p className="text-xs text-destructive mt-1">{errors.consent.message}</p>}
                 </div>
               </div>
 
-              <Button type="submit" className="w-full h-12 text-base" disabled={isSubmitting}>
-                {isSubmitting ? "Enviando..." : "Solicitar Demonstração"}
+              <Button type="submit" size="lg" className="w-full h-13 text-base shadow-lg shadow-primary/20" disabled={isSubmitting}>
+                {isSubmitting ? "Processando Solicitação..." : (
+                  <>
+                    Solicitar Agendamento de Demonstração
+                    <Send className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </form>
           )}
