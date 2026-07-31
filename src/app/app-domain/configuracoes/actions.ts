@@ -1,10 +1,10 @@
 "use server";
 
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForSystemAdministration } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
 async function getTenantPrisma() {
-  return (await getTenantContextForModule("CONFIGURACOES")).prisma;
+  return (await getTenantContextForSystemAdministration()).prisma;
 }
 
 // --- Instância da Prefeitura ---

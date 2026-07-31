@@ -1,8 +1,8 @@
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForSystemAdministration } from "@/lib/platform/tenant-context";
 import UsuariosClient from "./components/UsuariosClient";
 
 export default async function UsuariosPage() {
-  const { prisma } = await getTenantContextForModule("CONFIGURACOES");
+  const { prisma } = await getTenantContextForSystemAdministration();
   const [usuarios, perfis, modulos, servidores] = await Promise.all([
     prisma.usuario.findMany({
       include: {

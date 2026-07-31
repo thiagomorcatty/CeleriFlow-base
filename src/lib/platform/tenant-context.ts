@@ -21,6 +21,7 @@ export type AppContext = {
     name: string;
     role: string;
     permissions?: string | null;
+    modulePermissions: { code: string; canView: boolean; canEdit: boolean }[];
     employeeId: string | null;
     departmentId: string | null;
     secretariatId: string | null;
@@ -28,12 +29,48 @@ export type AppContext = {
   prisma: PrismaClient;
 };
 
+const SYSTEM_ADMINISTRATOR_ROLE = "Administrador";
+
+type RolePermissions = {
+  acesso?: unknown;
+  modulosBloqueados?: unknown;
+  modulosPermitidos?: unknown;
+};
+
+function parseRolePermissions(value: string | null | undefined): RolePermissions | null {
+  if (!value) return null;
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return parsed && typeof parsed === "object" ? (parsed as RolePermissions) : null;
+  } catch {
+    return null;
+  }
+}
+
+function hasModuleAccess(values: unknown, moduleCode: string) {
+  return Array.isArray(values) && values.some((value) => value === moduleCode);
+}
+
+export function isSystemAdministrator(user: AppContext["user"]) {
+  return (
+    user.role === SYSTEM_ADMINISTRATOR_ROLE &&
+    parseRolePermissions(user.permissions)?.acesso === "total"
+  );
+}
+
 async function resolveUser(principal: SessionPrincipal | null): Promise<AppContext["user"]> {
   if (!principal) throw new AccessError("Sessao invalida ou expirada.", 401);
 
   const usuario = await prisma.usuario.findUnique({
     where: { email: principal.email },
-    include: { perfil: true, employee: true },
+    include: {
+      perfil: true,
+      employee: true,
+      permissoesModulo: {
+        include: { modulo: { select: { codigo: true } } },
+      },
+    },
   });
 
   if (!usuario || !usuario.ativo || !usuario.perfil.ativo) {
@@ -47,6 +84,11 @@ async function resolveUser(principal: SessionPrincipal | null): Promise<AppConte
     name: usuario.nome || principal.name,
     role: usuario.perfil.nome,
     permissions: usuario.perfil.permissoes ?? null,
+    modulePermissions: usuario.permissoesModulo.map((permission) => ({
+      code: permission.modulo.codigo.toUpperCase(),
+      canView: permission.canView,
+      canEdit: permission.canEdit,
+    })),
     employeeId: usuario.employee?.id ?? null,
     departmentId: usuario.employee?.departmentId ?? null,
     secretariatId: usuario.employee?.secretariatId ?? null,
@@ -70,33 +112,39 @@ export async function authorizeIdToken(idToken: string): Promise<AppContext["use
   return resolveUser(await getIdTokenPrincipal(idToken));
 }
 
+export async function getTenantContextForSystemAdministration(): Promise<AppContext> {
+  const context = await getCurrentTenantContext();
+  if (!isSystemAdministrator(context.user)) {
+    throw new AccessError("Apenas o administrador do sistema pode gerenciar usuários, perfis e módulos.", 403);
+  }
+  return context;
+}
+
 // Enforces granular module RBAC based on user profile permissions.
 export async function getTenantContextForModule(moduleCode: string): Promise<AppContext> {
   const context = await getCurrentTenantContext();
-
-  const isSystemAdmin =
-    context.user.role.toLowerCase().includes("admin") ||
-    context.user.role === "Administrador";
-
-  if (isSystemAdmin) {
+  if (isSystemAdministrator(context.user)) {
     return context;
   }
 
-  if (context.user.permissions) {
-    try {
-      const parsed = JSON.parse(context.user.permissions);
-      const codeUpper = moduleCode.toUpperCase();
+  const codeUpper = moduleCode.toUpperCase();
+  const rolePermissions = parseRolePermissions(context.user.permissions);
 
-      if (Array.isArray(parsed.modulosBloqueados) && parsed.modulosBloqueados.includes(codeUpper)) {
-        throw new AccessError(`Acesso negado ao módulo ${moduleCode}.`, 403);
-      }
+  if (hasModuleAccess(rolePermissions?.modulosBloqueados, codeUpper)) {
+    throw new AccessError(`Acesso negado ao módulo ${moduleCode}.`, 403);
+  }
 
-      if (Array.isArray(parsed.modulosPermitidos) && !parsed.modulosPermitidos.includes(codeUpper)) {
-        throw new AccessError(`Acesso negado ao módulo ${moduleCode}.`, 403);
-      }
-    } catch (err) {
-      if (err instanceof AccessError) throw err;
+  const allowedModules = rolePermissions?.modulosPermitidos;
+  if (Array.isArray(allowedModules)) {
+    if (!hasModuleAccess(allowedModules, codeUpper)) {
+      throw new AccessError(`Acesso negado ao módulo ${moduleCode}.`, 403);
     }
+    return context;
+  }
+
+  const userPermission = context.user.modulePermissions.find((permission) => permission.code === codeUpper);
+  if (!userPermission || (!userPermission.canView && !userPermission.canEdit)) {
+    throw new AccessError(`Acesso negado ao módulo ${moduleCode}.`, 403);
   }
 
   return context;

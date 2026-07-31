@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { AccessError, getTenantContextForSystemAdministration } from "@/lib/platform/tenant-context";
 
 async function getTenantPrisma() {
-  return (await getTenantContextForModule("CONFIGURACOES")).prisma;
+  return (await getTenantContextForSystemAdministration()).prisma;
 }
 
 export async function upsertUsuario(data: {
@@ -16,8 +16,14 @@ export async function upsertUsuario(data: {
   ativo: boolean;
   permissoes: { moduloId: string; canView: boolean; canEdit: boolean }[];
 }) {
-  const prisma = await getTenantPrisma();
   try {
+    const prisma = await getTenantPrisma();
+    const perfil = await prisma.configuracaoPerfil.findFirst({
+      where: { id: data.perfilId, ativo: true },
+      select: { id: true },
+    });
+    if (!perfil) return { error: "Selecione um perfil de acesso ativo." };
+
     if (data.id) {
       // Update
       await prisma.usuario.update({
@@ -62,15 +68,15 @@ export async function upsertUsuario(data: {
 
     revalidatePath("/configuracoes/usuarios");
     return { error: null };
-  } catch (error: any) {
+  } catch (error) {
     console.error(error);
-    return { error: error.message || "Erro ao salvar o usuário." };
+    return { error: error instanceof Error ? error.message : "Erro ao salvar o usuário." };
   }
 }
 
 export async function toggleUsuarioStatus(id: string, ativo: boolean) {
-  const prisma = await getTenantPrisma();
   try {
+    const prisma = await getTenantPrisma();
     await prisma.usuario.update({
       where: { id },
       data: { ativo }
@@ -79,6 +85,6 @@ export async function toggleUsuarioStatus(id: string, ativo: boolean) {
     return { error: null };
   } catch (error) {
     console.error(error);
-    return { error: "Erro ao alterar o status do usuário." };
+    return { error: error instanceof AccessError ? error.message : "Erro ao alterar o status do usuário." };
   }
 }

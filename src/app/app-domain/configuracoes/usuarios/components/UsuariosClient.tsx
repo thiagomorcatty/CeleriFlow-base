@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { UserCog, Plus, Search, Shield, Check, X } from "lucide-react";
+import { UserCog, Plus, Search, Shield, X } from "lucide-react";
 import { upsertUsuario, toggleUsuarioStatus } from "../actions";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -62,7 +62,7 @@ export default function UsuariosClient({
   );
 
   const selectedPerfil = perfis.find(p => p.id === formData.perfilId);
-  const isAdmin = selectedPerfil?.nome?.toLowerCase().includes("admin");
+  const isAdmin = selectedPerfil?.nome === "Administrador";
 
   function openNewModal() {
     setFormData({

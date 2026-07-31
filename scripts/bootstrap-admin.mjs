@@ -29,7 +29,12 @@ async function main() {
         permissoes: JSON.stringify({ acesso: "total" }),
         ativo: true,
       },
-      update: { ativo: true },
+      update: {
+        nome: "Administrador",
+        descricao: "Acesso administrativo inicial do sistema.",
+        permissoes: JSON.stringify({ acesso: "total" }),
+        ativo: true,
+      },
     });
 
     await prisma.usuario.upsert({

@@ -8,9 +8,16 @@
 
 O CeleriFlow tem uma base tecnológica atual e uma cobertura funcional municipal incomum para o estágio do projeto: 24 domínios de negócio, autenticação federada, banco relacional e bons fluxos em protocolos, atendimento, GED e partes do financeiro. O schema é amplo e há controles específicos mais maduros em Protocolos, Atendimento/Ouvidoria, operações de tesouraria e assinatura interna.
 
-Apesar disso, **não está pronto para operação produtiva municipal crítica ou para atender, de ponta a ponta, editais de ERP público**. Há bloqueio objetivo de build, vulnerabilidades altas em dependências, falhas de autorização horizontal e vertical, exposição pública de upload ambiental, ausência de migrations versionadas e lacunas em integrações regulatórias. Dados de saúde, assistência social, RH e documentos exigem controles de acesso e LGPD que ainda não são suficientes.
+Apesar disso, **não está pronto para operação produtiva municipal crítica ou para atender, de ponta a ponta, editais de ERP público**. Persistem vulnerabilidades transitivas sem atualização não regressiva do fornecedor, falhas de autorização horizontal, exposição pública de upload ambiental, ausência de migrations versionadas e lacunas em integrações regulatórias. Dados de saúde, assistência social, RH e documentos exigem controles de acesso e LGPD que ainda não são suficientes.
 
 Classificação atual sugerida: **MVP funcional avançado / pré-produção**, e não sistema apto a processar isoladamente obrigações legais, fiscais, contábeis e dados sensíveis municipais em larga escala.
+
+## Atualização de Correções
+
+- O conflito entre `src/middleware.ts` e `src/proxy.ts` foi removido; `npm run build` passou com Next.js 16.2.12.
+- O RBAC agora é deny-by-default: usuários não administrativos precisam de permissão individual de visualização/edição para o código do módulo.
+- Gestão de usuários, perfis e módulos exige o perfil administrativo provisionado com `acesso: "total"`; esse perfil não pode ser criado, renomeado ou desativado pela interface.
+- Next.js, Prisma, Firebase, PostCSS e Sharp foram atualizados. O `npm audit --omit=dev` passou de 18 para 11 alertas transitivos no `firebase-admin`; o downgrade recomendado pelo npm introduz uma vulnerabilidade crítica e não foi adotado.
 
 ## Visão da solução
 
@@ -64,9 +71,9 @@ Classificação atual sugerida: **MVP funcional avançado / pré-produção**, e
 
 | Severidade | Achado e impacto | Evidência | Ação necessária |
 | --- | --- | --- | --- |
-| Crítica | **Build bloqueado.** A versão atual não gera artefato de produção porque há middleware e proxy simultaneamente. | `src/middleware.ts:1`, `src/proxy.ts:21`; `npm run build` falhou com "Both middleware file and proxy file are detected". | Manter apenas a convenção suportada pelo Next.js 16, ajustar os imports/configuração e tornar `npm run build` requisito de merge. |
-| Crítica | **Escalação de privilégio pela configuração.** Quem acessa Configurações pode atribuir qualquer perfil a qualquer usuário; perfis cujo nome contém `admin` contornam todo o RBAC. | `src/app/app-domain/configuracoes/usuarios/actions.ts:10-60`; `src/app/app-domain/configuracoes/perfis/actions.ts:10-37`; `src/lib/platform/tenant-context.ts:77-82`. | Criar permissão administrativa imutável e distinta, impedir autoelevação, exigir segregação de funções e usar identificador de papel administrativo, não nome livre. |
-| Alta | **RBAC permissivo por padrão.** Perfil sem JSON, JSON inválido ou sem listas explícitas recebe acesso ao módulo. | `src/lib/platform/tenant-context.ts:85-102`. | Aplicar deny-by-default, validar schema de permissões ao salvar e migrar perfis existentes de modo explícito. |
+| Resolvida | **Build bloqueado.** O arquivo `src/middleware.ts` duplicava a convenção `src/proxy.ts`. | `npm run build` passou após a remoção do arquivo duplicado. | Manter `npm run build` como requisito de merge. |
+| Resolvida | **Escalação de privilégio pela configuração.** A gestão administrativa agora exige o perfil administrativo provisionado e o bypass não é mais baseado em correspondência parcial de nome. | `src/app/app-domain/configuracoes/usuarios/actions.ts`; `src/app/app-domain/configuracoes/perfis/actions.ts`; `src/lib/platform/tenant-context.ts`. | Manter revisão de privilégios e auditoria de alterações administrativas. |
+| Resolvida | **RBAC permissivo por padrão.** Perfil sem permissão explícita não recebe mais acesso ao módulo. | `src/lib/platform/tenant-context.ts`. | Provisionar permissões individuais para usuários operacionais antes de ativá-los. |
 | Alta | **Acesso horizontal indevido a documentos.** O download só exige autenticação para documentos GED sem vínculo a Atendimento/Ouvidoria. Um usuário autenticado com URL conhecida pode acessar documento de outro módulo/setor. | `src/app/api/download/route.ts:18-38`. | Centralizar `canAccessDocument`, resolver vínculos e aplicar a política a download, visualização, assinatura, edição e exclusão. |
 | Alta | **Dados clínicos e sociais expostos a todo usuário do módulo.** Consultas de Saúde e Social não filtram unidade, equipe, profissional, sigilo ou relacionamento com o cidadão. | `src/app/app-domain/saude/atendimentos/page.tsx:5-10`; `src/app/app-domain/social/prontuario/page.tsx:4-21`; `src/lib/platform/tenant-context.ts:74-102`. | Definir RBAC por operação e ABAC por unidade/equipe/profissional; registrar acesso de leitura e impor política específica para prontuários e registros sigilosos. |
 | Alta | **Upload ambiental é público e não validado.** Arquivo é gravado com nome controlado pelo usuário, acesso público e sem limites/tipo/varredura. | `src/app/app-domain/meio-ambiente/actions.ts:412-422`. | Substituir pelo wrapper privado de Blob, nome aleatório, allowlist por magic bytes, limite, quarentena/antivírus e autorização de download. |
@@ -104,9 +111,9 @@ Classificação atual sugerida: **MVP funcional avançado / pré-produção**, e
 | Verificação | Resultado | Observação |
 | --- | --- | --- |
 | `npx prisma validate` | Passou | Schema válido. Isso não testa dados, migrations ou regras de negócio. |
-| `npm run lint` | Falhou | 296 erros e 153 avisos. Predominam `any`, regras React e variáveis não usadas. |
-| `npm run build` | Falhou | Conflito entre `src/middleware.ts` e `src/proxy.ts`. |
-| `npm audit --omit=dev` | Falhou | 18 vulnerabilidades: 6 altas e 12 moderadas. |
+| `npm run lint` | Falhou | 294 erros e 152 avisos. Predominam `any`, regras React e variáveis não usadas. |
+| `npm run build` | Passou | Build de produção gerado com Next.js 16.2.12. |
+| `npm audit --omit=dev` | Pendente de fornecedor | 11 alertas transitivos: 5 altos e 6 moderados na cadeia do `firebase-admin`. |
 | Testes automatizados | Não disponível | Não foram encontrados arquivos de teste nem script `test`. |
 
 ## Plano de ação recomendado
