@@ -18,6 +18,7 @@ Classificação atual sugerida: **MVP funcional avançado / pré-produção**, e
 - O RBAC agora é deny-by-default: usuários não administrativos precisam de permissão individual de visualização/edição para o código do módulo.
 - Gestão de usuários, perfis e módulos exige o perfil administrativo provisionado com `acesso: "total"`; esse perfil não pode ser criado, renomeado ou desativado pela interface.
 - Next.js, Prisma, Firebase, PostCSS e Sharp foram atualizados. O `npm audit --omit=dev` passou de 18 para 11 alertas transitivos no `firebase-admin`; o downgrade recomendado pelo npm introduz uma vulnerabilidade crítica e não foi adotado.
+- Downloads GED agora exigem acesso ao vínculo de Atendimento/Ouvidoria, Protocolos ou ao módulo Documentos. Anexos ambientais usam Blob privado, nome aleatório e validação de upload.
 
 ## Visão da solução
 
@@ -74,9 +75,9 @@ Classificação atual sugerida: **MVP funcional avançado / pré-produção**, e
 | Resolvida | **Build bloqueado.** O arquivo `src/middleware.ts` duplicava a convenção `src/proxy.ts`. | `npm run build` passou após a remoção do arquivo duplicado. | Manter `npm run build` como requisito de merge. |
 | Resolvida | **Escalação de privilégio pela configuração.** A gestão administrativa agora exige o perfil administrativo provisionado e o bypass não é mais baseado em correspondência parcial de nome. | `src/app/app-domain/configuracoes/usuarios/actions.ts`; `src/app/app-domain/configuracoes/perfis/actions.ts`; `src/lib/platform/tenant-context.ts`. | Manter revisão de privilégios e auditoria de alterações administrativas. |
 | Resolvida | **RBAC permissivo por padrão.** Perfil sem permissão explícita não recebe mais acesso ao módulo. | `src/lib/platform/tenant-context.ts`. | Provisionar permissões individuais para usuários operacionais antes de ativá-los. |
-| Alta | **Acesso horizontal indevido a documentos.** O download só exige autenticação para documentos GED sem vínculo a Atendimento/Ouvidoria. Um usuário autenticado com URL conhecida pode acessar documento de outro módulo/setor. | `src/app/api/download/route.ts:18-38`. | Centralizar `canAccessDocument`, resolver vínculos e aplicar a política a download, visualização, assinatura, edição e exclusão. |
+| Resolvida | **Acesso horizontal indevido a documentos.** O download agora verifica o vínculo antes de abrir o Blob. | `src/app/api/download/route.ts`; escopo setorial de Atendimento e Protocolos. | Usuários que precisem de GED genérico devem receber o módulo Documentos. Expandir a política quando novas relações documentais forem adicionadas. |
 | Alta | **Dados clínicos e sociais expostos a todo usuário do módulo.** Consultas de Saúde e Social não filtram unidade, equipe, profissional, sigilo ou relacionamento com o cidadão. | `src/app/app-domain/saude/atendimentos/page.tsx:5-10`; `src/app/app-domain/social/prontuario/page.tsx:4-21`; `src/lib/platform/tenant-context.ts:74-102`. | Definir RBAC por operação e ABAC por unidade/equipe/profissional; registrar acesso de leitura e impor política específica para prontuários e registros sigilosos. |
-| Alta | **Upload ambiental é público e não validado.** Arquivo é gravado com nome controlado pelo usuário, acesso público e sem limites/tipo/varredura. | `src/app/app-domain/meio-ambiente/actions.ts:412-422`. | Substituir pelo wrapper privado de Blob, nome aleatório, allowlist por magic bytes, limite, quarentena/antivírus e autorização de download. |
+| Resolvida | **Upload ambiental público e não validado.** Novos arquivos usam o wrapper privado padrão. | `src/app/app-domain/meio-ambiente/actions.ts`; `src/lib/platform/blob.ts`. | Migrar ou revogar URLs públicas geradas antes desta correção; antimalware e inspeção por magic bytes continuam pendentes. |
 | Alta | **Dependências vulneráveis.** `npm audit --omit=dev` encontrou 18 vulnerabilidades, 6 altas, inclusive Next.js 16.2.10, PostCSS e Sharp. | `package.json:34`; resultado do `npm audit`. | Atualizar pelo menos Next.js e `eslint-config-next` para 16.2.12, regenerar lockfile, auditar Prisma/Firebase e executar regressão. |
 | Alta | **Conta administrativa previsível em script rastreado.** O script cria e-mail e senha fixos. | `createAdmin.ts:6-12`. | Remover a credencial fixa, revogar usuário se existente, rotacionar segredos relacionados e criar bootstrap de uso único via variáveis seguras. |
 
@@ -92,7 +93,7 @@ Classificação atual sugerida: **MVP funcional avançado / pré-produção**, e
 | Segurança web | Não há CSP, HSTS, `frame-ancestors`, `X-Content-Type-Options`, `Referrer-Policy` ou `Permissions-Policy` configurados. | `next.config.ts:3-7`. Definir headers no Next/Vercel e introduzir CSP em report-only antes de bloquear. |
 | Arquivos | Validação padrão usa MIME enviado pelo cliente, aceita ZIP/RAR e não possui antimalware/quota; blobs podem permanecer órfãos após exclusão lógica no banco. | `src/lib/platform/blob.ts:21-94`; `src/app/app-domain/documentos/ged/actions.ts:41-45`. Validar conteúdo, restringir formatos por caso de uso e reconciliar lifecycle Blob/banco. |
 | Jobs | Cron processa até 500 itens sem ordenação/paginação e cria notificações em loops; a chave de deduplicação é índice, não unicidade. | `src/app/api/protocolos/deadline-notifications/route.ts:16-49`; `prisma/schema.prisma:936-951`. Criar `unique(userId, dedupeKey)`, paginação por cursor, batch/outbox, métricas e tratamento de reexecução. |
-| Qualidade | Não há testes automatizados ou CI versionados. O lint apresenta 296 erros e 153 avisos. | Ausência de `*.test.*`, `*.spec.*` e `.github`; resultado de `npm run lint`. Priorizar tipagem/validação das Server Actions e testes de autorização, financeiro e integrações. |
+| Qualidade | Não há testes automatizados ou CI versionados. O lint apresenta 292 erros e 152 avisos. | Ausência de `*.test.*`, `*.spec.*` e `.github`; resultado de `npm run lint`. Priorizar tipagem/validação das Server Actions e testes de autorização, financeiro e integrações. |
 | Observabilidade | Não foram encontrados monitoramento, tracing, healthcheck, alertas, SLO, RPO/RTO ou testes de restore. | `vercel.json:1-8`; uso recorrente de `console.error`. Instrumentar erros, banco, cron, Blob e integrações; documentar e testar recuperação. |
 | Tenancy | O código declara uma única base municipal ativa; não há `tenantId` transacional nem RLS. | `src/lib/platform/tenant-context.ts:6-8`, `16-29`. É aceitável somente com banco/infraestrutura isolados por prefeitura; para SaaS compartilhado, usar tenant obrigatório e RLS ou banco por município. |
 
@@ -111,7 +112,7 @@ Classificação atual sugerida: **MVP funcional avançado / pré-produção**, e
 | Verificação | Resultado | Observação |
 | --- | --- | --- |
 | `npx prisma validate` | Passou | Schema válido. Isso não testa dados, migrations ou regras de negócio. |
-| `npm run lint` | Falhou | 294 erros e 152 avisos. Predominam `any`, regras React e variáveis não usadas. |
+| `npm run lint` | Falhou | 292 erros e 152 avisos. Predominam `any`, regras React e variáveis não usadas. |
 | `npm run build` | Passou | Build de produção gerado com Next.js 16.2.12. |
 | `npm audit --omit=dev` | Pendente de fornecedor | 11 alertas transitivos: 5 altos e 6 moderados na cadeia do `firebase-admin`. |
 | Testes automatizados | Não disponível | Não foram encontrados arquivos de teste nem script `test`. |

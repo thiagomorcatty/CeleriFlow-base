@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { AccessError, getCurrentTenantContext, type AppContext } from "@/lib/platform/tenant-context";
+import { AccessError, getCurrentTenantContext, isSystemAdministrator, type AppContext } from "@/lib/platform/tenant-context";
 
 export type AttendanceContext = AppContext & {
   attendanceAccess: {
@@ -14,7 +14,7 @@ export type AttendanceContext = AppContext & {
 export async function getAttendanceContext(required: "view" | "edit" = "view"): Promise<AttendanceContext> {
   const context = await getCurrentTenantContext();
   const role = context.user.role.toLowerCase();
-  const isAdmin = role.includes("administrador");
+  const isAdmin = isSystemAdministrator(context.user);
   const isManager = isAdmin || role.includes("gestor");
   const isOmbudsman = isAdmin || role.includes("ouvid");
 
@@ -22,14 +22,14 @@ export async function getAttendanceContext(required: "view" | "edit" = "view"): 
     return { ...context, attendanceAccess: { isAdmin, isManager, isOmbudsman, canView: true, canEdit: true } };
   }
 
-  const module = await context.prisma.configuracaoModulo.findUnique({
+  const moduleConfig = await context.prisma.configuracaoModulo.findUnique({
     where: { codigo: "ATENDIMENTO" },
     select: { id: true, ativo: true },
   });
-  if (!module?.ativo) throw new AccessError("Modulo de Atendimento indisponivel para este usuario.", 403);
+  if (!moduleConfig?.ativo) throw new AccessError("Modulo de Atendimento indisponivel para este usuario.", 403);
 
   const permission = await context.prisma.usuarioModulo.findUnique({
-    where: { usuarioId_moduloId: { usuarioId: context.user.id, moduloId: module.id } },
+    where: { usuarioId_moduloId: { usuarioId: context.user.id, moduloId: moduleConfig.id } },
     select: { canView: true, canEdit: true },
   });
   const canView = Boolean(permission?.canView || permission?.canEdit);

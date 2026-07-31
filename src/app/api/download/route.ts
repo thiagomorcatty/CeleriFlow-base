@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AccessError, getCurrentTenantContext } from "@/lib/platform/tenant-context";
+import { AccessError, getCurrentTenantContext, getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { downloadFilename, getFile } from "@/lib/platform/blob";
 import { getAttendanceContext, ombudsmanScope, ticketScope } from "@/lib/attendance/access";
+import { getProtocolContext, protocolScope } from "@/lib/protocols/access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,13 +19,15 @@ export async function GET(request: NextRequest) {
     const context = await getCurrentTenantContext();
     const document = await context.prisma.document.findFirst({
       where: { fileUrl: url },
-      select: { id: true, ticketLinks: { select: { ticketId: true } }, ombudsmanLinks: { select: { ombudsmanId: true } } },
+      select: {
+        id: true,
+        ticketLinks: { select: { ticketId: true } },
+        ombudsmanLinks: { select: { ombudsmanId: true } },
+        processDocuments: { select: { processId: true } },
+      },
     });
-    if (!document) return NextResponse.json({ error: "Documento nao encontrado" }, { status: 404 });
 
-    // Existing GED consumers retain their authenticated access. Documents linked to
-    // Atendimento/Ouvidoria additionally require access to a linked record.
-    if (document.ticketLinks.length || document.ombudsmanLinks.length) {
+    if (document && (document.ticketLinks.length || document.ombudsmanLinks.length)) {
       const attendance = await getAttendanceContext();
       const [ticket, ombudsman] = await Promise.all([
         document.ticketLinks.length
@@ -35,6 +38,27 @@ export async function GET(request: NextRequest) {
           : null,
       ]);
       if (!ticket && !ombudsman) throw new AccessError("Sem acesso ao documento vinculado.", 403);
+    } else if (document?.processDocuments.length) {
+      const protocol = await getProtocolContext();
+      const process = await protocol.prisma.process.findFirst({
+        where: {
+          AND: [
+            { id: { in: document.processDocuments.map((link) => link.processId) } },
+            protocolScope(protocol),
+          ],
+        },
+        select: { id: true },
+      });
+      if (!process) throw new AccessError("Sem acesso ao documento vinculado.", 403);
+    } else if (document) {
+      await getTenantContextForModule("DOCUMENTOS");
+    } else {
+      const envDocument = await context.prisma.envDocument.findFirst({
+        where: { fileUrl: url },
+        select: { id: true },
+      });
+      if (!envDocument) return NextResponse.json({ error: "Documento nao encontrado" }, { status: 404 });
+      await getTenantContextForModule("MEIO_AMBIENTE");
     }
     const response = await getFile(url);
 

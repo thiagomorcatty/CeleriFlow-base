@@ -2,7 +2,7 @@
 
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
-import { put } from "@vercel/blob";
+import { uploadFile } from "@/lib/platform/blob";
 
 async function getTenantPrisma() {
   return (await getTenantContextForModule("MEIO_AMBIENTE")).prisma;
@@ -418,7 +418,7 @@ export async function createEnvDocument(formData: FormData) {
   if (!title || !docType) return { error: "Titulo e Tipo de Documento sao obrigatorios." };
   if (!file || file.size === 0) return { error: "O envio do arquivo e obrigatorio." };
   try {
-    const blob = await put(`meio-ambiente/${file.name}`, file, { access: "public" });
+    const blob = await uploadFile(file);
     const envDoc = await prisma.envDocument.create({ data: { title, docType, fileUrl: blob.url, enterpriseId: enterpriseId || null } });
     revalidatePath("/meio-ambiente/documentos");
     revalidatePath("/meio-ambiente");
