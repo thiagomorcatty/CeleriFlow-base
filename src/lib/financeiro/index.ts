@@ -734,7 +734,7 @@ export async function updatePaymentStatus(db: PrismaClient, actor: FinanceActor,
       // Validação de saldo bancário no momento da efetivação "Paga"
       const currentBalance = await getBankAccountBalance(tx, payment.bankAccountId, payment.date);
       if (currentBalance.lessThan(netValue)) {
-        throw new FinanceError(`Saldo bancário insuficiente para efetivar a ordem de pagamento. Saldo disponível: R$ ${currentBankBalance.toFixed(2)}.`);
+        throw new FinanceError(`Saldo bancário insuficiente para efetivar a ordem de pagamento. Saldo disponível: R$ ${currentBalance.toFixed(2)}.`);
       }
 
       await tx.treasuryMovement.create({
