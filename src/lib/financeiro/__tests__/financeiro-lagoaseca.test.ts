@@ -21,7 +21,7 @@ import {
   generateBalancoOrcamentario,
   generateBalancoPatrimonial,
 } from "../relatorios-legais";
-import { createAnnualBudgetLaw, createBudgetAppropriationFromFixation, createBudgetGuideline, createMultiYearPlan } from "../planejamento";
+import { createAnnualBudgetLaw, createBudgetAppropriationFromFixation, createBudgetGuideline, createMultiYearPlan, saveBimonthlyRevenueTarget, saveMonthlyDisbursementSchedule } from "../planejamento";
 
 describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Estritas", () => {
   async function getActor(): Promise<FinanceActor> {
@@ -315,6 +315,23 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         initialValue: 100,
       });
       appropriationId = appropriation.id;
+      await saveMonthlyDisbursementSchedule(prisma, planningActor, {
+        annualBudgetLawId: loa.id,
+        month: 1,
+        budgetUnitId: budgetUnit.id,
+        limitValue: 40,
+      });
+      await saveMonthlyDisbursementSchedule(prisma, planningActor, {
+        annualBudgetLawId: loa.id,
+        month: 1,
+        budgetUnitId: budgetUnit.id,
+        limitValue: 60,
+      });
+      await saveBimonthlyRevenueTarget(prisma, planningActor, {
+        annualBudgetLawId: loa.id,
+        bimonth: 1,
+        targetValue: 100,
+      });
       await assert.rejects(
         () => createBudgetAppropriationFromFixation(prisma, planningActor, {
           annualBudgetExpenseFixationId: loa.expenseFixations[0].id,
@@ -329,11 +346,13 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
 
       const trace = await prisma.annualBudgetLaw.findUniqueOrThrow({
         where: { id: loa.id },
-        include: { budgetGuideline: { include: { multiYearPlan: true } }, expenseFixations: { include: { appropriations: true } } },
+        include: { budgetGuideline: { include: { multiYearPlan: true } }, expenseFixations: { include: { appropriations: true } }, cmdSchedules: true, mbaTargets: true },
       });
       assert.equal(trace.budgetGuideline?.multiYearPlan?.id, plan.id);
       assert.equal(trace.financialYearId, financialYear.id);
       assert.equal(trace.expenseFixations[0].appropriations[0]?.id, appropriation.id);
+      assert.equal(Number(trace.cmdSchedules[0]?.limitValue), 60);
+      assert.equal(Number(trace.mbaTargets[0]?.targetValue), 100);
     } finally {
       if (appropriationId) await prisma.budgetAppropriation.delete({ where: { id: appropriationId } });
       if (loaId) await prisma.annualBudgetLaw.delete({ where: { id: loaId } });

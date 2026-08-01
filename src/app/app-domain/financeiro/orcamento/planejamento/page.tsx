@@ -21,6 +21,8 @@ export default async function PlanejamentoPage() {
                     appropriations: { select: { id: true, initialValue: true, initialValueDecimal: true, code: true } },
                   },
                 },
+                cmdSchedules: { orderBy: { month: "asc" } },
+                mbaTargets: { orderBy: { bimonth: "asc" } },
               },
             },
           },
@@ -34,6 +36,7 @@ export default async function PlanejamentoPage() {
     context.prisma.resourceSource.findMany({ select: { id: true, code: true, name: true }, orderBy: { code: "asc" } }),
   ]);
 
+  const budgetUnitById = new Map(budgetUnits.map((unit) => [unit.id, unit]));
   const fixations = plans.flatMap((plan) => plan.budgetGuidelines.flatMap((guideline) => guideline.annualBudgetLaws.flatMap((law) => law.expenseFixations.map((fixation) => {
     const allocated = fixation.appropriations.reduce((total, appropriation) => total + Number(appropriation.initialValueDecimal ?? appropriation.initialValue), 0);
     return {
@@ -57,7 +60,13 @@ export default async function PlanejamentoPage() {
       guidelines: plan.budgetGuidelines.map((guideline) => ({
         id: guideline.id,
         financialYear: guideline.financialYear,
-        laws: guideline.annualBudgetLaws.map((law) => ({ id: law.id, lawNumber: law.lawNumber, publicationDate: law.publicationDate.toISOString() })),
+        laws: guideline.annualBudgetLaws.map((law) => ({
+          id: law.id,
+          lawNumber: law.lawNumber,
+          publicationDate: law.publicationDate.toISOString(),
+          cmdSchedules: law.cmdSchedules.map((schedule) => ({ id: schedule.id, month: schedule.month, limitValue: Number(schedule.limitValue), budgetUnit: budgetUnitById.get(schedule.budgetUnitId) ?? { code: "UG removida", name: "Unidade nao encontrada" } })),
+          mbaTargets: law.mbaTargets.map((target) => ({ id: target.id, bimonth: target.bimonth, targetValue: Number(target.targetValue) })),
+        })),
       })),
     }))}
     financialYears={financialYears}

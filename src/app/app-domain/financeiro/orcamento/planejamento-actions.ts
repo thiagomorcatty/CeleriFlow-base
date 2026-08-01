@@ -7,6 +7,8 @@ import {
   createBudgetGuideline,
   createAnnualBudgetLaw,
   createBudgetAppropriationFromFixation,
+  saveBimonthlyRevenueTarget,
+  saveMonthlyDisbursementSchedule,
   createCreditRequest,
   approveCreditRequest,
   executeCreditRequest,
@@ -135,6 +137,37 @@ export async function actionCreateBudgetAppropriationFromFixation(input: {
     return { data: { id: appropriation.id } };
   } catch (error) {
     return { error: errorMessage(error, "Nao foi possivel criar a dotacao orcamentaria.") };
+  }
+}
+
+export async function actionSaveMonthlyDisbursementSchedule(input: {
+  annualBudgetLawId: string;
+  month: number;
+  budgetUnitId: string;
+  limitValue: number;
+}): Promise<ActionResult<{ id: string }>> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const schedule = await saveMonthlyDisbursementSchedule(context.prisma, financeActor(context), input);
+    revalidatePath("/financeiro/orcamento/planejamento");
+    return { data: { id: schedule.id } };
+  } catch (error) {
+    return { error: errorMessage(error, "Nao foi possivel salvar o CMD.") };
+  }
+}
+
+export async function actionSaveBimonthlyRevenueTarget(input: {
+  annualBudgetLawId: string;
+  bimonth: number;
+  targetValue: number;
+}): Promise<ActionResult<{ id: string }>> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const target = await saveBimonthlyRevenueTarget(context.prisma, financeActor(context), input);
+    revalidatePath("/financeiro/orcamento/planejamento");
+    return { data: { id: target.id } };
+  } catch (error) {
+    return { error: errorMessage(error, "Nao foi possivel salvar a MBA.") };
   }
 }
 

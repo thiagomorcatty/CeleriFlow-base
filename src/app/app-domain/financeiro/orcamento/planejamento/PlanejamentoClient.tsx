@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { actionCreateAnnualBudgetLaw, actionCreateBudgetAppropriationFromFixation, actionCreateBudgetGuideline, actionCreateMultiYearPlan } from "../planejamento-actions";
+import { actionCreateAnnualBudgetLaw, actionCreateBudgetAppropriationFromFixation, actionCreateBudgetGuideline, actionCreateMultiYearPlan, actionSaveBimonthlyRevenueTarget, actionSaveMonthlyDisbursementSchedule } from "../planejamento-actions";
 
 type Option = { id: string; code: string; name: string };
 type Fixation = {
@@ -20,7 +20,7 @@ type Fixation = {
   annualBudgetLaw: { lawNumber: string; financialYear: number };
   plan: { code: string; name: string };
 };
-type Plan = { id: string; code: string; name: string; startYear: number; endYear: number; guidelines: { id: string; financialYear: { year: number; status: string }; laws: { id: string; lawNumber: string; publicationDate: string }[] }[] };
+type Plan = { id: string; code: string; name: string; startYear: number; endYear: number; guidelines: { id: string; financialYear: { year: number; status: string }; laws: { id: string; lawNumber: string; publicationDate: string; cmdSchedules: { id: string; month: number; limitValue: number; budgetUnit: { code: string; name: string } }[]; mbaTargets: { id: string; bimonth: number; targetValue: number }[] }[] }[] };
 type FinancialYear = { id: string; year: number; status: string };
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -38,8 +38,11 @@ export default function PlanejamentoClient({ plans, financialYears, fixations, b
   const [planForm, setPlanForm] = useState({ code: "", name: "", startYear: "", endYear: "", description: "" });
   const [guidelineForm, setGuidelineForm] = useState({ multiYearPlanId: "", financialYearId: "" });
   const [lawForm, setLawForm] = useState({ budgetGuidelineId: "", financialYearId: "", lawNumber: "", publicationDate: "", totalValue: 0, revenueCode: "", revenueName: "", expenseCode: "", expenseName: "" });
+  const [cmdForm, setCmdForm] = useState({ annualBudgetLawId: "", month: "1", budgetUnitId: "", limitValue: 0 });
+  const [mbaForm, setMbaForm] = useState({ annualBudgetLawId: "", bimonth: "1", targetValue: 0 });
   const [pending, setPending] = useState(false);
   const selectedFixation = fixations.find((fixation) => fixation.id === form.annualBudgetExpenseFixationId);
+  const laws = plans.flatMap((plan) => plan.guidelines.flatMap((guideline) => guideline.laws.map((law) => ({ ...law, year: guideline.financialYear.year, planCode: plan.code }))));
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -81,6 +84,22 @@ export default function PlanejamentoClient({ plans, financialYears, fixations, b
     setPending(false); if (result.error) return alert(result.error);
     setLawForm({ budgetGuidelineId: "", financialYearId: "", lawNumber: "", publicationDate: "", totalValue: 0, revenueCode: "", revenueName: "", expenseCode: "", expenseName: "" });
   };
+  const submitCmd = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!cmdForm.annualBudgetLawId || !cmdForm.budgetUnitId) return alert("Selecione a LOA e a unidade orcamentaria.");
+    setPending(true);
+    const result = await actionSaveMonthlyDisbursementSchedule({ ...cmdForm, month: Number(cmdForm.month) });
+    setPending(false); if (result.error) return alert(result.error);
+    setCmdForm({ annualBudgetLawId: "", month: "1", budgetUnitId: "", limitValue: 0 });
+  };
+  const submitMba = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!mbaForm.annualBudgetLawId) return alert("Selecione a LOA.");
+    setPending(true);
+    const result = await actionSaveBimonthlyRevenueTarget({ ...mbaForm, bimonth: Number(mbaForm.bimonth) });
+    setPending(false); if (result.error) return alert(result.error);
+    setMbaForm({ annualBudgetLawId: "", bimonth: "1", targetValue: 0 });
+  };
 
   return <div className="space-y-6 p-8 pt-6">
     <div>
@@ -121,9 +140,16 @@ export default function PlanejamentoClient({ plans, financialYears, fixations, b
       </CardContent>
     </Card>}
 
+    {canEdit && <div className="grid gap-4 xl:grid-cols-2">
+      <Card><CardHeader><CardTitle>CMD - Cronograma Mensal de Desembolso</CardTitle></CardHeader><CardContent><form onSubmit={submitCmd} className="grid gap-3 md:grid-cols-2"><Select value={cmdForm.annualBudgetLawId} onValueChange={(value) => setCmdForm({ ...cmdForm, annualBudgetLawId: value ?? "" })}><SelectTrigger><SelectValue placeholder="LOA" /></SelectTrigger><SelectContent>{laws.map((law) => <SelectItem key={law.id} value={law.id}>{law.year} / {law.lawNumber}</SelectItem>)}</SelectContent></Select><Select value={cmdForm.budgetUnitId} onValueChange={(value) => setCmdForm({ ...cmdForm, budgetUnitId: value ?? "" })}><SelectTrigger><SelectValue placeholder="Unidade orcamentaria" /></SelectTrigger><SelectContent>{budgetUnits.map((unit) => <SelectItem key={unit.id} value={unit.id}>{unit.code} - {unit.name}</SelectItem>)}</SelectContent></Select><Select value={cmdForm.month} onValueChange={(value) => setCmdForm({ ...cmdForm, month: value ?? "1" })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Array.from({ length: 12 }, (_, index) => <SelectItem key={index + 1} value={String(index + 1)}>Mes {index + 1}</SelectItem>)}</SelectContent></Select><MoneyInput value={cmdForm.limitValue} onChange={(limitValue) => setCmdForm({ ...cmdForm, limitValue })} /><Button type="submit" disabled={pending}>{pending ? "Salvando..." : "Salvar CMD"}</Button></form></CardContent></Card>
+      <Card><CardHeader><CardTitle>MBA - Meta Bimestral de Arrecadacao</CardTitle></CardHeader><CardContent><form onSubmit={submitMba} className="grid gap-3 md:grid-cols-2"><Select value={mbaForm.annualBudgetLawId} onValueChange={(value) => setMbaForm({ ...mbaForm, annualBudgetLawId: value ?? "" })}><SelectTrigger><SelectValue placeholder="LOA" /></SelectTrigger><SelectContent>{laws.map((law) => <SelectItem key={law.id} value={law.id}>{law.year} / {law.lawNumber}</SelectItem>)}</SelectContent></Select><Select value={mbaForm.bimonth} onValueChange={(value) => setMbaForm({ ...mbaForm, bimonth: value ?? "1" })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Array.from({ length: 6 }, (_, index) => <SelectItem key={index + 1} value={String(index + 1)}>{index + 1}o bimestre</SelectItem>)}</SelectContent></Select><MoneyInput value={mbaForm.targetValue} onChange={(targetValue) => setMbaForm({ ...mbaForm, targetValue })} /><Button type="submit" disabled={pending}>{pending ? "Salvando..." : "Salvar MBA"}</Button></form></CardContent></Card>
+    </div>}
+
     <Card>
       <CardHeader><CardTitle>Fixações e Alocações</CardTitle></CardHeader>
       <CardContent><Table><TableHeader><TableRow><TableHead>PPA</TableHead><TableHead>LOA</TableHead><TableHead>Fixação</TableHead><TableHead className="text-right">Fixado</TableHead><TableHead className="text-right">Alocado</TableHead><TableHead className="text-right">Disponível</TableHead></TableRow></TableHeader><TableBody>{fixations.length === 0 ? <TableRow><TableCell colSpan={6} className="h-20 text-center text-muted-foreground">Nenhuma fixação de despesa vinculada a um PPA/LDO/LOA.</TableCell></TableRow> : fixations.map((fixation) => <TableRow key={fixation.id}><TableCell>{fixation.plan.code}</TableCell><TableCell>{fixation.annualBudgetLaw.financialYear} / {fixation.annualBudgetLaw.lawNumber}</TableCell><TableCell>{fixation.code} - {fixation.name}</TableCell><TableCell className="text-right">{currency.format(fixation.fixedValue)}</TableCell><TableCell className="text-right">{currency.format(fixation.allocatedValue)}</TableCell><TableCell className="text-right">{currency.format(fixation.fixedValue - fixation.allocatedValue)}</TableCell></TableRow>)}</TableBody></Table></CardContent>
     </Card>
+
+    <Card><CardHeader><CardTitle>CMD e MBA Registrados</CardTitle></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>LOA</TableHead><TableHead>CMD</TableHead><TableHead>MBA</TableHead></TableRow></TableHeader><TableBody>{laws.length === 0 ? <TableRow><TableCell colSpan={3} className="h-20 text-center text-muted-foreground">Nenhuma LOA vinculada a PPA/LDO.</TableCell></TableRow> : laws.map((law) => <TableRow key={law.id}><TableCell>{law.year} / {law.lawNumber}</TableCell><TableCell>{law.cmdSchedules.length === 0 ? "Sem CMD" : law.cmdSchedules.map((schedule) => <p key={schedule.id}>Mes {schedule.month}: {schedule.budgetUnit.code} - {currency.format(schedule.limitValue)}</p>)}</TableCell><TableCell>{law.mbaTargets.length === 0 ? "Sem MBA" : law.mbaTargets.map((target) => <p key={target.id}>{target.bimonth}o bim.: {currency.format(target.targetValue)}</p>)}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
   </div>;
 }

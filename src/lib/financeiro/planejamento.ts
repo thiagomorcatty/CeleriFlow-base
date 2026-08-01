@@ -31,6 +31,14 @@ function requirePositiveMoney(value: number, field: string) {
   return decimal.toDecimalPlaces(2);
 }
 
+function requireNonNegativeMoney(value: number, field: string) {
+  const decimal = new Prisma.Decimal(value);
+  if (!decimal.isFinite() || decimal.lessThan(0)) {
+    throw new FinanceError(`${field} deve ser maior ou igual a zero.`);
+  }
+  return decimal.toDecimalPlaces(2);
+}
+
 function assertBudgetUnitPermission(actor: FinanceActor, budgetUnitId: string) {
   if (actor.allowedBudgetUnitIds && !actor.allowedBudgetUnitIds.includes(budgetUnitId)) {
     throw new FinanceError("Acesso negado à unidade gestora da dotação.");
@@ -353,6 +361,62 @@ export async function createBudgetAppropriationFromFixation(
       appropriation.budgetUnitId,
     );
     return appropriation;
+  });
+}
+
+export async function saveMonthlyDisbursementSchedule(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: { annualBudgetLawId: string; month: number; budgetUnitId: string; limitValue: number },
+) {
+  if (!Number.isInteger(input.month) || input.month < 1 || input.month > 12) {
+    throw new FinanceError("O mes do CMD deve estar entre 1 e 12.");
+  }
+  if (!input.annualBudgetLawId) throw new FinanceError("Selecione a LOA.");
+  if (!input.budgetUnitId) throw new FinanceError("Selecione a unidade orcamentaria.");
+  const limitValue = requireNonNegativeMoney(input.limitValue, "Limite mensal de desembolso");
+  assertBudgetUnitPermission(actor, input.budgetUnitId);
+
+  return db.$transaction(async (tx) => {
+    const [law, budgetUnit] = await Promise.all([
+      tx.annualBudgetLaw.findUnique({ where: { id: input.annualBudgetLawId }, select: { id: true, financialYearId: true } }),
+      tx.budgetUnit.findUnique({ where: { id: input.budgetUnitId }, select: { id: true } }),
+    ]);
+    if (!law) throw new FinanceError("LOA nao encontrada.");
+    if (!budgetUnit) throw new FinanceError("Unidade orcamentaria nao encontrada.");
+    await assertFinancialYearPlanningEligible(tx, law.financialYearId);
+    const schedule = await tx.monthlyDisbursementSchedule.upsert({
+      where: { annualBudgetLawId_month_budgetUnitId: { annualBudgetLawId: law.id, month: input.month, budgetUnitId: budgetUnit.id } },
+      create: { annualBudgetLawId: law.id, month: input.month, budgetUnitId: budgetUnit.id, limitValue },
+      update: { limitValue },
+    });
+    await audit(tx, actor, "UPSERT", "MonthlyDisbursementSchedule", schedule.id, { annualBudgetLawId: law.id, month: input.month, limitValue: limitValue.toFixed(2) }, law.financialYearId, budgetUnit.id);
+    return schedule;
+  });
+}
+
+export async function saveBimonthlyRevenueTarget(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: { annualBudgetLawId: string; bimonth: number; targetValue: number },
+) {
+  if (!Number.isInteger(input.bimonth) || input.bimonth < 1 || input.bimonth > 6) {
+    throw new FinanceError("O bimestre da MBA deve estar entre 1 e 6.");
+  }
+  if (!input.annualBudgetLawId) throw new FinanceError("Selecione a LOA.");
+  const targetValue = requireNonNegativeMoney(input.targetValue, "Meta bimestral de arrecadacao");
+
+  return db.$transaction(async (tx) => {
+    const law = await tx.annualBudgetLaw.findUnique({ where: { id: input.annualBudgetLawId }, select: { id: true, financialYearId: true } });
+    if (!law) throw new FinanceError("LOA nao encontrada.");
+    await assertFinancialYearPlanningEligible(tx, law.financialYearId);
+    const target = await tx.bimonthlyRevenueTarget.upsert({
+      where: { annualBudgetLawId_bimonth: { annualBudgetLawId: law.id, bimonth: input.bimonth } },
+      create: { annualBudgetLawId: law.id, bimonth: input.bimonth, targetValue },
+      update: { targetValue },
+    });
+    await audit(tx, actor, "UPSERT", "BimonthlyRevenueTarget", target.id, { annualBudgetLawId: law.id, bimonth: input.bimonth, targetValue: targetValue.toFixed(2) }, law.financialYearId);
+    return target;
   });
 }
 
