@@ -1,5 +1,4 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
-import { FinanceActor, FinanceError } from "./index";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -34,6 +33,7 @@ export function calculateRetentions(
 }
 
 export async function getActiveRetentionRules(tx: Db) {
+  void tx;
   // Regras de retenção tributárias municipais e federais padrão
   return [
     { type: "INSS" as RetentionType, description: "Retenção INSS Serviços (11%)", calculationBasePercentage: 100, ratePercentage: 11.0 },

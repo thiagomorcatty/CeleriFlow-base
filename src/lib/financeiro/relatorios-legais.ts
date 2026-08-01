@@ -1,5 +1,4 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
-import { FinanceError } from "./index";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -10,14 +9,27 @@ export type ReportFilter = {
   budgetUnitId?: string;
 };
 
+function dateFilter(filter: ReportFilter) {
+  return {
+    ...(filter.startDate ? { gte: filter.startDate } : {}),
+    ...(filter.endDate ? { lte: filter.endDate } : {}),
+  };
+}
+
+function assertAccountingUnitFilterUnsupported(filter: ReportFilter) {
+  if (filter.budgetUnitId) {
+    throw new Error("Relatórios contábeis por unidade gestora exigem o vínculo da unidade ao lançamento contábil e não podem ser gerados com dados consolidados.");
+  }
+}
+
 // --- Diário Contábil ---
 export async function generateDiarioContabil(db: Db, filter: ReportFilter) {
+  assertAccountingUnitFilterUnsupported(filter);
   const transactions = await db.accountingTransaction.findMany({
     where: {
       financialYearId: filter.financialYearId,
-      ...(filter.startDate && filter.endDate
-        ? { date: { gte: filter.startDate, lte: filter.endDate } }
-        : {}),
+      status: "POSTADO",
+      ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
     },
     include: {
       entries: {
@@ -43,13 +55,13 @@ export async function generateDiarioContabil(db: Db, filter: ReportFilter) {
 
 // --- Razão Contábil ---
 export async function generateRazaoContabil(db: Db, filter: ReportFilter & { accountId?: string }) {
+  assertAccountingUnitFilterUnsupported(filter);
   const entries = await db.accountingEntry.findMany({
     where: {
       transaction: {
         financialYearId: filter.financialYearId,
-        ...(filter.startDate && filter.endDate
-          ? { date: { gte: filter.startDate, lte: filter.endDate } }
-          : {}),
+        status: "POSTADO",
+        ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
       },
       ...(filter.accountId ? { accountId: filter.accountId } : {}),
     },
@@ -73,12 +85,15 @@ export async function generateRazaoContabil(db: Db, filter: ReportFilter & { acc
 
 // --- Balancete Contábil ---
 export async function generateBalanceteContabil(db: Db, filter: ReportFilter) {
+  assertAccountingUnitFilterUnsupported(filter);
   const accounts = await db.accountingPlan.findMany({
     include: {
       entries: {
         where: {
           transaction: {
             financialYearId: filter.financialYearId,
+            status: "POSTADO",
+            ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
           },
         },
       },
@@ -108,18 +123,37 @@ export async function generateBalanceteContabil(db: Db, filter: ReportFilter) {
 
 // --- Relatório Resumido da Execução Orçamentária (RREO) ---
 export async function generateRREO(db: Db, filter: ReportFilter) {
+  if (filter.budgetUnitId) {
+    throw new Error("O modelo de receitas ainda não identifica a unidade gestora; o RREO por unidade não pode ser gerado com dados de outra unidade.");
+  }
+  if (filter.startDate || filter.endDate) {
+    throw new Error("O modelo atual não preserva os saldos históricos necessários para um RREO por período. Gere o demonstrativo anual até a implantação desse histórico.");
+  }
+
   const [appropriations, revenues] = await Promise.all([
     db.budgetAppropriation.findMany({
       where: {
         financialYearId: filter.financialYearId,
-        ...(filter.budgetUnitId ? { budgetUnitId: filter.budgetUnitId } : {}),
       },
       include: {
         expenseNature: true,
         commitments: {
+          where: {
+            status: { in: ["Emitido", "Liquidado", "Pago"] },
+          },
           include: {
             settlements: {
-              include: { payments: true },
+              where: {
+                status: "Liquidado",
+              },
+              include: {
+                payments: {
+                  where: { status: "Paga" },
+                },
+              },
+            },
+            payments: {
+              where: { status: "Paga" },
             },
           },
         },
@@ -128,12 +162,13 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
     db.revenue.findMany({
       where: {
         financialYearId: filter.financialYearId,
+        status: "Arrecadada",
       },
       include: { revenueNature: true },
     }),
   ]);
 
-  const expenseSummary = appropriations.map((app) => {
+  const expenses = appropriations.map((app) => {
     const fixedValue = Number(app.initialValueDecimal ?? app.initialValue);
     const updatedValue = Number(app.updatedValueDecimal ?? app.updatedValue);
     const committedValue = Number(app.committedValueDecimal ?? app.committedValue);
@@ -146,18 +181,7 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
     }, 0);
 
     const paidValue = app.commitments.reduce((sum, c) => {
-      return (
-        sum +
-        c.settlements.reduce(
-          (sSum, s) =>
-            sSum +
-            s.payments.reduce(
-              (pSum, p) => pSum + Number(p.valueDecimal ?? p.value),
-              0,
-            ),
-          0,
-        )
-      );
+      return sum + c.payments.reduce((pSum, p) => pSum + Number(p.valueDecimal ?? p.value), 0);
     }, 0);
 
     return {
@@ -171,11 +195,30 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
     };
   });
 
-  const revenueSummary = revenues.map((rev) => ({
-    revenueNatureCode: rev.revenueNature.code,
-    revenueNatureName: rev.revenueNature.name,
-    realizedValue: Number(rev.valueDecimal ?? rev.value),
-  }));
+  const expenseSummary = Object.values(expenses.reduce<Record<string, (typeof expenses)[number]>>((summary, item) => {
+    const current = summary[item.expenseNatureCode];
+    summary[item.expenseNatureCode] = current
+      ? {
+          ...current,
+          fixedValue: current.fixedValue + item.fixedValue,
+          updatedValue: current.updatedValue + item.updatedValue,
+          committedValue: current.committedValue + item.committedValue,
+          settledValue: current.settledValue + item.settledValue,
+          paidValue: current.paidValue + item.paidValue,
+        }
+      : item;
+    return summary;
+  }, {}));
+
+  const revenueSummary = Object.values(revenues.reduce<Record<string, { revenueNatureCode: string; revenueNatureName: string; realizedValue: number }>>((summary, rev) => {
+    const key = rev.revenueNature.code;
+    const current = summary[key];
+    const realizedValue = Number(rev.valueDecimal ?? rev.value);
+    summary[key] = current
+      ? { ...current, realizedValue: current.realizedValue + realizedValue }
+      : { revenueNatureCode: key, revenueNatureName: rev.revenueNature.name, realizedValue };
+    return summary;
+  }, {}));
 
   return {
     expenseSummary,

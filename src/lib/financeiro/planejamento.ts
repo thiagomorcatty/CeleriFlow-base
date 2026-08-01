@@ -1,7 +1,36 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
-import { assertFinancialYearOpen, FinanceActor, FinanceError, createBudgetMovement } from "./index";
+import { assertFinancialYearOpen, FinanceActor, FinanceError, createBudgetMovementInTransaction } from "./index";
 
 type Db = PrismaClient | Prisma.TransactionClient;
+
+const creditTypes = ["Suplementar", "Especial", "Extraordinário", "Remanejamento", "Transposição", "Transferência"] as const;
+const creditItemTypes = ["Acréscimo", "Anulação"] as const;
+
+type CreditType = (typeof creditTypes)[number];
+type CreditItemType = (typeof creditItemTypes)[number];
+
+function requireText(value: string, field: string) {
+  if (!value.trim()) throw new FinanceError(`${field} é obrigatório.`);
+  return value.trim();
+}
+
+function requirePositiveMoney(value: number, field: string) {
+  const decimal = new Prisma.Decimal(value);
+  if (!decimal.isFinite() || decimal.lessThanOrEqualTo(0)) {
+    throw new FinanceError(`${field} deve ser maior que zero.`);
+  }
+  return decimal.toDecimalPlaces(2);
+}
+
+function assertBudgetUnitPermission(actor: FinanceActor, budgetUnitId: string) {
+  if (actor.allowedBudgetUnitIds && !actor.allowedBudgetUnitIds.includes(budgetUnitId)) {
+    throw new FinanceError("Acesso negado à unidade gestora da dotação.");
+  }
+}
+
+async function lockCreditRequest(tx: Prisma.TransactionClient, creditRequestId: string) {
+  await tx.$queryRaw`SELECT id FROM "CreditRequest" WHERE id = ${creditRequestId} FOR UPDATE`;
+}
 
 async function audit(
   tx: Db,
@@ -39,6 +68,8 @@ export async function createMultiYearPlan(
     description?: string;
   },
 ) {
+  requireText(input.code, "Código do PPA");
+  requireText(input.name, "Nome do PPA");
   if (input.endYear <= input.startYear) {
     throw new FinanceError("O ano final do PPA deve ser maior que o ano inicial.");
   }
@@ -72,6 +103,8 @@ export async function addProgramPPA(
     type?: string;
   },
 ) {
+  requireText(input.code, "Código do programa");
+  requireText(input.name, "Nome do programa");
   return db.$transaction(async (tx) => {
     const plan = await tx.multiYearPlan.findUnique({ where: { id: input.multiYearPlanId } });
     if (!plan) throw new FinanceError("Plano Plurianual não encontrado.");
@@ -103,19 +136,27 @@ export async function createBudgetGuideline(
 ) {
   return db.$transaction(async (tx) => {
     await assertFinancialYearOpen(tx, input.financialYearId, new Date());
+    const priorities = input.priorities ?? [];
+    const risks = input.risks ?? [];
+    for (const priority of priorities) requireText(priority.description, "Descrição da prioridade");
+    for (const risk of risks) {
+      requireText(risk.description, "Descrição do risco");
+      requireText(risk.mitigation, "Mitigação do risco");
+      requirePositiveMoney(risk.estimatedImpact, "Impacto estimado do risco");
+    }
     const guideline = await tx.budgetGuideline.create({
       data: {
         financialYearId: input.financialYearId,
         priorities: {
-          create: input.priorities?.map((p) => ({
+          create: priorities.map((p) => ({
             description: p.description.trim(),
-            targetValue: p.targetValue ? new Prisma.Decimal(p.targetValue) : undefined,
+            targetValue: p.targetValue === undefined ? undefined : requirePositiveMoney(p.targetValue, "Meta da prioridade"),
           })),
         },
         risks: {
-          create: input.risks?.map((r) => ({
+          create: risks.map((r) => ({
             description: r.description.trim(),
-            estimatedImpact: new Prisma.Decimal(r.estimatedImpact),
+            estimatedImpact: requirePositiveMoney(r.estimatedImpact, "Impacto estimado do risco"),
             mitigation: r.mitigation.trim(),
           })),
         },
@@ -143,11 +184,35 @@ export async function createAnnualBudgetLaw(
     expenseFixations?: { code: string; name: string; fixedValue: number }[];
   },
 ) {
+  requireText(input.lawNumber, "Número da LOA");
+  if (Number.isNaN(input.publicationDate.getTime())) {
+    throw new FinanceError("Data de publicação da LOA inválida.");
+  }
   const revenue = new Prisma.Decimal(input.totalRevenue);
   const expense = new Prisma.Decimal(input.totalExpense);
 
+  if (!revenue.isFinite() || !expense.isFinite() || revenue.lessThanOrEqualTo(0) || expense.lessThanOrEqualTo(0)) {
+    throw new FinanceError("Os totais da LOA devem ser maiores que zero.");
+  }
   if (!revenue.equals(expense)) {
     throw new FinanceError("O valor total da receita prevista deve ser igual ao valor total da despesa fixada (Equilíbrio Orçamentário).");
+  }
+
+  const revenueForecasts = input.revenueForecasts ?? [];
+  const expenseFixations = input.expenseFixations ?? [];
+  if (!revenueForecasts.length || !expenseFixations.length) {
+    throw new FinanceError("Informe a previsão de receita e a fixação de despesa que compõem a LOA.");
+  }
+  const forecastTotal = revenueForecasts.reduce(
+    (sum, item) => sum.plus(requirePositiveMoney(item.estimatedValue, "Valor previsto da receita")),
+    new Prisma.Decimal(0),
+  );
+  const fixationTotal = expenseFixations.reduce(
+    (sum, item) => sum.plus(requirePositiveMoney(item.fixedValue, "Valor fixado da despesa")),
+    new Prisma.Decimal(0),
+  );
+  if (!forecastTotal.equals(revenue) || !fixationTotal.equals(expense)) {
+    throw new FinanceError("Os totais informados devem corresponder à soma das previsões e fixações da LOA.");
   }
 
   return db.$transaction(async (tx) => {
@@ -161,17 +226,17 @@ export async function createAnnualBudgetLaw(
         totalRevenue: revenue,
         totalExpense: expense,
         revenueForecasts: {
-          create: input.revenueForecasts?.map((r) => ({
-            code: r.code.trim(),
-            name: r.name.trim(),
-            estimatedValue: new Prisma.Decimal(r.estimatedValue),
+          create: revenueForecasts.map((r) => ({
+            code: requireText(r.code, "Código da previsão de receita"),
+            name: requireText(r.name, "Nome da previsão de receita"),
+            estimatedValue: requirePositiveMoney(r.estimatedValue, "Valor previsto da receita"),
           })),
         },
         expenseFixations: {
-          create: input.expenseFixations?.map((e) => ({
-            code: e.code.trim(),
-            name: e.name.trim(),
-            fixedValue: new Prisma.Decimal(e.fixedValue),
+          create: expenseFixations.map((e) => ({
+            code: requireText(e.code, "Código da fixação de despesa"),
+            name: requireText(e.name, "Nome da fixação de despesa"),
+            fixedValue: requirePositiveMoney(e.fixedValue, "Valor fixado da despesa"),
           })),
         },
       },
@@ -191,22 +256,35 @@ export async function createCreditRequest(
   input: {
     number: string;
     financialYearId: string;
-    type: "Suplementar" | "Especial" | "Extraordinário" | "Remanejamento" | "Transposição" | "Transferência";
+    type: CreditType;
     lawNumber?: string;
     justification: string;
-    items: { appropriationId: string; type: "Acréscimo" | "Anulação"; value: number }[];
+    items: { appropriationId: string; type: CreditItemType; value: number }[];
   },
 ) {
+  const number = requireText(input.number, "Número do crédito");
+  const justification = requireText(input.justification, "Justificativa do crédito");
+  if (!creditTypes.includes(input.type)) throw new FinanceError("Tipo de crédito adicional inválido.");
   if (input.items.length === 0) {
     throw new FinanceError("Informe ao menos um item de acréscimo ou anulação na solicitação de crédito.");
   }
 
+  for (const item of input.items) {
+    if (!item.appropriationId) throw new FinanceError("Selecione a dotação de cada item do crédito.");
+    if (!creditItemTypes.includes(item.type)) throw new FinanceError("Tipo de item do crédito inválido.");
+    requirePositiveMoney(item.value, "Valor do item do crédito");
+  }
+
   const acrescimo = input.items
     .filter((i) => i.type === "Acréscimo")
-    .reduce((sum, i) => sum.plus(new Prisma.Decimal(i.value)), new Prisma.Decimal(0));
+    .reduce((sum, i) => sum.plus(requirePositiveMoney(i.value, "Valor do item do crédito")), new Prisma.Decimal(0));
   const anulacao = input.items
     .filter((i) => i.type === "Anulação")
-    .reduce((sum, i) => sum.plus(new Prisma.Decimal(i.value)), new Prisma.Decimal(0));
+    .reduce((sum, i) => sum.plus(requirePositiveMoney(i.value, "Valor do item do crédito")), new Prisma.Decimal(0));
+
+  if (acrescimo.lessThanOrEqualTo(0)) {
+    throw new FinanceError("O crédito adicional deve possuir ao menos um acréscimo.");
+  }
 
   if (input.type === "Remanejamento" || input.type === "Transposição" || input.type === "Transferência") {
     if (!acrescimo.equals(anulacao)) {
@@ -217,23 +295,37 @@ export async function createCreditRequest(
   return db.$transaction(async (tx) => {
     await assertFinancialYearOpen(tx, input.financialYearId, new Date());
 
-    const existing = await tx.creditRequest.findUnique({ where: { number: input.number } });
-    if (existing) throw new FinanceError(`Já existe uma solicitação de crédito com o número ${input.number}.`);
+    const appropriations = await tx.budgetAppropriation.findMany({
+      where: { id: { in: input.items.map((item) => item.appropriationId) } },
+      select: { id: true, financialYearId: true, budgetUnitId: true },
+    });
+    if (appropriations.length !== new Set(input.items.map((item) => item.appropriationId)).size) {
+      throw new FinanceError("Uma ou mais dotações informadas não foram encontradas.");
+    }
+    for (const appropriation of appropriations) {
+      if (appropriation.financialYearId !== input.financialYearId) {
+        throw new FinanceError("Todas as dotações do crédito devem pertencer ao exercício financeiro selecionado.");
+      }
+      assertBudgetUnitPermission(actor, appropriation.budgetUnitId);
+    }
+
+    const existing = await tx.creditRequest.findUnique({ where: { number } });
+    if (existing) throw new FinanceError(`Já existe uma solicitação de crédito com o número ${number}.`);
 
     const credit = await tx.creditRequest.create({
       data: {
-        number: input.number.trim(),
+        number,
         financialYearId: input.financialYearId,
         type: input.type,
         lawNumber: input.lawNumber?.trim(),
-        justification: input.justification.trim(),
+        justification,
         totalValue: acrescimo,
         requestedById: actor.usuarioId,
         items: {
           create: input.items.map((item) => ({
             appropriationId: item.appropriationId,
             type: item.type,
-            value: new Prisma.Decimal(item.value),
+            value: requirePositiveMoney(item.value, "Valor do item do crédito"),
           })),
         },
       },
@@ -251,22 +343,33 @@ export async function approveCreditRequest(
   creditRequestId: string,
 ) {
   return db.$transaction(async (tx) => {
-    const credit = await tx.creditRequest.findUnique({ where: { id: creditRequestId }, include: { items: true } });
+    await lockCreditRequest(tx, creditRequestId);
+    const credit = await tx.creditRequest.findUnique({
+      where: { id: creditRequestId },
+      include: { items: { include: { appropriation: { select: { financialYearId: true, budgetUnitId: true } } } } },
+    });
     if (!credit) throw new FinanceError("Solicitação de crédito adicional não encontrada.");
     if (credit.status !== "Solicitado") throw new FinanceError(`A solicitação de crédito já está em status ${credit.status}.`);
+    await assertFinancialYearOpen(tx, credit.financialYearId, new Date());
+    for (const item of credit.items) {
+      if (item.appropriation.financialYearId !== credit.financialYearId) {
+        throw new FinanceError("A solicitação possui dotação de exercício divergente e não pode ser aprovada.");
+      }
+      assertBudgetUnitPermission(actor, item.appropriation.budgetUnitId);
+    }
 
     // Regra de Segregação: O solicitante NÃO pode aprovar a própria solicitação.
     if (credit.requestedById === actor.usuarioId) {
       throw new FinanceError("Segregação de Funções: O usuário solicitante não pode aprovar a própria solicitação de crédito.");
     }
 
-    const updated = await tx.creditRequest.update({
-      where: { id: creditRequestId },
-      data: {
-        status: "Aprovado",
-        approvedById: actor.usuarioId,
-      },
+    const approved = await tx.creditRequest.updateMany({
+      where: { id: creditRequestId, status: "Solicitado" },
+      data: { status: "Aprovado", approvedById: actor.usuarioId },
     });
+    if (approved.count !== 1) throw new FinanceError("A solicitação foi alterada por outro usuário. Atualize a página e tente novamente.");
+
+    const updated = await tx.creditRequest.findUniqueOrThrow({ where: { id: creditRequestId } });
 
     await audit(tx, actor, "APPROVE", "CreditRequest", credit.id, { approvedBy: actor.usuarioId }, credit.financialYearId);
     return updated;
@@ -279,13 +382,31 @@ export async function executeCreditRequest(
   creditRequestId: string,
 ) {
   return db.$transaction(async (tx) => {
-    const credit = await tx.creditRequest.findUnique({ where: { id: creditRequestId }, include: { items: true } });
+    await lockCreditRequest(tx, creditRequestId);
+    const credit = await tx.creditRequest.findUnique({
+      where: { id: creditRequestId },
+      include: { items: { include: { appropriation: { select: { financialYearId: true, budgetUnitId: true } } } } },
+    });
     if (!credit) throw new FinanceError("Solicitação de crédito adicional não encontrada.");
     if (credit.status !== "Aprovado") throw new FinanceError("A solicitação de crédito deve estar Aprovada para ser efetivada.");
+    await assertFinancialYearOpen(tx, credit.financialYearId, new Date());
 
-    for (const item of credit.items) {
-      const movementType = item.type === "Acréscimo" ? "Suplementação" : "Anulação";
-      await createBudgetMovement(tx as unknown as PrismaClient, actor, {
+    const increaseMovementType: Record<CreditType, string> = {
+      Suplementar: "Suplementação",
+      Especial: "Especial",
+      Extraordinário: "Extraordinário",
+      Remanejamento: "Remanejamento",
+      Transposição: "Transposição",
+      Transferência: "Transferência",
+    };
+
+    for (const item of [...credit.items].sort((a, b) => a.appropriationId.localeCompare(b.appropriationId))) {
+      if (item.appropriation.financialYearId !== credit.financialYearId) {
+        throw new FinanceError("A solicitação possui dotação de exercício divergente e não pode ser efetivada.");
+      }
+      assertBudgetUnitPermission(actor, item.appropriation.budgetUnitId);
+      const movementType = item.type === "Acréscimo" ? increaseMovementType[credit.type as CreditType] : "Anulação";
+      await createBudgetMovementInTransaction(tx, actor, {
         date: new Date(),
         type: movementType,
         value: item.value,
@@ -295,13 +416,17 @@ export async function executeCreditRequest(
         sourceType: "CREDIT_REQUEST",
         sourceId: credit.id,
         eventType: "CREDIT_EXECUTED",
+        idempotencyKey: `CREDIT_REQUEST:${credit.id}:${item.id}`,
       });
     }
 
-    const executed = await tx.creditRequest.update({
-      where: { id: creditRequestId },
+    const execution = await tx.creditRequest.updateMany({
+      where: { id: creditRequestId, status: "Aprovado" },
       data: { status: "Efetivado" },
     });
+    if (execution.count !== 1) throw new FinanceError("A solicitação foi alterada por outro usuário. Atualize a página e tente novamente.");
+
+    const executed = await tx.creditRequest.findUniqueOrThrow({ where: { id: creditRequestId } });
 
     await audit(tx, actor, "EXECUTE", "CreditRequest", credit.id, {}, credit.financialYearId);
     return executed;

@@ -1,9 +1,14 @@
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModule, isSystemAdministrator } from "@/lib/platform/tenant-context";
 import PagamentosClient from "./PagamentosClient"
 
 export default async function PagamentosPage() {
-  const { prisma } = await getTenantContextForModule("FINANCEIRO");
+  const context = await getTenantContextForModule("FINANCEIRO");
+  const { prisma } = context;
+  const appropriationFilter = isSystemAdministrator(context.user)
+    ? {}
+    : { budgetUnitId: { in: context.user.allowedBudgetUnitIds } };
   const payments = await prisma.payment.findMany({
+    where: { commitment: { appropriation: appropriationFilter } },
     include: {
       commitment: true,
       settlement: { select: { id: true, documentRef: true, valueDecimal: true, value: true } },
@@ -25,12 +30,13 @@ export default async function PagamentosPage() {
   const commitments = await prisma.commitment.findMany({
     where: {
       status: { in: ["Emitido", "Liquidado", "Pago"] }
+      , appropriation: appropriationFilter
     },
     include: { movements: { select: { type: true, valueDecimal: true } } },
   })
 
   const settlements = await prisma.settlement.findMany({
-    where: { status: "Liquidado" },
+    where: { status: "Liquidado", commitment: { appropriation: appropriationFilter } },
     select: {
       id: true,
       commitmentId: true,

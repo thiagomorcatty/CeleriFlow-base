@@ -8,7 +8,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cancelBudgetReservationAction, createBudgetMovementAction, createBudgetReservationAction, setFinancialYearStatusAction } from "./actions";
@@ -29,16 +28,41 @@ type Appropriation = {
   availableValue: number;
 };
 
+type Reservation = {
+  id: string;
+  number: string;
+  value: number;
+  status: string;
+  appropriation: { code: string };
+};
+
+type FinancialYear = {
+  id: string;
+  year: number;
+  status: string;
+};
+
+type CreditRequest = {
+  id: string;
+  number: string;
+  type: string;
+  justification: string;
+  totalValue: number;
+  status: string;
+};
+
 export default function OrcamentoClient({
   appropriations,
   reservations,
   financialYears,
   creditRequests = [],
+  canEdit,
 }: {
   appropriations: Appropriation[];
-  reservations: any[];
-  financialYears: any[];
-  creditRequests?: any[];
+  reservations: Reservation[];
+  financialYears: FinancialYear[];
+  creditRequests?: CreditRequest[];
+  canEdit: boolean;
 }) {
   const [movement, setMovement] = useState({ appropriationId: "", type: "Suplementação", value: 0, justification: "" });
   const [reservation, setReservation] = useState({ number: "", appropriationId: "", value: 0, justification: "" });
@@ -92,7 +116,7 @@ export default function OrcamentoClient({
           <p className="text-muted-foreground">Gestão de dotações orçamentárias e alterações com segregação de funções</p>
         </div>
         <div className="flex items-center gap-2">
-          {activeYear && (
+          {activeYear && canEdit && (
             <CreditRequestDialog
               financialYearId={activeYear.id}
               appropriations={appropriations}
@@ -102,12 +126,12 @@ export default function OrcamentoClient({
         </div>
       </div>
 
-      <Card><CardHeader><CardTitle>Exercícios Financeiros</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{financialYears.map(year => <div key={year.id} className="flex items-center justify-between rounded border p-3"><span className="font-medium">{year.year}</span><Select value={year.status} onValueChange={status => status && changeYearStatus(year.id, status)}><SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Preparação">Preparação</SelectItem><SelectItem value="Aberto">Aberto</SelectItem><SelectItem value="Em Encerramento">Em Encerramento</SelectItem><SelectItem value="Encerrado">Encerrado</SelectItem></SelectContent></Select></div>)}</CardContent></Card>
+       <Card><CardHeader><CardTitle>Exercícios Financeiros</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{financialYears.map(year => <div key={year.id} className="flex items-center justify-between rounded border p-3"><span className="font-medium">{year.year}</span>{canEdit ? <Select value={year.status} onValueChange={status => status && changeYearStatus(year.id, status)}><SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Preparação">Preparação</SelectItem><SelectItem value="Aberto">Aberto</SelectItem><SelectItem value="Em Encerramento">Em Encerramento</SelectItem><SelectItem value="Encerrado">Encerrado</SelectItem></SelectContent></Select> : <Badge variant="outline">{year.status}</Badge>}</div>)}</CardContent></Card>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+       {canEdit && <div className="grid gap-4 xl:grid-cols-2">
         <Card><CardHeader><CardTitle>Movimento Orçamentário</CardTitle></CardHeader><CardContent><form onSubmit={submitMovement} className="grid gap-3 md:grid-cols-2"><Select value={movement.appropriationId} onValueChange={appropriationId => setMovement({ ...movement, appropriationId: appropriationId ?? "" })}><SelectTrigger><SelectValue placeholder="Dotação" /></SelectTrigger><SelectContent>{appropriations.map(app => <SelectItem key={app.id} value={app.id}>{app.code}</SelectItem>)}</SelectContent></Select><Select value={movement.type} onValueChange={type => setMovement({ ...movement, type: type ?? "Suplementação" })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Dotação Inicial">Dotação Inicial</SelectItem><SelectItem value="Crédito Adicional">Crédito Adicional</SelectItem><SelectItem value="Suplementação">Suplementação</SelectItem><SelectItem value="Remanejamento">Remanejamento</SelectItem><SelectItem value="Anulação">Anulação</SelectItem></SelectContent></Select><MoneyInput value={movement.value} onChange={value => setMovement({ ...movement, value })} /><Input required placeholder="Justificativa" value={movement.justification} onChange={event => setMovement({ ...movement, justification: event.target.value })} /><Button type="submit" disabled={pending}>Registrar movimento</Button></form></CardContent></Card>
         <Card><CardHeader><CardTitle>Reserva Orçamentária</CardTitle></CardHeader><CardContent><form onSubmit={submitReservation} className="grid gap-3 md:grid-cols-2"><Input required placeholder="Número da reserva" value={reservation.number} onChange={event => setReservation({ ...reservation, number: event.target.value })} /><Select value={reservation.appropriationId} onValueChange={appropriationId => setReservation({ ...reservation, appropriationId: appropriationId ?? "" })}><SelectTrigger><SelectValue placeholder="Dotação" /></SelectTrigger><SelectContent>{appropriations.map(app => <SelectItem key={app.id} value={app.id}>{app.code} (saldo: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(app.availableValue)})</SelectItem>)}</SelectContent></Select><MoneyInput value={reservation.value} onChange={value => setReservation({ ...reservation, value })} /><Input placeholder="Justificativa" value={reservation.justification} onChange={event => setReservation({ ...reservation, justification: event.target.value })} /><Button type="submit" disabled={pending}>Criar reserva</Button></form></CardContent></Card>
-      </div>
+       </div>}
 
       <Card>
         <CardHeader>
@@ -214,7 +238,7 @@ export default function OrcamentoClient({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right space-x-2">
-                      {credit.status === "Solicitado" && (
+                       {canEdit && credit.status === "Solicitado" && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -224,7 +248,7 @@ export default function OrcamentoClient({
                           Aprovar
                         </Button>
                       )}
-                      {credit.status === "Aprovado" && (
+                       {canEdit && credit.status === "Aprovado" && (
                         <Button
                           variant="default"
                           size="sm"
@@ -243,7 +267,7 @@ export default function OrcamentoClient({
         </CardContent>
       </Card>
 
-      <Card><CardHeader><CardTitle>Reservas recentes</CardTitle></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Número</TableHead><TableHead>Dotação</TableHead><TableHead>Valor</TableHead><TableHead>Status</TableHead><TableHead /></TableRow></TableHeader><TableBody>{reservations.map(reservation => <TableRow key={reservation.id}><TableCell>{reservation.number}</TableCell><TableCell>{reservation.appropriation.code}</TableCell><TableCell>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(reservation.value)}</TableCell><TableCell>{reservation.status}</TableCell><TableCell>{reservation.status === "Ativa" && <Button variant="outline" size="sm" onClick={() => cancelReservation(reservation.id)}>Cancelar</Button>}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+       <Card><CardHeader><CardTitle>Reservas recentes</CardTitle></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Número</TableHead><TableHead>Dotação</TableHead><TableHead>Valor</TableHead><TableHead>Status</TableHead><TableHead /></TableRow></TableHeader><TableBody>{reservations.map(reservation => <TableRow key={reservation.id}><TableCell>{reservation.number}</TableCell><TableCell>{reservation.appropriation.code}</TableCell><TableCell>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(reservation.value)}</TableCell><TableCell>{reservation.status}</TableCell><TableCell>{canEdit && reservation.status === "Ativa" && <Button variant="outline" size="sm" onClick={() => cancelReservation(reservation.id)}>Cancelar</Button>}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
     </div>
   );
 }

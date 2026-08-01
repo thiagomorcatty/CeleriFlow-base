@@ -1,11 +1,11 @@
 "use server";
 
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { createBankAccountWithOpeningBalance, updateBankAccountDetails } from "@/lib/financeiro";
 import { revalidatePath } from "next/cache";
 
 async function getTenantPrisma() {
-  return getTenantContextForModule("FINANCEIRO");
+  return getTenantContextForModuleEdit("FINANCEIRO");
 }
 
 export async function createBankAccount(data: {

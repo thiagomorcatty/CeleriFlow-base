@@ -43,7 +43,7 @@ export function CreditRequestDialog({
     setItems([...items, { appropriationId: "", type: "Acréscimo", value: 0 }]);
   };
 
-  const updateItem = (index: number, field: keyof CreditItem, value: any) => {
+  const updateItem = <K extends keyof CreditItem>(index: number, field: K, value: CreditItem[K]) => {
     const next = [...items];
     next[index] = { ...next[index], [field]: value };
     setItems(next);
@@ -104,7 +104,7 @@ export function CreditRequestDialog({
             </div>
             <div className="space-y-2">
               <Label>Tipo de Crédito</Label>
-              <Select value={type} onValueChange={(val: any) => setType(val)}>
+                <Select value={type} onValueChange={(value) => setType(value as typeof type)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -152,7 +152,7 @@ export function CreditRequestDialog({
                 <div className="col-span-5">
                   <Select
                     value={item.appropriationId}
-                    onValueChange={(val) => updateItem(idx, "appropriationId", val)}
+                    onValueChange={(value) => updateItem(idx, "appropriationId", value ?? "")}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Selecione a Dotação" />
@@ -169,7 +169,7 @@ export function CreditRequestDialog({
                 <div className="col-span-3">
                   <Select
                     value={item.type}
-                    onValueChange={(val) => updateItem(idx, "type", val)}
+                    onValueChange={(value) => updateItem(idx, "type", value as CreditItem["type"])}
                   >
                     <SelectTrigger>
                       <SelectValue />

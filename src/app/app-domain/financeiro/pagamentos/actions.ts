@@ -1,15 +1,25 @@
 "use server";
 
 import { FinanceError, createPayment as createOfficialPayment, updatePaymentStatus as updateOfficialPaymentStatus } from "@/lib/financeiro";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { assertBudgetUnitAccess, getTenantContextForModuleEdit, type AppContext } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
 type ActionResult = { error?: string };
 const message = (error: unknown) => error instanceof FinanceError ? error.message : "Não foi possível concluir o pagamento.";
 
+async function assertCommitmentAccess(context: AppContext, commitmentId: string) {
+  const commitment = await context.prisma.commitment.findUnique({
+    where: { id: commitmentId },
+    select: { appropriation: { select: { budgetUnitId: true } } },
+  });
+  if (!commitment) throw new FinanceError("Empenho não encontrado.");
+  assertBudgetUnitAccess(context.user, commitment.appropriation.budgetUnitId);
+}
+
 export async function createPayment(data: { orderNumber: string; date: Date; value: number; commitmentId: string; settlementId?: string; bankAccountId: string; supplierId: string; paymentMethod: string; isExceptional?: boolean; exceptionJustification?: string; retentions?: { type: string; value: number; beneficiaryName: string; beneficiaryDocument?: string; description?: string; dueDate?: Date }[] }): Promise<ActionResult> {
   try {
-    const context = await getTenantContextForModule("FINANCEIRO");
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    await assertCommitmentAccess(context, data.commitmentId);
     await createOfficialPayment(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, data);
     revalidatePath("/financeiro/pagamentos");
     return {};
@@ -24,7 +34,10 @@ export async function cancelPayment(id: string): Promise<ActionResult> {
 
 export async function updatePaymentStatus(id: string, status: string): Promise<ActionResult> {
   try {
-    const context = await getTenantContextForModule("FINANCEIRO");
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const payment = await context.prisma.payment.findUnique({ where: { id }, select: { commitmentId: true } });
+    if (!payment) throw new FinanceError("Pagamento não encontrado.");
+    await assertCommitmentAccess(context, payment.commitmentId);
     await updateOfficialPaymentStatus(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, id, status);
     revalidatePath("/financeiro/pagamentos");
     return {};

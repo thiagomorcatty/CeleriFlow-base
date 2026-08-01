@@ -1,9 +1,14 @@
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModule, isSystemAdministrator } from "@/lib/platform/tenant-context";
 import LiquidacoesClient from "./LiquidacoesClient"
 
 export default async function LiquidacoesPage() {
-  const { prisma } = await getTenantContextForModule("FINANCEIRO");
+  const context = await getTenantContextForModule("FINANCEIRO");
+  const { prisma } = context;
+  const appropriationFilter = isSystemAdministrator(context.user)
+    ? {}
+    : { budgetUnitId: { in: context.user.allowedBudgetUnitIds } };
   const settlements = await prisma.settlement.findMany({
+    where: { commitment: { appropriation: appropriationFilter } },
     include: {
       commitment: {
         include: {
@@ -28,6 +33,7 @@ export default async function LiquidacoesPage() {
   const commitments = await prisma.commitment.findMany({
     where: {
       status: { in: ["Emitido", "Liquidado", "Pago"] }
+      , appropriation: appropriationFilter
     },
     include: {
       supplier: {

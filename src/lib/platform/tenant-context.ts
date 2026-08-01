@@ -53,6 +53,21 @@ function hasModuleAccess(values: unknown, moduleCode: string) {
   return Array.isArray(values) && values.some((value) => value === moduleCode);
 }
 
+export function canEditModule(user: AppContext["user"], moduleCode: string) {
+  if (isSystemAdministrator(user)) return true;
+
+  const codeUpper = moduleCode.toUpperCase();
+  const rolePermissions = parseRolePermissions(user.permissions);
+  if (hasModuleAccess(rolePermissions?.modulosBloqueados, codeUpper)) return false;
+
+  const allowedModules = rolePermissions?.modulosPermitidos;
+  if (Array.isArray(allowedModules) && !hasModuleAccess(allowedModules, codeUpper)) return false;
+
+  return user.modulePermissions.some(
+    (permission) => permission.code === codeUpper && permission.canEdit,
+  );
+}
+
 export function isSystemAdministrator(user: AppContext["user"]) {
   return (
     user.role === SYSTEM_ADMINISTRATOR_ROLE &&
@@ -90,7 +105,7 @@ async function resolveUser(principal: SessionPrincipal | null): Promise<AppConte
     if (usuario?.unidadesGestoras) {
       allowedBudgetUnitIds = usuario.unidadesGestoras.map((ug) => ug.budgetUnitId);
     }
-  } catch (error) {
+  } catch {
     // Fallback if UsuarioUnidadeGestora table does not exist yet in DB migration
     usuario = await prisma.usuario.findUnique({
       where: { email: principal.email },
@@ -179,6 +194,14 @@ export async function getTenantContextForModule(moduleCode: string): Promise<App
     throw new AccessError(`Acesso negado ao módulo ${moduleCode}.`, 403);
   }
 
+  return context;
+}
+
+export async function getTenantContextForModuleEdit(moduleCode: string): Promise<AppContext> {
+  const context = await getTenantContextForModule(moduleCode);
+  if (!canEditModule(context.user, moduleCode)) {
+    throw new AccessError(`Acesso de edição negado ao módulo ${moduleCode}.`, 403);
+  }
   return context;
 }
 

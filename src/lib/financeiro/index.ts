@@ -7,6 +7,7 @@ export type FinanceActor = {
   usuarioId: string;
   employeeId: string | null;
   budgetUnitId?: string | null;
+  allowedBudgetUnitIds?: string[];
 };
 
 export class FinanceError extends Error {}
@@ -210,52 +211,75 @@ const movementDirections: Record<string, 1 | -1> = {
   "Dotação Inicial": 1,
   "Crédito Adicional": 1,
   "Suplementação": 1,
+  Especial: 1,
+  Extraordinário: 1,
   Remanejamento: 1,
+  Transposição: 1,
+  Transferência: 1,
   Anulação: -1,
 };
 
-export async function createBudgetMovement(
-  db: PrismaClient,
+type BudgetMovementInput = {
+  date: Date;
+  type: string;
+  value: Prisma.Decimal | string | number;
+  justification: string;
+  appropriationId: string;
+  sourceModule?: string;
+  sourceType?: string;
+  sourceId?: string;
+  eventType?: string;
+  idempotencyKey?: string;
+};
+
+export async function createBudgetMovementInTransaction(
+  tx: Prisma.TransactionClient,
   actor: FinanceActor,
-  input: { date: Date; type: string; value: Prisma.Decimal | string | number; justification: string; appropriationId: string; sourceModule?: string; sourceType?: string; sourceId?: string; eventType?: string; idempotencyKey?: string },
+  input: BudgetMovementInput,
 ) {
   const value = money(input.value);
   const direction = movementDirections[input.type];
   if (!direction) throw new FinanceError("Tipo de movimento orçamentário inválido.");
 
-  return db.$transaction(async (tx) => {
-    if (input.idempotencyKey) {
-      const existing = await tx.budgetMovement.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
-      if (existing) return existing;
-    }
-    await lockAppropriation(tx, input.appropriationId);
-    const appropriation = await tx.budgetAppropriation.findUnique({ where: { id: input.appropriationId } });
-    if (!appropriation) throw new FinanceError("Dotação orçamentária não encontrada.");
-    const year = await assertFinancialYearOpen(tx, appropriation.financialYearId, input.date);
-    const current = requiredDecimal(appropriation.updatedValueDecimal, "BudgetAppropriation.updatedValueDecimal");
-    if (direction < 0) {
-      const availability = await getBudgetAvailability(tx, appropriation.id);
-      if (availability.available.lessThan(value)) throw new FinanceError("A anulação excede a disponibilidade da dotação.");
-    }
-    const updated = direction > 0 ? current.plus(value) : current.minus(value);
-    const movement = await tx.budgetMovement.create({
-      data: {
-        date: input.date,
-        type: input.type,
-        valueDecimal: value,
-        justification: input.justification.trim(),
-        appropriationId: input.appropriationId,
-        sourceModule: input.sourceModule?.trim() || "MANUAL",
-        sourceType: input.sourceType?.trim() || "BUDGET_MOVEMENT",
-        sourceId: input.sourceId?.trim() || undefined,
-        eventType: input.eventType?.trim() || "BUDGET_MOVEMENT",
-        idempotencyKey: input.idempotencyKey?.trim() || undefined,
-      },
-    });
-    await tx.budgetAppropriation.update({ where: { id: appropriation.id }, data: { updatedValueDecimal: updated, updatedValue: legacyMoney(updated) } });
-    await audit(tx, actor, "CREATE", "BudgetMovement", movement.id, { type: movement.type, value: jsonMoney(value), resultingUpdatedValue: jsonMoney(updated) }, year.id);
-    return movement;
+  if (input.idempotencyKey) {
+    const existing = await tx.budgetMovement.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
+    if (existing) return existing;
+  }
+  await lockAppropriation(tx, input.appropriationId);
+  const appropriation = await tx.budgetAppropriation.findUnique({ where: { id: input.appropriationId } });
+  if (!appropriation) throw new FinanceError("Dotação orçamentária não encontrada.");
+  const year = await assertFinancialYearOpen(tx, appropriation.financialYearId, input.date);
+  const current = requiredDecimal(appropriation.updatedValueDecimal, "BudgetAppropriation.updatedValueDecimal");
+  if (direction < 0) {
+    const availability = await getBudgetAvailability(tx, appropriation.id);
+    if (availability.available.lessThan(value)) throw new FinanceError("A anulação excede a disponibilidade da dotação.");
+  }
+  const updated = direction > 0 ? current.plus(value) : current.minus(value);
+  const movement = await tx.budgetMovement.create({
+    data: {
+      date: input.date,
+      type: input.type,
+      valueDecimal: value,
+      justification: input.justification.trim(),
+      appropriationId: input.appropriationId,
+      sourceModule: input.sourceModule?.trim() || "MANUAL",
+      sourceType: input.sourceType?.trim() || "BUDGET_MOVEMENT",
+      sourceId: input.sourceId?.trim() || undefined,
+      eventType: input.eventType?.trim() || "BUDGET_MOVEMENT",
+      idempotencyKey: input.idempotencyKey?.trim() || undefined,
+    },
   });
+  await tx.budgetAppropriation.update({ where: { id: appropriation.id }, data: { updatedValueDecimal: updated, updatedValue: legacyMoney(updated) } });
+  await audit(tx, actor, "CREATE", "BudgetMovement", movement.id, { type: movement.type, value: jsonMoney(value), resultingUpdatedValue: jsonMoney(updated) }, year.id);
+  return movement;
+}
+
+export async function createBudgetMovement(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: BudgetMovementInput,
+) {
+  return db.$transaction((tx) => createBudgetMovementInTransaction(tx, actor, input));
 }
 
 export async function createBudgetReservation(

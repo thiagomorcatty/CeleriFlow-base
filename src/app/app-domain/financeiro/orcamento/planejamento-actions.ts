@@ -10,8 +10,9 @@ import {
   approveCreditRequest,
   executeCreditRequest,
 } from "@/lib/financeiro/planejamento";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit, isSystemAdministrator, type AppContext } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 type ActionResult<T = undefined> = { error?: string; data?: T };
 
@@ -21,6 +22,27 @@ function errorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+function financeActor(context: AppContext) {
+  return {
+    usuarioId: context.user.id,
+    employeeId: context.user.employeeId,
+    allowedBudgetUnitIds: isSystemAdministrator(context.user) ? undefined : context.user.allowedBudgetUnitIds,
+  };
+}
+
+const creditRequestSchema = z.object({
+  number: z.string().trim().min(1),
+  financialYearId: z.string().min(1),
+  type: z.enum(["Suplementar", "Especial", "Extraordinário", "Remanejamento", "Transposição", "Transferência"]),
+  lawNumber: z.string().trim().min(1).optional(),
+  justification: z.string().trim().min(1),
+  items: z.array(z.object({
+    appropriationId: z.string().min(1),
+    type: z.enum(["Acréscimo", "Anulação"]),
+    value: z.number().finite().positive(),
+  })).min(1),
+});
+
 export async function actionCreateMultiYearPlan(input: {
   code: string;
   name: string;
@@ -29,11 +51,8 @@ export async function actionCreateMultiYearPlan(input: {
   description?: string;
 }): Promise<ActionResult<{ id: string }>> {
   try {
-    const context = await getTenantContextForModule("FINANCEIRO");
-    const actor = {
-      usuarioId: context.user.id,
-      employeeId: context.user.employeeId,
-    };
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const actor = financeActor(context);
     const plan = await createMultiYearPlan(context.prisma, actor, input);
     revalidatePath("/financeiro/orcamento");
     return { data: { id: plan.id } };
@@ -49,11 +68,8 @@ export async function actionAddProgramPPA(input: {
   type?: string;
 }): Promise<ActionResult<{ id: string }>> {
   try {
-    const context = await getTenantContextForModule("FINANCEIRO");
-    const actor = {
-      usuarioId: context.user.id,
-      employeeId: context.user.employeeId,
-    };
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const actor = financeActor(context);
     const program = await addProgramPPA(context.prisma, actor, input);
     revalidatePath("/financeiro/orcamento");
     return { data: { id: program.id } };
@@ -68,11 +84,8 @@ export async function actionCreateBudgetGuideline(input: {
   risks?: { description: string; estimatedImpact: number; mitigation: string }[];
 }): Promise<ActionResult<{ id: string }>> {
   try {
-    const context = await getTenantContextForModule("FINANCEIRO");
-    const actor = {
-      usuarioId: context.user.id,
-      employeeId: context.user.employeeId,
-    };
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const actor = financeActor(context);
     const guideline = await createBudgetGuideline(context.prisma, actor, input);
     revalidatePath("/financeiro/orcamento");
     return { data: { id: guideline.id } };
@@ -91,11 +104,8 @@ export async function actionCreateAnnualBudgetLaw(input: {
   expenseFixations?: { code: string; name: string; fixedValue: number }[];
 }): Promise<ActionResult<{ id: string }>> {
   try {
-    const context = await getTenantContextForModule("FINANCEIRO");
-    const actor = {
-      usuarioId: context.user.id,
-      employeeId: context.user.employeeId,
-    };
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const actor = financeActor(context);
     const loa = await createAnnualBudgetLaw(context.prisma, actor, {
       ...input,
       publicationDate: new Date(input.publicationDate),
@@ -116,12 +126,8 @@ export async function actionCreateCreditRequest(input: {
   items: { appropriationId: string; type: "Acréscimo" | "Anulação"; value: number }[];
 }): Promise<ActionResult<{ id: string }>> {
   try {
-    const context = await getTenantContextForModule("FINANCEIRO");
-    const actor = {
-      usuarioId: context.user.id,
-      employeeId: context.user.employeeId,
-    };
-    const credit = await createCreditRequest(context.prisma, actor, input);
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const credit = await createCreditRequest(context.prisma, financeActor(context), creditRequestSchema.parse(input));
     revalidatePath("/financeiro/orcamento");
     return { data: { id: credit.id } };
   } catch (error) {
@@ -131,12 +137,8 @@ export async function actionCreateCreditRequest(input: {
 
 export async function actionApproveCreditRequest(creditRequestId: string): Promise<ActionResult> {
   try {
-    const context = await getTenantContextForModule("FINANCEIRO");
-    const actor = {
-      usuarioId: context.user.id,
-      employeeId: context.user.employeeId,
-    };
-    await approveCreditRequest(context.prisma, actor, creditRequestId);
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    await approveCreditRequest(context.prisma, financeActor(context), z.string().min(1).parse(creditRequestId));
     revalidatePath("/financeiro/orcamento");
     return {};
   } catch (error) {
@@ -146,12 +148,8 @@ export async function actionApproveCreditRequest(creditRequestId: string): Promi
 
 export async function actionExecuteCreditRequest(creditRequestId: string): Promise<ActionResult> {
   try {
-    const context = await getTenantContextForModule("FINANCEIRO");
-    const actor = {
-      usuarioId: context.user.id,
-      employeeId: context.user.employeeId,
-    };
-    await executeCreditRequest(context.prisma, actor, creditRequestId);
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    await executeCreditRequest(context.prisma, financeActor(context), z.string().min(1).parse(creditRequestId));
     revalidatePath("/financeiro/orcamento");
     return {};
   } catch (error) {
