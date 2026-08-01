@@ -341,6 +341,7 @@ export async function createBudgetReservation(
     const appropriation = await tx.budgetAppropriation.findUnique({ where: { id: input.appropriationId } });
     if (!appropriation) throw new FinanceError("Dotação orçamentária não encontrada.");
     const year = await assertFinancialYearOpen(tx, appropriation.financialYearId, input.date);
+    await assertAccountingPeriodOpen(tx, year.id, input.date);
     await lockExpense(tx, input.expenseId);
     const expense = await tx.expense.findUnique({ where: { id: input.expenseId } });
     if (!expense || expense.appropriationId !== appropriation.id) throw new FinanceError("A solicitação de despesa não pertence à dotação informada.");
@@ -387,6 +388,7 @@ export async function createCommitment(
     ]);
     if (!appropriation) throw new FinanceError("Dotação orçamentária não encontrada.");
     const year = await assertFinancialYearOpen(tx, appropriation.financialYearId, input.date);
+    await assertAccountingPeriodOpen(tx, year.id, input.date);
     if (!reservation || reservation.appropriationId !== appropriation.id || reservation.status !== ACTIVE_RESERVATION_STATUS) throw new FinanceError("Selecione uma reserva ativa da mesma dotação.");
     if (!requiredDecimal(reservation.valueDecimal, "BudgetReservation.valueDecimal").equals(value)) throw new FinanceError("O empenho deve corresponder integralmente à reserva selecionada.");
     const availability = await getBudgetAvailability(tx, appropriation.id);
@@ -457,6 +459,7 @@ async function commitmentForPosting(tx: Prisma.TransactionClient, commitmentId: 
   const commitment = await tx.commitment.findUnique({ include: { appropriation: true, movements: true }, where: { id: commitmentId } });
   if (!commitment) throw new FinanceError("Empenho não encontrado.");
   const year = await assertFinancialYearOpen(tx, commitment.appropriation.financialYearId, date);
+  await assertAccountingPeriodOpen(tx, year.id, date);
   if (!ACTIVE_COMMITMENT_STATUSES.includes(commitment.status)) throw new FinanceError("Não é permitido lançar sobre empenho inativo ou anulado.");
   return { commitment, year };
 }

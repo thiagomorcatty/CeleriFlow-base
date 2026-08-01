@@ -11,6 +11,7 @@ export default async function PlanejamentoPage() {
   const [plans, financialYears, budgetUnits, expenseNatures, resourceSources] = await Promise.all([
     context.prisma.multiYearPlan.findMany({
       include: {
+        programs: { include: { actions: true }, orderBy: { code: "asc" } },
         budgetGuidelines: {
           include: {
             financialYear: { select: { year: true, status: true } },
@@ -18,7 +19,7 @@ export default async function PlanejamentoPage() {
               include: {
                 expenseFixations: {
                   include: {
-                    appropriations: { select: { id: true, initialValue: true, initialValueDecimal: true, code: true } },
+                    appropriations: { select: { id: true, initialValue: true, initialValueDecimal: true, code: true, programPPA: { select: { code: true, name: true } }, actionPPA: { select: { code: true, name: true } } } },
                   },
                 },
                 cmdSchedules: { orderBy: { month: "asc" } },
@@ -57,6 +58,7 @@ export default async function PlanejamentoPage() {
       name: plan.name,
       startYear: plan.startYear,
       endYear: plan.endYear,
+      programs: plan.programs.map((program) => ({ id: program.id, code: program.code, name: program.name, actions: program.actions.map((action) => ({ id: action.id, code: action.code, name: action.name })) })),
       guidelines: plan.budgetGuidelines.map((guideline) => ({
         id: guideline.id,
         financialYear: guideline.financialYear,

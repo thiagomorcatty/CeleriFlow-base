@@ -4,6 +4,7 @@ import { FinanceError } from "@/lib/financeiro";
 import {
   createMultiYearPlan,
   addProgramPPA,
+  addActionPPA,
   createBudgetGuideline,
   createAnnualBudgetLaw,
   createBudgetAppropriationFromFixation,
@@ -81,6 +82,22 @@ export async function actionAddProgramPPA(input: {
   }
 }
 
+export async function actionAddActionPPA(input: {
+  programId: string;
+  code: string;
+  name: string;
+  type?: string;
+}): Promise<ActionResult<{ id: string }>> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const action = await addActionPPA(context.prisma, financeActor(context), input);
+    revalidatePath("/financeiro/orcamento/planejamento");
+    return { data: { id: action.id } };
+  } catch (error) {
+    return { error: errorMessage(error, "Nao foi possivel adicionar a acao ao PPA.") };
+  }
+}
+
 export async function actionCreateBudgetGuideline(input: {
   financialYearId: string;
   multiYearPlanId?: string;
@@ -124,6 +141,8 @@ export async function actionCreateAnnualBudgetLaw(input: {
 
 export async function actionCreateBudgetAppropriationFromFixation(input: {
   annualBudgetExpenseFixationId: string;
+  programPPAId: string;
+  actionPPAId: string;
   code: string;
   budgetUnitId: string;
   expenseNatureId: string;

@@ -141,6 +141,24 @@ export async function addProgramPPA(
   });
 }
 
+export async function addActionPPA(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: { programId: string; code: string; name: string; type?: string },
+) {
+  requireText(input.code, "Codigo da acao");
+  requireText(input.name, "Nome da acao");
+  return db.$transaction(async (tx) => {
+    const program = await tx.programPPA.findUnique({ where: { id: input.programId } });
+    if (!program) throw new FinanceError("Programa do PPA nao encontrado.");
+    const action = await tx.actionPPA.create({
+      data: { programId: program.id, code: input.code.trim(), name: input.name.trim(), type: input.type?.trim() || "Projeto" },
+    });
+    await audit(tx, actor, "CREATE", "ActionPPA", action.id, { code: action.code, name: action.name, programId: program.id });
+    return action;
+  });
+}
+
 // --- LDO (Lei de Diretrizes Orçamentárias) ---
 
 export async function createBudgetGuideline(
@@ -289,6 +307,8 @@ export async function createBudgetAppropriationFromFixation(
   actor: FinanceActor,
   input: {
     annualBudgetExpenseFixationId: string;
+    programPPAId: string;
+    actionPPAId: string;
     code: string;
     budgetUnitId: string;
     expenseNatureId: string;
@@ -298,6 +318,8 @@ export async function createBudgetAppropriationFromFixation(
 ) {
   const code = requireText(input.code, "Codigo da dotacao");
   if (!input.annualBudgetExpenseFixationId) throw new FinanceError("Selecione a fixacao de despesa da LOA.");
+  if (!input.programPPAId) throw new FinanceError("Selecione o programa do PPA.");
+  if (!input.actionPPAId) throw new FinanceError("Selecione a acao do PPA.");
   if (!input.budgetUnitId) throw new FinanceError("Selecione a unidade orcamentaria.");
   if (!input.expenseNatureId) throw new FinanceError("Selecione a natureza de despesa.");
   if (!input.resourceSourceId) throw new FinanceError("Selecione a fonte de recursos.");
@@ -308,15 +330,20 @@ export async function createBudgetAppropriationFromFixation(
     await tx.$queryRaw`SELECT id FROM "AnnualBudgetExpenseFixation" WHERE id = ${input.annualBudgetExpenseFixationId} FOR UPDATE`;
     const fixation = await tx.annualBudgetExpenseFixation.findUnique({
       where: { id: input.annualBudgetExpenseFixationId },
-      include: { annualBudgetLaw: { select: { financialYearId: true } } },
+      include: { annualBudgetLaw: { include: { budgetGuideline: { select: { multiYearPlanId: true } } } } },
     });
     if (!fixation) throw new FinanceError("Fixacao de despesa da LOA nao encontrada.");
 
     await assertFinancialYearPlanningEligible(tx, fixation.annualBudgetLaw.financialYearId);
-    const [budgetUnit, expenseNature, resourceSource, existing] = await Promise.all([
+    if (!fixation.annualBudgetLaw.budgetGuideline?.multiYearPlanId) {
+      throw new FinanceError("A LOA da fixacao deve estar vinculada a uma LDO e a um PPA.");
+    }
+    const [budgetUnit, expenseNature, resourceSource, program, action, existing] = await Promise.all([
       tx.budgetUnit.findUnique({ where: { id: input.budgetUnitId }, select: { id: true } }),
       tx.expenseNature.findUnique({ where: { id: input.expenseNatureId }, select: { id: true } }),
       tx.resourceSource.findUnique({ where: { id: input.resourceSourceId }, select: { id: true } }),
+      tx.programPPA.findUnique({ where: { id: input.programPPAId }, select: { id: true, multiYearPlanId: true } }),
+      tx.actionPPA.findUnique({ where: { id: input.actionPPAId }, select: { id: true, programId: true } }),
       tx.budgetAppropriation.findMany({
         where: { annualBudgetExpenseFixationId: fixation.id },
         select: { initialValue: true, initialValueDecimal: true },
@@ -325,6 +352,10 @@ export async function createBudgetAppropriationFromFixation(
     if (!budgetUnit) throw new FinanceError("Unidade orcamentaria nao encontrada.");
     if (!expenseNature) throw new FinanceError("Natureza de despesa nao encontrada.");
     if (!resourceSource) throw new FinanceError("Fonte de recursos nao encontrada.");
+    if (!program || program.multiYearPlanId !== fixation.annualBudgetLaw.budgetGuideline.multiYearPlanId) {
+      throw new FinanceError("O programa deve pertencer ao PPA vinculado a LOA.");
+    }
+    if (!action || action.programId !== program.id) throw new FinanceError("A acao selecionada deve pertencer ao programa do PPA.");
 
     const allocated = existing.reduce(
       (total, appropriation) => total.plus(appropriation.initialValueDecimal ?? appropriation.initialValue),
@@ -342,6 +373,8 @@ export async function createBudgetAppropriationFromFixation(
         expenseNatureId: expenseNature.id,
         resourceSourceId: resourceSource.id,
         annualBudgetExpenseFixationId: fixation.id,
+        programPPAId: program.id,
+        actionPPAId: action.id,
         initialValue: Number(initialValue.toString()),
         initialValueDecimal: initialValue,
         updatedValue: Number(initialValue.toString()),
@@ -356,7 +389,7 @@ export async function createBudgetAppropriationFromFixation(
       "CREATE",
       "BudgetAppropriation",
       appropriation.id,
-      { code: appropriation.code, annualBudgetExpenseFixationId: fixation.id, initialValue: initialValue.toFixed(2) },
+      { code: appropriation.code, annualBudgetExpenseFixationId: fixation.id, programPPAId: program.id, actionPPAId: action.id, initialValue: initialValue.toFixed(2) },
       appropriation.financialYearId,
       appropriation.budgetUnitId,
     );

@@ -3,10 +3,10 @@
   "version": "1.2151.0",
   "private": true,
   "scripts": {
-    "prebuild": "node scripts/bump-version.mjs",
     "version:bump": "node scripts/bump-version.mjs",
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "build:check": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "test:unit": "npx tsx --test tests/public-finance.test.ts src/lib/financeiro/__tests__/financeiro-lagoaseca.test.ts",

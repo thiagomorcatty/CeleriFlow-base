@@ -21,7 +21,7 @@ import {
   generateBalancoOrcamentario,
   generateBalancoPatrimonial,
 } from "../relatorios-legais";
-import { createAnnualBudgetLaw, createBudgetAppropriationFromFixation, createBudgetGuideline, createMultiYearPlan, saveBimonthlyRevenueTarget, saveMonthlyDisbursementSchedule } from "../planejamento";
+import { addActionPPA, addProgramPPA, createAnnualBudgetLaw, createBudgetAppropriationFromFixation, createBudgetGuideline, createMultiYearPlan, saveBimonthlyRevenueTarget, saveMonthlyDisbursementSchedule } from "../planejamento";
 
 describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Estritas", () => {
   async function getActor(): Promise<FinanceActor> {
@@ -284,6 +284,8 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         endYear: 2034,
       });
       planId = plan.id;
+      const program = await addProgramPPA(prisma, actor, { multiYearPlanId: plan.id, code: `PRG-${suffix}`, name: "Programa de rastreabilidade" });
+      const action = await addActionPPA(prisma, actor, { programId: program.id, code: `ACO-${suffix}`, name: "Acao de rastreabilidade" });
       const guideline = await createBudgetGuideline(prisma, actor, {
         financialYearId,
         multiYearPlanId: plan.id,
@@ -308,6 +310,8 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       assert.ok(budgetUnit && expenseNature && resourceSource, "Cadastros orcamentarios de apoio devem existir");
       const appropriation = await createBudgetAppropriationFromFixation(prisma, planningActor, {
         annualBudgetExpenseFixationId: loa.expenseFixations[0].id,
+        programPPAId: program.id,
+        actionPPAId: action.id,
         code: `DOT-${suffix}`,
         budgetUnitId: budgetUnit.id,
         expenseNatureId: expenseNature.id,
@@ -335,6 +339,8 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       await assert.rejects(
         () => createBudgetAppropriationFromFixation(prisma, planningActor, {
           annualBudgetExpenseFixationId: loa.expenseFixations[0].id,
+          programPPAId: program.id,
+          actionPPAId: action.id,
           code: `DOT-EXCESSO-${suffix}`,
           budgetUnitId: budgetUnit.id,
           expenseNatureId: expenseNature.id,
@@ -346,11 +352,13 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
 
       const trace = await prisma.annualBudgetLaw.findUniqueOrThrow({
         where: { id: loa.id },
-        include: { budgetGuideline: { include: { multiYearPlan: true } }, expenseFixations: { include: { appropriations: true } }, cmdSchedules: true, mbaTargets: true },
+        include: { budgetGuideline: { include: { multiYearPlan: true } }, expenseFixations: { include: { appropriations: { include: { programPPA: true, actionPPA: true } } } }, cmdSchedules: true, mbaTargets: true },
       });
       assert.equal(trace.budgetGuideline?.multiYearPlan?.id, plan.id);
       assert.equal(trace.financialYearId, financialYear.id);
       assert.equal(trace.expenseFixations[0].appropriations[0]?.id, appropriation.id);
+      assert.equal(trace.expenseFixations[0].appropriations[0]?.programPPA?.id, program.id);
+      assert.equal(trace.expenseFixations[0].appropriations[0]?.actionPPA?.id, action.id);
       assert.equal(Number(trace.cmdSchedules[0]?.limitValue), 60);
       assert.equal(Number(trace.mbaTargets[0]?.targetValue), 100);
     } finally {

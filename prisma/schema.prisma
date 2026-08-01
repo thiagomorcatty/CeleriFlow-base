@@ -1833,6 +1833,7 @@ model ProgramPPA {
 
   objectives ObjectivePPA[]
   actions    ActionPPA[]
+  appropriations BudgetAppropriation[] @relation("BudgetAppropriationProgram")
 
   @@unique([multiYearPlanId, code])
 }
@@ -1869,6 +1870,7 @@ model ActionPPA {
   updatedAt   DateTime   @updatedAt
 
   goals       GoalPPA[]
+  appropriations BudgetAppropriation[] @relation("BudgetAppropriationAction")
 }
 
 model GoalPPA {
@@ -2068,6 +2070,10 @@ model BudgetAppropriation {
   resourceSource        ResourceSource @relation(fields: [resourceSourceId], references: [id])
   annualBudgetExpenseFixationId String?
   annualBudgetExpenseFixation   AnnualBudgetExpenseFixation? @relation(fields: [annualBudgetExpenseFixationId], references: [id], onDelete: Restrict)
+  programPPAId                  String?
+  programPPA                    ProgramPPA? @relation("BudgetAppropriationProgram", fields: [programPPAId], references: [id], onDelete: Restrict)
+  actionPPAId                   String?
+  actionPPA                     ActionPPA? @relation("BudgetAppropriationAction", fields: [actionPPAId], references: [id], onDelete: Restrict)
   initialValue          Float          @default(0)
   initialValueDecimal   Decimal?       @db.Decimal(18, 2)
   updatedValue          Float          @default(0)
@@ -2087,6 +2093,7 @@ model BudgetAppropriation {
   culturaFunds       CulturaFundo[]      @relation("CulturaFundBudget")
 
   @@index([annualBudgetExpenseFixationId])
+  @@index([programPPAId, actionPPAId])
 }
 
 model Revenue {

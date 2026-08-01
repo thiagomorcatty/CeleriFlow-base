@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { actionCreateAnnualBudgetLaw, actionCreateBudgetAppropriationFromFixation, actionCreateBudgetGuideline, actionCreateMultiYearPlan, actionSaveBimonthlyRevenueTarget, actionSaveMonthlyDisbursementSchedule } from "../planejamento-actions";
+import { actionAddActionPPA, actionAddProgramPPA, actionCreateAnnualBudgetLaw, actionCreateBudgetAppropriationFromFixation, actionCreateBudgetGuideline, actionCreateMultiYearPlan, actionSaveBimonthlyRevenueTarget, actionSaveMonthlyDisbursementSchedule } from "../planejamento-actions";
 
 type Option = { id: string; code: string; name: string };
 type Fixation = {
@@ -20,7 +20,7 @@ type Fixation = {
   annualBudgetLaw: { lawNumber: string; financialYear: number };
   plan: { code: string; name: string };
 };
-type Plan = { id: string; code: string; name: string; startYear: number; endYear: number; guidelines: { id: string; financialYear: { year: number; status: string }; laws: { id: string; lawNumber: string; publicationDate: string; cmdSchedules: { id: string; month: number; limitValue: number; budgetUnit: { code: string; name: string } }[]; mbaTargets: { id: string; bimonth: number; targetValue: number }[] }[] }[] };
+type Plan = { id: string; code: string; name: string; startYear: number; endYear: number; programs: { id: string; code: string; name: string; actions: { id: string; code: string; name: string }[] }[]; guidelines: { id: string; financialYear: { year: number; status: string }; laws: { id: string; lawNumber: string; publicationDate: string; cmdSchedules: { id: string; month: number; limitValue: number; budgetUnit: { code: string; name: string } }[]; mbaTargets: { id: string; bimonth: number; targetValue: number }[] }[] }[] };
 type FinancialYear = { id: string; year: number; status: string };
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -34,14 +34,17 @@ export default function PlanejamentoClient({ plans, financialYears, fixations, b
   resourceSources: Option[];
   canEdit: boolean;
 }) {
-  const [form, setForm] = useState({ annualBudgetExpenseFixationId: "", code: "", budgetUnitId: "", expenseNatureId: "", resourceSourceId: "", initialValue: 0 });
+  const [form, setForm] = useState({ annualBudgetExpenseFixationId: "", programPPAId: "", actionPPAId: "", code: "", budgetUnitId: "", expenseNatureId: "", resourceSourceId: "", initialValue: 0 });
   const [planForm, setPlanForm] = useState({ code: "", name: "", startYear: "", endYear: "", description: "" });
+  const [programForm, setProgramForm] = useState({ multiYearPlanId: "", code: "", name: "" });
+  const [actionForm, setActionForm] = useState({ programId: "", code: "", name: "" });
   const [guidelineForm, setGuidelineForm] = useState({ multiYearPlanId: "", financialYearId: "" });
   const [lawForm, setLawForm] = useState({ budgetGuidelineId: "", financialYearId: "", lawNumber: "", publicationDate: "", totalValue: 0, revenueCode: "", revenueName: "", expenseCode: "", expenseName: "" });
   const [cmdForm, setCmdForm] = useState({ annualBudgetLawId: "", month: "1", budgetUnitId: "", limitValue: 0 });
   const [mbaForm, setMbaForm] = useState({ annualBudgetLawId: "", bimonth: "1", targetValue: 0 });
   const [pending, setPending] = useState(false);
   const selectedFixation = fixations.find((fixation) => fixation.id === form.annualBudgetExpenseFixationId);
+  const selectedProgram = plans.flatMap((plan) => plan.programs).find((program) => program.id === form.programPPAId);
   const laws = plans.flatMap((plan) => plan.guidelines.flatMap((guideline) => guideline.laws.map((law) => ({ ...law, year: guideline.financialYear.year, planCode: plan.code }))));
 
   const submit = async (event: React.FormEvent) => {
@@ -50,7 +53,7 @@ export default function PlanejamentoClient({ plans, financialYears, fixations, b
     const result = await actionCreateBudgetAppropriationFromFixation(form);
     setPending(false);
     if (result.error) return alert(result.error);
-    setForm({ annualBudgetExpenseFixationId: "", code: "", budgetUnitId: "", expenseNatureId: "", resourceSourceId: "", initialValue: 0 });
+    setForm({ annualBudgetExpenseFixationId: "", programPPAId: "", actionPPAId: "", code: "", budgetUnitId: "", expenseNatureId: "", resourceSourceId: "", initialValue: 0 });
   };
 
   const submitPlan = async (event: React.FormEvent) => {
@@ -58,6 +61,16 @@ export default function PlanejamentoClient({ plans, financialYears, fixations, b
     const result = await actionCreateMultiYearPlan({ ...planForm, startYear: Number(planForm.startYear), endYear: Number(planForm.endYear), description: planForm.description || undefined });
     setPending(false); if (result.error) return alert(result.error);
     setPlanForm({ code: "", name: "", startYear: "", endYear: "", description: "" });
+  };
+  const submitProgram = async (event: React.FormEvent) => {
+    event.preventDefault(); if (!programForm.multiYearPlanId) return alert("Selecione o PPA."); setPending(true);
+    const result = await actionAddProgramPPA(programForm); setPending(false); if (result.error) return alert(result.error);
+    setProgramForm({ multiYearPlanId: "", code: "", name: "" });
+  };
+  const submitAction = async (event: React.FormEvent) => {
+    event.preventDefault(); if (!actionForm.programId) return alert("Selecione o programa do PPA."); setPending(true);
+    const result = await actionAddActionPPA(actionForm); setPending(false); if (result.error) return alert(result.error);
+    setActionForm({ programId: "", code: "", name: "" });
   };
   const submitGuideline = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -121,6 +134,7 @@ export default function PlanejamentoClient({ plans, financialYears, fixations, b
 
     {canEdit && <div className="grid gap-4 xl:grid-cols-3">
       <Card><CardHeader><CardTitle>Novo PPA</CardTitle></CardHeader><CardContent><form onSubmit={submitPlan} className="space-y-3"><Input required placeholder="Código" value={planForm.code} onChange={(event) => setPlanForm({ ...planForm, code: event.target.value })} /><Input required placeholder="Nome" value={planForm.name} onChange={(event) => setPlanForm({ ...planForm, name: event.target.value })} /><div className="grid grid-cols-2 gap-3"><Input required type="number" placeholder="Ano inicial" value={planForm.startYear} onChange={(event) => setPlanForm({ ...planForm, startYear: event.target.value })} /><Input required type="number" placeholder="Ano final" value={planForm.endYear} onChange={(event) => setPlanForm({ ...planForm, endYear: event.target.value })} /></div><Input placeholder="Descrição (opcional)" value={planForm.description} onChange={(event) => setPlanForm({ ...planForm, description: event.target.value })} /><Button type="submit" disabled={pending}>{pending ? "Salvando..." : "Criar PPA"}</Button></form></CardContent></Card>
+      <Card><CardHeader><CardTitle>Programa e Acao do PPA</CardTitle></CardHeader><CardContent className="space-y-4"><form onSubmit={submitProgram} className="space-y-2"><Select value={programForm.multiYearPlanId} onValueChange={(value) => setProgramForm({ ...programForm, multiYearPlanId: value ?? "" })}><SelectTrigger><SelectValue placeholder="PPA" /></SelectTrigger><SelectContent>{plans.map((plan) => <SelectItem key={plan.id} value={plan.id}>{plan.code}</SelectItem>)}</SelectContent></Select><Input required placeholder="Código do programa" value={programForm.code} onChange={(event) => setProgramForm({ ...programForm, code: event.target.value })} /><Input required placeholder="Nome do programa" value={programForm.name} onChange={(event) => setProgramForm({ ...programForm, name: event.target.value })} /><Button type="submit" disabled={pending}>Adicionar programa</Button></form><form onSubmit={submitAction} className="space-y-2 border-t pt-4"><Select value={actionForm.programId} onValueChange={(value) => setActionForm({ ...actionForm, programId: value ?? "" })}><SelectTrigger><SelectValue placeholder="Programa" /></SelectTrigger><SelectContent>{plans.flatMap((plan) => plan.programs).map((program) => <SelectItem key={program.id} value={program.id}>{program.code} - {program.name}</SelectItem>)}</SelectContent></Select><Input required placeholder="Código da ação" value={actionForm.code} onChange={(event) => setActionForm({ ...actionForm, code: event.target.value })} /><Input required placeholder="Nome da ação" value={actionForm.name} onChange={(event) => setActionForm({ ...actionForm, name: event.target.value })} /><Button type="submit" disabled={pending}>Adicionar ação</Button></form></CardContent></Card>
       <Card><CardHeader><CardTitle>Nova LDO</CardTitle></CardHeader><CardContent><form onSubmit={submitGuideline} className="space-y-3"><Select value={guidelineForm.multiYearPlanId} onValueChange={(value) => setGuidelineForm({ ...guidelineForm, multiYearPlanId: value ?? "" })}><SelectTrigger><SelectValue placeholder="PPA" /></SelectTrigger><SelectContent>{plans.map((plan) => <SelectItem key={plan.id} value={plan.id}>{plan.code} - {plan.name}</SelectItem>)}</SelectContent></Select><Select value={guidelineForm.financialYearId} onValueChange={(value) => setGuidelineForm({ ...guidelineForm, financialYearId: value ?? "" })}><SelectTrigger><SelectValue placeholder="Exercício" /></SelectTrigger><SelectContent>{financialYears.map((year) => <SelectItem key={year.id} value={year.id}>{year.year} ({year.status})</SelectItem>)}</SelectContent></Select><Button type="submit" disabled={pending}>{pending ? "Salvando..." : "Criar LDO"}</Button></form></CardContent></Card>
       <Card><CardHeader><CardTitle>Nova LOA</CardTitle></CardHeader><CardContent><form onSubmit={submitLaw} className="space-y-3"><Select value={lawForm.budgetGuidelineId} onValueChange={(value) => setLawForm({ ...lawForm, budgetGuidelineId: value ?? "" })}><SelectTrigger><SelectValue placeholder="LDO" /></SelectTrigger><SelectContent>{plans.flatMap((plan) => plan.guidelines).map((guideline) => <SelectItem key={guideline.id} value={guideline.id}>LDO {guideline.financialYear.year}</SelectItem>)}</SelectContent></Select><Select value={lawForm.financialYearId} onValueChange={(value) => setLawForm({ ...lawForm, financialYearId: value ?? "" })}><SelectTrigger><SelectValue placeholder="Exercício" /></SelectTrigger><SelectContent>{financialYears.map((year) => <SelectItem key={year.id} value={year.id}>{year.year} ({year.status})</SelectItem>)}</SelectContent></Select><Input required placeholder="Número da lei" value={lawForm.lawNumber} onChange={(event) => setLawForm({ ...lawForm, lawNumber: event.target.value })} /><Input required type="date" value={lawForm.publicationDate} onChange={(event) => setLawForm({ ...lawForm, publicationDate: event.target.value })} /><MoneyInput value={lawForm.totalValue} onChange={(totalValue) => setLawForm({ ...lawForm, totalValue })} /><Input required placeholder="Código da receita" value={lawForm.revenueCode} onChange={(event) => setLawForm({ ...lawForm, revenueCode: event.target.value })} /><Input required placeholder="Nome da receita" value={lawForm.revenueName} onChange={(event) => setLawForm({ ...lawForm, revenueName: event.target.value })} /><Input required placeholder="Código da fixação" value={lawForm.expenseCode} onChange={(event) => setLawForm({ ...lawForm, expenseCode: event.target.value })} /><Input required placeholder="Nome da fixação" value={lawForm.expenseName} onChange={(event) => setLawForm({ ...lawForm, expenseName: event.target.value })} /><Button type="submit" disabled={pending}>{pending ? "Salvando..." : "Criar LOA"}</Button></form></CardContent></Card>
     </div>}
@@ -130,6 +144,8 @@ export default function PlanejamentoClient({ plans, financialYears, fixations, b
       <CardContent>
         <form onSubmit={submit} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <div className="space-y-2 xl:col-span-2"><Label>Fixação de despesa da LOA</Label><Select value={form.annualBudgetExpenseFixationId} onValueChange={(value) => setForm({ ...form, annualBudgetExpenseFixationId: value ?? "" })}><SelectTrigger><SelectValue placeholder="Selecione a fixação" /></SelectTrigger><SelectContent>{fixations.map((fixation) => <SelectItem key={fixation.id} value={fixation.id}>{fixation.annualBudgetLaw.financialYear} / {fixation.annualBudgetLaw.lawNumber} - {fixation.code} - saldo {currency.format(fixation.fixedValue - fixation.allocatedValue)}</SelectItem>)}</SelectContent></Select>{selectedFixation && <p className="text-xs text-muted-foreground">{selectedFixation.plan.code} - {selectedFixation.plan.name}: {selectedFixation.name}. Fixado {currency.format(selectedFixation.fixedValue)}, ja alocado {currency.format(selectedFixation.allocatedValue)}.</p>}</div>
+          <div className="space-y-2"><Label>Programa do PPA</Label><Select value={form.programPPAId} onValueChange={(value) => setForm({ ...form, programPPAId: value ?? "", actionPPAId: "" })}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{plans.flatMap((plan) => plan.programs).map((program) => <SelectItem key={program.id} value={program.id}>{program.code} - {program.name}</SelectItem>)}</SelectContent></Select></div>
+          <div className="space-y-2"><Label>Ação do PPA</Label><Select value={form.actionPPAId} onValueChange={(value) => setForm({ ...form, actionPPAId: value ?? "" })}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{selectedProgram?.actions.map((action) => <SelectItem key={action.id} value={action.id}>{action.code} - {action.name}</SelectItem>)}</SelectContent></Select></div>
           <div className="space-y-2"><Label>Código da dotação</Label><Input required value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value })} /></div>
           <div className="space-y-2"><Label>Unidade orçamentária</Label><Select value={form.budgetUnitId} onValueChange={(value) => setForm({ ...form, budgetUnitId: value ?? "" })}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{budgetUnits.map((item) => <SelectItem key={item.id} value={item.id}>{item.code} - {item.name}</SelectItem>)}</SelectContent></Select></div>
           <div className="space-y-2"><Label>Natureza de despesa</Label><Select value={form.expenseNatureId} onValueChange={(value) => setForm({ ...form, expenseNatureId: value ?? "" })}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{expenseNatures.map((item) => <SelectItem key={item.id} value={item.id}>{item.code} - {item.name}</SelectItem>)}</SelectContent></Select></div>
