@@ -70,19 +70,39 @@ export function assertBudgetUnitAccess(user: AppContext["user"], budgetUnitId: s
 async function resolveUser(principal: SessionPrincipal | null): Promise<AppContext["user"]> {
   if (!principal) throw new AccessError("Sessao invalida ou expirada.", 401);
 
-  const usuario = await prisma.usuario.findUnique({
-    where: { email: principal.email },
-    include: {
-      perfil: true,
-      employee: true,
-      permissoesModulo: {
-        include: { modulo: { select: { codigo: true } } },
+  let usuario;
+  let allowedBudgetUnitIds: string[] = [];
+
+  try {
+    usuario = await prisma.usuario.findUnique({
+      where: { email: principal.email },
+      include: {
+        perfil: true,
+        employee: true,
+        permissoesModulo: {
+          include: { modulo: { select: { codigo: true } } },
+        },
+        unidadesGestoras: {
+          select: { budgetUnitId: true },
+        },
       },
-      unidadesGestoras: {
-        select: { budgetUnitId: true },
+    });
+    if (usuario?.unidadesGestoras) {
+      allowedBudgetUnitIds = usuario.unidadesGestoras.map((ug) => ug.budgetUnitId);
+    }
+  } catch (error) {
+    // Fallback if UsuarioUnidadeGestora table does not exist yet in DB migration
+    usuario = await prisma.usuario.findUnique({
+      where: { email: principal.email },
+      include: {
+        perfil: true,
+        employee: true,
+        permissoesModulo: {
+          include: { modulo: { select: { codigo: true } } },
+        },
       },
-    },
-  });
+    });
+  }
 
   if (!usuario || !usuario.ativo || !usuario.perfil.ativo) {
     throw new AccessError("Usuario sem acesso ao sistema.", 403);
@@ -100,7 +120,7 @@ async function resolveUser(principal: SessionPrincipal | null): Promise<AppConte
       canView: permission.canView,
       canEdit: permission.canEdit,
     })),
-    allowedBudgetUnitIds: usuario.unidadesGestoras.map((ug) => ug.budgetUnitId),
+    allowedBudgetUnitIds,
     employeeId: usuario.employee?.id ?? null,
     departmentId: usuario.employee?.departmentId ?? null,
     secretariatId: usuario.employee?.secretariatId ?? null,
