@@ -10,6 +10,7 @@ import {
   Landmark
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { APP_VERSION } from "@/lib/version";
 
 type UserInfo = {
   id: string;
@@ -22,6 +23,7 @@ type UserInfo = {
 function getRoleLabel(role: string) {
   return role;
 }
+
 
 function getInitials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -64,8 +66,8 @@ export default function ClientLayout({
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/80 backdrop-blur-md px-4 sm:px-6 shadow-sm">
         
-        {/* Left: CeleriFlow Logo */}
-        <div className="w-1/3 flex justify-start">
+        {/* Left: CeleriFlow Logo & Version Badge */}
+        <div className="w-1/3 flex justify-start items-center gap-2">
           <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity py-1">
             <Image 
               src="/favicon.png" 
@@ -76,6 +78,9 @@ export default function ClientLayout({
               priority
             />
           </Link>
+          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono bg-primary/10 text-primary border border-primary/20 shadow-xs">
+            {APP_VERSION}
+          </span>
         </div>
 
         {/* Center: City Hall Logo & Title */}
@@ -120,8 +125,11 @@ export default function ClientLayout({
         {children}
       </main>
 
-      <footer className="border-t py-4 text-center text-xs text-muted-foreground bg-background">
-        &copy; {new Date().getFullYear()} CeleriFlow. Todos os direitos reservados.
+      <footer className="border-t py-3 text-center text-xs text-muted-foreground bg-background flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 gap-2">
+        <span>&copy; {new Date().getFullYear()} CeleriFlow. Todos os direitos reservados.</span>
+        <span className="font-mono text-[11px] font-medium text-muted-foreground/80 bg-muted/60 px-2 py-0.5 rounded border border-border/50">
+          Versão {APP_VERSION}
+        </span>
       </footer>
     </div>
   );

@@ -18,7 +18,8 @@ import {
 
 const sidebarNavItems = [
   { title: "Painel Financeiro", href: "/financeiro", icon: LayoutDashboard },
-  { title: "Orçamento e Plano", href: "/financeiro/orcamento", icon: Scale },
+   { title: "Orçamento e Plano", href: "/financeiro/orcamento", icon: Scale },
+   { title: "Planejamento", href: "/financeiro/orcamento/planejamento", icon: BookOpenCheck },
   { title: "Cadastros Orçamentários", href: "/financeiro/orcamento/cadastros", icon: FileText },
   { title: "Tesouraria (Contas)", href: "/financeiro/contas-bancarias", icon: Landmark },
   { title: "Gestão de Empenhos", href: "/financeiro/empenhos", icon: FileText },
@@ -76,9 +77,12 @@ export default function FinanceiroLayout({ children }: { children: React.ReactNo
         
         <nav className="flex flex-col gap-1.5 flex-1">
           {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/financeiro" 
-              ? pathname === "/financeiro" 
-              : pathname.startsWith(item.href);
+            const isActive = item.href === "/financeiro"
+              ? pathname === "/financeiro"
+              : pathname === item.href || (
+                pathname.startsWith(`${item.href}/`) &&
+                !sidebarNavItems.some((child) => child.href !== item.href && child.href.startsWith(`${item.href}/`) && pathname.startsWith(child.href))
+              );
 
             return (
               <Link

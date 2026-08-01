@@ -9,6 +9,7 @@ import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/aut
 import { auth } from "@/lib/firebase/client";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { APP_VERSION } from "@/lib/version";
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -79,15 +80,20 @@ export default function LoginPage() {
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
           
           <div className="flex flex-col items-center mb-6">
-            <Image 
-              src="/logo1.png" 
-              alt="CeleriFlow" 
-              width={180} 
-              height={50}
-              className="object-contain mx-auto mb-2 drop-shadow-sm"
-              priority
-            />
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1 text-center font-medium">
+            <div className="flex items-center gap-2 mb-2">
+              <Image 
+                src="/logo1.png" 
+                alt="CeleriFlow" 
+                width={180} 
+                height={50}
+                className="object-contain drop-shadow-sm"
+                priority
+              />
+              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shadow-xs">
+                {APP_VERSION}
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-muted-foreground text-center font-medium">
               {view === "login" && "Acesse a plataforma de gestão integrada"}
               {view === "reset" && "Redefina sua senha de acesso"}
               {view === "reset-success" && "Pronto!"}

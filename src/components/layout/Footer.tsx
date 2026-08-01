@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { APP_VERSION } from "@/lib/version";
 
 export function Footer() {
   return (
@@ -56,9 +57,14 @@ export function Footer() {
           <p>
             &copy; {new Date().getFullYear()} CeleriFlow. Todos os direitos reservados.
           </p>
-          <p>
-            Uma solução <span className="font-semibold text-foreground">Robonuvem</span> para administração pública.
-          </p>
+          <div className="flex items-center gap-3">
+            <span className="font-mono bg-background px-2 py-0.5 rounded border border-border/60 text-[11px]">
+              {APP_VERSION}
+            </span>
+            <span>
+              Uma solução <span className="font-semibold text-foreground">Robonuvem</span> para administração pública.
+            </span>
+          </div>
         </div>
       </div>
     </footer>
