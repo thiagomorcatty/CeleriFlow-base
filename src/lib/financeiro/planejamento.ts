@@ -39,6 +39,13 @@ function requireNonNegativeMoney(value: number, field: string) {
   return decimal.toDecimalPlaces(2);
 }
 
+function requireNonNegativeNumber(value: number, field: string) {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new FinanceError(`${field} deve ser maior ou igual a zero.`);
+  }
+  return value;
+}
+
 function assertBudgetUnitPermission(actor: FinanceActor, budgetUnitId: string) {
   if (actor.allowedBudgetUnitIds && !actor.allowedBudgetUnitIds.includes(budgetUnitId)) {
     throw new FinanceError("Acesso negado à unidade gestora da dotação.");
@@ -88,6 +95,9 @@ export async function createMultiYearPlan(
 ) {
   requireText(input.code, "Código do PPA");
   requireText(input.name, "Nome do PPA");
+  if (!Number.isInteger(input.startYear) || !Number.isInteger(input.endYear)) {
+    throw new FinanceError("Os anos de vigência do PPA devem ser números inteiros.");
+  }
   if (input.endYear <= input.startYear) {
     throw new FinanceError("O ano final do PPA deve ser maior que o ano inicial.");
   }
@@ -156,6 +166,81 @@ export async function addActionPPA(
     });
     await audit(tx, actor, "CREATE", "ActionPPA", action.id, { code: action.code, name: action.name, programId: program.id });
     return action;
+  });
+}
+
+export async function addObjectivePPA(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: { programId: string; code: string; description: string },
+) {
+  const code = requireText(input.code, "Código do objetivo");
+  const description = requireText(input.description, "Descrição do objetivo");
+  return db.$transaction(async (tx) => {
+    const program = await tx.programPPA.findUnique({ where: { id: input.programId }, select: { id: true } });
+    if (!program) throw new FinanceError("Programa do PPA não encontrado.");
+    const objective = await tx.objectivePPA.create({
+      data: { programId: program.id, code, description },
+    });
+    await audit(tx, actor, "CREATE", "ObjectivePPA", objective.id, { programId: program.id, code, description });
+    return objective;
+  });
+}
+
+export async function addIndicatorPPA(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: { objectiveId: string; name: string; unit: string; baselineValue: number; targetValue: number },
+) {
+  const name = requireText(input.name, "Nome do indicador");
+  const unit = requireText(input.unit, "Unidade de medida");
+  const baselineValue = requireNonNegativeNumber(input.baselineValue, "Valor de referência");
+  const targetValue = requireNonNegativeNumber(input.targetValue, "Valor da meta");
+  return db.$transaction(async (tx) => {
+    const objective = await tx.objectivePPA.findUnique({ where: { id: input.objectiveId }, select: { id: true } });
+    if (!objective) throw new FinanceError("Objetivo do PPA não encontrado.");
+    const indicator = await tx.indicatorPPA.create({
+      data: { objectiveId: objective.id, name, unit, baselineValue, targetValue },
+    });
+    await audit(tx, actor, "CREATE", "IndicatorPPA", indicator.id, {
+      objectiveId: objective.id,
+      name,
+      unit,
+      baselineValue,
+      targetValue,
+    });
+    return indicator;
+  });
+}
+
+export async function addGoalPPA(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: { actionId: string; year: number; physical: number; financial: number },
+) {
+  if (!Number.isInteger(input.year)) throw new FinanceError("O ano da meta deve ser um número inteiro.");
+  const physical = requireNonNegativeNumber(input.physical, "Meta física");
+  const financial = requireNonNegativeMoney(input.financial, "Meta financeira");
+  return db.$transaction(async (tx) => {
+    const action = await tx.actionPPA.findUnique({
+      where: { id: input.actionId },
+      include: { program: { include: { multiYearPlan: { select: { startYear: true, endYear: true } } } } },
+    });
+    if (!action) throw new FinanceError("Ação do PPA não encontrada.");
+    const plan = action.program.multiYearPlan;
+    if (input.year < plan.startYear || input.year > plan.endYear) {
+      throw new FinanceError("O ano da meta deve estar dentro da vigência do PPA.");
+    }
+    const goal = await tx.goalPPA.create({
+      data: { actionId: action.id, year: input.year, physical, financial },
+    });
+    await audit(tx, actor, "CREATE", "GoalPPA", goal.id, {
+      actionId: action.id,
+      year: input.year,
+      physical,
+      financial: financial.toFixed(2),
+    });
+    return goal;
   });
 }
 

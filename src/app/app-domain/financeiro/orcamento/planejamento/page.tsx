@@ -11,12 +11,21 @@ export default async function PlanejamentoPage() {
   const [plans, financialYears, budgetUnits, expenseNatures, resourceSources] = await Promise.all([
     context.prisma.multiYearPlan.findMany({
       include: {
-        programs: { include: { actions: true }, orderBy: { code: "asc" } },
+        programs: {
+          include: {
+            objectives: { include: { indicators: true }, orderBy: { code: "asc" } },
+            actions: { include: { goals: { orderBy: { year: "asc" } } }, orderBy: { code: "asc" } },
+          },
+          orderBy: { code: "asc" },
+        },
         budgetGuidelines: {
           include: {
             financialYear: { select: { year: true, status: true } },
+            priorities: true,
+            risks: true,
             annualBudgetLaws: {
               include: {
+                revenueForecasts: true,
                 expenseFixations: {
                   include: {
                     appropriations: { select: { id: true, initialValue: true, initialValueDecimal: true, code: true, programPPA: { select: { code: true, name: true } }, actionPPA: { select: { code: true, name: true } } } },
@@ -58,14 +67,31 @@ export default async function PlanejamentoPage() {
       name: plan.name,
       startYear: plan.startYear,
       endYear: plan.endYear,
-      programs: plan.programs.map((program) => ({ id: program.id, code: program.code, name: program.name, actions: program.actions.map((action) => ({ id: action.id, code: action.code, name: action.name })) })),
-      guidelines: plan.budgetGuidelines.map((guideline) => ({
-        id: guideline.id,
-        financialYear: guideline.financialYear,
-        laws: guideline.annualBudgetLaws.map((law) => ({
+       programs: plan.programs.map((program) => ({
+         id: program.id,
+         code: program.code,
+         name: program.name,
+         objectives: program.objectives.map((objective) => ({
+           id: objective.id,
+           code: objective.code,
+           description: objective.description,
+           indicators: objective.indicators.map((indicator) => ({ id: indicator.id, name: indicator.name, unit: indicator.unit, baselineValue: indicator.baselineValue, targetValue: indicator.targetValue })),
+         })),
+         actions: program.actions.map((action) => ({ id: action.id, code: action.code, name: action.name, goals: action.goals.map((goal) => ({ id: goal.id, year: goal.year, physical: goal.physical, financial: Number(goal.financial) })) })),
+       })),
+       guidelines: plan.budgetGuidelines.map((guideline) => ({
+         id: guideline.id,
+         financialYear: guideline.financialYear,
+         priorities: guideline.priorities.map((priority) => ({ id: priority.id, description: priority.description, targetValue: priority.targetValue === null ? null : Number(priority.targetValue) })),
+         risks: guideline.risks.map((risk) => ({ id: risk.id, description: risk.description, estimatedImpact: Number(risk.estimatedImpact), mitigation: risk.mitigation })),
+         laws: guideline.annualBudgetLaws.map((law) => ({
           id: law.id,
           lawNumber: law.lawNumber,
-          publicationDate: law.publicationDate.toISOString(),
+           publicationDate: law.publicationDate.toISOString(),
+           totalRevenue: Number(law.totalRevenue),
+           totalExpense: Number(law.totalExpense),
+           revenueForecasts: law.revenueForecasts.map((forecast) => ({ id: forecast.id, code: forecast.code, name: forecast.name, estimatedValue: Number(forecast.estimatedValue) })),
+           expenseFixations: law.expenseFixations.map((fixation) => ({ id: fixation.id, code: fixation.code, name: fixation.name, fixedValue: Number(fixation.fixedValue) })),
           cmdSchedules: law.cmdSchedules.map((schedule) => ({ id: schedule.id, month: schedule.month, limitValue: Number(schedule.limitValue), budgetUnit: budgetUnitById.get(schedule.budgetUnitId) ?? { code: "UG removida", name: "Unidade nao encontrada" } })),
           mbaTargets: law.mbaTargets.map((target) => ({ id: target.id, bimonth: target.bimonth, targetValue: Number(target.targetValue) })),
         })),

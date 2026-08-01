@@ -181,7 +181,7 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
     db.revenue.findMany({
       where: {
         financialYearId: filter.financialYearId,
-        status: "Arrecadada",
+        stage: "ARRECADADA",
         ...(dateCond ? { date: dateCond } : {}),
       },
       include: { revenueNature: true },
@@ -272,7 +272,7 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
 
   for (const rev of revenues) {
     const code = rev.revenueNature.code;
-    const realized = Number(rev.valueDecimal ?? rev.value);
+    const realized = Number(rev.valueDecimal ?? rev.value) * (rev.classification === "REDUTORA" ? -1 : 1);
     if (!revenueMap[code]) {
       revenueMap[code] = {
         revenueNatureCode: code,
@@ -305,13 +305,14 @@ export async function generateRGF(db: Db, filter: ReportFilter) {
   const revenues = await db.revenue.findMany({
     where: {
       financialYearId: filter.financialYearId,
-      status: "Arrecadada",
+      stage: "ARRECADADA",
+      classification: { not: "INTRAORCAMENTARIA" },
       ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
     },
-    select: { valueDecimal: true, value: true },
+    select: { valueDecimal: true, value: true, classification: true },
   });
 
-  const rcl = revenues.reduce((sum, r) => sum + Number(r.valueDecimal ?? r.value), 0);
+  const rcl = revenues.reduce((sum, r) => sum + Number(r.valueDecimal ?? r.value) * (r.classification === "REDUTORA" ? -1 : 1), 0);
 
   const commitments = await db.commitment.findMany({
     where: {

@@ -34,6 +34,7 @@ test("records the stock row and audit evidence in one transaction", async () => 
   const transaction = {
     warehouse: { findFirst: async () => ({ id: "warehouse-1" }) },
     material: { findUnique: async () => ({ id: "material-1" }) },
+    inventorySession: { findFirst: async () => null },
     materialStock: { upsert: async () => ({ id: "stock-1", unitCost: 12 }) },
     materialMovement: { create: async ({ data }: { data: Record<string, unknown> }) => { movements.push(data); return { id: "movement-1" }; } },
   };
@@ -62,7 +63,24 @@ test("records the stock row and audit evidence in one transaction", async () => 
     supplierId: null,
     departmentId: null,
     obrasServicoId: null,
+    inventorySessionId: null,
     actorUsuarioId: "user-1",
     actorEmployeeId: "employee-1",
   });
+});
+
+test("blocks every regular stock movement while the warehouse inventory is locked", async () => {
+  const transaction = {
+    warehouse: { findFirst: async () => ({ id: "warehouse-1" }) },
+    material: { findUnique: async () => ({ id: "material-1" }) },
+    inventorySession: { findFirst: async () => ({ id: "inventory-1" }) },
+  };
+  const database = { $transaction: async (callback: (tx: typeof transaction) => Promise<unknown>) => callback(transaction) };
+
+  for (const kind of ["ENTRY", "EXIT", "ADJUSTMENT"] as const) {
+    await assert.rejects(
+      recordStockMovement(database as never, { kind, warehouseId: "warehouse-1", materialId: "material-1", quantity: 1, actor }),
+      /Movimentações estão bloqueadas enquanto o inventário/,
+    );
+  }
 });

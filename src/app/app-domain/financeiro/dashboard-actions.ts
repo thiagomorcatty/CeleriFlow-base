@@ -43,8 +43,8 @@ export async function getFinanceiroDashboardStats(month: string, year: string) {
 
   const [revenues, expenses] = await Promise.all([
     prisma.revenue.findMany({
-      select: { value: true, valueDecimal: true },
-      where: dateFilter,
+      select: { value: true, valueDecimal: true, classification: true },
+      where: { ...dateFilter, stage: "ARRECADADA" },
     }),
     prisma.expense.findMany({
       select: { value: true, valueDecimal: true },
@@ -52,7 +52,7 @@ export async function getFinanceiroDashboardStats(month: string, year: string) {
     }),
   ])
 
-  const totalReceita = revenues.reduce((total, revenue) => total + Number(revenue.valueDecimal ?? revenue.value), 0)
+  const totalReceita = revenues.reduce((total, revenue) => total + Number(revenue.valueDecimal ?? revenue.value) * (revenue.classification === "REDUTORA" ? -1 : 1), 0)
   const totalDespesa = expenses.reduce((total, expense) => total + Number(expense.valueDecimal ?? expense.value), 0)
   const resultadoOperacional = totalReceita - totalDespesa
 

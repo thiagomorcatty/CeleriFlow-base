@@ -366,6 +366,10 @@ async function main() {
     ["PAGAMENTO_EFETIVADO", "Pagamento efetivado", accountCreditors.id, accountCash.id],
     ["RETENCAO_RECOLHIDA", "Retencao recolhida", accountCreditors.id, accountCash.id],
     ["PAGAMENTO_ESTORNADO", "Pagamento estornado", accountCash.id, accountCreditors.id],
+    ["RECEITA_LANCADA", "Receita lancada", accountEquity.id, accountCreditors.id],
+    ["RECEITA_ARRECADADA", "Receita arrecadada", accountCash.id, accountEquity.id],
+    ["RECEITA_ESTORNADA", "Receita estornada", accountEquity.id, accountCash.id],
+    ["RECEITA_REDISTRIBUIDA_FONTE", "Receita redistribuida por fonte", accountEquity.id, accountCreditors.id],
   ] as const;
   for (const [code, name, debitAccountId, creditAccountId] of pocAccountingRules) {
     const event = await prisma.accountingEventCatalog.upsert({ where: { code }, create: { code, name, description: "REFERENCIA POC - substituir por matriz PCASP homologada" }, update: { name, description: "REFERENCIA POC - substituir por matriz PCASP homologada", isActive: true } });

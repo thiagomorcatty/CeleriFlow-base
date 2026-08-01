@@ -22,6 +22,7 @@ const sidebarNavItems = [
    { title: "Planejamento", href: "/financeiro/orcamento/planejamento", icon: BookOpenCheck },
   { title: "Cadastros Orçamentários", href: "/financeiro/orcamento/cadastros", icon: FileText },
    { title: "Tesouraria (Contas)", href: "/financeiro/contas-bancarias", icon: Landmark },
+   { title: "Receitas", href: "/financeiro/receitas", icon: WalletCards },
    { title: "Conciliação Bancária", href: "/financeiro/conciliacao-bancaria", icon: WalletCards },
   { title: "Gestão de Empenhos", href: "/financeiro/empenhos", icon: FileText },
   { title: "Liquidações", href: "/financeiro/liquidacoes", icon: Receipt },

@@ -19,6 +19,10 @@ function maskDocument(doc?: string | null): string {
 export type PublicDataFilter = {
   year?: number;
   search?: string;
+  budgetUnitCode?: string;
+  resourceSourceCode?: string;
+  expenseNatureCode?: string;
+  revenueClassification?: "ORCAMENTARIA" | "INTRAORCAMENTARIA" | "REDUTORA";
   page?: number;
   pageSize?: number;
 };
@@ -37,11 +41,30 @@ export function parsePublicDataFilter(searchParams: URLSearchParams): PublicData
   const search = searchParams.get("search")?.trim();
   if (search && search.length > 120) throw new Error("Parâmetro search inválido.");
 
+  const parseOptionalCode = (name: string) => {
+    const value = searchParams.get(name)?.trim();
+    if (!value) return undefined;
+    if (value.length > 80) throw new Error(`Parâmetro ${name} inválido.`);
+    return value;
+  };
+
+  const budgetUnitCode = parseOptionalCode("budgetUnitCode");
+  const resourceSourceCode = parseOptionalCode("resourceSourceCode");
+  const expenseNatureCode = parseOptionalCode("expenseNatureCode");
+  const revenueClassification = searchParams.get("revenueClassification");
+  if (revenueClassification && !["ORCAMENTARIA", "INTRAORCAMENTARIA", "REDUTORA"].includes(revenueClassification)) {
+    throw new Error("Parâmetro revenueClassification inválido.");
+  }
+
   return {
     year: parseOptionalInteger("year", 2000, 2100),
     page: parseOptionalInteger("page", 1, 1_000_000),
     pageSize: parseOptionalInteger("pageSize", 1, 100),
     search: search || undefined,
+    ...(budgetUnitCode ? { budgetUnitCode } : {}),
+    ...(resourceSourceCode ? { resourceSourceCode } : {}),
+    ...(expenseNatureCode ? { expenseNatureCode } : {}),
+    ...(revenueClassification ? { revenueClassification: revenueClassification as PublicDataFilter["revenueClassification"] } : {}),
   };
 }
 
@@ -57,21 +80,44 @@ function normalizePublicFilter(filter: PublicDataFilter = {}) {
   return { ...filter, page, pageSize, search: search || undefined };
 }
 
-function publicCreditorName(creditor: { name: string; personId: string | null } | null) {
-  if (!creditor) return "NÃO INFORMADO";
-  return creditor.personId ? "PESSOA FÍSICA" : creditor.name;
+function publicSupplier(
+  creditor: { name: string; document: string | null; personId: string | null } | null,
+  supplier: {
+    person: { cpf: string } | null;
+    company: { corporateName: string; cnpj: string } | null;
+  } | null,
+) {
+  if (creditor) {
+    return {
+      name: creditor.personId ? "PESSOA FÍSICA" : creditor.name,
+      documentMasked: maskDocument(creditor.document),
+    };
+  }
+  if (supplier?.person) return { name: "PESSOA FÍSICA", documentMasked: maskDocument(supplier.person.cpf) };
+  if (supplier?.company) return { name: supplier.company.corporateName, documentMasked: maskDocument(supplier.company.cnpj) };
+  return { name: "NÃO INFORMADO", documentMasked: "NÃO INFORMADO" };
 }
 
 export async function getPublicExpenses(db: Db, filter?: PublicDataFilter) {
   const normalized = normalizePublicFilter(filter);
-  const where = {
-    status: { in: ["Emitido", "Liquidado", "Pago"] },
-    ...(normalized.year ? { date: publicDateFilter(normalized.year) } : {}),
-    ...(normalized.search
-      ? {
-          number: { contains: normalized.search, mode: "insensitive" as const },
-        }
-      : {}),
+  const where: Prisma.CommitmentWhereInput = {
+    AND: [
+      { status: { in: ["Emitido", "Liquidado", "Pago"] } },
+      ...(normalized.year ? [{ date: publicDateFilter(normalized.year) }] : []),
+      ...(normalized.budgetUnitCode ? [{ appropriation: { budgetUnit: { code: normalized.budgetUnitCode } } }] : []),
+      ...(normalized.resourceSourceCode ? [{ appropriation: { resourceSource: { code: normalized.resourceSourceCode } } }] : []),
+      ...(normalized.expenseNatureCode ? [{ appropriation: { expenseNature: { code: normalized.expenseNatureCode } } }] : []),
+      ...(normalized.search
+        ? [{
+            OR: [
+              { number: { contains: normalized.search, mode: "insensitive" as const } },
+              { appropriation: { budgetUnit: { name: { contains: normalized.search, mode: "insensitive" as const } } } },
+              { appropriation: { expenseNature: { name: { contains: normalized.search, mode: "insensitive" as const } } } },
+              { appropriation: { resourceSource: { name: { contains: normalized.search, mode: "insensitive" as const } } } },
+            ],
+          }]
+        : []),
+    ],
   };
 
   const [total, commitments] = await Promise.all([
@@ -80,6 +126,12 @@ export async function getPublicExpenses(db: Db, filter?: PublicDataFilter) {
       where,
       include: {
         creditor: true,
+        supplier: {
+          include: {
+            person: { select: { cpf: true } },
+            company: { select: { corporateName: true, cnpj: true } },
+          },
+        },
         appropriation: {
           include: {
             budgetUnit: true,
@@ -101,6 +153,7 @@ export async function getPublicExpenses(db: Db, filter?: PublicDataFilter) {
 
   const data = commitments.map((c) => {
     const value = Number(c.valueDecimal ?? c.value);
+    const supplier = publicSupplier(c.creditor, c.supplier);
 
     const totalSettled = c.settlements.reduce(
       (sum, s) => sum + Number(s.valueDecimal ?? s.value),
@@ -108,21 +161,34 @@ export async function getPublicExpenses(db: Db, filter?: PublicDataFilter) {
     );
 
     const totalPaid = c.payments.reduce((sum, payment) => sum + Number(payment.valueDecimal ?? payment.value), 0);
+    const latestSettlementDate = c.settlements.reduce<Date | null>(
+      (latest, settlement) => !latest || settlement.date > latest ? settlement.date : latest,
+      null,
+    );
+    const latestPaymentDate = c.payments.reduce<Date | null>(
+      (latest, payment) => !latest || payment.date > latest ? payment.date : latest,
+      null,
+    );
 
     return {
-      commitmentId: c.id,
       number: c.number,
       date: c.date,
-      creditorName: publicCreditorName(c.creditor),
-      creditorDocumentMasked: maskDocument(c.creditor?.document),
+      supplierName: supplier.name,
+      supplierDocumentMasked: supplier.documentMasked,
       budgetUnitCode: c.appropriation.budgetUnit.code,
       budgetUnitName: c.appropriation.budgetUnit.name,
+      budgetClassificationCode: c.appropriation.code,
       expenseNatureCode: c.appropriation.expenseNature.code,
       expenseNatureName: c.appropriation.expenseNature.name,
       resourceSourceCode: c.appropriation.resourceSource.code,
+      resourceSourceName: c.appropriation.resourceSource.name,
       committedValue: value,
       settledValue: totalSettled,
       paidValue: totalPaid,
+      settlementCount: c.settlements.length,
+      latestSettlementDate,
+      paidPaymentCount: c.payments.length,
+      latestPaymentDate,
       status: c.status,
     };
   });
@@ -136,17 +202,24 @@ export async function getPublicExpenses(db: Db, filter?: PublicDataFilter) {
 
 export async function getPublicRevenues(db: Db, filter?: PublicDataFilter) {
   const normalized = normalizePublicFilter(filter);
-  const where = {
-    status: "Arrecadada",
-    ...(normalized.year ? { date: publicDateFilter(normalized.year) } : {}),
-    ...(normalized.search
-      ? {
-          OR: [
-            { revenueNature: { code: { contains: normalized.search, mode: "insensitive" as const } } },
-            { revenueNature: { name: { contains: normalized.search, mode: "insensitive" as const } } },
-          ],
-        }
-      : {}),
+  const where: Prisma.RevenueWhereInput = {
+    AND: [
+      { stage: "ARRECADADA" },
+      ...(normalized.year ? [{ date: publicDateFilter(normalized.year) }] : []),
+      ...(normalized.resourceSourceCode ? [{ resourceSource: { code: normalized.resourceSourceCode } }] : []),
+      ...(normalized.budgetUnitCode ? [{ bankAccount: { budgetUnit: { code: normalized.budgetUnitCode } } }] : []),
+      ...(normalized.revenueClassification ? [{ classification: normalized.revenueClassification }] : []),
+      ...(normalized.search
+        ? [{
+            OR: [
+              { revenueNature: { code: { contains: normalized.search, mode: "insensitive" as const } } },
+              { revenueNature: { name: { contains: normalized.search, mode: "insensitive" as const } } },
+              { resourceSource: { code: { contains: normalized.search, mode: "insensitive" as const } } },
+              { resourceSource: { name: { contains: normalized.search, mode: "insensitive" as const } } },
+            ],
+          }]
+        : []),
+    ],
   };
   const [total, revenues] = await Promise.all([
     db.revenue.count({ where }),
@@ -155,6 +228,7 @@ export async function getPublicRevenues(db: Db, filter?: PublicDataFilter) {
       include: {
         revenueNature: true,
         resourceSource: true,
+        bankAccount: { include: { budgetUnit: true } },
       },
       orderBy: { date: "desc" },
       skip: (normalized.page - 1) * normalized.pageSize,
@@ -163,12 +237,16 @@ export async function getPublicRevenues(db: Db, filter?: PublicDataFilter) {
   ]);
 
   const data = revenues.map((r) => ({
-    id: r.id,
     date: r.date,
+    launchDate: r.launchDate,
+    collectionDate: r.collectionDate,
     revenueNatureCode: r.revenueNature.code,
     revenueNatureName: r.revenueNature.name,
     resourceSourceCode: r.resourceSource.code,
     resourceSourceName: r.resourceSource.name,
+    budgetUnitCode: r.bankAccount?.budgetUnit?.code ?? null,
+    budgetUnitName: r.bankAccount?.budgetUnit?.name ?? null,
+    classification: r.classification,
     value: Number(r.valueDecimal ?? r.value),
     status: r.status,
   }));
@@ -180,8 +258,8 @@ export async function getPublicRevenues(db: Db, filter?: PublicDataFilter) {
 }
 
 function escapeCsvValue(value: unknown) {
-  const stringValue = String(value ?? "");
-  const formulaSafeValue = /^[=+\-@]/.test(stringValue) ? `'${stringValue}` : stringValue;
+  const stringValue = value instanceof Date ? value.toISOString() : String(value ?? "");
+  const formulaSafeValue = /^[\t\r ]*[=+\-@]/.test(stringValue) ? `'${stringValue}` : stringValue;
   return `"${formulaSafeValue.replace(/"/g, '""')}"`;
 }
 

@@ -13,6 +13,8 @@ export type FinanceActor = {
 
 export class FinanceError extends Error {}
 
+export type RevenueClassification = "ORCAMENTARIA" | "INTRAORCAMENTARIA" | "REDUTORA";
+
 const OPEN_STATUS = "Aberto";
 const ACTIVE_RESERVATION_STATUS = "Ativa";
 const ACTIVE_COMMITMENT_STATUSES = ["Emitido", "Liquidado", "Pago"];
@@ -134,6 +136,10 @@ async function lockWithholdingPayable(tx: Prisma.TransactionClient, payableId: s
 
 async function lockPayment(tx: Prisma.TransactionClient, paymentId: string) {
   await tx.$queryRaw`SELECT id FROM "Payment" WHERE id = ${paymentId} FOR UPDATE`;
+}
+
+async function lockRevenue(tx: Prisma.TransactionClient, revenueId: string) {
+  await tx.$queryRaw`SELECT id FROM "Revenue" WHERE id = ${revenueId} FOR UPDATE`;
 }
 
 async function lockPayableCarryForward(tx: Prisma.TransactionClient, payableCarryForwardId: string) {
@@ -1256,35 +1262,229 @@ export async function createTreasuryTransfer(
 export async function recordConfirmedRevenue(
   tx: Prisma.TransactionClient,
   actor: FinanceActor,
-  input: { date: Date; value: Prisma.Decimal | string | number; revenueNatureId: string; resourceSourceId: string; bankAccountId: string; history?: string; sourceModule: string; sourceType: string; sourceId?: string; eventType: string; idempotencyKey: string },
+  input: { date: Date; value: Prisma.Decimal | string | number; revenueNatureId: string; resourceSourceId: string; bankAccountId: string; classification?: RevenueClassification; history?: string; sourceModule: string; sourceType: string; sourceId?: string; eventType: string; idempotencyKey: string },
 ) {
   const value = money(input.value);
+  if (!input.idempotencyKey.trim()) throw new FinanceError("A arrecadacao exige chave de idempotencia.");
   const existing = await tx.revenue.findUnique({ where: { idempotencyKey: input.idempotencyKey }, include: { treasuryMovement: true } });
   if (existing) return existing;
   const [year, bankAccount, nature, source] = await Promise.all([
     financialYearForPosting(tx, input.date),
-    tx.bankAccount.findUnique({ where: { id: input.bankAccountId }, select: { isActive: true } }),
+    tx.bankAccount.findUnique({ where: { id: input.bankAccountId }, select: { isActive: true, resourceSourceId: true } }),
     tx.revenueNature.findUnique({ where: { id: input.revenueNatureId }, select: { id: true } }),
     tx.resourceSource.findUnique({ where: { id: input.resourceSourceId }, select: { id: true } }),
   ]);
   if (!bankAccount?.isActive) throw new FinanceError("A receita exige uma conta bancária ativa.");
+  if (bankAccount.resourceSourceId !== input.resourceSourceId) throw new FinanceError("A conta bancária deve possuir a mesma fonte de recursos da receita.");
   if (!nature || !source) throw new FinanceError("Natureza e fonte da receita devem estar configuradas.");
   const revenue = await tx.revenue.create({
-    data: { date: input.date, valueDecimal: value, value: legacyMoney(value), financialYearId: year.id, revenueNatureId: input.revenueNatureId, resourceSourceId: input.resourceSourceId, bankAccountId: input.bankAccountId, history: input.history?.trim() || undefined, sourceModule: input.sourceModule.trim(), sourceType: input.sourceType.trim(), sourceId: input.sourceId?.trim() || undefined, eventType: input.eventType.trim(), idempotencyKey: input.idempotencyKey, status: "Arrecadada" },
+    data: { date: input.date, valueDecimal: value, value: legacyMoney(value), financialYearId: year.id, revenueNatureId: input.revenueNatureId, resourceSourceId: input.resourceSourceId, bankAccountId: input.bankAccountId, classification: input.classification ?? "ORCAMENTARIA", collectionDate: input.date, history: input.history?.trim() || undefined, sourceModule: input.sourceModule.trim(), sourceType: input.sourceType.trim(), sourceId: input.sourceId?.trim() || undefined, eventType: input.eventType.trim(), idempotencyKey: input.idempotencyKey, status: "Arrecadada", stage: "ARRECADADA" },
   });
   const movement = await tx.treasuryMovement.create({
     data: { date: input.date, type: "Revenue", direction: "Entrada", valueDecimal: value, history: revenue.history, bankAccountId: input.bankAccountId, financialYearId: year.id, revenueId: revenue.id, sourceModule: input.sourceModule.trim(), sourceType: input.sourceType.trim(), sourceId: input.sourceId?.trim() || undefined, eventType: input.eventType.trim(), idempotencyKey: `${input.idempotencyKey}:TREASURY` },
   });
-  await audit(tx, actor, "CREATE", "Revenue", revenue.id, { value: jsonMoney(value), treasuryMovementId: movement.id, sourceModule: revenue.sourceModule, sourceType: revenue.sourceType, sourceId: revenue.sourceId }, year.id);
+  await postAccountingEventInTransaction(tx, actor, {
+    financialYearId: year.id,
+    date: input.date,
+    eventCode: "RECEITA_ARRECADADA",
+    value,
+    history: `Receita arrecadada: ${revenue.history ?? revenue.id}`,
+    sourceModule: revenue.sourceModule,
+    sourceType: revenue.sourceType,
+    sourceId: revenue.id,
+    idempotencyKey: `${input.idempotencyKey}:RECEITA_ARRECADADA`,
+  });
+  await audit(tx, actor, "CREATE", "Revenue", revenue.id, { stage: revenue.stage, classification: revenue.classification, value: jsonMoney(value), treasuryMovementId: movement.id, sourceModule: revenue.sourceModule, sourceType: revenue.sourceType, sourceId: revenue.sourceId }, year.id);
   return { ...revenue, treasuryMovement: movement };
 }
 
 export async function createRevenue(
   db: PrismaClient,
   actor: FinanceActor,
-  input: { date: Date; value: Prisma.Decimal | string | number; revenueNatureId: string; resourceSourceId: string; bankAccountId: string; history?: string; sourceModule: string; sourceType: string; sourceId?: string; eventType: string; idempotencyKey: string },
+  input: { date: Date; value: Prisma.Decimal | string | number; revenueNatureId: string; resourceSourceId: string; bankAccountId: string; classification?: RevenueClassification; history?: string; sourceModule: string; sourceType: string; sourceId?: string; eventType: string; idempotencyKey: string },
 ) {
   return db.$transaction((tx) => recordConfirmedRevenue(tx, actor, input));
+}
+
+export async function launchRevenue(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: { date: Date; value: Prisma.Decimal | string | number; revenueNatureId: string; resourceSourceId: string; classification?: RevenueClassification; history?: string; sourceModule: string; sourceType: string; sourceId?: string; eventType: string; idempotencyKey: string },
+) {
+  const value = money(input.value);
+  if (!input.idempotencyKey.trim()) throw new FinanceError("O lancamento da receita exige chave de idempotencia.");
+  return db.$transaction(async (tx) => {
+    const existing = await tx.revenue.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
+    if (existing) return existing;
+    const [year, nature, source] = await Promise.all([
+      financialYearForPosting(tx, input.date),
+      tx.revenueNature.findUnique({ where: { id: input.revenueNatureId }, select: { id: true } }),
+      tx.resourceSource.findUnique({ where: { id: input.resourceSourceId }, select: { id: true } }),
+    ]);
+    if (!nature || !source) throw new FinanceError("Natureza e fonte da receita devem estar configuradas.");
+    const revenue = await tx.revenue.create({
+      data: {
+        date: input.date,
+        launchDate: input.date,
+        valueDecimal: value,
+        value: legacyMoney(value),
+        financialYearId: year.id,
+        revenueNatureId: input.revenueNatureId,
+        resourceSourceId: input.resourceSourceId,
+        classification: input.classification ?? "ORCAMENTARIA",
+        history: input.history?.trim() || undefined,
+        sourceModule: input.sourceModule.trim(),
+        sourceType: input.sourceType.trim(),
+        sourceId: input.sourceId?.trim() || undefined,
+        eventType: input.eventType.trim(),
+        idempotencyKey: input.idempotencyKey.trim(),
+        status: "Lancada",
+        stage: "LANCADA",
+      },
+    });
+    await postAccountingEventInTransaction(tx, actor, {
+      financialYearId: year.id,
+      date: input.date,
+      eventCode: "RECEITA_LANCADA",
+      value,
+      history: `Receita lancada: ${revenue.history ?? revenue.id}`,
+      sourceModule: revenue.sourceModule,
+      sourceType: revenue.sourceType,
+      sourceId: revenue.id,
+      idempotencyKey: `${input.idempotencyKey}:RECEITA_LANCADA`,
+    });
+    await audit(tx, actor, "CREATE", "Revenue", revenue.id, { stage: revenue.stage, classification: revenue.classification, value: jsonMoney(value), sourceModule: revenue.sourceModule, sourceType: revenue.sourceType, sourceId: revenue.sourceId }, year.id);
+    return revenue;
+  });
+}
+
+export async function collectLaunchedRevenue(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: { revenueId: string; date: Date; bankAccountId: string; idempotencyKey: string },
+) {
+  if (!input.idempotencyKey.trim()) throw new FinanceError("A arrecadacao exige chave de idempotencia.");
+  return db.$transaction(async (tx) => {
+    await lockRevenue(tx, input.revenueId);
+    const revenue = await tx.revenue.findUnique({ where: { id: input.revenueId }, include: { treasuryMovement: true } });
+    if (!revenue) throw new FinanceError("Receita nao encontrada.");
+    if (revenue.stage !== "LANCADA" || revenue.treasuryMovement) throw new FinanceError("Somente receitas lancadas e ainda nao arrecadadas podem ser efetivadas.");
+    const [year, account] = await Promise.all([
+      financialYearForPosting(tx, input.date),
+      tx.bankAccount.findUnique({ where: { id: input.bankAccountId }, select: { isActive: true, resourceSourceId: true } }),
+    ]);
+    if (year.id !== revenue.financialYearId) throw new FinanceError("A arrecadacao deve ocorrer no mesmo exercicio financeiro da receita lancada.");
+    if (!account?.isActive || account.resourceSourceId !== revenue.resourceSourceId) throw new FinanceError("A conta bancaria ativa deve possuir a mesma fonte de recursos da receita.");
+    const value = requiredDecimal(revenue.valueDecimal, "Revenue.valueDecimal");
+    const collected = await tx.revenue.update({
+      where: { id: revenue.id },
+      data: { date: input.date, collectionDate: input.date, bankAccountId: input.bankAccountId, status: "Arrecadada", stage: "ARRECADADA" },
+    });
+    const movement = await tx.treasuryMovement.create({
+      data: { date: input.date, type: "Revenue", direction: "Entrada", valueDecimal: value, history: collected.history, bankAccountId: input.bankAccountId, financialYearId: year.id, revenueId: collected.id, sourceModule: collected.sourceModule, sourceType: collected.sourceType, sourceId: collected.sourceId ?? collected.id, eventType: "REVENUE_COLLECTED", idempotencyKey: `${input.idempotencyKey}:TREASURY` },
+    });
+    await postAccountingEventInTransaction(tx, actor, {
+      financialYearId: year.id,
+      date: input.date,
+      eventCode: "RECEITA_ARRECADADA",
+      value,
+      history: `Receita arrecadada: ${collected.history ?? collected.id}`,
+      sourceModule: collected.sourceModule,
+      sourceType: collected.sourceType,
+      sourceId: collected.id,
+      idempotencyKey: `${input.idempotencyKey}:RECEITA_ARRECADADA`,
+    });
+    await audit(tx, actor, "COLLECT", "Revenue", collected.id, { stage: collected.stage, value: jsonMoney(value), treasuryMovementId: movement.id }, year.id);
+    return { ...collected, treasuryMovement: movement };
+  });
+}
+
+export async function reverseRevenue(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: { revenueId: string; date: Date; justification: string },
+) {
+  if (!input.justification.trim()) throw new FinanceError("A justificativa do estorno da receita e obrigatoria.");
+  return db.$transaction(async (tx) => {
+    await lockRevenue(tx, input.revenueId);
+    const revenue = await tx.revenue.findUnique({
+      where: { id: input.revenueId },
+      include: { treasuryMovement: true, taxIntegration: true, reversal: true, resourceRedistributions: { select: { id: true } } },
+    });
+    if (!revenue) throw new FinanceError("Receita nao encontrada.");
+    if (revenue.stage !== "ARRECADADA" || !revenue.treasuryMovement || revenue.reversal) throw new FinanceError("Somente receitas arrecadadas sem estorno anterior podem ser estornadas.");
+    if (revenue.taxIntegration) throw new FinanceError("A receita originada de pagamento tributario deve ser estornada pelo fluxo tributario proprio.");
+    if (revenue.resourceRedistributions.length) throw new FinanceError("A receita possui redistribuicoes por fonte. Regularize-as antes do estorno.");
+    const year = await financialYearForPosting(tx, input.date);
+    if (year.id !== revenue.financialYearId) throw new FinanceError("O estorno deve ocorrer no mesmo exercicio financeiro da receita arrecadada.");
+    const value = requiredDecimal(revenue.valueDecimal, "Revenue.valueDecimal");
+    const balance = await getBankAccountBalance(tx, revenue.treasuryMovement.bankAccountId, input.date);
+    if (balance.lessThan(value)) throw new FinanceError("Saldo financeiro insuficiente para estornar a receita.");
+    const movement = await tx.treasuryMovement.create({
+      data: { date: input.date, type: "RevenueReversal", direction: "Saída", valueDecimal: value, history: `Estorno de receita ${revenue.id}: ${input.justification.trim()}`, bankAccountId: revenue.treasuryMovement.bankAccountId, financialYearId: year.id, sourceModule: "FINANCEIRO", sourceType: "REVENUE_REVERSAL", sourceId: revenue.id, eventType: "REVENUE_REVERSED", idempotencyKey: `FINANCEIRO:REVENUE:${revenue.id}:REVERSED` },
+    });
+    const reversal = await tx.revenueReversal.create({
+      data: { revenueId: revenue.id, date: input.date, valueDecimal: value, justification: input.justification.trim(), financialYearId: year.id, treasuryMovementId: movement.id },
+    });
+    const reversed = await tx.revenue.update({ where: { id: revenue.id }, data: { status: "Estornada", stage: "ESTORNADA", reversedAt: input.date } });
+    await postAccountingEventInTransaction(tx, actor, {
+      financialYearId: year.id,
+      date: input.date,
+      eventCode: "RECEITA_ESTORNADA",
+      value,
+      history: `Estorno de receita: ${revenue.history ?? revenue.id}`,
+      sourceModule: "FINANCEIRO",
+      sourceType: "REVENUE_REVERSAL",
+      sourceId: reversal.id,
+      idempotencyKey: `FINANCEIRO:REVENUE:${revenue.id}:RECEITA_ESTORNADA`,
+    });
+    await audit(tx, actor, "REVERSE", "Revenue", revenue.id, { stage: reversed.stage, reversalId: reversal.id, treasuryMovementId: movement.id, value: jsonMoney(value), justification: reversal.justification, originRevenueId: revenue.id }, year.id);
+    return reversal;
+  });
+}
+
+export async function redistributeRevenueResourceSource(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: { revenueId: string; date: Date; value: Prisma.Decimal | string | number; destinationResourceSourceId: string; history: string; idempotencyKey?: string },
+) {
+  const value = money(input.value);
+  if (!input.history.trim()) throw new FinanceError("Informe o historico da redistribuicao de fonte.");
+  return db.$transaction(async (tx) => {
+    if (input.idempotencyKey?.trim()) {
+      const existing = await tx.revenueResourceRedistribution.findUnique({ where: { idempotencyKey: input.idempotencyKey.trim() } });
+      if (existing) return existing;
+    }
+    await lockRevenue(tx, input.revenueId);
+    const revenue = await tx.revenue.findUnique({ where: { id: input.revenueId }, select: { id: true, stage: true, valueDecimal: true, resourceSourceId: true, financialYearId: true } });
+    if (!revenue || revenue.stage !== "ARRECADADA") throw new FinanceError("Somente receitas arrecadadas podem ter fonte redistribuida.");
+    if (revenue.resourceSourceId === input.destinationResourceSourceId) throw new FinanceError("A fonte de destino deve ser diferente da fonte de origem.");
+    const [year, destination, redistributed] = await Promise.all([
+      financialYearForPosting(tx, input.date),
+      tx.resourceSource.findUnique({ where: { id: input.destinationResourceSourceId }, select: { id: true } }),
+      tx.revenueResourceRedistribution.aggregate({ where: { revenueId: revenue.id }, _sum: { valueDecimal: true } }),
+    ]);
+    if (year.id !== revenue.financialYearId) throw new FinanceError("A redistribuicao deve ocorrer no mesmo exercicio financeiro da receita.");
+    if (!destination) throw new FinanceError("Fonte de destino nao encontrada.");
+    const available = requiredDecimal(revenue.valueDecimal, "Revenue.valueDecimal").minus(redistributed._sum.valueDecimal ?? new Prisma.Decimal(0));
+    if (available.lessThan(value)) throw new FinanceError("A redistribuicao excede o valor ainda disponivel na fonte de origem.");
+    const redistribution = await tx.revenueResourceRedistribution.create({
+      data: { revenueId: revenue.id, date: input.date, valueDecimal: value, sourceResourceSourceId: revenue.resourceSourceId, destinationResourceSourceId: destination.id, financialYearId: year.id, history: input.history.trim(), idempotencyKey: input.idempotencyKey?.trim() || undefined },
+    });
+    await postAccountingEventInTransaction(tx, actor, {
+      financialYearId: year.id,
+      date: input.date,
+      eventCode: "RECEITA_REDISTRIBUIDA_FONTE",
+      value,
+      history: `Redistribuicao de fonte da receita ${revenue.id}: ${redistribution.history}`,
+      sourceModule: "FINANCEIRO",
+      sourceType: "REVENUE_RESOURCE_REDISTRIBUTION",
+      sourceId: redistribution.id,
+      idempotencyKey: `FINANCEIRO:REVENUE_REDISTRIBUTION:${redistribution.id}`,
+    });
+    await audit(tx, actor, "REDISTRIBUTE_RESOURCE_SOURCE", "Revenue", revenue.id, { redistributionId: redistribution.id, sourceResourceSourceId: revenue.resourceSourceId, destinationResourceSourceId: destination.id, value: jsonMoney(value), history: redistribution.history }, year.id);
+    return redistribution;
+  });
 }
 
 export async function dailyTreasuryBulletin(tx: Db, date: Date, bankAccountId?: string) {

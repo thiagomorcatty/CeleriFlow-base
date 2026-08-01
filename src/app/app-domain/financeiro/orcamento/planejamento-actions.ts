@@ -5,6 +5,9 @@ import {
   createMultiYearPlan,
   addProgramPPA,
   addActionPPA,
+  addObjectivePPA,
+  addIndicatorPPA,
+  addGoalPPA,
   createBudgetGuideline,
   createAnnualBudgetLaw,
   createBudgetAppropriationFromFixation,
@@ -47,6 +50,82 @@ const creditRequestSchema = z.object({
   })).min(1),
 });
 
+const multiYearPlanSchema = z.object({
+  code: z.string().trim().min(1),
+  name: z.string().trim().min(1),
+  startYear: z.number().int(),
+  endYear: z.number().int(),
+  description: z.string().trim().min(1).optional(),
+});
+
+const programSchema = z.object({
+  multiYearPlanId: z.string().min(1),
+  code: z.string().trim().min(1),
+  name: z.string().trim().min(1),
+  type: z.string().trim().min(1).optional(),
+});
+
+const actionSchema = z.object({
+  programId: z.string().min(1),
+  code: z.string().trim().min(1),
+  name: z.string().trim().min(1),
+  type: z.string().trim().min(1).optional(),
+});
+
+const objectiveSchema = z.object({
+  programId: z.string().min(1),
+  code: z.string().trim().min(1),
+  description: z.string().trim().min(1),
+});
+
+const indicatorSchema = z.object({
+  objectiveId: z.string().min(1),
+  name: z.string().trim().min(1),
+  unit: z.string().trim().min(1),
+  baselineValue: z.number().finite().nonnegative(),
+  targetValue: z.number().finite().nonnegative(),
+});
+
+const goalSchema = z.object({
+  actionId: z.string().min(1),
+  year: z.number().int(),
+  physical: z.number().finite().nonnegative(),
+  financial: z.number().finite().nonnegative(),
+});
+
+const guidelineSchema = z.object({
+  financialYearId: z.string().min(1),
+  multiYearPlanId: z.string().min(1).optional(),
+  priorities: z.array(z.object({
+    description: z.string().trim().min(1),
+    targetValue: z.number().finite().positive().optional(),
+  })).optional(),
+  risks: z.array(z.object({
+    description: z.string().trim().min(1),
+    estimatedImpact: z.number().finite().positive(),
+    mitigation: z.string().trim().min(1),
+  })).optional(),
+});
+
+const annualBudgetLawSchema = z.object({
+  lawNumber: z.string().trim().min(1),
+  publicationDate: z.string().min(1),
+  financialYearId: z.string().min(1),
+  budgetGuidelineId: z.string().min(1).optional(),
+  totalRevenue: z.number().finite().positive(),
+  totalExpense: z.number().finite().positive(),
+  revenueForecasts: z.array(z.object({
+    code: z.string().trim().min(1),
+    name: z.string().trim().min(1),
+    estimatedValue: z.number().finite().positive(),
+  })).min(1).optional(),
+  expenseFixations: z.array(z.object({
+    code: z.string().trim().min(1),
+    name: z.string().trim().min(1),
+    fixedValue: z.number().finite().positive(),
+  })).min(1).optional(),
+});
+
 export async function actionCreateMultiYearPlan(input: {
   code: string;
   name: string;
@@ -57,8 +136,8 @@ export async function actionCreateMultiYearPlan(input: {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const actor = financeActor(context);
-    const plan = await createMultiYearPlan(context.prisma, actor, input);
-    revalidatePath("/financeiro/orcamento");
+    const plan = await createMultiYearPlan(context.prisma, actor, multiYearPlanSchema.parse(input));
+    revalidatePath("/financeiro/orcamento/planejamento");
     return { data: { id: plan.id } };
   } catch (error) {
     return { error: errorMessage(error, "Não foi possível criar o Plano Plurianual.") };
@@ -74,8 +153,8 @@ export async function actionAddProgramPPA(input: {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const actor = financeActor(context);
-    const program = await addProgramPPA(context.prisma, actor, input);
-    revalidatePath("/financeiro/orcamento");
+    const program = await addProgramPPA(context.prisma, actor, programSchema.parse(input));
+    revalidatePath("/financeiro/orcamento/planejamento");
     return { data: { id: program.id } };
   } catch (error) {
     return { error: errorMessage(error, "Não foi possível adicionar o programa ao PPA.") };
@@ -90,11 +169,59 @@ export async function actionAddActionPPA(input: {
 }): Promise<ActionResult<{ id: string }>> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
-    const action = await addActionPPA(context.prisma, financeActor(context), input);
+    const action = await addActionPPA(context.prisma, financeActor(context), actionSchema.parse(input));
     revalidatePath("/financeiro/orcamento/planejamento");
     return { data: { id: action.id } };
   } catch (error) {
     return { error: errorMessage(error, "Nao foi possivel adicionar a acao ao PPA.") };
+  }
+}
+
+export async function actionAddObjectivePPA(input: {
+  programId: string;
+  code: string;
+  description: string;
+}): Promise<ActionResult<{ id: string }>> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const objective = await addObjectivePPA(context.prisma, financeActor(context), objectiveSchema.parse(input));
+    revalidatePath("/financeiro/orcamento/planejamento");
+    return { data: { id: objective.id } };
+  } catch (error) {
+    return { error: errorMessage(error, "Não foi possível adicionar o objetivo ao PPA.") };
+  }
+}
+
+export async function actionAddIndicatorPPA(input: {
+  objectiveId: string;
+  name: string;
+  unit: string;
+  baselineValue: number;
+  targetValue: number;
+}): Promise<ActionResult<{ id: string }>> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const indicator = await addIndicatorPPA(context.prisma, financeActor(context), indicatorSchema.parse(input));
+    revalidatePath("/financeiro/orcamento/planejamento");
+    return { data: { id: indicator.id } };
+  } catch (error) {
+    return { error: errorMessage(error, "Não foi possível adicionar o indicador ao PPA.") };
+  }
+}
+
+export async function actionAddGoalPPA(input: {
+  actionId: string;
+  year: number;
+  physical: number;
+  financial: number;
+}): Promise<ActionResult<{ id: string }>> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const goal = await addGoalPPA(context.prisma, financeActor(context), goalSchema.parse(input));
+    revalidatePath("/financeiro/orcamento/planejamento");
+    return { data: { id: goal.id } };
+  } catch (error) {
+    return { error: errorMessage(error, "Não foi possível adicionar a meta da ação do PPA.") };
   }
 }
 
@@ -107,8 +234,8 @@ export async function actionCreateBudgetGuideline(input: {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const actor = financeActor(context);
-    const guideline = await createBudgetGuideline(context.prisma, actor, input);
-    revalidatePath("/financeiro/orcamento");
+    const guideline = await createBudgetGuideline(context.prisma, actor, guidelineSchema.parse(input));
+    revalidatePath("/financeiro/orcamento/planejamento");
     return { data: { id: guideline.id } };
   } catch (error) {
     return { error: errorMessage(error, "Não foi possível salvar a LDO.") };
@@ -128,11 +255,12 @@ export async function actionCreateAnnualBudgetLaw(input: {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const actor = financeActor(context);
+    const parsedInput = annualBudgetLawSchema.parse(input);
     const loa = await createAnnualBudgetLaw(context.prisma, actor, {
-      ...input,
-      publicationDate: new Date(input.publicationDate),
+      ...parsedInput,
+      publicationDate: new Date(parsedInput.publicationDate),
     });
-    revalidatePath("/financeiro/orcamento");
+    revalidatePath("/financeiro/orcamento/planejamento");
     return { data: { id: loa.id } };
   } catch (error) {
     return { error: errorMessage(error, "Não foi possível cadastrar a LOA.") };

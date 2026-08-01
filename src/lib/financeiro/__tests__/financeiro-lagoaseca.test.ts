@@ -25,7 +25,7 @@ import {
   generateBalancoOrcamentario,
   generateBalancoPatrimonial,
 } from "../relatorios-legais";
-import { addActionPPA, addProgramPPA, createAnnualBudgetLaw, createBudgetAppropriationFromFixation, createBudgetGuideline, createMultiYearPlan, saveBimonthlyRevenueTarget, saveMonthlyDisbursementSchedule } from "../planejamento";
+import { addActionPPA, addGoalPPA, addIndicatorPPA, addObjectivePPA, addProgramPPA, createAnnualBudgetLaw, createBudgetAppropriationFromFixation, createBudgetGuideline, createMultiYearPlan, saveBimonthlyRevenueTarget, saveMonthlyDisbursementSchedule } from "../planejamento";
 
 describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Estritas", () => {
   const pocAccountingEvents = [
@@ -581,9 +581,14 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       planId = plan.id;
       const program = await addProgramPPA(prisma, actor, { multiYearPlanId: plan.id, code: `PRG-${suffix}`, name: "Programa de rastreabilidade" });
       const action = await addActionPPA(prisma, actor, { programId: program.id, code: `ACO-${suffix}`, name: "Acao de rastreabilidade" });
+      const objective = await addObjectivePPA(prisma, actor, { programId: program.id, code: `OBJ-${suffix}`, description: "Ampliar a cobertura do programa" });
+      const indicator = await addIndicatorPPA(prisma, actor, { objectiveId: objective.id, name: "Cobertura", unit: "%", baselineValue: 40, targetValue: 60 });
+      const goal = await addGoalPPA(prisma, actor, { actionId: action.id, year: 2031, physical: 60, financial: 100 });
       const guideline = await createBudgetGuideline(prisma, actor, {
         financialYearId,
         multiYearPlanId: plan.id,
+        priorities: [{ description: "Prioridade de teste", targetValue: 100 }],
+        risks: [{ description: "Risco de teste", estimatedImpact: 10, mitigation: "Monitorar execução" }],
       });
       guidelineId = guideline.id;
       const loa = await createAnnualBudgetLaw(prisma, actor, {
@@ -593,8 +598,8 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         budgetGuidelineId: guideline.id,
         totalRevenue: 100,
         totalExpense: 100,
-        revenueForecasts: [{ code: "1.0.0", name: "Receita de teste", estimatedValue: 100 }],
-        expenseFixations: [{ code: "3.3.9", name: "Despesa de teste", fixedValue: 100 }],
+        revenueForecasts: [{ code: "1.0.0", name: "Receita de teste A", estimatedValue: 40 }, { code: "1.1.0", name: "Receita de teste B", estimatedValue: 60 }],
+        expenseFixations: [{ code: "3.3.9", name: "Despesa de teste A", fixedValue: 50 }, { code: "4.4.9", name: "Despesa de teste B", fixedValue: 50 }],
       });
       loaId = loa.id;
       const [budgetUnit, expenseNature, resourceSource] = await Promise.all([
@@ -611,7 +616,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         budgetUnitId: budgetUnit.id,
         expenseNatureId: expenseNature.id,
         resourceSourceId: resourceSource.id,
-        initialValue: 100,
+        initialValue: 50,
       });
       appropriationId = appropriation.id;
       await saveMonthlyDisbursementSchedule(prisma, planningActor, {
@@ -647,15 +652,23 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
 
       const trace = await prisma.annualBudgetLaw.findUniqueOrThrow({
         where: { id: loa.id },
-        include: { budgetGuideline: { include: { multiYearPlan: true } }, expenseFixations: { include: { appropriations: { include: { programPPA: true, actionPPA: true } } } }, cmdSchedules: true, mbaTargets: true },
+        include: { budgetGuideline: { include: { multiYearPlan: true, priorities: true, risks: true } }, revenueForecasts: true, expenseFixations: { include: { appropriations: { include: { programPPA: true, actionPPA: true } } } }, cmdSchedules: true, mbaTargets: true },
       });
       assert.equal(trace.budgetGuideline?.multiYearPlan?.id, plan.id);
       assert.equal(trace.financialYearId, financialYear.id);
+      assert.equal(trace.budgetGuideline?.priorities[0]?.description, "Prioridade de teste");
+      assert.equal(trace.budgetGuideline?.risks[0]?.mitigation, "Monitorar execução");
+      assert.equal(trace.revenueForecasts.reduce((total, forecast) => total + Number(forecast.estimatedValue), 0), Number(trace.totalRevenue));
+      assert.equal(trace.expenseFixations.reduce((total, fixation) => total + Number(fixation.fixedValue), 0), Number(trace.totalExpense));
       assert.equal(trace.expenseFixations[0].appropriations[0]?.id, appropriation.id);
       assert.equal(trace.expenseFixations[0].appropriations[0]?.programPPA?.id, program.id);
       assert.equal(trace.expenseFixations[0].appropriations[0]?.actionPPA?.id, action.id);
       assert.equal(Number(trace.cmdSchedules[0]?.limitValue), 60);
       assert.equal(Number(trace.mbaTargets[0]?.targetValue), 100);
+      const hierarchy = await prisma.programPPA.findUniqueOrThrow({ where: { id: program.id }, include: { objectives: { include: { indicators: true } }, actions: { include: { goals: true } } } });
+      assert.equal(hierarchy.objectives[0]?.id, objective.id);
+      assert.equal(hierarchy.objectives[0]?.indicators[0]?.id, indicator.id);
+      assert.equal(hierarchy.actions[0]?.goals[0]?.id, goal.id);
     } finally {
       if (appropriationId) await prisma.budgetAppropriation.delete({ where: { id: appropriationId } });
       if (loaId) await prisma.annualBudgetLaw.delete({ where: { id: loaId } });

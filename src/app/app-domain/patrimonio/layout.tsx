@@ -21,6 +21,7 @@ const sidebarNavItems = [
   { title: "Bens Patrimoniais", href: "/patrimonio/bens", icon: MonitorSmartphone },
   { title: "Almoxarifados", href: "/patrimonio/almoxarifados", icon: Warehouse },
   { title: "Catálogo de Materiais", href: "/patrimonio/materiais", icon: Boxes },
+  { title: "Inventários", href: "/patrimonio/inventarios", icon: ClipboardList },
   { title: "Requisições", href: "/patrimonio/requisicoes", icon: ClipboardList },
   { title: "Ciclo de Vida", href: "/patrimonio/ciclo-vida", icon: ChartNoAxesCombined },
 ];

@@ -21,6 +21,8 @@ export type StockMovementInput = {
   supplierId?: string | null;
   departmentId?: string | null;
   obrasServicoId?: string | null;
+  /** Reserved for the approved inventory-close workflow. */
+  inventorySessionId?: string | null;
   actor: StockActor;
 };
 
@@ -70,6 +72,20 @@ async function ensureStockTarget(tx: Prisma.TransactionClient, input: ValidStock
   ]);
   if (!warehouse) throw new StockServiceError("Almoxarifado não encontrado ou inativo.");
   if (!material) throw new StockServiceError("Material não encontrado.");
+}
+
+async function ensureWarehouseIsNotCounting(tx: Prisma.TransactionClient, input: ValidStockMovementInput) {
+  const lockedSession = await tx.inventorySession.findFirst({
+    where: {
+      warehouseId: input.warehouseId,
+      lockMovements: true,
+      status: { in: ["COUNTING", "PENDING_APPROVAL"] },
+    },
+    select: { id: true },
+  });
+  if (lockedSession && (input.inventorySessionId !== lockedSession.id || input.kind !== "ADJUSTMENT")) {
+    throw new StockServiceError("Movimentações estão bloqueadas enquanto o inventário deste almoxarifado está em andamento.");
+  }
 }
 
 async function increaseStock(tx: Prisma.TransactionClient, input: ValidStockMovementInput, quantity: number) {
@@ -122,6 +138,7 @@ async function decreaseStock(tx: Prisma.TransactionClient, input: ValidStockMove
 export async function applyStockMovement(tx: Prisma.TransactionClient, rawInput: StockMovementInput) {
   const input = normalizeStockMovement(rawInput);
   await ensureStockTarget(tx, input);
+  await ensureWarehouseIsNotCounting(tx, input);
 
   const stock = input.kind === "ENTRY" || (input.kind === "ADJUSTMENT" && input.quantity > 0)
     ? await increaseStock(tx, input, input.quantity)
@@ -140,6 +157,7 @@ export async function applyStockMovement(tx: Prisma.TransactionClient, rawInput:
       supplierId: input.supplierId?.trim() || null,
       departmentId: input.departmentId?.trim() || null,
       obrasServicoId: input.obrasServicoId?.trim() || null,
+      inventorySessionId: input.inventorySessionId?.trim() || null,
       actorUsuarioId: input.actor.usuarioId,
       actorEmployeeId: input.actor.employeeId ?? null,
     },

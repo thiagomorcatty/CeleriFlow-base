@@ -1791,18 +1791,20 @@ model FinancialYear {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  budgetAppropriations    BudgetAppropriation[]
-  revenues                Revenue[]
-  treasuryMovements       TreasuryMovement[]
-  accountingTransactions  AccountingTransaction[]
-  monthlyAccountingCloses MonthlyAccountingClose[]
-  annualAccountingCloses  AnnualAccountingClose[]
-  payableCarryForwards          PayableCarryForward[] @relation("PayableCarryForwardRegistration")
-  originatedPayableCarryForwards PayableCarryForward[] @relation("PayableCarryForwardOrigin")
-  annualBudgetLaws        AnnualBudgetLaw[]
-  budgetGuidelines        BudgetGuideline[]
-  creditRequests          CreditRequest[]
-  retentionRules          RetentionRule[]
+  budgetAppropriations           BudgetAppropriation[]
+  revenues                       Revenue[]
+  revenueReversals               RevenueReversal[]
+  revenueRedistributions         RevenueResourceRedistribution[]
+  treasuryMovements              TreasuryMovement[]
+  accountingTransactions         AccountingTransaction[]
+  monthlyAccountingCloses        MonthlyAccountingClose[]
+  annualAccountingCloses         AnnualAccountingClose[]
+  payableCarryForwards           PayableCarryForward[]           @relation("PayableCarryForwardRegistration")
+  originatedPayableCarryForwards PayableCarryForward[]           @relation("PayableCarryForwardOrigin")
+  annualBudgetLaws               AnnualBudgetLaw[]
+  budgetGuidelines               BudgetGuideline[]
+  creditRequests                 CreditRequest[]
+  retentionRules                 RetentionRule[]
 }
 
 // --- Planejamento Orçamentário: PPA, LDO, LOA, CMD, MBA, Créditos Adicionais ---
@@ -1819,7 +1821,7 @@ model MultiYearPlan {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  programs ProgramPPA[]
+  programs         ProgramPPA[]
   budgetGuidelines BudgetGuideline[]
 }
 
@@ -1833,45 +1835,45 @@ model ProgramPPA {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  objectives ObjectivePPA[]
-  actions    ActionPPA[]
+  objectives     ObjectivePPA[]
+  actions        ActionPPA[]
   appropriations BudgetAppropriation[] @relation("BudgetAppropriationProgram")
 
   @@unique([multiYearPlanId, code])
 }
 
 model ObjectivePPA {
-  id           String     @id @default(cuid())
-  code         String
-  description  String
-  programId    String
-  program      ProgramPPA @relation(fields: [programId], references: [id], onDelete: Cascade)
-  createdAt    DateTime   @default(now())
+  id          String     @id @default(cuid())
+  code        String
+  description String
+  programId   String
+  program     ProgramPPA @relation(fields: [programId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
 
   indicators IndicatorPPA[]
 }
 
 model IndicatorPPA {
-  id             String       @id @default(cuid())
-  name           String
-  unit           String
-  baselineValue  Float
-  targetValue    Float
-  objectiveId    String
-  objective      ObjectivePPA @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  id            String       @id @default(cuid())
+  name          String
+  unit          String
+  baselineValue Float
+  targetValue   Float
+  objectiveId   String
+  objective     ObjectivePPA @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
 }
 
 model ActionPPA {
-  id          String     @id @default(cuid())
-  code        String
-  name        String
-  type        String     @default("Projeto") // Projeto, Atividade, Operação Especial
-  programId   String
-  program     ProgramPPA @relation(fields: [programId], references: [id], onDelete: Cascade)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id        String     @id @default(cuid())
+  code      String
+  name      String
+  type      String     @default("Projeto") // Projeto, Atividade, Operação Especial
+  programId String
+  program   ProgramPPA @relation(fields: [programId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
-  goals       GoalPPA[]
+  goals          GoalPPA[]
   appropriations BudgetAppropriation[] @relation("BudgetAppropriationAction")
 }
 
@@ -1885,17 +1887,17 @@ model GoalPPA {
 }
 
 model BudgetGuideline {
-  id               String        @id @default(cuid())
-  financialYearId  String
-  financialYear    FinancialYear @relation(fields: [financialYearId], references: [id])
-  multiYearPlanId  String?
-  multiYearPlan    MultiYearPlan? @relation(fields: [multiYearPlanId], references: [id], onDelete: Restrict)
-  status           String        @default("Vigente")
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  id              String         @id @default(cuid())
+  financialYearId String
+  financialYear   FinancialYear  @relation(fields: [financialYearId], references: [id])
+  multiYearPlanId String?
+  multiYearPlan   MultiYearPlan? @relation(fields: [multiYearPlanId], references: [id], onDelete: Restrict)
+  status          String         @default("Vigente")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
-  priorities      BudgetGuidelinePriority[]
-  risks           BudgetGuidelineRisk[]
+  priorities       BudgetGuidelinePriority[]
+  risks            BudgetGuidelineRisk[]
   annualBudgetLaws AnnualBudgetLaw[]
 
   @@index([multiYearPlanId])
@@ -1919,18 +1921,18 @@ model BudgetGuidelineRisk {
 }
 
 model AnnualBudgetLaw {
-  id                String        @id @default(cuid())
+  id                String           @id @default(cuid())
   lawNumber         String
   publicationDate   DateTime
   financialYearId   String
-  financialYear     FinancialYear @relation(fields: [financialYearId], references: [id])
+  financialYear     FinancialYear    @relation(fields: [financialYearId], references: [id])
   budgetGuidelineId String?
   budgetGuideline   BudgetGuideline? @relation(fields: [budgetGuidelineId], references: [id], onDelete: Restrict)
-  status            String        @default("Sancionada")
-  totalRevenue      Decimal       @db.Decimal(18, 2)
-  totalExpense      Decimal       @db.Decimal(18, 2)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  status            String           @default("Sancionada")
+  totalRevenue      Decimal          @db.Decimal(18, 2)
+  totalExpense      Decimal          @db.Decimal(18, 2)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   revenueForecasts AnnualBudgetRevenueForecast[]
   expenseFixations AnnualBudgetExpenseFixation[]
@@ -1986,7 +1988,7 @@ model CreditRequest {
   number          String        @unique
   financialYearId String
   financialYear   FinancialYear @relation(fields: [financialYearId], references: [id])
-  type            String        // Suplementar, Especial, Extraordinário, Remanejamento, Transposição, Transferência
+  type            String // Suplementar, Especial, Extraordinário, Remanejamento, Transposição, Transferência
   lawNumber       String?
   justification   String
   totalValue      Decimal       @db.Decimal(18, 2)
@@ -2002,13 +2004,13 @@ model CreditRequest {
 }
 
 model CreditRequestItem {
-  id              String        @id @default(cuid())
+  id              String              @id @default(cuid())
   creditRequestId String
-  creditRequest   CreditRequest @relation(fields: [creditRequestId], references: [id], onDelete: Cascade)
+  creditRequest   CreditRequest       @relation(fields: [creditRequestId], references: [id], onDelete: Cascade)
   appropriationId String
   appropriation   BudgetAppropriation @relation(fields: [appropriationId], references: [id])
-  type            String        // Acréscimo, Anulação
-  value           Decimal       @db.Decimal(18, 2)
+  type            String // Acréscimo, Anulação
+  value           Decimal             @db.Decimal(18, 2)
 }
 
 model BudgetUnit {
@@ -2032,10 +2034,12 @@ model ResourceSource {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  appropriations       BudgetAppropriation[]
-  bankAccounts         BankAccount[]
-  revenues             Revenue[]
-  taxFinancialMappings TaxFinancialMapping[]
+  appropriations             BudgetAppropriation[]
+  bankAccounts               BankAccount[]
+  revenues                   Revenue[]
+  revenueRedistributionsFrom RevenueResourceRedistribution[] @relation("RevenueRedistributionSource")
+  revenueRedistributionsTo   RevenueResourceRedistribution[] @relation("RevenueRedistributionDestination")
+  taxFinancialMappings       TaxFinancialMapping[]
 }
 
 model RevenueNature {
@@ -2067,30 +2071,30 @@ model ExpenseNature {
 }
 
 model BudgetAppropriation {
-  id                    String         @id @default(cuid())
-  code                  String         @unique
-  financialYearId       String
-  financialYear         FinancialYear  @relation(fields: [financialYearId], references: [id])
-  budgetUnitId          String
-  budgetUnit            BudgetUnit     @relation(fields: [budgetUnitId], references: [id])
-  expenseNatureId       String
-  expenseNature         ExpenseNature  @relation(fields: [expenseNatureId], references: [id])
-  resourceSourceId      String
-  resourceSource        ResourceSource @relation(fields: [resourceSourceId], references: [id])
+  id                            String                       @id @default(cuid())
+  code                          String                       @unique
+  financialYearId               String
+  financialYear                 FinancialYear                @relation(fields: [financialYearId], references: [id])
+  budgetUnitId                  String
+  budgetUnit                    BudgetUnit                   @relation(fields: [budgetUnitId], references: [id])
+  expenseNatureId               String
+  expenseNature                 ExpenseNature                @relation(fields: [expenseNatureId], references: [id])
+  resourceSourceId              String
+  resourceSource                ResourceSource               @relation(fields: [resourceSourceId], references: [id])
   annualBudgetExpenseFixationId String?
   annualBudgetExpenseFixation   AnnualBudgetExpenseFixation? @relation(fields: [annualBudgetExpenseFixationId], references: [id], onDelete: Restrict)
   programPPAId                  String?
-  programPPA                    ProgramPPA? @relation("BudgetAppropriationProgram", fields: [programPPAId], references: [id], onDelete: Restrict)
+  programPPA                    ProgramPPA?                  @relation("BudgetAppropriationProgram", fields: [programPPAId], references: [id], onDelete: Restrict)
   actionPPAId                   String?
-  actionPPA                     ActionPPA? @relation("BudgetAppropriationAction", fields: [actionPPAId], references: [id], onDelete: Restrict)
-  initialValue          Float          @default(0)
-  initialValueDecimal   Decimal?       @db.Decimal(18, 2)
-  updatedValue          Float          @default(0)
-  updatedValueDecimal   Decimal?       @db.Decimal(18, 2)
-  committedValue        Float          @default(0)
-  committedValueDecimal Decimal?       @db.Decimal(18, 2)
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  actionPPA                     ActionPPA?                   @relation("BudgetAppropriationAction", fields: [actionPPAId], references: [id], onDelete: Restrict)
+  initialValue                  Float                        @default(0)
+  initialValueDecimal           Decimal?                     @db.Decimal(18, 2)
+  updatedValue                  Float                        @default(0)
+  updatedValueDecimal           Decimal?                     @db.Decimal(18, 2)
+  committedValue                Float                        @default(0)
+  committedValueDecimal         Decimal?                     @db.Decimal(18, 2)
+  createdAt                     DateTime                     @default(now())
+  updatedAt                     DateTime                     @updatedAt
 
   reservations       BudgetReservation[]
   commitments        Commitment[]
@@ -2105,32 +2109,54 @@ model BudgetAppropriation {
   @@index([programPPAId, actionPPAId])
 }
 
+enum RevenueStage {
+  LANCADA
+  ARRECADADA
+  ESTORNADA
+}
+
+enum RevenueClassification {
+  ORCAMENTARIA
+  INTRAORCAMENTARIA
+  REDUTORA
+}
+
 model Revenue {
-  id               String                      @id @default(cuid())
-  date             DateTime                    @default(now())
-  value            Float
-  valueDecimal     Decimal?                    @db.Decimal(18, 2)
-  financialYearId  String?
-  financialYear    FinancialYear?              @relation(fields: [financialYearId], references: [id])
-  revenueNatureId  String
-  revenueNature    RevenueNature               @relation(fields: [revenueNatureId], references: [id])
-  resourceSourceId String
-  resourceSource   ResourceSource              @relation(fields: [resourceSourceId], references: [id])
-  bankAccountId    String?
-  bankAccount      BankAccount?                @relation(fields: [bankAccountId], references: [id])
-  secretariatId    String?
-  secretariat      Secretariat?                @relation("SecretariatRevenues", fields: [secretariatId], references: [id])
-  status           String                      @default("Arrecadada")
-  history          String?
-  sourceModule     String                      @default("MANUAL")
-  sourceType       String                      @default("REVENUE")
-  sourceId         String?
-  eventType        String                      @default("REVENUE_CONFIRMED")
-  idempotencyKey   String?                     @unique
-  treasuryMovement TreasuryMovement?
-  taxIntegration   TaxRevenueIntegrationEvent?
-  createdAt        DateTime                    @default(now())
-  updatedAt        DateTime                    @updatedAt
+  id                      String                          @id @default(cuid())
+  date                    DateTime                        @default(now())
+  value                   Float
+  valueDecimal            Decimal?                        @db.Decimal(18, 2)
+  financialYearId         String?
+  financialYear           FinancialYear?                  @relation(fields: [financialYearId], references: [id])
+  revenueNatureId         String
+  revenueNature           RevenueNature                   @relation(fields: [revenueNatureId], references: [id])
+  resourceSourceId        String
+  resourceSource          ResourceSource                  @relation(fields: [resourceSourceId], references: [id])
+  bankAccountId           String?
+  bankAccount             BankAccount?                    @relation(fields: [bankAccountId], references: [id])
+  secretariatId           String?
+  secretariat             Secretariat?                    @relation("SecretariatRevenues", fields: [secretariatId], references: [id])
+  status                  String                          @default("Arrecadada")
+  stage                   RevenueStage                    @default(ARRECADADA)
+  classification          RevenueClassification           @default(ORCAMENTARIA)
+  launchDate              DateTime?
+  collectionDate          DateTime?
+  reversedAt              DateTime?
+  history                 String?
+  sourceModule            String                          @default("MANUAL")
+  sourceType              String                          @default("REVENUE")
+  sourceId                String?
+  eventType               String                          @default("REVENUE_CONFIRMED")
+  idempotencyKey          String?                         @unique
+  treasuryMovement        TreasuryMovement?
+  taxIntegration          TaxRevenueIntegrationEvent?
+  reversal                RevenueReversal?
+  resourceRedistributions RevenueResourceRedistribution[]
+  createdAt               DateTime                        @default(now())
+  updatedAt               DateTime                        @updatedAt
+
+  @@index([financialYearId, stage, date])
+  @@index([resourceSourceId, stage])
 }
 
 model Expense {
@@ -2285,7 +2311,7 @@ model Settlement {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  payments Payment[]
+  payments          Payment[]
   financialDocument FinancialDocument? @relation("FinancialDocumentSettlement")
 
   @@index([documentId])
@@ -2315,8 +2341,8 @@ model Payment {
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
 
-  retentions PaymentRetention[]
-  financialDocument FinancialDocument? @relation("FinancialDocumentPayment")
+  retentions                PaymentRetention[]
+  financialDocument         FinancialDocument?         @relation("FinancialDocumentPayment")
   payableCarryForwardEvents PayableCarryForwardEvent[]
 }
 
@@ -2363,23 +2389,23 @@ model PaymentRetention {
 }
 
 model RetentionRule {
-  id                        String              @id @default(cuid())
-  code                      String              @unique
+  id                        String         @id @default(cuid())
+  code                      String         @unique
   type                      String
   description               String
-  calculationBasePercentage Decimal             @db.Decimal(7, 4)
-  ratePercentage            Decimal             @db.Decimal(7, 4)
+  calculationBasePercentage Decimal        @db.Decimal(7, 4)
+  ratePercentage            Decimal        @db.Decimal(7, 4)
   beneficiaryName           String
   beneficiaryDocument       String?
   serviceCode               String?
   financialYearId           String?
-  financialYear             FinancialYear?      @relation(fields: [financialYearId], references: [id])
+  financialYear             FinancialYear? @relation(fields: [financialYearId], references: [id])
   effectiveFrom             DateTime
   effectiveTo               DateTime?
   dueDays                   Int?
-  isActive                  Boolean             @default(true)
-  createdAt                 DateTime            @default(now())
-  updatedAt                 DateTime            @updatedAt
+  isActive                  Boolean        @default(true)
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
 
   paymentRetentions PaymentRetention[]
 
@@ -2443,6 +2469,7 @@ model TreasuryMovement {
   financialYear       FinancialYear       @relation(fields: [financialYearId], references: [id])
   revenueId           String?             @unique
   revenue             Revenue?            @relation(fields: [revenueId], references: [id])
+  revenueReversal     RevenueReversal?
   sourceModule        String              @default("MANUAL")
   sourceType          String              @default("TREASURY_MOVEMENT")
   sourceId            String?
@@ -2455,6 +2482,42 @@ model TreasuryMovement {
 
   @@index([bankAccountId, date])
   @@index([financialYearId, date])
+}
+
+model RevenueReversal {
+  id                 String           @id @default(cuid())
+  revenueId          String           @unique
+  revenue            Revenue          @relation(fields: [revenueId], references: [id], onDelete: Restrict)
+  date               DateTime
+  valueDecimal       Decimal          @db.Decimal(18, 2)
+  justification      String
+  financialYearId    String
+  financialYear      FinancialYear    @relation(fields: [financialYearId], references: [id], onDelete: Restrict)
+  treasuryMovementId String           @unique
+  treasuryMovement   TreasuryMovement @relation(fields: [treasuryMovementId], references: [id], onDelete: Restrict)
+  createdAt          DateTime         @default(now())
+
+  @@index([financialYearId, date])
+}
+
+model RevenueResourceRedistribution {
+  id                          String         @id @default(cuid())
+  revenueId                   String
+  revenue                     Revenue        @relation(fields: [revenueId], references: [id], onDelete: Restrict)
+  date                        DateTime
+  valueDecimal                Decimal        @db.Decimal(18, 2)
+  sourceResourceSourceId      String
+  sourceResourceSource        ResourceSource @relation("RevenueRedistributionSource", fields: [sourceResourceSourceId], references: [id], onDelete: Restrict)
+  destinationResourceSourceId String
+  destinationResourceSource   ResourceSource @relation("RevenueRedistributionDestination", fields: [destinationResourceSourceId], references: [id], onDelete: Restrict)
+  financialYearId             String
+  financialYear               FinancialYear  @relation(fields: [financialYearId], references: [id], onDelete: Restrict)
+  history                     String
+  idempotencyKey              String?        @unique
+  createdAt                   DateTime       @default(now())
+
+  @@index([revenueId, date])
+  @@index([sourceResourceSourceId, destinationResourceSourceId])
 }
 
 model TreasuryTransfer {
@@ -2646,20 +2709,20 @@ model AccountingPostingRule {
 }
 
 model MonthlyAccountingClose {
-  id                 String        @id @default(cuid())
+  id                 String                        @id @default(cuid())
   financialYearId    String
-  financialYear      FinancialYear @relation(fields: [financialYearId], references: [id])
+  financialYear      FinancialYear                 @relation(fields: [financialYearId], references: [id])
   competence         DateTime
-  status             String        @default("ABERTO")
+  status             String                        @default("ABERTO")
   pendingSummary     Json?
   closedByUsuarioId  String?
-  closedByUsuario    Usuario?      @relation("MonthlyCloseUsuario", fields: [closedByUsuarioId], references: [id])
+  closedByUsuario    Usuario?                      @relation("MonthlyCloseUsuario", fields: [closedByUsuarioId], references: [id])
   closedByEmployeeId String?
-  closedByEmployee   Employee?     @relation("MonthlyCloseEmployee", fields: [closedByEmployeeId], references: [id])
+  closedByEmployee   Employee?                     @relation("MonthlyCloseEmployee", fields: [closedByEmployeeId], references: [id])
   closedAt           DateTime?
   events             MonthlyAccountingCloseEvent[]
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
 
   @@unique([financialYearId, competence])
 }
@@ -2686,40 +2749,40 @@ model MonthlyAccountingCloseEvent {
 }
 
 model AnnualAccountingClose {
-  id                 String        @id @default(cuid())
-  financialYearId    String        @unique
-  financialYear      FinancialYear @relation(fields: [financialYearId], references: [id])
-  status             String        @default("EM_PREPARACAO")
-  pendingSummary     Json?
+  id                  String        @id @default(cuid())
+  financialYearId     String        @unique
+  financialYear       FinancialYear @relation(fields: [financialYearId], references: [id])
+  status              String        @default("EM_PREPARACAO")
+  pendingSummary      Json?
   preparedByUsuarioId String?
   preparedAt          DateTime?
-  closedByUsuarioId  String?
-  closedByUsuario    Usuario?      @relation("AnnualCloseUsuario", fields: [closedByUsuarioId], references: [id])
-  closedByEmployeeId String?
-  closedByEmployee   Employee?     @relation("AnnualCloseEmployee", fields: [closedByEmployeeId], references: [id])
-  closedAt           DateTime?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  closedByUsuarioId   String?
+  closedByUsuario     Usuario?      @relation("AnnualCloseUsuario", fields: [closedByUsuarioId], references: [id])
+  closedByEmployeeId  String?
+  closedByEmployee    Employee?     @relation("AnnualCloseEmployee", fields: [closedByEmployeeId], references: [id])
+  closedAt            DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 }
 
 model PayableCarryForward {
-  id                            String        @id @default(cuid())
+  id                            String                     @id @default(cuid())
   financialYearId               String
-  financialYear                 FinancialYear @relation("PayableCarryForwardRegistration", fields: [financialYearId], references: [id])
+  financialYear                 FinancialYear              @relation("PayableCarryForwardRegistration", fields: [financialYearId], references: [id])
   originFinancialYearId         String
-  originFinancialYear           FinancialYear @relation("PayableCarryForwardOrigin", fields: [originFinancialYearId], references: [id])
+  originFinancialYear           FinancialYear              @relation("PayableCarryForwardOrigin", fields: [originFinancialYearId], references: [id])
   commitmentId                  String
-  commitment                    Commitment    @relation(fields: [commitmentId], references: [id])
-  previousPayableCarryForwardId String?       @unique
-  previousPayableCarryForward   PayableCarryForward? @relation("PayableCarryForwardReregistration", fields: [previousPayableCarryForwardId], references: [id])
-  successorPayableCarryForward  PayableCarryForward? @relation("PayableCarryForwardReregistration")
-  valueDecimal                  Decimal       @db.Decimal(18, 2)
+  commitment                    Commitment                 @relation(fields: [commitmentId], references: [id])
+  previousPayableCarryForwardId String?                    @unique
+  previousPayableCarryForward   PayableCarryForward?       @relation("PayableCarryForwardReregistration", fields: [previousPayableCarryForwardId], references: [id])
+  successorPayableCarryForward  PayableCarryForward?       @relation("PayableCarryForwardReregistration")
+  valueDecimal                  Decimal                    @db.Decimal(18, 2)
   type                          String
-  status                        String        @default("PENDENTE")
+  status                        String                     @default("PENDENTE")
   notes                         String?
   events                        PayableCarryForwardEvent[]
-  createdAt                     DateTime      @default(now())
-  updatedAt                     DateTime      @updatedAt
+  createdAt                     DateTime                   @default(now())
+  updatedAt                     DateTime                   @updatedAt
 
   @@unique([financialYearId, commitmentId, type])
   @@index([originFinancialYearId, type])
@@ -2728,17 +2791,17 @@ model PayableCarryForward {
 
 // Histórico interno de acompanhamento. Não cria nem altera pagamentos, tesouraria ou lançamentos contábeis.
 model PayableCarryForwardEvent {
-  id                    String               @id @default(cuid())
+  id                    String              @id @default(cuid())
   payableCarryForwardId String
-  payableCarryForward   PayableCarryForward  @relation(fields: [payableCarryForwardId], references: [id], onDelete: Restrict)
+  payableCarryForward   PayableCarryForward @relation(fields: [payableCarryForwardId], references: [id], onDelete: Restrict)
   action                String
   justification         String?
-  valueDecimal          Decimal?             @db.Decimal(18, 2)
-  paymentId             String?              @unique
-  payment               Payment?             @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  valueDecimal          Decimal?            @db.Decimal(18, 2)
+  paymentId             String?             @unique
+  payment               Payment?            @relation(fields: [paymentId], references: [id], onDelete: Restrict)
   actorUsuarioId        String
-  actorUsuario          Usuario              @relation("PayableCarryForwardEventActor", fields: [actorUsuarioId], references: [id])
-  createdAt             DateTime             @default(now())
+  actorUsuario          Usuario             @relation("PayableCarryForwardEventActor", fields: [actorUsuarioId], references: [id])
+  createdAt             DateTime            @default(now())
 
   @@index([payableCarryForwardId, createdAt])
   @@index([actorUsuarioId])
@@ -3280,8 +3343,9 @@ model Warehouse {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  stocks    MaterialStock[]
-  movements MaterialMovement[]
+  stocks            MaterialStock[]
+  movements         MaterialMovement[]
+  inventorySessions InventorySession[]
 
   schoolMeals SchoolMeal[]
 }
@@ -3342,6 +3406,7 @@ model MaterialStock {
 
   obrasServiceMaterials ObrasServicoMaterial[]
   movements             MaterialMovement[]
+  inventoryItems        InventorySessionItem[]
 
   @@unique([warehouseId, materialId, batchNumber])
 }
@@ -3372,10 +3437,14 @@ model MaterialMovement {
   obrasServicoId String?
   obrasServico   ObrasServico? @relation(fields: [obrasServicoId], references: [id], onDelete: SetNull)
 
-  actorUsuarioId String?
-  actorUsuario   Usuario? @relation("MaterialMovementActorUsuario", fields: [actorUsuarioId], references: [id])
+  actorUsuarioId  String?
+  actorUsuario    Usuario?  @relation("MaterialMovementActorUsuario", fields: [actorUsuarioId], references: [id])
   actorEmployeeId String?
   actorEmployee   Employee? @relation("MaterialMovementActor", fields: [actorEmployeeId], references: [id])
+
+  inventorySessionId String?
+  inventorySession   InventorySession?     @relation("InventoryAdjustmentSession", fields: [inventorySessionId], references: [id])
+  inventoryItem      InventorySessionItem? @relation("InventoryItemAdjustment")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3383,6 +3452,60 @@ model MaterialMovement {
   @@index([stockId])
   @@index([actorUsuarioId])
   @@index([actorEmployeeId])
+  @@index([inventorySessionId])
+}
+
+model InventorySession {
+  id               String    @id @default(cuid())
+  status           String    @default("COUNTING") // COUNTING, PENDING_APPROVAL, CLOSED, CANCELLED
+  lockMovements    Boolean   @default(true)
+  startedAt        DateTime  @default(now())
+  submittedAt      DateTime?
+  approvedAt       DateTime?
+  closedAt         DateTime?
+  approvalEvidence String?
+
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  createdByUsuarioId  String
+  createdByUsuario    Usuario  @relation("InventorySessionCreatedBy", fields: [createdByUsuarioId], references: [id])
+  approvedByUsuarioId String?
+  approvedByUsuario   Usuario? @relation("InventorySessionApprovedBy", fields: [approvedByUsuarioId], references: [id])
+
+  items               InventorySessionItem[]
+  adjustmentMovements MaterialMovement[]     @relation("InventoryAdjustmentSession")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([warehouseId, status])
+  @@index([createdByUsuarioId])
+  @@index([approvedByUsuarioId])
+}
+
+model InventorySessionItem {
+  id               String    @id @default(cuid())
+  expectedQuantity Float
+  countedQuantity  Float?
+  divergenceType   String    @default("SEM_DIVERGENCIA") // SEM_DIVERGENCIA, SOBRA, FALTA, VENCIDO, DANIFICADO, LOTE_DIVERGENTE, VALIDADE_DIVERGENTE
+  countEvidence    String?
+  adjustmentReason String?
+  countedAt        DateTime?
+
+  sessionId String
+  session   InventorySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  stockId   String
+  stock     MaterialStock    @relation(fields: [stockId], references: [id])
+
+  adjustmentMovementId String?           @unique
+  adjustmentMovement   MaterialMovement? @relation("InventoryItemAdjustment", fields: [adjustmentMovementId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sessionId, stockId])
+  @@index([stockId])
 }
 
 model MaterialRequest {
@@ -5310,13 +5433,13 @@ model ConfiguracaoModulo {
 }
 
 model IntegrationConnection {
-  id                  String           @id @default(cuid())
-  code                String           @unique
+  id                  String    @id @default(cuid())
+  code                String    @unique
   name                String
   category            String
   provider            String
-  environment         String           @default("MOCK") // MOCK, HOMOLOGACAO, PRODUCAO
-  status              String           @default("CONFIGURANDO") // CONFIGURANDO, ATIVA, ERRO, DESATIVADA
+  environment         String    @default("MOCK") // MOCK, HOMOLOGACAO, PRODUCAO
+  status              String    @default("CONFIGURANDO") // CONFIGURANDO, ATIVA, ERRO, DESATIVADA
   baseUrl             String?
   credentialReference String?
   configuration       Json?
@@ -5324,8 +5447,8 @@ model IntegrationConnection {
   lastTestedAt        DateTime?
   lastTestStatus      String?
   lastTestMessage     String?
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   runs IntegrationRun[]
 
@@ -5373,27 +5496,29 @@ model Usuario {
   employeeId String?   @unique
   employee   Employee? @relation(fields: [employeeId], references: [id])
 
-  permissoesModulo         UsuarioModulo[]
-  unidadesGestoras         UsuarioUnidadeGestora[]
-  documentSignatures       DocumentSignature[]      @relation("DocumentSignatureUsuario")
-  protocolNotifications    ProtocolNotification[]
-  financialAuditLogs       FinancialAuditLog[]      @relation("FinancialAuditUsuario")
-  taxAuditLogs             TaxAuditLog[]            @relation("TaxAuditUsuario")
-  materialMovements        MaterialMovement[]       @relation("MaterialMovementActorUsuario")
-  ticketAuditLogs          TicketAuditLog[]         @relation("TicketAuditUsuario")
-  ombudsmanAccesses        OmbudsmanAccess[]        @relation("OmbudsmanAccessUsuario")
-  grantedOmbudsmanAccesses OmbudsmanAccess[]        @relation("OmbudsmanAccessGrantedBy")
-  ombudsmanAuditLogs       OmbudsmanAuditLog[]      @relation("OmbudsmanAuditUsuario")
-  accountingTransactions   AccountingTransaction[]  @relation("AccountingTransactionUsuario")
-  monthlyAccountingCloses  MonthlyAccountingClose[] @relation("MonthlyCloseUsuario")
-  annualAccountingCloses   AnnualAccountingClose[]  @relation("AnnualCloseUsuario")
-  requestedMonthlyCloseEvents MonthlyAccountingCloseEvent[] @relation("MonthlyCloseEventRequestedBy")
+  permissoesModulo             UsuarioModulo[]
+  unidadesGestoras             UsuarioUnidadeGestora[]
+  documentSignatures           DocumentSignature[]           @relation("DocumentSignatureUsuario")
+  protocolNotifications        ProtocolNotification[]
+  financialAuditLogs           FinancialAuditLog[]           @relation("FinancialAuditUsuario")
+  taxAuditLogs                 TaxAuditLog[]                 @relation("TaxAuditUsuario")
+  materialMovements            MaterialMovement[]            @relation("MaterialMovementActorUsuario")
+  createdInventorySessions     InventorySession[]            @relation("InventorySessionCreatedBy")
+  approvedInventorySessions    InventorySession[]            @relation("InventorySessionApprovedBy")
+  ticketAuditLogs              TicketAuditLog[]              @relation("TicketAuditUsuario")
+  ombudsmanAccesses            OmbudsmanAccess[]             @relation("OmbudsmanAccessUsuario")
+  grantedOmbudsmanAccesses     OmbudsmanAccess[]             @relation("OmbudsmanAccessGrantedBy")
+  ombudsmanAuditLogs           OmbudsmanAuditLog[]           @relation("OmbudsmanAuditUsuario")
+  accountingTransactions       AccountingTransaction[]       @relation("AccountingTransactionUsuario")
+  monthlyAccountingCloses      MonthlyAccountingClose[]      @relation("MonthlyCloseUsuario")
+  annualAccountingCloses       AnnualAccountingClose[]       @relation("AnnualCloseUsuario")
+  requestedMonthlyCloseEvents  MonthlyAccountingCloseEvent[] @relation("MonthlyCloseEventRequestedBy")
   authorizedMonthlyCloseEvents MonthlyAccountingCloseEvent[] @relation("MonthlyCloseEventAuthorizedBy")
-  payableCarryForwardEvents PayableCarryForwardEvent[] @relation("PayableCarryForwardEventActor")
-  creditRequestsRequested  CreditRequest[]          @relation("CreditRequestRequestedBy")
-  creditRequestsApproved   CreditRequest[]          @relation("CreditRequestApprovedBy")
-  expenseRequests          Expense[]                @relation("ExpenseRequestedBy")
-  expenseApprovals         Expense[]                @relation("ExpenseApprovedBy")
+  payableCarryForwardEvents    PayableCarryForwardEvent[]    @relation("PayableCarryForwardEventActor")
+  creditRequestsRequested      CreditRequest[]               @relation("CreditRequestRequestedBy")
+  creditRequestsApproved       CreditRequest[]               @relation("CreditRequestApprovedBy")
+  expenseRequests              Expense[]                     @relation("ExpenseRequestedBy")
+  expenseApprovals             Expense[]                     @relation("ExpenseApprovedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
