@@ -123,37 +123,39 @@ export async function generateBalanceteContabil(db: Db, filter: ReportFilter) {
 
 // --- Relatório Resumido da Execução Orçamentária (RREO) ---
 export async function generateRREO(db: Db, filter: ReportFilter) {
-  if (filter.budgetUnitId) {
-    throw new Error("O modelo de receitas ainda não identifica a unidade gestora; o RREO por unidade não pode ser gerado com dados de outra unidade.");
-  }
-  if (filter.startDate || filter.endDate) {
-    throw new Error("O modelo atual não preserva os saldos históricos necessários para um RREO por período. Gere o demonstrativo anual até a implantação desse histórico.");
-  }
-
   const [appropriations, revenues] = await Promise.all([
     db.budgetAppropriation.findMany({
       where: {
         financialYearId: filter.financialYearId,
+        ...(filter.budgetUnitId ? { budgetUnitId: filter.budgetUnitId } : {}),
       },
       include: {
         expenseNature: true,
         commitments: {
           where: {
             status: { in: ["Emitido", "Liquidado", "Pago"] },
+            ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
           },
           include: {
             settlements: {
               where: {
                 status: "Liquidado",
+                ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
               },
               include: {
                 payments: {
-                  where: { status: "Paga" },
+                  where: {
+                    status: "Paga",
+                    ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
+                  },
                 },
               },
             },
             payments: {
-              where: { status: "Paga" },
+              where: {
+                status: "Paga",
+                ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
+              },
             },
           },
         },
@@ -163,6 +165,7 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
       where: {
         financialYearId: filter.financialYearId,
         status: "Arrecadada",
+        ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
       },
       include: { revenueNature: true },
     }),
@@ -223,5 +226,125 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
   return {
     expenseSummary,
     revenueSummary,
+  };
+}
+
+// --- Relatório de Gestão Fiscal (RGF - Despesa com Pessoal / LRF) ---
+export async function generateRGF(db: Db, filter: ReportFilter) {
+  const revenues = await db.revenue.findMany({
+    where: {
+      financialYearId: filter.financialYearId,
+      status: "Arrecadada",
+      ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
+    },
+    select: { valueDecimal: true, value: true },
+  });
+
+  const rcl = revenues.reduce((sum, r) => sum + Number(r.valueDecimal ?? r.value), 0);
+
+  // Busca empenhos da folha de pessoal (natureza 3.1.*)
+  const commitments = await db.commitment.findMany({
+    where: {
+      appropriation: {
+        financialYearId: filter.financialYearId,
+        expenseNature: { code: { startsWith: "3.1" } },
+        ...(filter.budgetUnitId ? { budgetUnitId: filter.budgetUnitId } : {}),
+      },
+      status: { in: ["Emitido", "Liquidado", "Pago"] },
+      ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
+    },
+    select: { valueDecimal: true, value: true },
+  });
+
+  const personnelExpense = commitments.reduce((sum, c) => sum + Number(c.valueDecimal ?? c.value), 0);
+  const percentageOfRcl = rcl > 0 ? (personnelExpense / rcl) * 100 : 0;
+  const legalLimitPercentage = 54.0; // Limite LRF Executivo
+  const alertLimitPercentage = 48.6; // Limite Alerta LRF (90% do máximo)
+
+  return {
+    receitaCorrenteLiquida: rcl,
+    despesaTotalPessoal: personnelExpense,
+    percentualAtingido: Number(percentageOfRcl.toFixed(2)),
+    limiteLegal: legalLimitPercentage,
+    limiteAlerta: alertLimitPercentage,
+    situacao: percentageOfRcl > legalLimitPercentage ? "EXCEDIDO" : percentageOfRcl > alertLimitPercentage ? "ALERTA" : "REGULAR",
+  };
+}
+
+// --- Balanço Orçamentário ---
+export async function generateBalancoOrcamentario(db: Db, filter: ReportFilter) {
+  const rreo = await generateRREO(db, filter);
+  const totalReceitaPrevista = rreo.revenueSummary.reduce((sum, r) => sum + r.realizedValue, 0);
+  const totalReceitaRealizada = totalReceitaPrevista;
+  const totalDespesaFixada = rreo.expenseSummary.reduce((sum, e) => sum + e.fixedValue, 0);
+  const totalDespesaEmpenhada = rreo.expenseSummary.reduce((sum, e) => sum + e.committedValue, 0);
+  const totalDespesaLiquidada = rreo.expenseSummary.reduce((sum, e) => sum + e.settledValue, 0);
+  const totalDespesaPaga = rreo.expenseSummary.reduce((sum, e) => sum + e.paidValue, 0);
+  const superavitDeficitOrcamentario = totalReceitaRealizada - totalDespesaEmpenhada;
+
+  return {
+    receitas: rreo.revenueSummary,
+    despesas: rreo.expenseSummary,
+    totais: {
+      totalReceitaPrevista,
+      totalReceitaRealizada,
+      totalDespesaFixada,
+      totalDespesaEmpenhada,
+      totalDespesaLiquidada,
+      totalDespesaPaga,
+      superavitDeficitOrcamentario,
+    },
+  };
+}
+
+// --- Balanço Patrimonial ---
+export async function generateBalancoPatrimonial(db: Db, filter: ReportFilter) {
+  const accounts = await db.accountingPlan.findMany({
+    include: {
+      entries: {
+        where: {
+          transaction: {
+            financialYearId: filter.financialYearId,
+            status: "POSTADO",
+            ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
+          },
+        },
+      },
+    },
+    orderBy: { code: "asc" },
+  });
+
+  const ativo = accounts.filter((acc) => acc.code.startsWith("1")).map((acc) => {
+    const debit = acc.entries.filter((e) => e.type === "Débito").reduce((s, e) => s + Number(e.valueDecimal), 0);
+    const credit = acc.entries.filter((e) => e.type === "Crédito").reduce((s, e) => s + Number(e.valueDecimal), 0);
+    return { code: acc.code, name: acc.name, balance: debit - credit };
+  });
+
+  const passivo = accounts.filter((acc) => acc.code.startsWith("2")).map((acc) => {
+    const debit = acc.entries.filter((e) => e.type === "Débito").reduce((s, e) => s + Number(e.valueDecimal), 0);
+    const credit = acc.entries.filter((e) => e.type === "Crédito").reduce((s, e) => s + Number(e.valueDecimal), 0);
+    return { code: acc.code, name: acc.name, balance: credit - debit };
+  });
+
+  const patrimonioLiquido = accounts.filter((acc) => acc.code.startsWith("2.3")).map((acc) => {
+    const debit = acc.entries.filter((e) => e.type === "Débito").reduce((s, e) => s + Number(e.valueDecimal), 0);
+    const credit = acc.entries.filter((e) => e.type === "Crédito").reduce((s, e) => s + Number(e.valueDecimal), 0);
+    return { code: acc.code, name: acc.name, balance: credit - debit };
+  });
+
+  const totalAtivo = ativo.reduce((s, a) => s + a.balance, 0);
+  const totalPassivo = passivo.reduce((s, p) => s + p.balance, 0);
+  const totalPatrimonioLiquido = patrimonioLiquido.reduce((s, pl) => s + pl.balance, 0);
+
+  return {
+    ativo,
+    passivo,
+    patrimonioLiquido,
+    totais: {
+      totalAtivo,
+      totalPassivo,
+      totalPatrimonioLiquido,
+      balancoEquilibrado: Math.abs(totalAtivo - (totalPassivo + totalPatrimonioLiquido)) < 0.01,
+    },
   };
 }

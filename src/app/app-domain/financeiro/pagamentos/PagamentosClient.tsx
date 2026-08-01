@@ -140,13 +140,23 @@ export default function PagamentosClient({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.settlementId) {
+      alert("Selecione uma liquidação ativa vinculada ao empenho.");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const dataToSubmit = {
-        ...formData,
+        orderNumber: formData.orderNumber,
         date: new Date(formData.date),
-        settlementId: formData.settlementId || undefined,
+        value: formData.value,
+        commitmentId: formData.commitmentId,
+        settlementId: formData.settlementId,
+        bankAccountId: formData.bankAccountId,
+        supplierId: formData.supplierId,
+        paymentMethod: formData.paymentMethod,
         serviceCode: formData.serviceCode.trim() || undefined,
+        retentionRuleIds: formData.retentionRuleIds,
       };
       
       const result = await createPayment(dataToSubmit);

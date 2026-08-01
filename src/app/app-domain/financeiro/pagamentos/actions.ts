@@ -16,7 +16,18 @@ async function assertCommitmentAccess(context: AppContext, commitmentId: string)
   assertBudgetUnitAccess(context.user, commitment.appropriation.budgetUnitId);
 }
 
-export async function createPayment(data: { orderNumber: string; date: Date; value: number; commitmentId: string; settlementId?: string; bankAccountId: string; supplierId: string; paymentMethod: string; isExceptional?: boolean; exceptionJustification?: string; serviceCode?: string; retentionRuleIds?: string[] }): Promise<ActionResult> {
+export async function createPayment(data: {
+  orderNumber: string;
+  date: Date;
+  value: number;
+  commitmentId: string;
+  settlementId: string;
+  bankAccountId: string;
+  supplierId: string;
+  paymentMethod: string;
+  serviceCode?: string;
+  retentionRuleIds?: string[];
+}): Promise<ActionResult> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     await assertCommitmentAccess(context, data.commitmentId);

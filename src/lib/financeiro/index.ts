@@ -470,26 +470,61 @@ export async function cancelSettlement(db: PrismaClient, actor: FinanceActor, se
   });
 }
 
-export async function createPayment(db: PrismaClient, actor: FinanceActor, input: { orderNumber: string; date: Date; value: Prisma.Decimal | string | number; commitmentId: string; settlementId?: string; bankAccountId: string; supplierId: string; paymentMethod: string; isExceptional?: boolean; exceptionJustification?: string; serviceCode?: string; retentionRuleIds?: string[] }) {
+export async function createPayment(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: {
+    orderNumber: string;
+    date: Date;
+    value: Prisma.Decimal | string | number;
+    commitmentId: string;
+    settlementId: string;
+    bankAccountId: string;
+    supplierId: string;
+    paymentMethod: string;
+    serviceCode?: string;
+    retentionRuleIds?: string[];
+  },
+) {
   const value = money(input.value);
+  if (!input.settlementId) {
+    throw new FinanceError("O fluxo obrigatório exige liquidação prévia regular antes de qualquer emissão de pagamento.");
+  }
+
   return db.$transaction(async (tx) => {
     const { commitment, year } = await commitmentForPosting(tx, input.commitmentId, input.date);
-    const bankAccount = await tx.bankAccount.findUnique({ where: { id: input.bankAccountId }, select: { isActive: true } });
+    const bankAccount = await tx.bankAccount.findUnique({
+      where: { id: input.bankAccountId },
+      select: { id: true, isActive: true, resourceSourceId: true },
+    });
     if (!bankAccount?.isActive) throw new FinanceError("Selecione uma conta bancária ativa.");
+
+    // Validação de compatibilidade entre fonte da dotação e fonte da conta
+    const appropriation = await tx.budgetAppropriation.findUnique({
+      where: { id: commitment.appropriationId },
+      select: { resourceSourceId: true },
+    });
+    if (bankAccount.resourceSourceId && appropriation?.resourceSourceId && bankAccount.resourceSourceId !== appropriation.resourceSourceId) {
+      throw new FinanceError("A fonte de recursos da conta bancária é incompatível com a fonte de recursos da dotação orçamentária.");
+    }
+
     if (commitment.supplierId !== input.supplierId) throw new FinanceError("O fornecedor do pagamento deve ser o mesmo do empenho.");
     const creditor = await creditorForSupplier(tx, input.supplierId);
     if (!commitment.creditorId || commitment.creditorId !== creditor.id) throw new FinanceError("O credor do pagamento deve ser o mesmo credor central do empenho.");
 
-    if (input.settlementId) {
-      const settlement = await tx.settlement.findUnique({ where: { id: input.settlementId } });
-      if (!settlement || settlement.status !== ACTIVE_SETTLEMENT_STATUS || settlement.commitmentId !== commitment.id) throw new FinanceError("A liquidação selecionada não pertence ao empenho ou não está ativa.");
-      const paid = await activePaymentTotal(tx, { settlementId: settlement.id });
-      if (paid.plus(value).greaterThan(requiredDecimal(settlement.valueDecimal, "Settlement.valueDecimal"))) throw new FinanceError("O pagamento acumulado excede o saldo disponível da liquidação.");
-    } else {
-      if (!input.isExceptional || !input.exceptionJustification?.trim()) throw new FinanceError("Pagamento sem liquidação exige exceção controlada com justificativa.");
-      const paid = await activePaymentTotal(tx, { commitmentId: commitment.id });
-      const effectiveValue = commitmentValue(commitment.valueDecimal, commitment.movements);
-      if (paid.plus(value).greaterThan(effectiveValue)) throw new FinanceError("O pagamento excepcional excede o valor vigente do empenho.");
+    const settlement = await tx.settlement.findUnique({ where: { id: input.settlementId } });
+    if (!settlement || settlement.status !== ACTIVE_SETTLEMENT_STATUS || settlement.commitmentId !== commitment.id) {
+      throw new FinanceError("A liquidação selecionada não pertence ao empenho ou não está ativa.");
+    }
+    const paid = await activePaymentTotal(tx, { settlementId: settlement.id });
+    if (paid.plus(value).greaterThan(requiredDecimal(settlement.valueDecimal, "Settlement.valueDecimal"))) {
+      throw new FinanceError("O pagamento acumulado excede o saldo disponível da liquidação.");
+    }
+
+    // Validação de saldo financeiro na conta bancária
+    const currentBankBalance = await getBankAccountBalance(tx, input.bankAccountId, input.date);
+    if (currentBankBalance.lessThan(value)) {
+      throw new FinanceError(`Saldo financeiro insuficiente na conta bancária. Saldo disponível: R$ ${currentBankBalance.toFixed(2)}.`);
     }
 
     const retentionRules = input.retentionRuleIds?.length
@@ -507,13 +542,149 @@ export async function createPayment(db: PrismaClient, actor: FinanceActor, input
     const retentionTotal = retentions.reduce((total, retention) => total.plus(retention.retainedValue), new Prisma.Decimal(0));
     if (retentionTotal.greaterThan(value)) throw new FinanceError("As retenções não podem exceder o valor bruto do pagamento.");
     const netValue = value.minus(retentionTotal);
-    const payment = await tx.payment.create({ data: { orderNumber: input.orderNumber.trim(), date: input.date, valueDecimal: value, value: legacyMoney(value), netValueDecimal: netValue, commitmentId: commitment.id, settlementId: input.settlementId || undefined, bankAccountId: input.bankAccountId, supplierId: input.supplierId, creditorId: creditor.id, isExceptional: Boolean(input.isExceptional), exceptionJustification: input.isExceptional ? input.exceptionJustification?.trim() : undefined, paymentMethod: input.paymentMethod, status: "Emitida" } });
+    const payment = await tx.payment.create({
+      data: {
+        orderNumber: input.orderNumber.trim(),
+        date: input.date,
+        valueDecimal: value,
+        value: legacyMoney(value),
+        netValueDecimal: netValue,
+        commitmentId: commitment.id,
+        settlementId: input.settlementId,
+        bankAccountId: input.bankAccountId,
+        supplierId: input.supplierId,
+        creditorId: creditor.id,
+        isExceptional: false,
+        paymentMethod: input.paymentMethod,
+        status: "Emitida",
+      },
+    });
     for (const retention of retentions) {
-      await tx.paymentRetention.create({ data: { paymentId: payment.id, retentionRuleId: retention.rule.id, type: retention.type, description: retention.rule.description, valueDecimal: retention.retainedValue, beneficiaryName: retention.rule.beneficiaryName, beneficiaryDocument: retention.rule.beneficiaryDocument ?? undefined, withholdingPayable: { create: { valueDecimal: retention.retainedValue, dueDate: calculateRetentionDueDate(input.date, retention.rule.dueDays) } } } });
+      await tx.paymentRetention.create({
+        data: {
+          paymentId: payment.id,
+          retentionRuleId: retention.rule.id,
+          type: retention.type,
+          description: retention.rule.description,
+          valueDecimal: retention.retainedValue,
+          beneficiaryName: retention.rule.beneficiaryName,
+          beneficiaryDocument: retention.rule.beneficiaryDocument ?? undefined,
+          withholdingPayable: {
+            create: {
+              valueDecimal: retention.retainedValue,
+              dueDate: calculateRetentionDueDate(input.date, retention.rule.dueDays),
+            },
+          },
+        },
+      });
     }
     await refreshCommitmentExecutionStatus(tx, commitment.id);
-    await audit(tx, actor, "CREATE", "Payment", payment.id, { grossValue: jsonMoney(value), netValue: jsonMoney(netValue), retentionValue: jsonMoney(retentionTotal), commitmentId: commitment.id, settlementId: input.settlementId ?? null, creditorId: creditor.id, isExceptional: Boolean(input.isExceptional) }, year.id);
+    await audit(tx, actor, "CREATE", "Payment", payment.id, { grossValue: jsonMoney(value), netValue: jsonMoney(netValue), retentionValue: jsonMoney(retentionTotal), commitmentId: commitment.id, settlementId: input.settlementId, creditorId: creditor.id }, year.id);
     return payment;
+  });
+}
+
+export async function reversePayment(
+  db: PrismaClient,
+  actor: FinanceActor,
+  paymentId: string,
+  justification: string,
+) {
+  if (!justification.trim()) throw new FinanceError("A justificativa de estorno do pagamento é obrigatória.");
+  return db.$transaction(async (tx) => {
+    const payment = await tx.payment.findUnique({
+      include: { commitment: { include: { appropriation: true } } },
+      where: { id: paymentId },
+    });
+    if (!payment) throw new FinanceError("Pagamento não encontrado.");
+    await lockCommitment(tx, payment.commitmentId);
+    const year = await assertFinancialYearOpen(tx, payment.commitment.appropriation.financialYearId, new Date());
+    if (payment.status !== "Paga") throw new FinanceError("Somente pagamentos efetivados (Paga) podem ser estornados.");
+
+    const value = requiredDecimal(payment.valueDecimal, "Payment.valueDecimal");
+    const updated = await tx.payment.update({ where: { id: paymentId }, data: { status: "Estornada" } });
+
+    // Registra estorno no caixa/tesouraria
+    await tx.treasuryMovement.create({
+      data: {
+        date: new Date(),
+        type: "PaymentReversal",
+        direction: "Entrada",
+        valueDecimal: value,
+        history: `Estorno da ordem de pagamento ${payment.orderNumber}: ${justification.trim()}`,
+        bankAccountId: payment.bankAccountId,
+        financialYearId: year.id,
+        sourceModule: "FINANCEIRO",
+        sourceType: "PAYMENT",
+        sourceId: payment.id,
+        eventType: "PAYMENT_REVERSED",
+        idempotencyKey: `FINANCEIRO:PAYMENT:${payment.id}:REVERSAL`,
+      },
+    });
+
+    await tx.withholdingPayable.updateMany({
+      where: { retention: { paymentId } },
+      data: { status: "Cancelada" },
+    });
+
+    await refreshCommitmentExecutionStatus(tx, payment.commitmentId);
+    await audit(tx, actor, "REVERSE", "Payment", paymentId, { previousStatus: payment.status, status: "Estornada", justification: justification.trim() }, year.id);
+    return updated;
+  });
+}
+
+export async function settleWithholdingPayable(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: {
+    withholdingPayableId: string;
+    bankAccountId: string;
+    paymentDate: Date;
+    idempotencyKey?: string;
+  },
+) {
+  return db.$transaction(async (tx) => {
+    const payable = await tx.withholdingPayable.findUnique({
+      where: { id: input.withholdingPayableId },
+      include: { retention: { include: { payment: true } } },
+    });
+    if (!payable || payable.status !== "Pendente") {
+      throw new FinanceError("Consignação/retenção não encontrada ou já recolhida.");
+    }
+    const bankAccount = await tx.bankAccount.findUnique({ where: { id: input.bankAccountId } });
+    if (!bankAccount?.isActive) throw new FinanceError("Conta bancária para recolhimento inativa.");
+
+    const value = requiredDecimal(payable.valueDecimal, "WithholdingPayable.valueDecimal");
+    const currentBalance = await getBankAccountBalance(tx, input.bankAccountId, input.paymentDate);
+    if (currentBalance.lessThan(value)) {
+      throw new FinanceError("Saldo financeiro insuficiente para recolhimento da retenção.");
+    }
+
+    const year = await financialYearForPosting(tx, input.paymentDate);
+    const updated = await tx.withholdingPayable.update({
+      where: { id: input.withholdingPayableId },
+      data: { status: "Recolhida" },
+    });
+
+    await tx.treasuryMovement.create({
+      data: {
+        date: input.paymentDate,
+        type: "WithholdingPayout",
+        direction: "Saída",
+        valueDecimal: value,
+        history: `Recolhimento de retenção/consignação ${payable.retention.type}: ${payable.retention.description ?? ""}`,
+        bankAccountId: input.bankAccountId,
+        financialYearId: year.id,
+        sourceModule: "FINANCEIRO",
+        sourceType: "WITHHOLDING_PAYABLE",
+        sourceId: payable.id,
+        eventType: "WITHHOLDING_PAID",
+        idempotencyKey: input.idempotencyKey ?? `FINANCEIRO:WITHHOLDING:${payable.id}:PAID`,
+      },
+    });
+
+    await audit(tx, actor, "SETTLE", "WithholdingPayable", payable.id, { value: jsonMoney(value), bankAccountId: input.bankAccountId }, year.id);
+    return updated;
   });
 }
 
