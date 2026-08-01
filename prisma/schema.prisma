@@ -1808,6 +1808,7 @@ model BudgetUnit {
   updatedAt     DateTime    @updatedAt
 
   appropriations BudgetAppropriation[]
+  usuarios       UsuarioUnidadeGestora[]
 }
 
 model ResourceSource {
@@ -4954,6 +4955,7 @@ model Usuario {
   employee   Employee? @relation(fields: [employeeId], references: [id])
 
   permissoesModulo         UsuarioModulo[]
+  unidadesGestoras         UsuarioUnidadeGestora[]
   documentSignatures       DocumentSignature[]      @relation("DocumentSignatureUsuario")
   protocolNotifications    ProtocolNotification[]
   financialAuditLogs       FinancialAuditLog[]      @relation("FinancialAuditUsuario")
@@ -4976,6 +4978,7 @@ model FinancialAuditLog {
   entityType       String
   entityId         String
   financialYearId  String?
+  budgetUnitId     String?
   payload          Json?
   authorUsuarioId  String
   authorUsuario    Usuario   @relation("FinancialAuditUsuario", fields: [authorUsuarioId], references: [id])
@@ -4985,6 +4988,7 @@ model FinancialAuditLog {
 
   @@index([entityType, entityId])
   @@index([financialYearId, createdAt])
+  @@index([budgetUnitId])
 }
 
 model TaxAuditLog {
@@ -5014,4 +5018,17 @@ model UsuarioModulo {
   canEdit Boolean @default(false)
 
   @@unique([usuarioId, moduloId])
+}
+
+model UsuarioUnidadeGestora {
+  id           String @id @default(cuid())
+  usuarioId    String
+  budgetUnitId String
+
+  usuario    Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  budgetUnit BudgetUnit @relation(fields: [budgetUnitId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([usuarioId, budgetUnitId])
 }

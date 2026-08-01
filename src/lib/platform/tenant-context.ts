@@ -22,6 +22,7 @@ export type AppContext = {
     role: string;
     permissions?: string | null;
     modulePermissions: { code: string; canView: boolean; canEdit: boolean }[];
+    allowedBudgetUnitIds: string[];
     employeeId: string | null;
     departmentId: string | null;
     secretariatId: string | null;
@@ -59,6 +60,13 @@ export function isSystemAdministrator(user: AppContext["user"]) {
   );
 }
 
+export function assertBudgetUnitAccess(user: AppContext["user"], budgetUnitId: string) {
+  if (isSystemAdministrator(user)) return;
+  if (!user.allowedBudgetUnitIds.includes(budgetUnitId)) {
+    throw new AccessError(`Acesso negado à Unidade Gestora ${budgetUnitId}.`, 403);
+  }
+}
+
 async function resolveUser(principal: SessionPrincipal | null): Promise<AppContext["user"]> {
   if (!principal) throw new AccessError("Sessao invalida ou expirada.", 401);
 
@@ -69,6 +77,9 @@ async function resolveUser(principal: SessionPrincipal | null): Promise<AppConte
       employee: true,
       permissoesModulo: {
         include: { modulo: { select: { codigo: true } } },
+      },
+      unidadesGestoras: {
+        select: { budgetUnitId: true },
       },
     },
   });
@@ -89,6 +100,7 @@ async function resolveUser(principal: SessionPrincipal | null): Promise<AppConte
       canView: permission.canView,
       canEdit: permission.canEdit,
     })),
+    allowedBudgetUnitIds: usuario.unidadesGestoras.map((ug) => ug.budgetUnitId),
     employeeId: usuario.employee?.id ?? null,
     departmentId: usuario.employee?.departmentId ?? null,
     secretariatId: usuario.employee?.secretariatId ?? null,
