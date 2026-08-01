@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 const AWAITING_RECEIPT = "Aguardando Recebimento";
+const AWAITING_ACCOUNTING = "Aguardando Contabilidade";
 
 async function getOperationalContext() {
   const context = await getProtocolContext("edit");
@@ -171,6 +172,7 @@ export async function forwardProcess(data: {
       if (process.currentDepartmentId !== departmentId) throw new Error("Este processo nao pertence ao seu setor.");
       if (["Arquivado", "Cancelado"].includes(process.status)) throw new Error("Este processo nao aceita novas operacoes.");
       if (process.status === AWAITING_RECEIPT) throw new Error("Receba o processo antes de tramita-lo.");
+      if (process.status === AWAITING_ACCOUNTING) throw new Error("Aguarde a emissão do empenho para tramitar o processo.");
 
       const destinationDepartment = await tx.department.findFirst({
         where: { id: data.destinationDepartmentId, isActive: true },
@@ -319,6 +321,7 @@ export async function concludeProcess(processId: string, reason: string): Promis
       if (!process) throw new Error("Processo nao encontrado.");
       if (process.currentDepartmentId !== departmentId) throw new Error("Este processo nao pertence ao seu setor.");
       if (process.status === AWAITING_RECEIPT) throw new Error("Receba o processo antes de conclui-lo.");
+      if (process.status === AWAITING_ACCOUNTING) throw new Error("Aguarde a emissão do empenho para concluir o processo.");
       if (["Concluido", "Arquivado", "Cancelado"].includes(process.status)) throw new Error("Este processo nao pode ser concluido novamente.");
 
       const completedAt = new Date();

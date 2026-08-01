@@ -1,6 +1,7 @@
 import { getTenantContextForModule, isSystemAdministrator } from "@/lib/platform/tenant-context";
 import { getBankAccountBalances } from "@/lib/financeiro";
 import ContasBancariasClient from "./ContasBancariasClient"
+import TreasuryTransferSection from "./TreasuryTransferSection";
 
 export default async function ContasBancariasPage() {
   const context = await getTenantContextForModule("FINANCEIRO");
@@ -31,5 +32,38 @@ export default async function ContasBancariasPage() {
     orderBy: { code: "asc" },
   });
 
-  return <ContasBancariasClient accounts={displayAccounts} resourceSources={resourceSources} budgetUnits={budgetUnits} />
+  const transferAccountAccess = isSystemAdministrator(context.user) ? {} : { budgetUnitId: { in: context.user.allowedBudgetUnitIds } };
+  const transfers = await prisma.treasuryTransfer.findMany({
+    where: {
+      AND: [
+        { sourceBankAccount: transferAccountAccess },
+        { destinationBankAccount: transferAccountAccess },
+      ],
+    },
+    include: {
+      sourceBankAccount: { select: { id: true, bankName: true, agency: true, accountNumber: true, isActive: true } },
+      destinationBankAccount: { select: { id: true, bankName: true, agency: true, accountNumber: true, isActive: true } },
+    },
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+    take: 20,
+  });
+
+  return (
+    <>
+      <ContasBancariasClient accounts={displayAccounts} resourceSources={resourceSources} budgetUnits={budgetUnits} />
+      <div className="px-8 pb-8">
+        <TreasuryTransferSection
+          accounts={displayAccounts.map(({ id, bankName, agency, accountNumber, isActive }) => ({ id, bankName, agency, accountNumber, isActive }))}
+          transfers={transfers.map((transfer) => ({
+            id: transfer.id,
+            date: transfer.date.toISOString(),
+            value: Number(transfer.valueDecimal),
+            history: transfer.history,
+            sourceBankAccount: transfer.sourceBankAccount,
+            destinationBankAccount: transfer.destinationBankAccount,
+          }))}
+        />
+      </div>
+    </>
+  );
 }

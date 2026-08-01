@@ -35,6 +35,7 @@ export default function ProcessControls({
   const [documentType, setDocumentType] = useState("Anexo");
 
   const isTerminal = ["Arquivado", "Cancelado"].includes(status);
+  const isAwaitingAccounting = status === "Aguardando Contabilidade";
   const disabled = !canOperate || isTerminal || status === "Aguardando Recebimento";
 
   function close() {
@@ -132,7 +133,7 @@ export default function ProcessControls({
           <FileText className="w-4 h-4" />
           Adicionar Despacho
         </button>
-        <button disabled={disabled} onClick={() => setMode("forward")} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+        <button disabled={disabled || isAwaitingAccounting} onClick={() => setMode("forward")} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors">
           <Send className="w-4 h-4" />
           Tramitar
         </button>

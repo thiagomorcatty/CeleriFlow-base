@@ -14,6 +14,7 @@ export async function deleteContract(id: string) {
       where: { id },
     });
     revalidatePath("/compras/contratos");
+    revalidatePath(`/compras/contratos/${id}`);
     return { success: true };
   } catch (error) {
     console.error("Error deleting contract:", error);
@@ -55,6 +56,7 @@ export async function saveContract(formData: FormData) {
       await prisma.contract.create({ data });
     }
     revalidatePath("/compras/contratos");
+    if (id) revalidatePath(`/compras/contratos/${id}`);
     return { success: true };
   } catch (error) {
     console.error("Error saving contract:", error);

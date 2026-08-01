@@ -1,8 +1,19 @@
 "use server";
 
 import { assertBudgetUnitAccess, getTenantContextForModuleEdit, isSystemAdministrator } from "@/lib/platform/tenant-context";
-import { createBankAccountWithOpeningBalance, FinanceError, updateBankAccountDetails } from "@/lib/financeiro";
+import { createBankAccountWithOpeningBalance, createTreasuryTransfer, FinanceError, updateBankAccountDetails } from "@/lib/financeiro";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
+
+type ActionResult = { error?: string };
+
+const transferSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data válida."),
+  value: z.number().finite().positive("Informe um valor maior que zero."),
+  sourceBankAccountId: z.string().trim().min(1, "Selecione a conta de origem."),
+  destinationBankAccountId: z.string().trim().min(1, "Selecione a conta de destino."),
+  history: z.string().trim().max(500, "O histórico deve ter no máximo 500 caracteres.").optional(),
+});
 
 async function getTenantPrisma() {
   return getTenantContextForModuleEdit("FINANCEIRO");
@@ -16,6 +27,17 @@ async function assertAccountAccess(context: Awaited<ReturnType<typeof getTenantP
     assertBudgetUnitAccess(context.user, account.budgetUnitId);
   }
   if (nextBudgetUnitId) assertBudgetUnitAccess(context.user, nextBudgetUnitId);
+}
+
+async function getTransferAccount(context: Awaited<ReturnType<typeof getTenantPrisma>>, accountId: string) {
+  const account = await context.prisma.bankAccount.findUnique({
+    where: { id: accountId },
+    select: { id: true, budgetUnitId: true, resourceSourceId: true },
+  });
+  if (!account) throw new FinanceError("Conta bancária não encontrada.");
+  if (!account.budgetUnitId) throw new FinanceError("A conta bancária deve estar vinculada a uma Unidade Gestora.");
+  assertBudgetUnitAccess(context.user, account.budgetUnitId);
+  return account;
 }
 
 export async function createBankAccount(data: {
@@ -64,4 +86,43 @@ export async function toggleBankAccountStatus(id: string, isActive: boolean) {
 
   revalidatePath("/financeiro/contas-bancarias");
   return account;
+}
+
+export async function createTreasuryTransferAction(data: {
+  date: string;
+  value: number;
+  sourceBankAccountId: string;
+  destinationBankAccountId: string;
+  history?: string;
+}): Promise<ActionResult> {
+  const parsed = transferSchema.safeParse(data);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados da transferência inválidos." };
+
+  const date = new Date(`${parsed.data.date}T12:00:00.000Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== parsed.data.date) {
+    return { error: "Informe uma data válida." };
+  }
+
+  try {
+    const context = await getTenantPrisma();
+    const [source, destination] = await Promise.all([
+      getTransferAccount(context, parsed.data.sourceBankAccountId),
+      getTransferAccount(context, parsed.data.destinationBankAccountId),
+    ]);
+    if (!source.resourceSourceId || !destination.resourceSourceId) {
+      throw new FinanceError("As contas da transferência devem possuir fonte de recursos configurada.");
+    }
+    if (source.resourceSourceId !== destination.resourceSourceId) {
+      throw new FinanceError("As contas da transferência devem possuir a mesma fonte de recursos.");
+    }
+
+    await createTreasuryTransfer(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, {
+      ...parsed.data,
+      date,
+    });
+    revalidatePath("/financeiro/contas-bancarias");
+    return {};
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Não foi possível concluir a transferência." };
+  }
 }

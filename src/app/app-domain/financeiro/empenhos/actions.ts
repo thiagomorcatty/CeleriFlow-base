@@ -13,10 +13,33 @@ function message(error: unknown) {
 async function assertCommitmentAccess(context: AppContext, commitmentId: string) {
   const commitment = await context.prisma.commitment.findUnique({
     where: { id: commitmentId },
-    select: { appropriation: { select: { budgetUnitId: true } } },
+    select: { contractId: true, appropriation: { select: { budgetUnitId: true } } },
   });
   if (!commitment) throw new FinanceError("Empenho não encontrado.");
   assertBudgetUnitAccess(context.user, commitment.appropriation.budgetUnitId);
+  return commitment;
+}
+
+function revalidateContractExecution(contractId?: string | null) {
+  if (!contractId) return;
+  revalidatePath("/compras/contratos");
+  revalidatePath(`/compras/contratos/${contractId}`);
+}
+
+function revalidateProtocolProcess(processId?: string | null) {
+  if (!processId) return;
+  for (const path of [
+    "/protocolos",
+    "/protocolos/processos",
+    `/protocolos/processos/${processId}`,
+    "/protocolos/acompanhamento",
+    "/app-domain/protocolos",
+    "/app-domain/protocolos/processos",
+    `/app-domain/protocolos/processos/${processId}`,
+    "/app-domain/protocolos/acompanhamento",
+  ]) {
+    revalidatePath(path);
+  }
 }
 
 export async function createCommitment(data: {
@@ -39,9 +62,11 @@ export async function createCommitment(data: {
     });
     if (!appropriation) throw new FinanceError("Dotação orçamentária não encontrada.");
     assertBudgetUnitAccess(context.user, appropriation.budgetUnitId);
-    await createOfficialCommitment(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, data);
+    const commitment = await createOfficialCommitment(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, data);
     revalidatePath("/financeiro/empenhos");
     revalidatePath("/financeiro/orcamento");
+    revalidateContractExecution(data.contractId);
+    revalidateProtocolProcess(commitment.processId);
     return {};
   } catch (error) {
     return { error: message(error) };
@@ -68,10 +93,11 @@ export async function updateCommitment(_id: string, _data: {
 export async function cancelCommitment(id: string): Promise<ActionResult> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
-    await assertCommitmentAccess(context, id);
+    const commitment = await assertCommitmentAccess(context, id);
     await cancelOfficialCommitment(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, id);
     revalidatePath("/financeiro/empenhos");
     revalidatePath("/financeiro/orcamento");
+    revalidateContractExecution(commitment.contractId);
     return {};
   } catch (error) {
     return { error: message(error) };

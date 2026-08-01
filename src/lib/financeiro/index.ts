@@ -18,6 +18,8 @@ const ACTIVE_RESERVATION_STATUS = "Ativa";
 const ACTIVE_COMMITMENT_STATUSES = ["Emitido", "Liquidado", "Pago"];
 const ACTIVE_SETTLEMENT_STATUS = "Liquidado";
 const ACTIVE_PAYMENT_STATUSES = ["Emitida", "Paga"];
+const AWAITING_ACCOUNTING_PROCESS_STATUS = "Aguardando Contabilidade";
+const RELEASED_PROCESS_STATUS = "Recebido";
 
 function money(value: Prisma.Decimal | string | number) {
   const decimal = new Prisma.Decimal(String(value)).toDecimalPlaces(2);
@@ -89,8 +91,20 @@ async function lockCommitment(tx: Prisma.TransactionClient, commitmentId: string
   await tx.$queryRaw`SELECT id FROM "Commitment" WHERE id = ${commitmentId} FOR UPDATE`;
 }
 
+async function lockContract(tx: Prisma.TransactionClient, contractId: string) {
+  await tx.$queryRaw`SELECT id FROM "Contract" WHERE id = ${contractId} FOR UPDATE`;
+}
+
 async function lockBankAccount(tx: Prisma.TransactionClient, bankAccountId: string) {
   await tx.$queryRaw`SELECT id FROM "BankAccount" WHERE id = ${bankAccountId} FOR UPDATE`;
+}
+
+async function lockBankStatementItem(tx: Prisma.TransactionClient, statementItemId: string) {
+  await tx.$queryRaw`SELECT id FROM "BankStatementItem" WHERE id = ${statementItemId} FOR UPDATE`;
+}
+
+async function lockTreasuryMovement(tx: Prisma.TransactionClient, treasuryMovementId: string) {
+  await tx.$queryRaw`SELECT id FROM "TreasuryMovement" WHERE id = ${treasuryMovementId} FOR UPDATE`;
 }
 
 async function lockWithholdingPayable(tx: Prisma.TransactionClient, payableId: string) {
@@ -117,6 +131,28 @@ function commitmentValue(value: Prisma.Decimal | null, movements: { type: string
     if (movement.type === "Anulação") return total.minus(movement.valueDecimal);
     throw new FinanceError("Movimento de empenho inválido.");
   }, requiredDecimal(value, "Commitment.valueDecimal"));
+}
+
+async function contractForCommitment(tx: Prisma.TransactionClient, contractId: string, additionalValue: Prisma.Decimal) {
+  await lockContract(tx, contractId);
+  const [contract, commitments] = await Promise.all([
+    tx.contract.findUnique({ where: { id: contractId } }),
+    tx.commitment.findMany({
+      where: { contractId, status: { in: ACTIVE_COMMITMENT_STATUSES } },
+      select: { valueDecimal: true, movements: { select: { type: true, valueDecimal: true } } },
+    }),
+  ]);
+  if (!contract) throw new FinanceError("Contrato informado não encontrado.");
+
+  const committed = commitments.reduce(
+    (total, commitment) => total.plus(commitmentValue(commitment.valueDecimal, commitment.movements)),
+    new Prisma.Decimal(0),
+  );
+  const ceiling = new Prisma.Decimal(String(contract.updatedValue));
+  if (committed.plus(additionalValue).greaterThan(ceiling)) {
+    throw new FinanceError("O lançamento excede o saldo do contrato.");
+  }
+  return contract;
 }
 
 export async function getBudgetAvailability(tx: Db, appropriationId: string) {
@@ -393,10 +429,16 @@ export async function createCommitment(
     if (!requiredDecimal(reservation.valueDecimal, "BudgetReservation.valueDecimal").equals(value)) throw new FinanceError("O empenho deve corresponder integralmente à reserva selecionada.");
     const availability = await getBudgetAvailability(tx, appropriation.id);
     if (availability.available.lessThan(0)) throw new FinanceError("A dotação não possui disponibilidade válida para empenho.");
-    if (input.processId && !await tx.process.findUnique({ where: { id: input.processId } })) throw new FinanceError("Processo informado não encontrado.");
+    const process = input.processId
+      ? await tx.process.findUnique({
+          where: { id: input.processId },
+          select: { id: true, currentDepartmentId: true },
+        })
+      : null;
+    if (input.processId && !process) throw new FinanceError("Processo informado não encontrado.");
     if (input.contractId) {
-      const contract = await tx.contract.findUnique({ where: { id: input.contractId } });
-      if (!contract || contract.supplierId !== input.supplierId) throw new FinanceError("O contrato informado não pertence ao fornecedor do empenho.");
+      const contract = await contractForCommitment(tx, input.contractId, value);
+      if (contract.supplierId !== input.supplierId) throw new FinanceError("O contrato informado não pertence ao fornecedor do empenho.");
     }
     const creditor = await creditorForSupplier(tx, input.supplierId);
     const commitment = await tx.commitment.create({
@@ -405,6 +447,41 @@ export async function createCommitment(
     await tx.budgetReservation.update({ where: { id: reservation.id }, data: { status: "Empenhada" } });
     if (reservation.expenseId) await tx.expense.update({ where: { id: reservation.expenseId }, data: { status: "Empenhada" } });
     await refreshCommittedMirror(tx, appropriation.id);
+    await postAccountingEventInTransaction(tx, actor, {
+      financialYearId: year.id,
+      date: commitment.date,
+      eventCode: "EMPENHO_EMITIDO",
+      value,
+      history: `Empenho ${commitment.number}: ${commitment.history}`,
+      sourceModule: "FINANCEIRO",
+      sourceType: "COMMITMENT",
+      sourceId: commitment.id,
+      idempotencyKey: `FINANCEIRO:COMMITMENT:${commitment.id}:EMPENHO_EMITIDO`,
+    });
+    if (process) {
+      const released = await tx.process.updateMany({
+        where: { id: process.id, status: AWAITING_ACCOUNTING_PROCESS_STATUS },
+        data: { status: RELEASED_PROCESS_STATUS },
+      });
+      if (released.count) {
+        await tx.processEvent.create({
+          data: {
+            processId: process.id,
+            eventType: "ACCOUNTING_RELEASED",
+            description: `Processo liberado após a emissão do empenho ${commitment.number}.`,
+            previousStatus: AWAITING_ACCOUNTING_PROCESS_STATUS,
+            newStatus: RELEASED_PROCESS_STATUS,
+            departmentId: process.currentDepartmentId ?? undefined,
+            employeeId: actor.employeeId ?? undefined,
+            metadata: JSON.stringify({
+              commitmentId: commitment.id,
+              commitmentNumber: commitment.number,
+              commitmentValue: jsonMoney(value),
+            }),
+          },
+        });
+      }
+    }
     await audit(tx, actor, "CREATE", "Commitment", commitment.id, { value: jsonMoney(value), reservationId: reservation.id, creditorId: creditor.id, processId: commitment.processId, contractId: commitment.contractId }, year.id);
     return commitment;
   });
@@ -443,6 +520,7 @@ export async function createCommitmentMovement(db: PrismaClient, actor: FinanceA
     if (input.type === "Reforço") {
       const availability = await getBudgetAvailability(tx, commitment.appropriationId);
       if (availability.available.lessThan(value)) throw new FinanceError("O reforço excede a disponibilidade da dotação.");
+      if (commitment.contractId) await contractForCommitment(tx, commitment.contractId, value);
     } else {
       const settled = commitment.settlements.reduce((total, settlement) => total.plus(requiredDecimal(settlement.valueDecimal, "Settlement.valueDecimal")), new Prisma.Decimal(0));
       if (effectiveValue.minus(value).lessThan(settled)) throw new FinanceError("A anulação não pode reduzir o empenho abaixo do valor liquidado.");
@@ -499,6 +577,17 @@ export async function createSettlement(db: PrismaClient, actor: FinanceActor, in
     if (settled.plus(value).greaterThan(effectiveValue)) throw new FinanceError("A liquidação acumulada excede o valor vigente do empenho.");
     const settlement = await tx.settlement.create({ data: { date: input.date, valueDecimal: value, value: legacyMoney(value), documentRef: input.documentRef?.trim() || undefined, documentId: document.id, commitmentId: commitment.id, authorId: input.authorId, notes: input.notes?.trim() || undefined, status: ACTIVE_SETTLEMENT_STATUS } });
     await refreshCommitmentExecutionStatus(tx, commitment.id);
+    await postAccountingEventInTransaction(tx, actor, {
+      financialYearId: year.id,
+      date: settlement.date,
+      eventCode: "LIQUIDACAO_REGISTRADA",
+      value,
+      history: `Liquidação do empenho ${commitment.number}`,
+      sourceModule: "FINANCEIRO",
+      sourceType: "SETTLEMENT",
+      sourceId: settlement.id,
+      idempotencyKey: `FINANCEIRO:SETTLEMENT:${settlement.id}:LIQUIDACAO_REGISTRADA`,
+    });
     await audit(tx, actor, "CREATE", "Settlement", settlement.id, { value: jsonMoney(value), commitmentId: commitment.id, documentId: document.id, authorId: input.authorId }, year.id);
     return settlement;
   });
@@ -659,7 +748,8 @@ export async function reversePayment(
     });
     if (!payment) throw new FinanceError("Pagamento não encontrado.");
     await lockCommitment(tx, payment.commitmentId);
-    const year = await assertFinancialYearOpen(tx, payment.commitment.appropriation.financialYearId, new Date());
+    const reversalDate = new Date();
+    const year = await assertFinancialYearOpen(tx, payment.commitment.appropriation.financialYearId, reversalDate);
     if (payment.status !== "Paga") throw new FinanceError("Somente pagamentos efetivados (Paga) podem ser estornados.");
 
     // Verifica se alguma retenção associada já foi recolhida
@@ -675,7 +765,7 @@ export async function reversePayment(
     // Registra entrada do valor LÍQUIDO de volta na tesouraria
     await tx.treasuryMovement.create({
       data: {
-        date: new Date(),
+        date: reversalDate,
         type: "PaymentReversal",
         direction: "Entrada",
         valueDecimal: netValue,
@@ -696,6 +786,17 @@ export async function reversePayment(
     });
 
     await refreshCommitmentExecutionStatus(tx, payment.commitmentId);
+    await postAccountingEventInTransaction(tx, actor, {
+      financialYearId: year.id,
+      date: reversalDate,
+      eventCode: "PAGAMENTO_ESTORNADO",
+      value: requiredDecimal(payment.valueDecimal, "Payment.valueDecimal"),
+      history: `Estorno da ordem de pagamento ${payment.orderNumber}: ${justification.trim()}`,
+      sourceModule: "FINANCEIRO",
+      sourceType: "PAYMENT",
+      sourceId: payment.id,
+      idempotencyKey: `FINANCEIRO:PAYMENT:${payment.id}:PAGAMENTO_ESTORNADO`,
+    });
     await audit(tx, actor, "REVERSE", "Payment", paymentId, { previousStatus: payment.status, status: "Estornada", justification: justification.trim() }, year.id);
     return updated;
   });
@@ -783,6 +884,17 @@ export async function settleWithholdingPayable(
       },
     });
 
+    await postAccountingEventInTransaction(tx, actor, {
+      financialYearId: year.id,
+      date: input.paymentDate,
+      eventCode: "RETENCAO_RECOLHIDA",
+      value,
+      history: `Recolhimento de retenção/consignação ${payable.retention.type}`,
+      sourceModule: "FINANCEIRO",
+      sourceType: "WITHHOLDING_PAYABLE",
+      sourceId: payable.id,
+      idempotencyKey: `FINANCEIRO:WITHHOLDING:${payable.id}:RETENCAO_RECOLHIDA`,
+    });
     await audit(tx, actor, "SETTLE", "WithholdingPayable", payable.id, { value: jsonMoney(value), bankAccountId: input.bankAccountId }, year.id);
     return updated;
   });
@@ -864,6 +976,19 @@ export async function updatePaymentStatus(db: PrismaClient, actor: FinanceActor,
     const updated = await tx.payment.update({ where: { id: paymentId }, data: { status } });
     if (status === "Cancelada") await tx.withholdingPayable.updateMany({ where: { retention: { paymentId } }, data: { status: "Cancelada" } });
     await refreshCommitmentExecutionStatus(tx, payment.commitmentId);
+    if (status === "Paga") {
+      await postAccountingEventInTransaction(tx, actor, {
+        financialYearId: year.id,
+        date: payment.date,
+        eventCode: "PAGAMENTO_EFETIVADO",
+        value: requiredDecimal(payment.valueDecimal, "Payment.valueDecimal"),
+        history: `Pagamento efetivado da ordem ${payment.orderNumber}`,
+        sourceModule: "FINANCEIRO",
+        sourceType: "PAYMENT",
+        sourceId: payment.id,
+        idempotencyKey: `FINANCEIRO:PAYMENT:${payment.id}:PAGAMENTO_EFETIVADO`,
+      });
+    }
     await audit(tx, actor, "STATUS_CHANGE", "Payment", paymentId, { previousStatus: payment.status, status }, year.id);
     return updated;
   });
@@ -1113,6 +1238,22 @@ function parseCsvAmount(raw: string) {
   return new Prisma.Decimal(normalized);
 }
 
+function parseCsvDate(raw: string) {
+  const value = raw.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new FinanceError("CSV contém data inválida. Use o formato YYYY-MM-DD.");
+  const date = new Date(`${value}T12:00:00.000Z`);
+  if (Number.isNaN(date.valueOf()) || date.toISOString().slice(0, 10) !== value) {
+    throw new FinanceError("CSV contém data inválida.");
+  }
+  return date;
+}
+
+function assertActorCanAccessBankAccount(actor: FinanceActor, budgetUnitId: string | null) {
+  if (actor.allowedBudgetUnitIds && (!budgetUnitId || !actor.allowedBudgetUnitIds.includes(budgetUnitId))) {
+    throw new FinanceError("Acesso negado à Unidade Gestora da conta bancária.");
+  }
+}
+
 export async function importBankStatementCsv(
   db: PrismaClient,
   actor: FinanceActor,
@@ -1125,23 +1266,88 @@ export async function importBankStatementCsv(
   const required = ["date", "description", "amount"];
   if (!required.every((header) => headers.includes(header))) throw new FinanceError("O CSV deve conter as colunas date, description e amount.");
   const checksum = createHash("sha256").update(input.content).digest("hex");
-  return db.$transaction(async (tx) => {
-    const existing = await tx.bankStatementImport.findUnique({ where: { bankAccountId_checksum: { bankAccountId: input.bankAccountId, checksum } } });
-    if (existing) return existing;
-    const account = await tx.bankAccount.findUnique({ where: { id: input.bankAccountId }, select: { id: true } });
-    if (!account) throw new FinanceError("Conta bancária não encontrada.");
-    const importRecord = await tx.bankStatementImport.create({ data: { bankAccountId: account.id, format: "CSV", fileName: input.fileName?.trim() || undefined, checksum } });
-    for (const row of rows.slice(1)) {
-      const values = parseCsvLine(row, separator);
-      const item = Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
-      const amount = parseCsvAmount(item.amount);
-      if (!amount.isFinite() || amount.isZero()) throw new FinanceError("CSV contém valor inválido ou zero.");
-      const date = new Date(item.date);
-      if (Number.isNaN(date.valueOf())) throw new FinanceError("CSV contém data inválida.");
-      await tx.bankStatementItem.create({ data: { statementImportId: importRecord.id, date, description: item.description || undefined, reference: item.reference || undefined, direction: amount.isNegative() ? "Saída" : "Entrada", valueDecimal: amount.abs() } });
+  try {
+    return await db.$transaction(async (tx) => {
+      const account = await tx.bankAccount.findUnique({ where: { id: input.bankAccountId }, select: { id: true, budgetUnitId: true, isActive: true } });
+      if (!account) throw new FinanceError("Conta bancária não encontrada.");
+      if (!account.isActive) throw new FinanceError("A importação exige uma conta bancária ativa.");
+      assertActorCanAccessBankAccount(actor, account.budgetUnitId);
+      const existing = await tx.bankStatementImport.findUnique({ where: { bankAccountId_checksum: { bankAccountId: input.bankAccountId, checksum } } });
+      if (existing) return existing;
+      const importRecord = await tx.bankStatementImport.create({ data: { bankAccountId: account.id, format: "CSV", fileName: input.fileName?.trim() || undefined, checksum } });
+      for (const row of rows.slice(1)) {
+        const values = parseCsvLine(row, separator);
+        const item = Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+        const amount = parseCsvAmount(item.amount);
+        if (!amount.isFinite() || amount.isZero()) throw new FinanceError("CSV contém valor inválido ou zero.");
+        const date = parseCsvDate(item.date);
+        await tx.bankStatementItem.create({ data: { statementImportId: importRecord.id, date, description: item.description || undefined, reference: item.reference || undefined, direction: amount.isNegative() ? "Saída" : "Entrada", valueDecimal: amount.abs() } });
+      }
+      await audit(tx, actor, "IMPORT", "BankStatementImport", importRecord.id, { format: "CSV", fileName: importRecord.fileName });
+      return importRecord;
+    });
+  } catch (error) {
+    // A concurrent upload of the same file loses the unique-key race but is still idempotent.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const existing = await db.bankStatementImport.findUnique({ where: { bankAccountId_checksum: { bankAccountId: input.bankAccountId, checksum } } });
+      if (existing) return existing;
     }
-    await audit(tx, actor, "IMPORT", "BankStatementImport", importRecord.id, { format: "CSV", fileName: importRecord.fileName });
-    return importRecord;
+    throw error;
+  }
+}
+
+export async function matchBankStatementItemToTreasuryMovement(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: { statementItemId: string; treasuryMovementId: string },
+) {
+  if (!input.statementItemId.trim() || !input.treasuryMovementId.trim()) {
+    throw new FinanceError("Selecione o lançamento do extrato e o movimento de tesouraria.");
+  }
+  return db.$transaction(async (tx) => {
+    await lockBankStatementItem(tx, input.statementItemId);
+    await lockTreasuryMovement(tx, input.treasuryMovementId);
+
+    const [statementItem, treasuryMovement] = await Promise.all([
+      tx.bankStatementItem.findUnique({
+        where: { id: input.statementItemId },
+        select: {
+          id: true,
+          status: true,
+          treasuryMovementId: true,
+          statementImport: { select: { bankAccountId: true, bankAccount: { select: { budgetUnitId: true } } } },
+        },
+      }),
+      tx.treasuryMovement.findUnique({
+        where: { id: input.treasuryMovementId },
+        select: { id: true, bankAccountId: true, status: true, statementItems: { select: { id: true } } },
+      }),
+    ]);
+    if (!statementItem) throw new FinanceError("Item de extrato não encontrado.");
+    if (!treasuryMovement) throw new FinanceError("Movimento de tesouraria não encontrado.");
+    assertActorCanAccessBankAccount(actor, statementItem.statementImport.bankAccount.budgetUnitId);
+    if (statementItem.status !== "Pendente" || statementItem.treasuryMovementId) {
+      throw new FinanceError("O item de extrato já foi conciliado.");
+    }
+    if (statementItem.statementImport.bankAccountId !== treasuryMovement.bankAccountId) {
+      throw new FinanceError("O movimento de tesouraria deve pertencer à mesma conta bancária do extrato.");
+    }
+    if (treasuryMovement.status !== "Confirmado") {
+      throw new FinanceError("Somente movimentos de tesouraria confirmados podem ser conciliados.");
+    }
+    if (treasuryMovement.statementItems.length) {
+      throw new FinanceError("O movimento de tesouraria já está vinculado a outro item de extrato.");
+    }
+
+    const matched = await tx.bankStatementItem.update({
+      where: { id: statementItem.id },
+      data: { treasuryMovementId: treasuryMovement.id, status: "Conciliado" },
+    });
+    await audit(tx, actor, "MATCH", "BankStatementItem", matched.id, {
+      treasuryMovementId: treasuryMovement.id,
+      bankAccountId: treasuryMovement.bankAccountId,
+    }, undefined, statementItem.statementImport.bankAccount.budgetUnitId ?? undefined);
+    return matched;
   });
 }
 
@@ -1157,10 +1363,34 @@ async function assertAccountingPeriodOpen(tx: Db, financialYearId: string, date:
   if (close?.status === "FECHADO") throw new FinanceError("A competencia contabil esta fechada para novas postagens.");
 }
 
-type AccountingLine = {
+export type AccountingLine = {
   accountId: string;
   type: "Débito" | "Crédito";
   value: Prisma.Decimal | string | number;
+};
+
+type AccountingPostingInput = {
+  financialYearId: string;
+  date: Date;
+  history: string;
+  lines: AccountingLine[];
+  sourceModule?: string;
+  sourceType?: string;
+  sourceId?: string;
+  eventType?: string;
+  idempotencyKey?: string;
+};
+
+type AccountingEventInput = {
+  financialYearId: string;
+  date: Date;
+  eventCode: string;
+  value: Prisma.Decimal | string | number;
+  history: string;
+  sourceModule: string;
+  sourceType: string;
+  sourceId?: string;
+  idempotencyKey?: string;
 };
 
 function accountingTotals(lines: AccountingLine[]) {
@@ -1179,67 +1409,74 @@ function accountingTotals(lines: AccountingLine[]) {
 export async function postAccountingTransaction(
   db: PrismaClient,
   actor: FinanceActor,
-  input: {
-    financialYearId: string;
-    date: Date;
-    history: string;
-    lines: AccountingLine[];
-    sourceModule?: string;
-    sourceType?: string;
-    sourceId?: string;
-    eventType?: string;
-    idempotencyKey?: string;
-  },
+  input: AccountingPostingInput,
+) {
+  return db.$transaction((tx) => postAccountingTransactionInTransaction(tx, actor, input));
+}
+
+export async function postAccountingTransactionInTransaction(
+  tx: Prisma.TransactionClient,
+  actor: FinanceActor,
+  input: AccountingPostingInput,
 ) {
   const totals = accountingTotals(input.lines);
   if (!input.history.trim()) throw new FinanceError("Informe o historico da transacao contabil.");
   if (!actor.employeeId) throw new FinanceError("A postagem contabil exige usuario vinculado a servidor responsavel.");
-  return db.$transaction(async (tx) => {
-    if (input.idempotencyKey) {
-      const existing = await tx.accountingTransaction.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
-      if (existing) return existing;
-    }
-    await assertFinancialYearOpen(tx, input.financialYearId, input.date);
-    await assertAccountingPeriodOpen(tx, input.financialYearId, input.date);
-    const accounts = await tx.accountingPlan.findMany({ where: { id: { in: input.lines.map((line) => line.accountId) } }, select: { id: true } });
-    if (accounts.length !== new Set(input.lines.map((line) => line.accountId)).size) throw new FinanceError("Uma ou mais contas contabeis nao foram encontradas.");
-    const transaction = await tx.accountingTransaction.create({
-      data: {
-        financialYearId: input.financialYearId,
-        date: input.date,
-        history: input.history.trim(),
-        status: "POSTADO",
-        sourceModule: input.sourceModule?.trim() || "MANUAL",
-        sourceType: input.sourceType?.trim() || "ACCOUNTING_TRANSACTION",
-        sourceId: input.sourceId?.trim() || undefined,
-        eventType: input.eventType?.trim() || "MANUAL_POSTING",
-        idempotencyKey: input.idempotencyKey?.trim() || undefined,
-        authorUsuarioId: actor.usuarioId,
-        authorEmployeeId: actor.employeeId,
-        postedAt: new Date(),
-        entries: {
-          create: input.lines.map((line) => {
-            const value = money(line.value);
-            return { date: input.date, value: legacyMoney(value), valueDecimal: value, type: line.type, history: input.history.trim(), accountId: line.accountId, authorId: actor.employeeId! };
-          }),
-        },
+  if (input.idempotencyKey) {
+    const existing = await tx.accountingTransaction.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
+    if (existing) return existing;
+  }
+  await assertFinancialYearOpen(tx, input.financialYearId, input.date);
+  await assertAccountingPeriodOpen(tx, input.financialYearId, input.date);
+  const accounts = await tx.accountingPlan.findMany({ where: { id: { in: input.lines.map((line) => line.accountId) } }, select: { id: true } });
+  if (accounts.length !== new Set(input.lines.map((line) => line.accountId)).size) throw new FinanceError("Uma ou mais contas contabeis nao foram encontradas.");
+  const transaction = await tx.accountingTransaction.create({
+    data: {
+      financialYearId: input.financialYearId,
+      date: input.date,
+      history: input.history.trim(),
+      status: "POSTADO",
+      sourceModule: input.sourceModule?.trim() || "MANUAL",
+      sourceType: input.sourceType?.trim() || "ACCOUNTING_TRANSACTION",
+      sourceId: input.sourceId?.trim() || undefined,
+      eventType: input.eventType?.trim() || "MANUAL_POSTING",
+      idempotencyKey: input.idempotencyKey?.trim() || undefined,
+      authorUsuarioId: actor.usuarioId,
+      authorEmployeeId: actor.employeeId,
+      postedAt: new Date(),
+      entries: {
+        create: input.lines.map((line) => {
+          const value = money(line.value);
+          return { date: input.date, value: legacyMoney(value), valueDecimal: value, type: line.type, history: input.history.trim(), accountId: line.accountId, authorId: actor.employeeId! };
+        }),
       },
-    });
-    await audit(tx, actor, "POST", "AccountingTransaction", transaction.id, { debit: jsonMoney(totals.debit), credit: jsonMoney(totals.credit), lineCount: input.lines.length, eventType: transaction.eventType }, input.financialYearId);
-    return transaction;
+    },
   });
+  await audit(tx, actor, "POST", "AccountingTransaction", transaction.id, { debit: jsonMoney(totals.debit), credit: jsonMoney(totals.credit), lineCount: input.lines.length, eventType: transaction.eventType }, input.financialYearId);
+  return transaction;
 }
 
 export async function postAccountingEvent(
   db: PrismaClient,
   actor: FinanceActor,
-  input: { financialYearId: string; date: Date; eventCode: string; value: Prisma.Decimal | string | number; history: string; sourceModule: string; sourceType: string; sourceId?: string; idempotencyKey?: string },
+  input: AccountingEventInput,
+) {
+  return db.$transaction((tx) => postAccountingEventInTransaction(tx, actor, input));
+}
+
+export async function postAccountingEventInTransaction(
+  tx: Prisma.TransactionClient,
+  actor: FinanceActor,
+  input: AccountingEventInput,
 ) {
   const value = money(input.value);
-  const event = await db.accountingEventCatalog.findUnique({ where: { code: input.eventCode }, include: { rules: { where: { isActive: true } } } });
+  const event = await tx.accountingEventCatalog.findUnique({ where: { code: input.eventCode }, include: { rules: { where: { isActive: true } } } });
   if (!event?.isActive || event.rules.length !== 1) throw new FinanceError("O evento contabil deve possuir exatamente uma regra ativa antes da postagem.");
   const rule = event.rules[0];
-  return postAccountingTransaction(db, actor, {
+  if (rule.isReference && process.env.CELERIFLOW_ACCOUNTING_MODE !== "POC") {
+    throw new FinanceError("A regra contabil de referencia so pode ser usada no modo POC. Configure a matriz PCASP homologada para este ambiente.");
+  }
+  return postAccountingTransactionInTransaction(tx, actor, {
     financialYearId: input.financialYearId,
     date: input.date,
     history: input.history,
@@ -1255,7 +1492,7 @@ export async function postAccountingEvent(
 export async function configureAccountingPostingRule(
   db: PrismaClient,
   actor: FinanceActor,
-  input: { eventCode: string; eventName: string; debitAccountId: string; creditAccountId: string; description?: string },
+  input: { eventCode: string; eventName: string; debitAccountId: string; creditAccountId: string; description?: string; isReference?: boolean },
 ) {
   if (!input.eventCode.trim() || !input.eventName.trim()) throw new FinanceError("Codigo e nome do evento contabil sao obrigatorios.");
   if (input.debitAccountId === input.creditAccountId) throw new FinanceError("A regra contabil exige contas de debito e credito diferentes.");
@@ -1263,8 +1500,8 @@ export async function configureAccountingPostingRule(
     const accounts = await tx.accountingPlan.count({ where: { id: { in: [input.debitAccountId, input.creditAccountId] } } });
     if (accounts !== 2) throw new FinanceError("As contas da regra contabil nao foram encontradas.");
     const event = await tx.accountingEventCatalog.upsert({ where: { code: input.eventCode.trim() }, create: { code: input.eventCode.trim(), name: input.eventName.trim(), description: input.description?.trim() || undefined }, update: { name: input.eventName.trim(), description: input.description?.trim() || undefined, isActive: true } });
-    const rule = await tx.accountingPostingRule.upsert({ where: { eventId_debitAccountId_creditAccountId: { eventId: event.id, debitAccountId: input.debitAccountId, creditAccountId: input.creditAccountId } }, create: { eventId: event.id, debitAccountId: input.debitAccountId, creditAccountId: input.creditAccountId, description: input.description?.trim() || undefined }, update: { isActive: true, description: input.description?.trim() || undefined } });
-    await audit(tx, actor, "UPSERT", "AccountingPostingRule", rule.id, { eventCode: event.code, debitAccountId: rule.debitAccountId, creditAccountId: rule.creditAccountId });
+    const rule = await tx.accountingPostingRule.upsert({ where: { eventId_debitAccountId_creditAccountId: { eventId: event.id, debitAccountId: input.debitAccountId, creditAccountId: input.creditAccountId } }, create: { eventId: event.id, debitAccountId: input.debitAccountId, creditAccountId: input.creditAccountId, description: input.description?.trim() || undefined, isReference: input.isReference ?? false }, update: { isActive: true, description: input.description?.trim() || undefined, isReference: input.isReference ?? false } });
+    await audit(tx, actor, "UPSERT", "AccountingPostingRule", rule.id, { eventCode: event.code, debitAccountId: rule.debitAccountId, creditAccountId: rule.creditAccountId, isReference: rule.isReference });
     return rule;
   });
 }

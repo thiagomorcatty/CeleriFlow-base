@@ -7,12 +7,16 @@ import {
   approveExpenseRequest,
   createBudgetReservation,
   createCommitment,
+  createCommitmentMovement,
   createSettlement,
   createPayment,
   updatePaymentStatus,
   reversePayment,
   settleWithholdingPayable,
+  createTreasuryTransfer,
   getBankAccountBalance,
+  importBankStatementCsv,
+  matchBankStatementItemToTreasuryMovement,
   FinanceActor,
 } from "../index";
 import {
@@ -24,6 +28,14 @@ import {
 import { addActionPPA, addProgramPPA, createAnnualBudgetLaw, createBudgetAppropriationFromFixation, createBudgetGuideline, createMultiYearPlan, saveBimonthlyRevenueTarget, saveMonthlyDisbursementSchedule } from "../planejamento";
 
 describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Estritas", () => {
+  const pocAccountingEvents = [
+    "EMPENHO_EMITIDO",
+    "LIQUIDACAO_REGISTRADA",
+    "PAGAMENTO_EFETIVADO",
+    "RETENCAO_RECOLHIDA",
+    "PAGAMENTO_ESTORNADO",
+  ];
+
   async function getActor(): Promise<FinanceActor> {
     const user = await prisma.usuario.findFirst();
     const emp = await prisma.employee.findFirst();
@@ -32,6 +44,41 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       employeeId: emp?.id ?? "emp-servidor-lagoaseca",
       allowedBudgetUnitIds: [],
     };
+  }
+
+  async function assertPocAccountingRulesConfigured() {
+    const events = await prisma.accountingEventCatalog.findMany({
+      where: { code: { in: pocAccountingEvents } },
+      include: { rules: { where: { isActive: true } } },
+    });
+    assert.equal(events.length, pocAccountingEvents.length, "A seed POC deve configurar todos os eventos contábeis financeiros");
+    for (const code of pocAccountingEvents) {
+      const event = events.find((candidate) => candidate.code === code);
+      assert.ok(event, `Evento contábil ${code} deve existir`);
+      assert.equal(event.rules.length, 1, `Evento contábil ${code} deve possuir exatamente uma regra ativa`);
+    }
+  }
+
+  async function assertAccountingTransaction(eventType: string, sourceId: string) {
+    const transaction = await prisma.accountingTransaction.findFirst({
+      where: { eventType, sourceId },
+      include: { entries: true },
+    });
+    assert.ok(transaction, `Deve criar a transação contábil ${eventType}`);
+    assert.equal(transaction.sourceId, sourceId);
+    assert.equal(transaction.entries.length, 2, `A transação ${eventType} deve ter as duas partidas`);
+  }
+
+  async function cleanupAccountingTransactions(sourceIds: string[]) {
+    if (!sourceIds.length) return;
+    const transactions = await prisma.accountingTransaction.findMany({
+      where: { sourceId: { in: sourceIds } },
+      select: { id: true },
+    });
+    const transactionIds = transactions.map((transaction) => transaction.id);
+    if (!transactionIds.length) return;
+    await prisma.accountingEntry.deleteMany({ where: { transactionId: { in: transactionIds } } });
+    await prisma.accountingTransaction.deleteMany({ where: { id: { in: transactionIds } } });
   }
 
   test("1. Deve rejeitar pagamento sem liquidação (fluxo estrito obrigatório)", async () => {
@@ -60,6 +107,8 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
     const actor = await getActor();
     const timestamp = Date.now().toString().slice(-6);
     const testDate = new Date("2026-04-15T10:00:00.000Z");
+    const accountingMode = process.env.CELERIFLOW_ACCOUNTING_MODE;
+    process.env.CELERIFLOW_ACCOUNTING_MODE = "POC";
 
     const dotacaoPref = await prisma.budgetAppropriation.findFirst({
       where: { code: "0101.04.122.0001.2002.3.3.90.30.00" },
@@ -70,9 +119,11 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
     let reservationId = "";
     let commitmentId = "";
     let settlementId = "";
-    let paymentId = "";
+    const paymentIds: string[] = [];
+    const payableIds: string[] = [];
 
     try {
+      await assertPocAccountingRulesConfigured();
       // a) Solicitação de despesa
       const expense = await createExpenseRequest(prisma, actor, {
         date: testDate,
@@ -123,6 +174,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       });
       commitmentId = commitment.id;
       assert.ok(commitmentId);
+      await assertAccountingTransaction("EMPENHO_EMITIDO", commitment.id);
 
       // d) Liquidação com documento GED
       const settlement = await createSettlement(prisma, actor, {
@@ -134,8 +186,29 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       });
       settlementId = settlement.id;
       assert.ok(settlementId);
+      await assertAccountingTransaction("LIQUIDACAO_REGISTRADA", settlement.id);
 
-      // e) Emissão de pagamento com retenção INSS (11% = R$ 110,00)
+      // e) Efetiva e estorna um pagamento sem retenções para validar o evento de estorno.
+      const initialBankBalance = await getBankAccountBalance(prisma, "cl-lagoaseca-bb-pref-1000");
+      const paymentForReversal = await createPayment(prisma, actor, {
+        orderNumber: `OP-ESTORNO-${timestamp}`,
+        date: testDate,
+        value: "1000.00",
+        commitmentId: commitment.id,
+        settlementId: settlement.id,
+        bankAccountId: "cl-lagoaseca-bb-pref-1000",
+        supplierId: "supp-lagoaseca-01",
+        paymentMethod: "Transferência",
+      });
+      paymentIds.push(paymentForReversal.id);
+      await updatePaymentStatus(prisma, actor, paymentForReversal.id, "Paga");
+      await assertAccountingTransaction("PAGAMENTO_EFETIVADO", paymentForReversal.id);
+      await reversePayment(prisma, actor, paymentForReversal.id, "Estorno de teste");
+      await assertAccountingTransaction("PAGAMENTO_ESTORNADO", paymentForReversal.id);
+      const bankBalanceAfterReversal = await getBankAccountBalance(prisma, "cl-lagoaseca-bb-pref-1000");
+      assert.equal(Number(bankBalanceAfterReversal.minus(initialBankBalance).toFixed(2)), 0);
+
+      // f) Emissão de pagamento com retenção INSS (11% = R$ 110,00)
       const inssRule = await prisma.retentionRule.findUnique({ where: { code: "INSS_11" } });
       assert.ok(inssRule);
 
@@ -150,16 +223,17 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         paymentMethod: "Transferência",
         retentionRuleIds: [inssRule.id],
       });
-      paymentId = payment.id;
+      paymentIds.push(payment.id);
       assert.equal(payment.status, "Emitida");
 
-      // f) Busca retenção criada
+      // g) Busca retenção criada
       const payable = await prisma.withholdingPayable.findFirst({
         where: { retention: { paymentId: payment.id } },
       });
       assert.ok(payable, "Devia ter criado a retenção");
+      payableIds.push(payable.id);
 
-      // g) Tenta recolher retenção de pagamento ainda 'Emitida' -> DEVE FALHAR
+      // h) Tenta recolher retenção de pagamento ainda 'Emitida' -> DEVE FALHAR
       await assert.rejects(
         async () => {
           await settleWithholdingPayable(prisma, actor, {
@@ -174,26 +248,28 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         },
       );
 
-      // h) Efetiva o pagamento -> Status vira 'Paga'
-      const initialBankBalance = await getBankAccountBalance(prisma, "cl-lagoaseca-bb-pref-1000", testDate);
+      // i) Efetiva o pagamento -> Status vira 'Paga'
+      const bankBalanceBeforePayment = await getBankAccountBalance(prisma, "cl-lagoaseca-bb-pref-1000", testDate);
       await updatePaymentStatus(prisma, actor, payment.id, "Paga");
+      await assertAccountingTransaction("PAGAMENTO_EFETIVADO", payment.id);
 
       const bankBalanceAfterPayment = await getBankAccountBalance(prisma, "cl-lagoaseca-bb-pref-1000", testDate);
       // Saída deve ser apenas o valor LÍQUIDO R$ 890,00 (1000 - 110)
-      assert.equal(Number(initialBankBalance.minus(bankBalanceAfterPayment).toFixed(2)), 890.00);
+      assert.equal(Number(bankBalanceBeforePayment.minus(bankBalanceAfterPayment).toFixed(2)), 890.00);
 
-      // i) Recolhe a retenção INSS -> Status vira 'Recolhida'
+      // j) Recolhe a retenção INSS -> Status vira 'Recolhida'
       await settleWithholdingPayable(prisma, actor, {
         withholdingPayableId: payable.id,
         bankAccountId: "cl-lagoaseca-bb-pref-1000",
         paymentDate: testDate,
       });
+      await assertAccountingTransaction("RETENCAO_RECOLHIDA", payable.id);
 
       const bankBalanceAfterRetention = await getBankAccountBalance(prisma, "cl-lagoaseca-bb-pref-1000", testDate);
       // Saída adicional da retenção de R$ 110,00 -> Total acumulado = 890 + 110 = 1000,00!
       assert.equal(Number(bankBalanceAfterPayment.minus(bankBalanceAfterRetention).toFixed(2)), 110.00);
 
-      // j) Tenta estornar pagamento com retenção recolhida -> DEVE FALHAR (Trava ativada)
+      // k) Tenta estornar pagamento com retenção recolhida -> DEVE FALHAR (Trava ativada)
       await assert.rejects(
         async () => {
           await reversePayment(prisma, actor, payment.id, "Estorno indevido");
@@ -205,25 +281,162 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       );
     } finally {
       // A auditoria financeira e append-only; os fatos temporarios sao limpos, mas seus logs permanecem como evidencia.
-      if (paymentId) {
-        await prisma.treasuryMovement.deleteMany({ where: { sourceId: paymentId } });
-        const retentions = await prisma.paymentRetention.findMany({ where: { paymentId }, select: { id: true } });
+      await cleanupAccountingTransactions([commitmentId, settlementId, ...paymentIds, ...payableIds].filter(Boolean));
+      if (paymentIds.length) {
+        await prisma.treasuryMovement.deleteMany({ where: { sourceId: { in: paymentIds } } });
+        const retentions = await prisma.paymentRetention.findMany({ where: { paymentId: { in: paymentIds } }, select: { id: true } });
         const retIds = retentions.map((r) => r.id);
         const payables = await prisma.withholdingPayable.findMany({ where: { retentionId: { in: retIds } }, select: { id: true } });
         const payIds = payables.map((p) => p.id);
         await prisma.treasuryMovement.deleteMany({ where: { sourceId: { in: payIds } } });
         await prisma.withholdingPayable.deleteMany({ where: { retentionId: { in: retIds } } });
-        await prisma.paymentRetention.deleteMany({ where: { paymentId } });
-        await prisma.payment.deleteMany({ where: { id: paymentId } });
+        await prisma.paymentRetention.deleteMany({ where: { paymentId: { in: paymentIds } } });
+        await prisma.payment.deleteMany({ where: { id: { in: paymentIds } } });
       }
       if (settlementId) await prisma.settlement.deleteMany({ where: { id: settlementId } });
       if (commitmentId) await prisma.commitment.deleteMany({ where: { id: commitmentId } });
       if (reservationId) await prisma.budgetReservation.deleteMany({ where: { id: reservationId } });
       if (expenseId) await prisma.expense.deleteMany({ where: { id: expenseId } });
+      if (accountingMode === undefined) delete process.env.CELERIFLOW_ACCOUNTING_MODE;
+      else process.env.CELERIFLOW_ACCOUNTING_MODE = accountingMode;
     }
   });
 
-  test("3. Deve validar integridade e alinhamento dos dados da seed de Lagoa Seca", async () => {
+  test("3. Deve bloquear empenhos e reforços que excedem o teto do contrato", async () => {
+    const actor = await getActor();
+    const suffix = Date.now().toString();
+    const testDate = new Date("2026-04-20T10:00:00.000Z");
+    const accountingMode = process.env.CELERIFLOW_ACCOUNTING_MODE;
+    process.env.CELERIFLOW_ACCOUNTING_MODE = "POC";
+    let contractId = "";
+    let firstExpenseId = "";
+    let firstReservationId = "";
+    let commitmentId = "";
+    let secondExpenseId = "";
+    let secondReservationId = "";
+
+    try {
+      const [appropriation, approver] = await Promise.all([
+        prisma.budgetAppropriation.findFirst({ where: { code: "0101.04.122.0001.2002.3.3.90.30.00" } }),
+        prisma.usuario.findFirst({
+          where: { id: { not: actor.usuarioId }, ativo: true },
+          select: { id: true, employeeId: true },
+        }),
+      ]);
+      assert.ok(appropriation, "Dotação da Prefeitura deve existir");
+      assert.ok(approver, "A base de teste deve possuir um aprovador diferente do solicitante");
+
+      const contract = await prisma.contract.create({
+        data: {
+          number: `CONT-TETO-${suffix}`,
+          object: "Contrato temporário para validação de teto",
+          initialValue: 1000,
+          updatedValue: 1000,
+          startDate: new Date("2026-01-01T00:00:00.000Z"),
+          endDate: new Date("2026-12-31T23:59:59.999Z"),
+          status: "Vigente",
+          processId: "proc-licita-01",
+          supplierId: "supp-lagoaseca-01",
+          secretariatId: "sec-fin-01",
+        },
+      });
+      contractId = contract.id;
+
+      const firstExpense = await createExpenseRequest(prisma, actor, {
+        date: testDate,
+        description: `Despesa de teto contratual ${suffix}`,
+        value: "800.00",
+        appropriationId: appropriation.id,
+        supplierId: "supp-lagoaseca-01",
+        secretariatId: "sec-fin-01",
+        sourceModule: "TEST",
+        sourceType: "EXPENSE_REQUEST",
+        eventType: "TEST",
+      });
+      firstExpenseId = firstExpense.id;
+      await approveExpenseRequest(prisma, { ...actor, usuarioId: approver.id, employeeId: approver.employeeId }, firstExpense.id);
+      const firstReservation = await createBudgetReservation(prisma, actor, {
+        number: `RES-TETO-1-${suffix}`,
+        date: testDate,
+        value: "800.00",
+        appropriationId: appropriation.id,
+        expenseId: firstExpense.id,
+      });
+      firstReservationId = firstReservation.id;
+      const commitment = await createCommitment(prisma, actor, {
+        number: `EMP-TETO-1-${suffix}`,
+        date: testDate,
+        value: "800.00",
+        type: "Ordinário",
+        history: "Empenho dentro do teto contratual",
+        appropriationId: appropriation.id,
+        supplierId: "supp-lagoaseca-01",
+        reservationId: firstReservation.id,
+        contractId,
+      });
+      commitmentId = commitment.id;
+
+      const secondExpense = await createExpenseRequest(prisma, actor, {
+        date: testDate,
+        description: `Despesa excedente de teto contratual ${suffix}`,
+        value: "300.00",
+        appropriationId: appropriation.id,
+        supplierId: "supp-lagoaseca-01",
+        secretariatId: "sec-fin-01",
+        sourceModule: "TEST",
+        sourceType: "EXPENSE_REQUEST",
+        eventType: "TEST",
+      });
+      secondExpenseId = secondExpense.id;
+      await approveExpenseRequest(prisma, { ...actor, usuarioId: approver.id, employeeId: approver.employeeId }, secondExpense.id);
+      const secondReservation = await createBudgetReservation(prisma, actor, {
+        number: `RES-TETO-2-${suffix}`,
+        date: testDate,
+        value: "300.00",
+        appropriationId: appropriation.id,
+        expenseId: secondExpense.id,
+      });
+      secondReservationId = secondReservation.id;
+
+      await assert.rejects(
+        () => createCommitment(prisma, actor, {
+          number: `EMP-TETO-2-${suffix}`,
+          date: testDate,
+          value: "300.00",
+          type: "Ordinário",
+          history: "Empenho que excede o teto contratual",
+          appropriationId: appropriation.id,
+          supplierId: "supp-lagoaseca-01",
+          reservationId: secondReservation.id,
+          contractId,
+        }),
+        /saldo do contrato/i,
+      );
+      await assert.rejects(
+        () => createCommitmentMovement(prisma, actor, {
+          commitmentId,
+          date: testDate,
+          type: "Reforço",
+          value: "200.01",
+          justification: "Reforço que excede o teto contratual",
+        }),
+        /saldo do contrato/i,
+      );
+    } finally {
+      await cleanupAccountingTransactions([commitmentId].filter(Boolean));
+      if (commitmentId) await prisma.commitmentMovement.deleteMany({ where: { commitmentId } });
+      if (commitmentId) await prisma.commitment.deleteMany({ where: { id: commitmentId } });
+      if (firstReservationId) await prisma.budgetReservation.deleteMany({ where: { id: firstReservationId } });
+      if (secondReservationId) await prisma.budgetReservation.deleteMany({ where: { id: secondReservationId } });
+      if (firstExpenseId) await prisma.expense.deleteMany({ where: { id: firstExpenseId } });
+      if (secondExpenseId) await prisma.expense.deleteMany({ where: { id: secondExpenseId } });
+      if (contractId) await prisma.contract.deleteMany({ where: { id: contractId } });
+      if (accountingMode === undefined) delete process.env.CELERIFLOW_ACCOUNTING_MODE;
+      else process.env.CELERIFLOW_ACCOUNTING_MODE = accountingMode;
+    }
+  });
+
+  test("4. Deve validar integridade e alinhamento dos dados da seed de Lagoa Seca", async () => {
     const year = await prisma.financialYear.findUnique({ where: { year: 2026 } });
     assert.ok(year, "Exercício 2026 deve existir");
 
@@ -235,7 +448,85 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
     assert.ok(balance.greaterThanOrEqualTo(800000), "Saldo inicial da Prefeitura deve ser R$ 800.000,00 ou maior");
   });
 
-  test("4. Deve gerar RREO, RGF, Balanço Orçamentário e Balanço Patrimonial sem inconsistências", async () => {
+  test("3.1. Deve importar CSV de forma idempotente e conciliar manualmente em relação um-para-um", async () => {
+    const [account, year] = await Promise.all([
+      prisma.bankAccount.findFirst({ where: { isActive: true }, select: { id: true, budgetUnitId: true } }),
+      prisma.financialYear.findFirst({ select: { id: true } }),
+    ]);
+    assert.ok(account, "A base de teste deve possuir uma conta bancária ativa");
+    assert.ok(year, "A base de teste deve possuir um exercício financeiro");
+
+    const actor = { ...await getActor(), allowedBudgetUnitIds: account.budgetUnitId ? [account.budgetUnitId] : undefined };
+    const suffix = Date.now().toString();
+    const firstContent = `date,description,amount,reference\n2026-06-15,Conciliação ${suffix},125.50,REF-${suffix}`;
+    const secondContent = `date,description,amount,reference\n2026-06-16,Conciliação duplicada ${suffix},125.50,REF-2-${suffix}`;
+    const importIds: string[] = [];
+    let movementId = "";
+
+    try {
+      const firstImport = await importBankStatementCsv(prisma, actor, {
+        bankAccountId: account.id,
+        content: firstContent,
+        fileName: `extrato-${suffix}.csv`,
+      });
+      importIds.push(firstImport.id);
+      const replay = await importBankStatementCsv(prisma, actor, {
+        bankAccountId: account.id,
+        content: firstContent,
+        fileName: `extrato-${suffix}.csv`,
+      });
+      assert.equal(replay.id, firstImport.id, "O mesmo arquivo não deve criar uma segunda importação");
+      assert.equal(await prisma.bankStatementItem.count({ where: { statementImportId: firstImport.id } }), 1);
+
+      const secondImport = await importBankStatementCsv(prisma, actor, {
+        bankAccountId: account.id,
+        content: secondContent,
+        fileName: `extrato-2-${suffix}.csv`,
+      });
+      importIds.push(secondImport.id);
+      const [firstItem, secondItem] = await Promise.all([
+        prisma.bankStatementItem.findFirstOrThrow({ where: { statementImportId: firstImport.id } }),
+        prisma.bankStatementItem.findFirstOrThrow({ where: { statementImportId: secondImport.id } }),
+      ]);
+      const movement = await prisma.treasuryMovement.create({
+        data: {
+          date: new Date("2026-06-15T12:00:00.000Z"),
+          type: "Teste de conciliação",
+          direction: "Entrada",
+          valueDecimal: "125.50",
+          history: `Movimento de teste ${suffix}`,
+          bankAccountId: account.id,
+          financialYearId: year.id,
+          sourceModule: "TEST",
+          sourceType: "BANK_RECONCILIATION_TEST",
+          eventType: "TEST",
+        },
+      });
+      movementId = movement.id;
+
+      const matched = await matchBankStatementItemToTreasuryMovement(prisma, actor, {
+        statementItemId: firstItem.id,
+        treasuryMovementId: movement.id,
+      });
+      assert.equal(matched.status, "Conciliado");
+      assert.equal(matched.treasuryMovementId, movement.id);
+      await assert.rejects(
+        () => matchBankStatementItemToTreasuryMovement(prisma, actor, {
+          statementItemId: secondItem.id,
+          treasuryMovementId: movement.id,
+        }),
+        /já está vinculado a outro item de extrato/i,
+      );
+    } finally {
+      if (importIds.length) {
+        await prisma.bankStatementItem.deleteMany({ where: { statementImportId: { in: importIds } } });
+        await prisma.bankStatementImport.deleteMany({ where: { id: { in: importIds } } });
+      }
+      if (movementId) await prisma.treasuryMovement.deleteMany({ where: { id: movementId } });
+    }
+  });
+
+  test("5. Deve gerar RREO, RGF, Balanço Orçamentário e Balanço Patrimonial sem inconsistências", async () => {
     const year = await prisma.financialYear.findUnique({ where: { year: 2026 } });
     assert.ok(year);
 
@@ -257,7 +548,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
     assert.ok(balancoPat.patrimonioLiquido, "Patrimônio Líquido deve estar separado do Passivo");
   });
 
-  test("5. Deve rastrear PPA, LDO e LOA e aceitar publicação no exercício anterior", async () => {
+  test("6. Deve rastrear PPA, LDO e LOA e aceitar publicação no exercício anterior", async () => {
     const actor = await getActor();
     const planningActor = { ...actor, allowedBudgetUnitIds: undefined };
     const suffix = Date.now().toString();
@@ -367,6 +658,42 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       if (guidelineId) await prisma.budgetGuideline.delete({ where: { id: guidelineId } });
       if (planId) await prisma.multiYearPlan.delete({ where: { id: planId } });
       if (financialYearId) await prisma.financialYear.delete({ where: { id: financialYearId } });
+    }
+  });
+
+  test("7. Deve registrar transferência de tesouraria em movimentos correspondentes", async () => {
+    const actor = await getActor();
+    const idempotencyKey = `TEST:TREASURY_TRANSFER:${Date.now()}`;
+    const sourceBankAccountId = "cl-lagoaseca-bb-pref-1000";
+    const destinationBankAccountId = "cl-lagoaseca-bb-cam-2000";
+    let transferId = "";
+
+    try {
+      const [sourceBefore, destinationBefore] = await Promise.all([
+        getBankAccountBalance(prisma, sourceBankAccountId),
+        getBankAccountBalance(prisma, destinationBankAccountId),
+      ]);
+      const transfer = await createTreasuryTransfer(prisma, actor, {
+        date: new Date("2026-05-01T12:00:00.000Z"),
+        value: "150.25",
+        sourceBankAccountId,
+        destinationBankAccountId,
+        history: "Transferência de teste",
+        idempotencyKey,
+      });
+      transferId = transfer.id;
+
+      const [sourceAfter, destinationAfter, movements] = await Promise.all([
+        getBankAccountBalance(prisma, sourceBankAccountId),
+        getBankAccountBalance(prisma, destinationBankAccountId),
+        prisma.treasuryMovement.findMany({ where: { idempotencyKey: { in: [`${idempotencyKey}:OUT`, `${idempotencyKey}:IN`] } } }),
+      ]);
+      assert.equal(Number(sourceBefore.minus(sourceAfter).toFixed(2)), 150.25);
+      assert.equal(Number(destinationAfter.minus(destinationBefore).toFixed(2)), 150.25);
+      assert.equal(movements.length, 2);
+    } finally {
+      if (transferId) await prisma.treasuryTransfer.delete({ where: { id: transferId } });
+      await prisma.treasuryMovement.deleteMany({ where: { idempotencyKey: { in: [`${idempotencyKey}:OUT`, `${idempotencyKey}:IN`] } } });
     }
   });
 });

@@ -2461,7 +2461,7 @@ model BankStatementItem {
   direction          String
   valueDecimal       Decimal             @db.Decimal(18, 2)
   status             String              @default("Pendente")
-  treasuryMovementId String?
+  treasuryMovementId String?             @unique
   treasuryMovement   TreasuryMovement?   @relation(fields: [treasuryMovementId], references: [id])
 
   @@index([statementImportId, date])
@@ -2601,6 +2601,7 @@ model AccountingPostingRule {
   creditAccount   AccountingPlan         @relation("PostingRuleCreditAccount", fields: [creditAccountId], references: [id])
   description     String?
   isActive        Boolean                @default(true)
+  isReference     Boolean                @default(false)
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
 

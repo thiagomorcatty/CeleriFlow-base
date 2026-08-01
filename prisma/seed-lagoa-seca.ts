@@ -342,23 +342,35 @@ async function main() {
   });
 
   // 11. Plano de Contas PCASP com separação de Ativo (1), Passivo (2.1/2.2) e Patrimônio Líquido (2.3)
-  await prisma.accountingPlan.upsert({
+  const accountCash = await prisma.accountingPlan.upsert({
     where: { code: "1.1.1.1.1.00.00" },
     create: { code: "1.1.1.1.1.00.00", name: "Caixa e Equivalentes de Caixa em Moeda Nacional", type: "Analítica" },
     update: {},
   });
 
-  await prisma.accountingPlan.upsert({
+  const accountCreditors = await prisma.accountingPlan.upsert({
     where: { code: "2.1.1.1.1.00.00" },
     create: { code: "2.1.1.1.1.00.00", name: "Fornecedores e Credores Nacionais a Pagar", type: "Analítica" },
     update: {},
   });
 
-  await prisma.accountingPlan.upsert({
+  const accountEquity = await prisma.accountingPlan.upsert({
     where: { code: "2.3.7.1.1.00.00" },
     create: { code: "2.3.7.1.1.00.00", name: "Patrimônio Social e Capital Social", type: "Analítica" },
     update: {},
   });
+
+  const pocAccountingRules = [
+    ["EMPENHO_EMITIDO", "Empenho emitido", accountEquity.id, accountCreditors.id],
+    ["LIQUIDACAO_REGISTRADA", "Liquidacao registrada", accountEquity.id, accountCreditors.id],
+    ["PAGAMENTO_EFETIVADO", "Pagamento efetivado", accountCreditors.id, accountCash.id],
+    ["RETENCAO_RECOLHIDA", "Retencao recolhida", accountCreditors.id, accountCash.id],
+    ["PAGAMENTO_ESTORNADO", "Pagamento estornado", accountCash.id, accountCreditors.id],
+  ] as const;
+  for (const [code, name, debitAccountId, creditAccountId] of pocAccountingRules) {
+    const event = await prisma.accountingEventCatalog.upsert({ where: { code }, create: { code, name, description: "REFERENCIA POC - substituir por matriz PCASP homologada" }, update: { name, description: "REFERENCIA POC - substituir por matriz PCASP homologada", isActive: true } });
+    await prisma.accountingPostingRule.upsert({ where: { eventId_debitAccountId_creditAccountId: { eventId: event.id, debitAccountId, creditAccountId } }, create: { eventId: event.id, debitAccountId, creditAccountId, description: "REFERENCIA POC - nao utilizar em producao", isReference: true }, update: { isActive: true, isReference: true, description: "REFERENCIA POC - nao utilizar em producao" } });
+  }
 
   // 12. Dotações Orçamentárias Segregadas por UG e alinhadas à LOA Fixada
   await prisma.budgetAppropriation.upsert({

@@ -21,11 +21,13 @@ const sidebarNavItems = [
    { title: "Orçamento e Plano", href: "/financeiro/orcamento", icon: Scale },
    { title: "Planejamento", href: "/financeiro/orcamento/planejamento", icon: BookOpenCheck },
   { title: "Cadastros Orçamentários", href: "/financeiro/orcamento/cadastros", icon: FileText },
-  { title: "Tesouraria (Contas)", href: "/financeiro/contas-bancarias", icon: Landmark },
+   { title: "Tesouraria (Contas)", href: "/financeiro/contas-bancarias", icon: Landmark },
+   { title: "Conciliação Bancária", href: "/financeiro/conciliacao-bancaria", icon: WalletCards },
   { title: "Gestão de Empenhos", href: "/financeiro/empenhos", icon: FileText },
   { title: "Liquidações", href: "/financeiro/liquidacoes", icon: Receipt },
-  { title: "Pagamentos", href: "/financeiro/pagamentos", icon: WalletCards },
-];
+   { title: "Pagamentos", href: "/financeiro/pagamentos", icon: WalletCards },
+   { title: "Relatórios", href: "/financeiro/relatorios", icon: FileText },
+ ];
 
 export default function FinanceiroLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
