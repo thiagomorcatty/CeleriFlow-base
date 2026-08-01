@@ -19,7 +19,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MoneyInput } from "@/components/ui/MoneyInput";
-import { createPayment, cancelPayment, updatePaymentStatus } from "./actions";
+import { createPayment, cancelPayment, updatePaymentStatus, reversePaymentAction } from "./actions";
 
 type Payment = {
   id: string;
@@ -178,6 +178,13 @@ export default function PagamentosClient({
     }
   };
 
+  const handleReversePayment = async (id: string) => {
+    const justification = window.prompt("Informe a justificativa obrigatória para o estorno do pagamento:");
+    if (!justification || !justification.trim()) return;
+    const result = await reversePaymentAction(id, justification.trim());
+    if (result.error) alert(result.error);
+  };
+
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -323,9 +330,16 @@ export default function PagamentosClient({
                           <CheckCircle className="h-4 w-4 text-emerald-500" />
                         </Button>
                       )}
-                      <Button variant="ghost" size="icon" onClick={() => handleChangeStatus(payment.id, 'Cancelada')} title="Cancelar Pagamento" disabled={payment.status !== 'Emitida'}>
-                        <Ban className="h-4 w-4 text-rose-500" />
-                      </Button>
+                      {payment.status === 'Paga' && (
+                        <Button variant="outline" size="sm" onClick={() => handleReversePayment(payment.id)} title="Estornar Pagamento Pago">
+                          Estornar
+                        </Button>
+                      )}
+                      {payment.status === 'Emitida' && (
+                        <Button variant="ghost" size="icon" onClick={() => handleChangeStatus(payment.id, 'Cancelada')} title="Cancelar Pagamento">
+                          <Ban className="h-4 w-4 text-rose-500" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

@@ -85,6 +85,14 @@ async function lockCommitment(tx: Prisma.TransactionClient, commitmentId: string
   await tx.$queryRaw`SELECT id FROM "Commitment" WHERE id = ${commitmentId} FOR UPDATE`;
 }
 
+async function lockBankAccount(tx: Prisma.TransactionClient, bankAccountId: string) {
+  await tx.$queryRaw`SELECT id FROM "BankAccount" WHERE id = ${bankAccountId} FOR UPDATE`;
+}
+
+async function lockWithholdingPayable(tx: Prisma.TransactionClient, payableId: string) {
+  await tx.$queryRaw`SELECT id FROM "WithholdingPayable" WHERE id = ${payableId} FOR UPDATE`;
+}
+
 function commitmentValue(value: Prisma.Decimal | null, movements: { type: string; valueDecimal: Prisma.Decimal }[]) {
   return movements.reduce((total, movement) => {
     if (movement.type === "Reforço") return total.plus(movement.valueDecimal);
@@ -658,9 +666,22 @@ export async function settleWithholdingPayable(
   },
 ) {
   return db.$transaction(async (tx) => {
+    await lockWithholdingPayable(tx, input.withholdingPayableId);
     const payable = await tx.withholdingPayable.findUnique({
       where: { id: input.withholdingPayableId },
-      include: { retention: { include: { payment: true } } },
+      include: {
+        retention: {
+          include: {
+            payment: {
+              include: {
+                commitment: {
+                  include: { appropriation: true },
+                },
+              },
+            },
+          },
+        },
+      },
     });
     if (!payable || payable.status !== "Pendente") {
       throw new FinanceError("Consignação/retenção não encontrada ou já recolhida.");
@@ -670,8 +691,18 @@ export async function settleWithholdingPayable(
       throw new FinanceError("A retenção/consignação só pode ser recolhida após a efetivação (status Paga) do pagamento correspondente.");
     }
 
+    await lockBankAccount(tx, input.bankAccountId);
     const bankAccount = await tx.bankAccount.findUnique({ where: { id: input.bankAccountId } });
     if (!bankAccount?.isActive) throw new FinanceError("Conta bancária para recolhimento inativa.");
+
+    // Validação de compatibilidade de Fonte de Recursos para recolhimento da retenção
+    const origSourceId = payable.retention.payment.commitment.appropriation.resourceSourceId;
+    if (!bankAccount.resourceSourceId) {
+      throw new FinanceError("A conta bancária para recolhimento da retenção deve possuir fonte de recursos configurada.");
+    }
+    if (origSourceId && bankAccount.resourceSourceId !== origSourceId) {
+      throw new FinanceError("A fonte de recursos da conta bancária para recolhimento é incompatível com a fonte de recursos da retenção.");
+    }
 
     const value = requiredDecimal(payable.valueDecimal, "WithholdingPayable.valueDecimal");
     const currentBalance = await getBankAccountBalance(tx, input.bankAccountId, input.paymentDate);
@@ -728,6 +759,9 @@ export async function updatePaymentStatus(db: PrismaClient, actor: FinanceActor,
     if (!["Paga", "Cancelada"].includes(status)) throw new FinanceError("Transição de pagamento inválida.");
 
     if (status === "Paga") {
+      // Bloqueia a conta bancária para evitar race condition entre pagamentos simultâneos
+      await lockBankAccount(tx, payment.bankAccountId);
+
       // O valor que efetivamente sai da conta bancária para o fornecedor é o LÍQUIDO
       const netValue = requiredDecimal(payment.netValueDecimal ?? payment.valueDecimal, "Payment.netValueDecimal");
 

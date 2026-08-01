@@ -7,7 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "test:unit": "npx tsx --test src/lib/financeiro/__tests__/financeiro-lagoaseca.test.ts",
+    "test:unit": "npx tsx --test tests/public-finance.test.ts src/lib/financeiro/__tests__/financeiro-lagoaseca.test.ts",
     "finance:decimal:reconcile": "node scripts/finance-decimal-reconcile.mjs",
     "finance:decimal:backfill": "node scripts/finance-decimal-reconcile.mjs --backfill",
     "finance:treasury:opening-backfill": "node scripts/finance-treasury-opening-backfill.mjs",
@@ -51,6 +51,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   },
   "overrides": {

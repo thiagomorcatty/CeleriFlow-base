@@ -1,6 +1,11 @@
 import "dotenv/config";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../src/lib/prisma";
+import crypto from "node:crypto";
+
+function hashPassword(password: string) {
+  return crypto.pbkdf2Sync(password, "celeriflow-lagoaseca-salt", 10000, 64, "sha512").toString("hex");
+}
 
 async function main() {
   console.log("🌱 Gerando Base Modelo Completa de Homologação e POC para Lagoa Seca/PB...");
@@ -36,45 +41,45 @@ async function main() {
     update: { name: "Câmara Municipal de Lagoa Seca", secretariatId: secretariaFinancas.id },
   });
 
-  // 3. Perfis e Usuários Segregados por UG
+  // 3. Perfis e Usuários Segregados por UG com Hash Seguro de Senha
   const perfilContador = await prisma.configuracaoPerfil.upsert({
     where: { id: "perfil-contador-lagoaseca" },
     create: { id: "perfil-contador-lagoaseca", nome: "Contador Responsável", ativo: true, permissoes: '{"FINANCEIRO": true}' },
     update: { nome: "Contador Responsável" },
   });
 
-  const userPrefeitura = await prisma.usuario.upsert({
+  await prisma.usuario.upsert({
     where: { email: "contador.prefeitura@lagoaseca.pb.gov.br" },
     create: {
       email: "contador.prefeitura@lagoaseca.pb.gov.br",
       nome: "Contador Prefeitura - Lagoa Seca",
-      senha: "SenhaSegura123!",
+      senha: hashPassword("SenhaSegura123!"),
       perfilId: perfilContador.id,
       ativo: true,
       unidadesGestoras: {
         create: { budgetUnitId: ugPrefeitura.id },
       },
     },
-    update: { nome: "Contador Prefeitura - Lagoa Seca" },
+    update: { nome: "Contador Prefeitura - Lagoa Seca", senha: hashPassword("SenhaSegura123!") },
   });
 
-  const userCamara = await prisma.usuario.upsert({
+  await prisma.usuario.upsert({
     where: { email: "contador.camara@lagoaseca.pb.gov.br" },
     create: {
       email: "contador.camara@lagoaseca.pb.gov.br",
       nome: "Contador Câmara - Lagoa Seca",
-      senha: "SenhaSegura123!",
+      senha: hashPassword("SenhaSegura123!"),
       perfilId: perfilContador.id,
       ativo: true,
       unidadesGestoras: {
         create: { budgetUnitId: ugCamara.id },
       },
     },
-    update: { nome: "Contador Câmara - Lagoa Seca" },
+    update: { nome: "Contador Câmara - Lagoa Seca", senha: hashPassword("SenhaSegura123!") },
   });
 
   // 4. Servidor Público
-  const servidorOperador = await prisma.employee.upsert({
+  await prisma.employee.upsert({
     where: { cpf: "111.222.333-44" },
     create: {
       name: "João da Silva - Tesoureiro",
@@ -124,8 +129,8 @@ async function main() {
     update: {},
   });
 
-  // 8. Planejamento Orçamentário (PPA, LDO, LOA)
-  const ppa = await prisma.multiYearPlan.upsert({
+  // 8. Planejamento Orçamentário Equilibrado (PPA, LDO, LOA = R$ 15.000.000,00)
+  await prisma.multiYearPlan.upsert({
     where: { code: "PPA-2026-2029" },
     create: {
       code: "PPA-2026-2029",
@@ -138,7 +143,7 @@ async function main() {
     update: {},
   });
 
-  const ldo = await prisma.budgetGuideline.upsert({
+  await prisma.budgetGuideline.upsert({
     where: { id: "ldo-2026-lagoaseca" },
     create: {
       id: "ldo-2026-lagoaseca",
@@ -159,10 +164,10 @@ async function main() {
       totalExpense: 15000000,
       status: "Vigente",
     },
-    update: {},
+    update: { status: "Vigente" },
   });
 
-  // Previsão de Receita na LOA
+  // Previsão de Receita na LOA (Total: R$ 15.000.000,00)
   await prisma.annualBudgetRevenueForecast.upsert({
     where: { id: "forecast-iptu-2026" },
     create: {
@@ -185,6 +190,31 @@ async function main() {
       estimatedValue: new Prisma.Decimal("12000000.00"),
     },
     update: { estimatedValue: new Prisma.Decimal("12000000.00") },
+  });
+
+  // Fixação de Despesa na LOA (Total: R$ 15.000.000,00)
+  await prisma.annualBudgetExpenseFixation.upsert({
+    where: { id: "fixation-pref-2026" },
+    create: {
+      id: "fixation-pref-2026",
+      annualBudgetLawId: loa.id,
+      code: ndMaterial.code,
+      name: "Manutenção da Administração Geral - Prefeitura",
+      fixedValue: new Prisma.Decimal("10000000.00"),
+    },
+    update: { fixedValue: new Prisma.Decimal("10000000.00") },
+  });
+
+  await prisma.annualBudgetExpenseFixation.upsert({
+    where: { id: "fixation-cam-2026" },
+    create: {
+      id: "fixation-cam-2026",
+      annualBudgetLawId: loa.id,
+      code: ndPessoal.code,
+      name: "Folha de Pagamento - Câmara Municipal",
+      fixedValue: new Prisma.Decimal("5000000.00"),
+    },
+    update: { fixedValue: new Prisma.Decimal("5000000.00") },
   });
 
   // 9. Contas Bancárias Ativas com Fonte Obrigatória e Saldo de Abertura
@@ -313,8 +343,8 @@ async function main() {
     update: {},
   });
 
-  // 12. Dotações Orçamentárias Segregadas por UG
-  const dotacaoPrefeitura = await prisma.budgetAppropriation.upsert({
+  // 12. Dotações Orçamentárias Segregadas por UG e alinhadas à LOA Fixada
+  await prisma.budgetAppropriation.upsert({
     where: { code: "0101.04.122.0001.2002.3.3.90.30.00" },
     create: {
       id: "dotacao-lagoaseca-pref-01",
@@ -323,14 +353,14 @@ async function main() {
       budgetUnitId: ugPrefeitura.id,
       expenseNatureId: ndMaterial.id,
       resourceSourceId: fonteOrdinaria.id,
-      initialValueDecimal: new Prisma.Decimal("500000.00"),
-      updatedValueDecimal: new Prisma.Decimal("500000.00"),
+      initialValueDecimal: new Prisma.Decimal("10000000.00"),
+      updatedValueDecimal: new Prisma.Decimal("10000000.00"),
       committedValueDecimal: new Prisma.Decimal("0.00"),
-      initialValue: 500000,
-      updatedValue: 500000,
+      initialValue: 10000000,
+      updatedValue: 10000000,
       committedValue: 0,
     },
-    update: {},
+    update: { initialValueDecimal: new Prisma.Decimal("10000000.00"), updatedValueDecimal: new Prisma.Decimal("10000000.00") },
   });
 
   await prisma.budgetAppropriation.upsert({
@@ -342,14 +372,14 @@ async function main() {
       budgetUnitId: ugCamara.id,
       expenseNatureId: ndPessoal.id,
       resourceSourceId: fonteOrdinaria.id,
-      initialValueDecimal: new Prisma.Decimal("300000.00"),
-      updatedValueDecimal: new Prisma.Decimal("300000.00"),
+      initialValueDecimal: new Prisma.Decimal("5000000.00"),
+      updatedValueDecimal: new Prisma.Decimal("5000000.00"),
       committedValueDecimal: new Prisma.Decimal("0.00"),
-      initialValue: 300000,
-      updatedValue: 300000,
+      initialValue: 5000000,
+      updatedValue: 5000000,
       committedValue: 0,
     },
-    update: {},
+    update: { initialValueDecimal: new Prisma.Decimal("5000000.00"), updatedValueDecimal: new Prisma.Decimal("5000000.00") },
   });
 
   // 13. Fornecedor e Credor
@@ -393,8 +423,8 @@ async function main() {
     update: {},
   });
 
-  // 15. Receita Arrecadada de Exemplo
-  await prisma.revenue.upsert({
+  // 15. Receita Arrecadada Conciliada com Entrada na Tesouraria
+  const receitaIptu = await prisma.revenue.upsert({
     where: { idempotencyKey: "SEED:LAGOA_SECA:REV:IPTU:01" },
     create: {
       date: new Date("2026-01-15T10:00:00.000Z"),
@@ -414,12 +444,33 @@ async function main() {
     update: {},
   });
 
+  // Entrada de tesouraria idêntica para conciliação perfeita do saldo de caixa
+  await prisma.treasuryMovement.upsert({
+    where: { idempotencyKey: "SEED:LAGOA_SECA:REV:IPTU:01:TREASURY" },
+    create: {
+      date: new Date("2026-01-15T10:00:00.000Z"),
+      type: "Revenue",
+      direction: "Entrada",
+      valueDecimal: new Prisma.Decimal("150000.00"),
+      history: "Arrecadação de IPTU Exercício 2026 - Lagoa Seca",
+      bankAccountId: contaBBPrefeitura.id,
+      financialYearId: year2026.id,
+      revenueId: receitaIptu.id,
+      sourceModule: "TRIBUTACAO",
+      sourceType: "IPTU",
+      eventType: "REVENUE_REALIZED",
+      status: "Confirmado",
+      idempotencyKey: "SEED:LAGOA_SECA:REV:IPTU:01:TREASURY",
+    },
+    update: {},
+  });
+
   console.log("✅ Seed do modelo financeiro de Lagoa Seca/PB concluído com sucesso!");
-  console.log("   - Exercício 2026 configurado.");
+  console.log("   - Exercício 2026 configurado com senhas em hash PBKDF2.");
   console.log("   - UGs '0101' (Prefeitura) e '0201' (Câmara) com usuários segregados.");
-  console.log("   - PPA 2026-2029, LDO e LOA com previsão de receita e fixação de despesa.");
-  console.log("   - Saldo inicial de R$ 800.000 (Prefeitura) e R$ 200.000 (Câmara).");
-  console.log("   - Regras de retenção, PCASP e receitas arrecadadas prontas.");
+  console.log("   - LOA equilibrada em R$ 15.000.000,00 (Previsão de Receita e Fixação de Despesa).");
+  console.log("   - Dotações ajustadas para R$ 10.000.000 (Prefeitura) e R$ 5.000.000 (Câmara).");
+  console.log("   - Saldo inicial de tesouraria e receitas 100% conciliadas.");
 }
 
 main()

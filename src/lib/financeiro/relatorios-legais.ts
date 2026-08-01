@@ -137,6 +137,9 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
             ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
           },
           include: {
+            movements: {
+              select: { type: true, valueDecimal: true },
+            },
             settlements: {
               where: {
                 status: "Liquidado",
@@ -171,7 +174,10 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
     }),
     db.annualBudgetRevenueForecast.findMany({
       where: {
-        annualBudgetLaw: { financialYearId: filter.financialYearId },
+        annualBudgetLaw: {
+          financialYearId: filter.financialYearId,
+          status: "Vigente",
+        },
       },
     }),
   ]);
@@ -180,7 +186,17 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
     const fixedValue = Number(app.initialValueDecimal ?? app.initialValue);
     const updatedValue = Number(app.updatedValueDecimal ?? app.updatedValue);
 
-    const committedValue = app.commitments.reduce((sum, c) => sum + Number(c.valueDecimal ?? c.value), 0);
+    // Apuração do empenhado pelo saldo real considerando movimentos de reforço e anulação
+    const committedValue = app.commitments.reduce((sum, c) => {
+      const initial = Number(c.valueDecimal ?? c.value);
+      const movementNet = c.movements.reduce((mSum, m) => {
+        const mVal = Number(m.valueDecimal);
+        if (m.type === "Reforço") return mSum + mVal;
+        if (m.type === "Anulação") return mSum - mVal;
+        return mSum;
+      }, 0);
+      return sum + initial + movementNet;
+    }, 0);
 
     const settledValue = app.commitments.reduce((sum, c) => {
       return (

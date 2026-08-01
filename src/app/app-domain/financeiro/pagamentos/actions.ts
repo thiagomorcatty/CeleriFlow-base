@@ -56,3 +56,30 @@ export async function updatePaymentStatus(id: string, status: string): Promise<A
     return { error: message(error) };
   }
 }
+
+export async function reversePaymentAction(paymentId: string, justification: string): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const payment = await context.prisma.payment.findUnique({ where: { id: paymentId }, select: { commitmentId: true } });
+    if (!payment) throw new FinanceError("Pagamento não encontrado.");
+    await assertCommitmentAccess(context, payment.commitmentId);
+    const { reversePayment: reverseOfficialPayment } = await import("@/lib/financeiro");
+    await reverseOfficialPayment(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, paymentId, justification);
+    revalidatePath("/financeiro/pagamentos");
+    return {};
+  } catch (error) {
+    return { error: message(error) };
+  }
+}
+
+export async function settleWithholdingPayableAction(withholdingPayableId: string, bankAccountId: string): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const { settleWithholdingPayable: settleOfficialWithholding } = await import("@/lib/financeiro");
+    await settleOfficialWithholding(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, { withholdingPayableId, bankAccountId, paymentDate: new Date() });
+    revalidatePath("/financeiro/pagamentos");
+    return {};
+  } catch (error) {
+    return { error: message(error) };
+  }
+}
