@@ -5,7 +5,7 @@ import { assertBudgetUnitAccess, getTenantContextForModuleEdit, type AppContext 
 import { revalidatePath } from "next/cache";
 
 type ActionResult = { error?: string };
-const message = (error: unknown) => error instanceof FinanceError ? error.message : "Não foi possível concluir o pagamento.";
+const message = (error: unknown) => error instanceof Error ? error.message : "Não foi possível concluir o pagamento.";
 
 async function assertCommitmentAccess(context: AppContext, commitmentId: string) {
   const commitment = await context.prisma.commitment.findUnique({
@@ -16,7 +16,7 @@ async function assertCommitmentAccess(context: AppContext, commitmentId: string)
   assertBudgetUnitAccess(context.user, commitment.appropriation.budgetUnitId);
 }
 
-export async function createPayment(data: { orderNumber: string; date: Date; value: number; commitmentId: string; settlementId?: string; bankAccountId: string; supplierId: string; paymentMethod: string; isExceptional?: boolean; exceptionJustification?: string; retentions?: { type: string; value: number; beneficiaryName: string; beneficiaryDocument?: string; description?: string; dueDate?: Date }[] }): Promise<ActionResult> {
+export async function createPayment(data: { orderNumber: string; date: Date; value: number; commitmentId: string; settlementId?: string; bankAccountId: string; supplierId: string; paymentMethod: string; isExceptional?: boolean; exceptionJustification?: string; serviceCode?: string; retentionRuleIds?: string[] }): Promise<ActionResult> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     await assertCommitmentAccess(context, data.commitmentId);

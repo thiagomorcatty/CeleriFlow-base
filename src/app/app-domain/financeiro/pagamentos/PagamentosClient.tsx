@@ -49,18 +49,35 @@ type Payment = {
   };
 };
 
+type RetentionRule = {
+  id: string;
+  code: string;
+  type: string;
+  description: string;
+  calculationBasePercentage: number;
+  ratePercentage: number;
+  serviceCode: string | null;
+};
+
+type CommitmentOption = { id: string; number: string; value: number; supplierId: string };
+type SettlementOption = { id: string; commitmentId: string; documentRef: string | null; availableToPay: number };
+type BankAccountOption = { id: string; bankName: string; agency: string; accountNumber: string };
+type SupplierOption = { id: string; company?: { corporateName: string } | null; person?: { fullName: string } | null };
+
 export default function PagamentosClient({
   payments,
   commitments,
   settlements,
   bankAccounts,
-  suppliers
+  suppliers,
+  retentionRules,
 }: {
   payments: Payment[];
-  commitments: any[];
-  settlements: any[];
-  bankAccounts: any[];
-  suppliers: any[];
+  commitments: CommitmentOption[];
+  settlements: SettlementOption[];
+  bankAccounts: BankAccountOption[];
+  suppliers: SupplierOption[];
+  retentionRules: RetentionRule[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -83,10 +100,8 @@ export default function PagamentosClient({
     paymentMethod: "Transferência",
     isExceptional: false,
     exceptionJustification: "",
-    retentionType: "",
-    retentionValue: 0,
-    retentionBeneficiary: "",
-    retentionDueDate: "",
+    serviceCode: "",
+    retentionRuleIds: [] as string[],
   });
 
   const filteredPayments = payments.filter(p => {
@@ -117,10 +132,8 @@ export default function PagamentosClient({
       paymentMethod: "Transferência",
       isExceptional: false,
       exceptionJustification: "",
-      retentionType: "",
-      retentionValue: 0,
-      retentionBeneficiary: "",
-      retentionDueDate: "",
+      serviceCode: "",
+      retentionRuleIds: [],
     });
     setIsModalOpen(true);
   };
@@ -133,12 +146,7 @@ export default function PagamentosClient({
         ...formData,
         date: new Date(formData.date),
         settlementId: formData.settlementId || undefined,
-        retentions: formData.retentionValue > 0 ? [{
-          type: formData.retentionType,
-          value: formData.retentionValue,
-          beneficiaryName: formData.retentionBeneficiary,
-          dueDate: formData.retentionDueDate ? new Date(formData.retentionDueDate) : undefined,
-        }] : undefined,
+        serviceCode: formData.serviceCode.trim() || undefined,
       };
       
       const result = await createPayment(dataToSubmit);
@@ -404,25 +412,35 @@ export default function PagamentosClient({
             </div>
 
             <div className="rounded-md border p-3 space-y-3">
-              <p className="text-sm font-medium">Retenção (opcional)</p>
-              <div className="grid grid-cols-2 gap-4">
-                <Select value={formData.retentionType} onValueChange={v => setFormData({...formData, retentionType: v as string})}>
-                  <SelectTrigger><SelectValue placeholder="Tipo de retenção" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="INSS">INSS</SelectItem>
-                    <SelectItem value="IRRF">IRRF</SelectItem>
-                    <SelectItem value="ISS">ISS</SelectItem>
-                    <SelectItem value="Consignação">Consignação</SelectItem>
-                    <SelectItem value="Glosa">Glosa</SelectItem>
-                    <SelectItem value="Retenção Contratual">Retenção contratual</SelectItem>
-                  </SelectContent>
-                </Select>
-                <MoneyInput value={formData.retentionValue} onChange={val => setFormData({...formData, retentionValue: val})} />
-              </div>
-              {formData.retentionValue > 0 && <div className="grid grid-cols-2 gap-4">
-                <Input required placeholder="Beneficiário do recolhimento" value={formData.retentionBeneficiary} onChange={e => setFormData({...formData, retentionBeneficiary: e.target.value})} />
-                <Input type="date" value={formData.retentionDueDate} onChange={e => setFormData({...formData, retentionDueDate: e.target.value})} />
-              </div>}
+              <p className="text-sm font-medium">Retenções parametrizadas</p>
+              <Input placeholder="Código do serviço (opcional)" value={formData.serviceCode} onChange={event => setFormData({ ...formData, serviceCode: event.target.value })} />
+              {retentionRules.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma regra vigente. Cadastre as regras de retenção antes de emitir o pagamento.</p>
+              ) : (
+                <div className="space-y-2">
+                  {retentionRules.map((rule) => {
+                    const selected = formData.retentionRuleIds.includes(rule.id);
+                    const disabled = Boolean(rule.serviceCode && rule.serviceCode !== formData.serviceCode.trim());
+                    return (
+                      <label key={rule.id} className="flex items-start gap-2 rounded border p-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          disabled={disabled}
+                          onChange={() => setFormData({
+                            ...formData,
+                            retentionRuleIds: selected
+                              ? formData.retentionRuleIds.filter((id) => id !== rule.id)
+                              : [...formData.retentionRuleIds, rule.id],
+                          })}
+                        />
+                        <span><strong>{rule.code} - {rule.type}</strong><br />{rule.description} ({rule.calculationBasePercentage}% x {rule.ratePercentage}%)</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Os valores são calculados no servidor conforme a regra vigente na data do pagamento.</p>
             </div>
             
             <div className="space-y-2">

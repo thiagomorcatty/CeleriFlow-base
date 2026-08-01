@@ -1799,6 +1799,7 @@ model FinancialYear {
   annualBudgetLaws        AnnualBudgetLaw[]
   budgetGuidelines        BudgetGuideline[]
   creditRequests          CreditRequest[]
+  retentionRules          RetentionRule[]
 }
 
 // --- Planejamento Orçamentário: PPA, LDO, LOA, CMD, MBA, Créditos Adicionais ---
@@ -2278,6 +2279,8 @@ model PaymentRetention {
   id                  String              @id @default(cuid())
   paymentId           String
   payment             Payment             @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  retentionRuleId     String?
+  retentionRule       RetentionRule?      @relation(fields: [retentionRuleId], references: [id], onDelete: Restrict)
   type                String
   description         String?
   valueDecimal        Decimal             @db.Decimal(18, 2)
@@ -2287,6 +2290,32 @@ model PaymentRetention {
   createdAt           DateTime            @default(now())
 
   @@index([paymentId])
+  @@index([retentionRuleId])
+}
+
+model RetentionRule {
+  id                        String              @id @default(cuid())
+  code                      String              @unique
+  type                      String
+  description               String
+  calculationBasePercentage Decimal             @db.Decimal(7, 4)
+  ratePercentage            Decimal             @db.Decimal(7, 4)
+  beneficiaryName           String
+  beneficiaryDocument       String?
+  serviceCode               String?
+  financialYearId           String?
+  financialYear             FinancialYear?      @relation(fields: [financialYearId], references: [id])
+  effectiveFrom             DateTime
+  effectiveTo               DateTime?
+  dueDays                   Int?
+  isActive                  Boolean             @default(true)
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @updatedAt
+
+  paymentRetentions PaymentRetention[]
+
+  @@index([isActive, effectiveFrom, effectiveTo])
+  @@index([financialYearId, serviceCode])
 }
 
 model WithholdingPayable {
@@ -5122,6 +5151,44 @@ model ConfiguracaoModulo {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model IntegrationConnection {
+  id                  String           @id @default(cuid())
+  code                String           @unique
+  name                String
+  category            String
+  provider            String
+  environment         String           @default("MOCK") // MOCK, HOMOLOGACAO, PRODUCAO
+  status              String           @default("CONFIGURANDO") // CONFIGURANDO, ATIVA, ERRO, DESATIVADA
+  baseUrl             String?
+  credentialReference String?
+  configuration       Json?
+  mockScenario        Json?
+  lastTestedAt        DateTime?
+  lastTestStatus      String?
+  lastTestMessage     String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  runs IntegrationRun[]
+
+  @@index([category, environment, status])
+}
+
+model IntegrationRun {
+  id           String                @id @default(cuid())
+  connectionId String
+  connection   IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  operation    String
+  environment  String
+  status       String
+  message      String
+  externalId   String?
+  payload      Json?
+  createdAt    DateTime              @default(now())
+
+  @@index([connectionId, createdAt])
 }
 
 model ConfiguracaoPerfil {

@@ -1,5 +1,6 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { createHash } from "node:crypto";
+import { calculateRetentionDueDate, calculateRetentions, getActiveRetentionRules } from "./retencoes";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -469,7 +470,7 @@ export async function cancelSettlement(db: PrismaClient, actor: FinanceActor, se
   });
 }
 
-export async function createPayment(db: PrismaClient, actor: FinanceActor, input: { orderNumber: string; date: Date; value: Prisma.Decimal | string | number; commitmentId: string; settlementId?: string; bankAccountId: string; supplierId: string; paymentMethod: string; isExceptional?: boolean; exceptionJustification?: string; retentions?: { type: string; value: Prisma.Decimal | string | number; beneficiaryName: string; beneficiaryDocument?: string; description?: string; dueDate?: Date }[] }) {
+export async function createPayment(db: PrismaClient, actor: FinanceActor, input: { orderNumber: string; date: Date; value: Prisma.Decimal | string | number; commitmentId: string; settlementId?: string; bankAccountId: string; supplierId: string; paymentMethod: string; isExceptional?: boolean; exceptionJustification?: string; serviceCode?: string; retentionRuleIds?: string[] }) {
   const value = money(input.value);
   return db.$transaction(async (tx) => {
     const { commitment, year } = await commitmentForPosting(tx, input.commitmentId, input.date);
@@ -491,17 +492,24 @@ export async function createPayment(db: PrismaClient, actor: FinanceActor, input
       if (paid.plus(value).greaterThan(effectiveValue)) throw new FinanceError("O pagamento excepcional excede o valor vigente do empenho.");
     }
 
-    const retentions = input.retentions ?? [];
-    const retentionTotal = retentions.reduce((total, retention) => total.plus(money(retention.value)), new Prisma.Decimal(0));
+    const retentionRules = input.retentionRuleIds?.length
+      ? await getActiveRetentionRules(tx, {
+          financialYearId: year.id,
+          date: input.date,
+          serviceCode: input.serviceCode?.trim() || undefined,
+          ruleIds: input.retentionRuleIds,
+        })
+      : [];
+    const retentions = calculateRetentions(value, retentionRules).map((calculation, index) => ({
+      ...calculation,
+      rule: retentionRules[index],
+    }));
+    const retentionTotal = retentions.reduce((total, retention) => total.plus(retention.retainedValue), new Prisma.Decimal(0));
     if (retentionTotal.greaterThan(value)) throw new FinanceError("As retenções não podem exceder o valor bruto do pagamento.");
-    for (const retention of retentions) {
-      if (!retention.type.trim() || !retention.beneficiaryName.trim()) throw new FinanceError("Cada retenção deve informar tipo e beneficiário do recolhimento.");
-    }
     const netValue = value.minus(retentionTotal);
     const payment = await tx.payment.create({ data: { orderNumber: input.orderNumber.trim(), date: input.date, valueDecimal: value, value: legacyMoney(value), netValueDecimal: netValue, commitmentId: commitment.id, settlementId: input.settlementId || undefined, bankAccountId: input.bankAccountId, supplierId: input.supplierId, creditorId: creditor.id, isExceptional: Boolean(input.isExceptional), exceptionJustification: input.isExceptional ? input.exceptionJustification?.trim() : undefined, paymentMethod: input.paymentMethod, status: "Emitida" } });
     for (const retention of retentions) {
-      const retentionValue = money(retention.value);
-      await tx.paymentRetention.create({ data: { paymentId: payment.id, type: retention.type.trim(), description: retention.description?.trim() || undefined, valueDecimal: retentionValue, beneficiaryName: retention.beneficiaryName.trim(), beneficiaryDocument: retention.beneficiaryDocument?.trim() || undefined, withholdingPayable: { create: { valueDecimal: retentionValue, dueDate: retention.dueDate } } } });
+      await tx.paymentRetention.create({ data: { paymentId: payment.id, retentionRuleId: retention.rule.id, type: retention.type, description: retention.rule.description, valueDecimal: retention.retainedValue, beneficiaryName: retention.rule.beneficiaryName, beneficiaryDocument: retention.rule.beneficiaryDocument ?? undefined, withholdingPayable: { create: { valueDecimal: retention.retainedValue, dueDate: calculateRetentionDueDate(input.date, retention.rule.dueDays) } } } });
     }
     await refreshCommitmentExecutionStatus(tx, commitment.id);
     await audit(tx, actor, "CREATE", "Payment", payment.id, { grossValue: jsonMoney(value), netValue: jsonMoney(netValue), retentionValue: jsonMoney(retentionTotal), commitmentId: commitment.id, settlementId: input.settlementId ?? null, creditorId: creditor.id, isExceptional: Boolean(input.isExceptional) }, year.id);

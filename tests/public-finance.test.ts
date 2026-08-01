@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { calculateRetentions } from "../src/lib/financeiro/retencoes.ts";
+import { runMockIntegration } from "../src/lib/integrations/registry.ts";
 import { exportPublicDataCSV, parsePublicDataFilter } from "../src/lib/transparencia/portal-fiscal.ts";
 
 test("calcula retenções com base e alíquota configuradas", () => {
@@ -24,4 +25,12 @@ test("neutraliza fórmulas em exportações CSV", () => {
 
   assert.match(csv, /"'=HYPERLINK/);
   assert.doesNotMatch(csv, /\n"=HYPERLINK/);
+});
+
+test("executa conectores externos em modo mock sem chamada de rede", () => {
+  const result = runMockIntegration("SICONFI", "GERAR_REMESSA");
+
+  assert.equal(result.status, "SUCESSO");
+  assert.equal(result.payload.simulated, true);
+  assert.match(result.externalId, /^MOCK-SICONFI-/);
 });
