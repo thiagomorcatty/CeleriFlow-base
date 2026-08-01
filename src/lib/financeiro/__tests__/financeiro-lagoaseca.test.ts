@@ -1,13 +1,10 @@
 import "dotenv/config";
 import assert from "node:assert/strict";
-import { test, describe, before } from "node:test";
+import { test, describe } from "node:test";
 import { prisma } from "../../prisma";
 import {
-  createExpenseRequest,
-  createBudgetReservation,
-  createCommitment,
-  createSettlement,
   createPayment,
+  updatePaymentStatus,
   reversePayment,
   settleWithholdingPayable,
   getBankAccountBalance,
@@ -20,14 +17,14 @@ import {
   generateBalancoPatrimonial,
 } from "../relatorios-legais";
 
-describe("Lagoa Seca/PB - Validação Integrada do Fluxo Financeiro e Relatórios Legais", () => {
+describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras", () => {
   const mockActor: FinanceActor = {
     usuarioId: "usr-admin-lagoaseca",
     employeeId: "emp-servidor-lagoaseca",
     allowedBudgetUnitIds: [],
   };
 
-  test("1. Deve rejeitar pagamento sem liquidação (fluxo estrito obrigatório)", async () => {
+  test("1. Deve rejeitar pagamento sem liquidação (fluxo estrito)", async () => {
     await assert.rejects(
       async () => {
         await createPayment(prisma, mockActor, {
@@ -35,8 +32,8 @@ describe("Lagoa Seca/PB - Validação Integrada do Fluxo Financeiro e Relatório
           date: new Date(),
           value: "1000.00",
           commitmentId: "invalid-id",
-          settlementId: "", // Liquidação ausente!
-          bankAccountId: "cl-lagoaseca-bb-1000",
+          settlementId: "", // Vazio!
+          bankAccountId: "cl-lagoaseca-bb-pref-1000",
           supplierId: "supp-lagoaseca-01",
           paymentMethod: "Transferência",
         });
@@ -48,18 +45,35 @@ describe("Lagoa Seca/PB - Validação Integrada do Fluxo Financeiro e Relatório
     );
   });
 
-  test("2. Deve validar presença e compatibilidade de dados na base seed de Lagoa Seca", async () => {
+  test("2. Deve rejeitar recolhimento de retenção de ordem de pagamento ainda 'Emitida'", async () => {
+    await assert.rejects(
+      async () => {
+        await settleWithholdingPayable(prisma, mockActor, {
+          withholdingPayableId: "invalid-payable-id",
+          bankAccountId: "cl-lagoaseca-bb-pref-1000",
+          paymentDate: new Date(),
+        });
+      },
+      (err: Error) => {
+        assert.match(err.message, /não encontrada ou já recolhida/i);
+        return true;
+      },
+    );
+  });
+
+  test("3. Deve validar dados da base modelo seed de Lagoa Seca", async () => {
     const year = await prisma.financialYear.findUnique({ where: { year: 2026 } });
     assert.ok(year, "Exercício 2026 deve existir");
 
-    const bankAcc = await prisma.bankAccount.findUnique({ where: { id: "cl-lagoaseca-bb-1000" } });
-    assert.ok(bankAcc, "Conta do Banco do Brasil deve existir");
+    const bankAccPref = await prisma.bankAccount.findUnique({ where: { id: "cl-lagoaseca-bb-pref-1000" } });
+    assert.ok(bankAccPref, "Conta da Prefeitura deve existir");
+    assert.ok(bankAccPref.resourceSourceId, "Conta bancária deve ter fonte vinculada");
 
-    const balance = await getBankAccountBalance(prisma, bankAcc.id);
-    assert.ok(balance.greaterThanOrEqualTo(500000), "Saldo inicial deve ser R$ 500.000,00 ou maior");
+    const balance = await getBankAccountBalance(prisma, bankAccPref.id);
+    assert.ok(balance.greaterThanOrEqualTo(800000), "Saldo inicial da Prefeitura deve ser R$ 800.000,00 ou maior");
   });
 
-  test("3. Deve gerar RREO, RGF, Balanço Orçamentário e Balanço Patrimonial sem erros", async () => {
+  test("4. Deve gerar RREO, RGF, Balanço Orçamentário e Balanço Patrimonial com totais íntegros", async () => {
     const year = await prisma.financialYear.findUnique({ where: { year: 2026 } });
     assert.ok(year);
 
@@ -67,16 +81,17 @@ describe("Lagoa Seca/PB - Validação Integrada do Fluxo Financeiro e Relatório
 
     const rreo = await generateRREO(prisma, filter);
     assert.ok(rreo.expenseSummary);
-    assert.ok(rreo.revenueSummary);
+    assert.ok(rreo.revenueSummary.length >= 2, "Receitas previstas na LOA devem constar no RREO");
 
     const rgf = await generateRGF(prisma, filter);
     assert.ok(rgf.receitaCorrenteLiquida >= 0);
     assert.ok(["REGULAR", "ALERTA", "EXCEDIDO"].includes(rgf.situacao));
 
     const balancoOrc = await generateBalancoOrcamentario(prisma, filter);
-    assert.ok(balancoOrc.totais);
+    assert.ok(balancoOrc.totais.totalReceitaPrevista > 0, "Receita prevista deve consultar a LOA (maior que zero)");
 
     const balancoPat = await generateBalancoPatrimonial(prisma, filter);
     assert.ok(balancoPat.totais);
+    assert.ok(balancoPat.patrimonioLiquido, "Patrimônio Líquido deve estar separado do Passivo");
   });
 });

@@ -123,7 +123,7 @@ export async function generateBalanceteContabil(db: Db, filter: ReportFilter) {
 
 // --- Relatório Resumido da Execução Orçamentária (RREO) ---
 export async function generateRREO(db: Db, filter: ReportFilter) {
-  const [appropriations, revenues] = await Promise.all([
+  const [appropriations, revenues, forecasts] = await Promise.all([
     db.budgetAppropriation.findMany({
       where: {
         financialYearId: filter.financialYearId,
@@ -169,12 +169,18 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
       },
       include: { revenueNature: true },
     }),
+    db.annualBudgetRevenueForecast.findMany({
+      where: {
+        annualBudgetLaw: { financialYearId: filter.financialYearId },
+      },
+    }),
   ]);
 
   const expenses = appropriations.map((app) => {
     const fixedValue = Number(app.initialValueDecimal ?? app.initialValue);
     const updatedValue = Number(app.updatedValueDecimal ?? app.updatedValue);
-    const committedValue = Number(app.committedValueDecimal ?? app.committedValue);
+
+    const committedValue = app.commitments.reduce((sum, c) => sum + Number(c.valueDecimal ?? c.value), 0);
 
     const settledValue = app.commitments.reduce((sum, c) => {
       return (
@@ -213,19 +219,36 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
     return summary;
   }, {}));
 
-  const revenueSummary = Object.values(revenues.reduce<Record<string, { revenueNatureCode: string; revenueNatureName: string; realizedValue: number }>>((summary, rev) => {
-    const key = rev.revenueNature.code;
-    const current = summary[key];
-    const realizedValue = Number(rev.valueDecimal ?? rev.value);
-    summary[key] = current
-      ? { ...current, realizedValue: current.realizedValue + realizedValue }
-      : { revenueNatureCode: key, revenueNatureName: rev.revenueNature.name, realizedValue };
-    return summary;
-  }, {}));
+  const revenueMap: Record<string, { revenueNatureCode: string; revenueNatureName: string; predictedValue: number; realizedValue: number }> = {};
+
+  for (const f of forecasts) {
+    const code = f.code;
+    revenueMap[code] = {
+      revenueNatureCode: code,
+      revenueNatureName: f.name,
+      predictedValue: Number(f.estimatedValue),
+      realizedValue: 0,
+    };
+  }
+
+  for (const rev of revenues) {
+    const code = rev.revenueNature.code;
+    const realized = Number(rev.valueDecimal ?? rev.value);
+    if (!revenueMap[code]) {
+      revenueMap[code] = {
+        revenueNatureCode: code,
+        revenueNatureName: rev.revenueNature.name,
+        predictedValue: 0,
+        realizedValue: realized,
+      };
+    } else {
+      revenueMap[code].realizedValue += realized;
+    }
+  }
 
   return {
     expenseSummary,
-    revenueSummary,
+    revenueSummary: Object.values(revenueMap),
   };
 }
 
@@ -242,7 +265,6 @@ export async function generateRGF(db: Db, filter: ReportFilter) {
 
   const rcl = revenues.reduce((sum, r) => sum + Number(r.valueDecimal ?? r.value), 0);
 
-  // Busca empenhos da folha de pessoal (natureza 3.1.*)
   const commitments = await db.commitment.findMany({
     where: {
       appropriation: {
@@ -258,8 +280,8 @@ export async function generateRGF(db: Db, filter: ReportFilter) {
 
   const personnelExpense = commitments.reduce((sum, c) => sum + Number(c.valueDecimal ?? c.value), 0);
   const percentageOfRcl = rcl > 0 ? (personnelExpense / rcl) * 100 : 0;
-  const legalLimitPercentage = 54.0; // Limite LRF Executivo
-  const alertLimitPercentage = 48.6; // Limite Alerta LRF (90% do máximo)
+  const legalLimitPercentage = 54.0;
+  const alertLimitPercentage = 48.6;
 
   return {
     receitaCorrenteLiquida: rcl,
@@ -274,8 +296,8 @@ export async function generateRGF(db: Db, filter: ReportFilter) {
 // --- Balanço Orçamentário ---
 export async function generateBalancoOrcamentario(db: Db, filter: ReportFilter) {
   const rreo = await generateRREO(db, filter);
-  const totalReceitaPrevista = rreo.revenueSummary.reduce((sum, r) => sum + r.realizedValue, 0);
-  const totalReceitaRealizada = totalReceitaPrevista;
+  const totalReceitaPrevista = rreo.revenueSummary.reduce((sum, r) => sum + r.predictedValue, 0);
+  const totalReceitaRealizada = rreo.revenueSummary.reduce((sum, r) => sum + r.realizedValue, 0);
   const totalDespesaFixada = rreo.expenseSummary.reduce((sum, e) => sum + e.fixedValue, 0);
   const totalDespesaEmpenhada = rreo.expenseSummary.reduce((sum, e) => sum + e.committedValue, 0);
   const totalDespesaLiquidada = rreo.expenseSummary.reduce((sum, e) => sum + e.settledValue, 0);
@@ -314,18 +336,21 @@ export async function generateBalancoPatrimonial(db: Db, filter: ReportFilter) {
     orderBy: { code: "asc" },
   });
 
+  // Ativo: Contas da classe 1 (Ativo Circulante e Não Circulante)
   const ativo = accounts.filter((acc) => acc.code.startsWith("1")).map((acc) => {
     const debit = acc.entries.filter((e) => e.type === "Débito").reduce((s, e) => s + Number(e.valueDecimal), 0);
     const credit = acc.entries.filter((e) => e.type === "Crédito").reduce((s, e) => s + Number(e.valueDecimal), 0);
     return { code: acc.code, name: acc.name, balance: debit - credit };
   });
 
-  const passivo = accounts.filter((acc) => acc.code.startsWith("2")).map((acc) => {
+  // Passivo: Contas da classe 2 (EXCETO classe 2.3 que é Patrimônio Líquido)
+  const passivo = accounts.filter((acc) => acc.code.startsWith("2.") && !acc.code.startsWith("2.3")).map((acc) => {
     const debit = acc.entries.filter((e) => e.type === "Débito").reduce((s, e) => s + Number(e.valueDecimal), 0);
     const credit = acc.entries.filter((e) => e.type === "Crédito").reduce((s, e) => s + Number(e.valueDecimal), 0);
     return { code: acc.code, name: acc.name, balance: credit - debit };
   });
 
+  // Patrimônio Líquido: Exclusivamente contas da classe 2.3
   const patrimonioLiquido = accounts.filter((acc) => acc.code.startsWith("2.3")).map((acc) => {
     const debit = acc.entries.filter((e) => e.type === "Débito").reduce((s, e) => s + Number(e.valueDecimal), 0);
     const credit = acc.entries.filter((e) => e.type === "Crédito").reduce((s, e) => s + Number(e.valueDecimal), 0);

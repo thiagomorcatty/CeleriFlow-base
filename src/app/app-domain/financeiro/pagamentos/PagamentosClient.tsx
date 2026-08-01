@@ -130,8 +130,6 @@ export default function PagamentosClient({
       bankAccountId: "",
       supplierId: "",
       paymentMethod: "Transferência",
-      isExceptional: false,
-      exceptionJustification: "",
       serviceCode: "",
       retentionRuleIds: [],
     });
@@ -405,8 +403,8 @@ export default function PagamentosClient({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="settlementId">Liquidação de Referência</Label>
-              <Select value={formData.settlementId} onValueChange={v => setFormData({...formData, settlementId: v as string, isExceptional: false, exceptionJustification: ""})}>
+              <Label htmlFor="settlementId">Liquidação de Referência *</Label>
+              <Select value={formData.settlementId} onValueChange={v => setFormData({...formData, settlementId: v as string})}>
                 <SelectTrigger><SelectValue placeholder="Selecione a liquidação" /></SelectTrigger>
                 <SelectContent>
                   {settlements.filter(s => !formData.commitmentId || s.commitmentId === formData.commitmentId).map(s => (
@@ -414,11 +412,6 @@ export default function PagamentosClient({
                   ))}
                 </SelectContent>
               </Select>
-              <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                <input type="checkbox" checked={formData.isExceptional} onChange={e => setFormData({...formData, isExceptional: e.target.checked, settlementId: e.target.checked ? "" : formData.settlementId})} />
-                Pagamento excepcional sem liquidação
-              </label>
-              {formData.isExceptional && <Input required placeholder="Justificativa obrigatória da exceção" value={formData.exceptionJustification} onChange={e => setFormData({...formData, exceptionJustification: e.target.value})} />}
             </div>
 
             <div className="rounded-md border p-3 space-y-3">
