@@ -1796,6 +1796,201 @@ model FinancialYear {
   monthlyAccountingCloses MonthlyAccountingClose[]
   annualAccountingCloses  AnnualAccountingClose[]
   payableCarryForwards    PayableCarryForward[]
+  annualBudgetLaws        AnnualBudgetLaw[]
+  budgetGuidelines        BudgetGuideline[]
+  creditRequests          CreditRequest[]
+}
+
+// --- Planejamento Orçamentário: PPA, LDO, LOA, CMD, MBA, Créditos Adicionais ---
+
+model MultiYearPlan {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  startYear   Int
+  endYear     Int
+  status      String   @default("Elaboração") // Elaboração, Aprovado, Vigente, Encerrado
+  version     Int      @default(1)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  programs ProgramPPA[]
+}
+
+model ProgramPPA {
+  id              String        @id @default(cuid())
+  code            String
+  name            String
+  type            String        @default("Finalístico") // Finalístico, Gestão, Serviço ao Estado
+  multiYearPlanId String
+  multiYearPlan   MultiYearPlan @relation(fields: [multiYearPlanId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  objectives ObjectivePPA[]
+  actions    ActionPPA[]
+
+  @@unique([multiYearPlanId, code])
+}
+
+model ObjectivePPA {
+  id           String     @id @default(cuid())
+  code         String
+  description  String
+  programId    String
+  program      ProgramPPA @relation(fields: [programId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  indicators IndicatorPPA[]
+}
+
+model IndicatorPPA {
+  id             String       @id @default(cuid())
+  name           String
+  unit           String
+  baselineValue  Float
+  targetValue    Float
+  objectiveId    String
+  objective      ObjectivePPA @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+}
+
+model ActionPPA {
+  id          String     @id @default(cuid())
+  code        String
+  name        String
+  type        String     @default("Projeto") // Projeto, Atividade, Operação Especial
+  programId   String
+  program     ProgramPPA @relation(fields: [programId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  goals       GoalPPA[]
+}
+
+model GoalPPA {
+  id        String    @id @default(cuid())
+  year      Int
+  physical  Float
+  financial Decimal   @db.Decimal(18, 2)
+  actionId  String
+  action    ActionPPA @relation(fields: [actionId], references: [id], onDelete: Cascade)
+}
+
+model BudgetGuideline {
+  id              String        @id @default(cuid())
+  financialYearId String
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id])
+  status          String        @default("Vigente")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  priorities BudgetGuidelinePriority[]
+  risks      BudgetGuidelineRisk[]
+}
+
+model BudgetGuidelinePriority {
+  id                String          @id @default(cuid())
+  budgetGuidelineId String
+  budgetGuideline   BudgetGuideline @relation(fields: [budgetGuidelineId], references: [id], onDelete: Cascade)
+  description       String
+  targetValue       Decimal?        @db.Decimal(18, 2)
+}
+
+model BudgetGuidelineRisk {
+  id                String          @id @default(cuid())
+  budgetGuidelineId String
+  budgetGuideline   BudgetGuideline @relation(fields: [budgetGuidelineId], references: [id], onDelete: Cascade)
+  description       String
+  estimatedImpact   Decimal         @db.Decimal(18, 2)
+  mitigation        String
+}
+
+model AnnualBudgetLaw {
+  id              String        @id @default(cuid())
+  lawNumber       String
+  publicationDate DateTime
+  financialYearId String
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id])
+  status          String        @default("Sancionada")
+  totalRevenue    Decimal       @db.Decimal(18, 2)
+  totalExpense    Decimal       @db.Decimal(18, 2)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  revenueForecasts AnnualBudgetRevenueForecast[]
+  expenseFixations AnnualBudgetExpenseFixation[]
+  cmdSchedules     MonthlyDisbursementSchedule[]
+  mbaTargets       BimonthlyRevenueTarget[]
+}
+
+model AnnualBudgetRevenueForecast {
+  id                String          @id @default(cuid())
+  annualBudgetLawId String
+  annualBudgetLaw   AnnualBudgetLaw @relation(fields: [annualBudgetLawId], references: [id], onDelete: Cascade)
+  code              String
+  name              String
+  estimatedValue    Decimal         @db.Decimal(18, 2)
+}
+
+model AnnualBudgetExpenseFixation {
+  id                String          @id @default(cuid())
+  annualBudgetLawId String
+  annualBudgetLaw   AnnualBudgetLaw @relation(fields: [annualBudgetLawId], references: [id], onDelete: Cascade)
+  code              String
+  name              String
+  fixedValue        Decimal         @db.Decimal(18, 2)
+}
+
+model MonthlyDisbursementSchedule {
+  id                String          @id @default(cuid())
+  annualBudgetLawId String
+  annualBudgetLaw   AnnualBudgetLaw @relation(fields: [annualBudgetLawId], references: [id], onDelete: Cascade)
+  month             Int
+  budgetUnitId      String
+  limitValue        Decimal         @db.Decimal(18, 2)
+
+  @@unique([annualBudgetLawId, month, budgetUnitId])
+}
+
+model BimonthlyRevenueTarget {
+  id                String          @id @default(cuid())
+  annualBudgetLawId String
+  annualBudgetLaw   AnnualBudgetLaw @relation(fields: [annualBudgetLawId], references: [id], onDelete: Cascade)
+  bimonth           Int
+  targetValue       Decimal         @db.Decimal(18, 2)
+
+  @@unique([annualBudgetLawId, bimonth])
+}
+
+model CreditRequest {
+  id              String        @id @default(cuid())
+  number          String        @unique
+  financialYearId String
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id])
+  type            String        // Suplementar, Especial, Extraordinário, Remanejamento, Transposição, Transferência
+  lawNumber       String?
+  justification   String
+  totalValue      Decimal       @db.Decimal(18, 2)
+  status          String        @default("Solicitado") // Solicitado, Aprovado, Rejeitado, Efetivado
+  requestedById   String
+  requestedBy     Usuario       @relation("CreditRequestRequestedBy", fields: [requestedById], references: [id])
+  approvedById    String?
+  approvedBy      Usuario?      @relation("CreditRequestApprovedBy", fields: [approvedById], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  items CreditRequestItem[]
+}
+
+model CreditRequestItem {
+  id              String        @id @default(cuid())
+  creditRequestId String
+  creditRequest   CreditRequest @relation(fields: [creditRequestId], references: [id], onDelete: Cascade)
+  appropriationId String
+  appropriation   BudgetAppropriation @relation(fields: [appropriationId], references: [id])
+  type            String        // Acréscimo, Anulação
+  value           Decimal       @db.Decimal(18, 2)
 }
 
 model BudgetUnit {
@@ -1865,13 +2060,14 @@ model BudgetAppropriation {
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
-  reservations    BudgetReservation[]
-  commitments     Commitment[]
-  movements       BudgetMovement[]
-  expenses        Expense[]
-  obrasServices   ObrasServico[]      @relation("ObrasServicoBudget")
-  culturaProjects CulturaProjeto[]    @relation("CulturaProjectBudget")
-  culturaFunds    CulturaFundo[]      @relation("CulturaFundBudget")
+  reservations       BudgetReservation[]
+  commitments        Commitment[]
+  movements          BudgetMovement[]
+  expenses           Expense[]
+  creditRequestItems CreditRequestItem[]
+  obrasServices      ObrasServico[]      @relation("ObrasServicoBudget")
+  culturaProjects    CulturaProjeto[]    @relation("CulturaProjectBudget")
+  culturaFunds       CulturaFundo[]      @relation("CulturaFundBudget")
 }
 
 model Revenue {
@@ -4967,6 +5163,8 @@ model Usuario {
   accountingTransactions   AccountingTransaction[]  @relation("AccountingTransactionUsuario")
   monthlyAccountingCloses  MonthlyAccountingClose[] @relation("MonthlyCloseUsuario")
   annualAccountingCloses   AnnualAccountingClose[]  @relation("AnnualCloseUsuario")
+  creditRequestsRequested  CreditRequest[]          @relation("CreditRequestRequestedBy")
+  creditRequestsApproved   CreditRequest[]          @relation("CreditRequestApprovedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

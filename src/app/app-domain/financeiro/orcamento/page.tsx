@@ -6,14 +6,14 @@ export const dynamic = 'force-dynamic'
 
 export default async function OrcamentoPage() {
   const { prisma } = await getTenantContextForModule("FINANCEIRO");
-  const [appropriations, reservations, financialYears] = await Promise.all([
+  const [appropriations, reservations, financialYears, creditRequests] = await Promise.all([
     prisma.budgetAppropriation.findMany({
-    include: {
-      budgetUnit: true,
-      expenseNature: true,
-      resourceSource: true,
-    },
-    orderBy: { code: "asc" }
+      include: {
+        budgetUnit: true,
+        expenseNature: true,
+        resourceSource: true,
+      },
+      orderBy: { code: "asc" }
     }),
     prisma.budgetReservation.findMany({
       include: { appropriation: { select: { code: true } } },
@@ -21,6 +21,10 @@ export default async function OrcamentoPage() {
       take: 50,
     }),
     prisma.financialYear.findMany({ orderBy: { year: "desc" } }),
+    prisma.creditRequest.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
   ]);
 
   const availability = await Promise.all(appropriations.map(async appropriation => ({
@@ -41,6 +45,11 @@ export default async function OrcamentoPage() {
   const displayReservations = reservations.map(({ valueDecimal, ...reservation }) => ({ ...reservation, value: Number(valueDecimal ?? reservation.value) }));
 
   return (
-    <OrcamentoClient appropriations={displayAppropriations} reservations={displayReservations} financialYears={financialYears} />
+    <OrcamentoClient
+      appropriations={displayAppropriations}
+      reservations={displayReservations}
+      financialYears={financialYears}
+      creditRequests={creditRequests}
+    />
   )
 }

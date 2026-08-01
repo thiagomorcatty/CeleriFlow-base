@@ -13,6 +13,9 @@ import { MoneyInput } from "@/components/ui/MoneyInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cancelBudgetReservationAction, createBudgetMovementAction, createBudgetReservationAction, setFinancialYearStatusAction } from "./actions";
 
+import { CreditRequestDialog } from "./CreditRequestDialog";
+import { actionApproveCreditRequest, actionExecuteCreditRequest } from "./planejamento-actions";
+
 type Appropriation = {
   id: string;
   code: string;
@@ -30,42 +33,73 @@ export default function OrcamentoClient({
   appropriations,
   reservations,
   financialYears,
+  creditRequests = [],
 }: {
   appropriations: Appropriation[];
   reservations: any[];
   financialYears: any[];
+  creditRequests?: any[];
 }) {
   const [movement, setMovement] = useState({ appropriationId: "", type: "Suplementação", value: 0, justification: "" });
   const [reservation, setReservation] = useState({ number: "", appropriationId: "", value: 0, justification: "" });
   const [pending, setPending] = useState(false);
+
   const submitMovement = async (event: React.FormEvent) => {
     event.preventDefault(); setPending(true);
     const result = await createBudgetMovementAction({ ...movement, date: new Date() }); setPending(false);
     if (result.error) return alert(result.error);
     setMovement({ appropriationId: "", type: "Suplementação", value: 0, justification: "" });
   };
+
   const submitReservation = async (event: React.FormEvent) => {
     event.preventDefault(); setPending(true);
     const result = await createBudgetReservationAction({ ...reservation, date: new Date() }); setPending(false);
     if (result.error) return alert(result.error);
     setReservation({ number: "", appropriationId: "", value: 0, justification: "" });
   };
+
   const cancelReservation = async (id: string) => {
     const result = await cancelBudgetReservationAction(id);
     if (result.error) alert(result.error);
   };
+
   const changeYearStatus = async (id: string, status: string) => {
     const result = await setFinancialYearStatusAction(id, status);
     if (result.error) alert(result.error);
   };
+
+  const handleApproveCredit = async (id: string) => {
+    setPending(true);
+    const result = await actionApproveCreditRequest(id);
+    setPending(false);
+    if (result.error) alert(result.error);
+  };
+
+  const handleExecuteCredit = async (id: string) => {
+    setPending(true);
+    const result = await actionExecuteCreditRequest(id);
+    setPending(false);
+    if (result.error) alert(result.error);
+  };
+
+  const activeYear = financialYears.find((y) => y.status === "Aberto") || financialYears[0];
+
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Orçamento e Plano de Contas</h2>
-          <p className="text-muted-foreground">Gestão de dotações orçamentárias</p>
+          <p className="text-muted-foreground">Gestão de dotações orçamentárias e alterações com segregação de funções</p>
         </div>
-        <Link href="/financeiro/orcamento/cadastros" className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm hover:bg-accent">Cadastros Orçamentários</Link>
+        <div className="flex items-center gap-2">
+          {activeYear && (
+            <CreditRequestDialog
+              financialYearId={activeYear.id}
+              appropriations={appropriations}
+            />
+          )}
+          <Link href="/financeiro/orcamento/cadastros" className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm hover:bg-accent">Cadastros Orçamentários</Link>
+        </div>
       </div>
 
       <Card><CardHeader><CardTitle>Exercícios Financeiros</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{financialYears.map(year => <div key={year.id} className="flex items-center justify-between rounded border p-3"><span className="font-medium">{year.year}</span><Select value={year.status} onValueChange={status => status && changeYearStatus(year.id, status)}><SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Preparação">Preparação</SelectItem><SelectItem value="Aberto">Aberto</SelectItem><SelectItem value="Em Encerramento">Em Encerramento</SelectItem><SelectItem value="Encerrado">Encerrado</SelectItem></SelectContent></Select></div>)}</CardContent></Card>
@@ -123,6 +157,83 @@ export default function OrcamentoClient({
                     </TableCell>
                     <TableCell className="text-right font-medium text-blue-600">
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(app.availableValue)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Solicitações de Crédito Adicional (Segregação de Funções)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Número</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Justificativa</TableHead>
+                <TableHead className="text-right">Valor Total</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {creditRequests.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground h-20">
+                    Nenhuma solicitação de crédito adicional cadastrada.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                creditRequests.map((credit) => (
+                  <TableRow key={credit.id}>
+                    <TableCell className="font-medium">{credit.number}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{credit.type}</Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[250px] truncate">{credit.justification}</TableCell>
+                    <TableCell className="text-right font-medium">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(credit.totalValue))}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={
+                          credit.status === "Efetivado"
+                            ? "bg-emerald-500 hover:bg-emerald-600"
+                            : credit.status === "Aprovado"
+                            ? "bg-blue-500 hover:bg-blue-600"
+                            : "bg-amber-500 hover:bg-amber-600"
+                        }
+                      >
+                        {credit.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      {credit.status === "Solicitado" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={pending}
+                          onClick={() => handleApproveCredit(credit.id)}
+                        >
+                          Aprovar
+                        </Button>
+                      )}
+                      {credit.status === "Aprovado" && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          disabled={pending}
+                          onClick={() => handleExecuteCredit(credit.id)}
+                        >
+                          Efetivar Saldo
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

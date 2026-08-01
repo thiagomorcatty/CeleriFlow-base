@@ -6,6 +6,7 @@ type Db = PrismaClient | Prisma.TransactionClient;
 export type FinanceActor = {
   usuarioId: string;
   employeeId: string | null;
+  budgetUnitId?: string | null;
 };
 
 export class FinanceError extends Error {}
@@ -48,6 +49,7 @@ async function audit(
   entityId: string,
   payload: Prisma.InputJsonValue,
   financialYearId?: string,
+  budgetUnitId?: string,
 ) {
   await tx.financialAuditLog.create({
     data: {
@@ -55,6 +57,7 @@ async function audit(
       entityType,
       entityId,
       financialYearId,
+      budgetUnitId: budgetUnitId || actor.budgetUnitId || undefined,
       payload,
       authorUsuarioId: actor.usuarioId,
       authorEmployeeId: actor.employeeId,
