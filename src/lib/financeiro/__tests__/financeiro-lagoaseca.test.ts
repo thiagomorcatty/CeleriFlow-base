@@ -116,7 +116,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         value: "1000.00",
         commitmentId: commitment.id,
         documentId: "doc-nf-lagoaseca-01",
-        authorId: actor.employeeId,
+        authorId: actor.employeeId ?? "emp-servidor-lagoaseca",
       });
       settlementId = settlement.id;
       assert.ok(settlementId);
@@ -190,7 +190,14 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         },
       );
     } finally {
-      // Limpeza segura de dados de teste temporários para manter o banco limpo
+      // Limpeza segura de dados de teste temporários para manter o banco e a auditoria limpos
+      const createdIds = [paymentId, settlementId, commitmentId, reservationId, expenseId].filter(Boolean);
+      if (createdIds.length > 0) {
+        await prisma.financialAuditLog.deleteMany({
+          where: { entityId: { in: createdIds } },
+        });
+      }
+
       if (paymentId) {
         await prisma.treasuryMovement.deleteMany({ where: { sourceId: paymentId } });
         const retentions = await prisma.paymentRetention.findMany({ where: { paymentId }, select: { id: true } });

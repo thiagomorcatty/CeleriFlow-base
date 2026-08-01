@@ -2005,6 +2005,7 @@ model BudgetUnit {
 
   appropriations BudgetAppropriation[]
   usuarios       UsuarioUnidadeGestora[]
+  bankAccounts   BankAccount[]
 }
 
 model ResourceSource {
@@ -2343,6 +2344,8 @@ model BankAccount {
   currentBalanceDecimal Decimal?        @db.Decimal(18, 2)
   resourceSourceId      String?
   resourceSource        ResourceSource? @relation(fields: [resourceSourceId], references: [id])
+  budgetUnitId          String?
+  budgetUnit            BudgetUnit?     @relation(fields: [budgetUnitId], references: [id])
   isActive              Boolean         @default(true)
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt

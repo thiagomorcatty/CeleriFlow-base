@@ -50,9 +50,12 @@ export default async function PagamentosPage() {
 
   const bankAccounts = await prisma.bankAccount.findMany({
     where: {
-      isActive: true
-    }
-  })
+      isActive: true,
+      ...(isSystemAdministrator(context.user)
+        ? {}
+        : { OR: [{ budgetUnitId: null }, { budgetUnitId: { in: context.user.allowedBudgetUnitIds } }] }),
+    },
+  });
 
   const suppliers = await prisma.supplier.findMany({
     include: {

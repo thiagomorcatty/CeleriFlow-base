@@ -3,16 +3,17 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../src/lib/prisma";
 import crypto from "node:crypto";
 
-function generateSecureSeedPasswordHash() {
-  const password = process.env.SEED_USER_PASSWORD || crypto.randomBytes(16).toString("hex");
-  const salt = crypto.randomBytes(16).toString("hex");
-  return crypto.pbkdf2Sync(password, salt, 100000, 64, "sha512").toString("hex");
+function hashPassword(password: string, saltHex?: string) {
+  const salt = saltHex ?? crypto.randomBytes(16).toString("hex");
+  const derivedKey = crypto.pbkdf2Sync(password, salt, 100000, 64, "sha512").toString("hex");
+  return `$pbkdf2-sha512$100000$${salt}$${derivedKey}`;
 }
 
 async function main() {
   console.log("🌱 Gerando Base Modelo Completa de Homologação e POC para Lagoa Seca/PB...");
 
-  const defaultUserHash = generateSecureSeedPasswordHash();
+  const rawSeedPassword = process.env.SEED_USER_PASSWORD || crypto.randomBytes(16).toString("hex");
+  const defaultUserHash = hashPassword(rawSeedPassword);
 
   // 1. Exercício Financeiro
   const year2026 = await prisma.financialYear.upsert({
@@ -221,7 +222,7 @@ async function main() {
     update: { fixedValue: new Prisma.Decimal("5000000.00") },
   });
 
-  // 9. Contas Bancárias Ativas com Fonte Obrigatória e Saldo de Abertura
+  // 9. Contas Bancárias Ativas com Fonte Obrigatória, Unidade Gestora Vinculada e Saldo de Abertura
   const contaBBPrefeitura = await prisma.bankAccount.upsert({
     where: { id: "cl-lagoaseca-bb-pref-1000" },
     create: {
@@ -233,9 +234,10 @@ async function main() {
       currentBalanceDecimal: new Prisma.Decimal("800000.00"),
       currentBalance: 800000,
       resourceSourceId: fonteOrdinaria.id,
+      budgetUnitId: ugPrefeitura.id,
       isActive: true,
     },
-    update: { currentBalanceDecimal: new Prisma.Decimal("800000.00"), resourceSourceId: fonteOrdinaria.id, isActive: true },
+    update: { currentBalanceDecimal: new Prisma.Decimal("800000.00"), resourceSourceId: fonteOrdinaria.id, budgetUnitId: ugPrefeitura.id, isActive: true },
   });
 
   const contaBBCamara = await prisma.bankAccount.upsert({
@@ -249,9 +251,10 @@ async function main() {
       currentBalanceDecimal: new Prisma.Decimal("200000.00"),
       currentBalance: 200000,
       resourceSourceId: fonteOrdinaria.id,
+      budgetUnitId: ugCamara.id,
       isActive: true,
     },
-    update: { currentBalanceDecimal: new Prisma.Decimal("200000.00"), resourceSourceId: fonteOrdinaria.id, isActive: true },
+    update: { currentBalanceDecimal: new Prisma.Decimal("200000.00"), resourceSourceId: fonteOrdinaria.id, budgetUnitId: ugCamara.id, isActive: true },
   });
 
   // Movimentos de abertura de saldo nas contas

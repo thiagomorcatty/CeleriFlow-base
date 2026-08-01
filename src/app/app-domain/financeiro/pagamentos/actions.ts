@@ -82,6 +82,11 @@ export async function settleWithholdingPayableAction(withholdingPayableId: strin
     if (!payable?.retention?.payment?.commitmentId) throw new FinanceError("Consignação/retenção não encontrada.");
     await assertCommitmentAccess(context, payable.retention.payment.commitmentId);
 
+    const bankAccount = await context.prisma.bankAccount.findUnique({ where: { id: bankAccountId }, select: { budgetUnitId: true } });
+    if (bankAccount?.budgetUnitId) {
+      assertBudgetUnitAccess(context.user, bankAccount.budgetUnitId);
+    }
+
     const { settleWithholdingPayable: settleOfficialWithholding } = await import("@/lib/financeiro");
     await settleOfficialWithholding(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, { withholdingPayableId, bankAccountId, paymentDate: new Date() });
     revalidatePath("/financeiro/pagamentos");

@@ -123,6 +123,8 @@ export async function generateBalanceteContabil(db: Db, filter: ReportFilter) {
 
 // --- Relatório Resumido da Execução Orçamentária (RREO) ---
 export async function generateRREO(db: Db, filter: ReportFilter) {
+  const dateCond = filter.startDate || filter.endDate ? dateFilter(filter) : undefined;
+
   const [appropriations, revenues, forecasts, fixations] = await Promise.all([
     db.budgetAppropriation.findMany({
       where: {
@@ -134,25 +136,34 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
         commitments: {
           where: {
             status: { in: ["Emitido", "Liquidado", "Pago"] },
-            ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
+            ...(dateCond
+              ? {
+                  OR: [
+                    { date: dateCond },
+                    { movements: { some: { date: dateCond } } },
+                    { settlements: { some: { status: "Liquidado", date: dateCond } } },
+                    { payments: { some: { status: "Paga", date: dateCond } } },
+                  ],
+                }
+              : {}),
           },
           include: {
             movements: {
               where: {
-                ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
+                ...(dateCond ? { date: dateCond } : {}),
               },
               select: { type: true, valueDecimal: true, date: true },
             },
             settlements: {
               where: {
                 status: "Liquidado",
-                ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
+                ...(dateCond ? { date: dateCond } : {}),
               },
               include: {
                 payments: {
                   where: {
                     status: "Paga",
-                    ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
+                    ...(dateCond ? { date: dateCond } : {}),
                   },
                 },
               },
@@ -160,7 +171,7 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
             payments: {
               where: {
                 status: "Paga",
-                ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
+                ...(dateCond ? { date: dateCond } : {}),
               },
             },
           },
@@ -171,7 +182,7 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
       where: {
         financialYearId: filter.financialYearId,
         status: "Arrecadada",
-        ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
+        ...(dateCond ? { date: dateCond } : {}),
       },
       include: { revenueNature: true },
     }),
@@ -197,9 +208,10 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
     const fixedValue = Number(app.initialValueDecimal ?? app.initialValue);
     const updatedValue = Number(app.updatedValueDecimal ?? app.updatedValue);
 
-    // Apuração do empenhado pelo saldo real considerando movimentos de reforço e anulação
+    // Apuração do empenhado no período: inclui valor inicial se empenhado no período + movimentos do período
     const committedValue = app.commitments.reduce((sum, c) => {
-      const initial = Number(c.valueDecimal ?? c.value);
+      const initialInPeriod = !dateCond || (c.date >= (filter.startDate ?? new Date(0)) && c.date <= (filter.endDate ?? new Date("2099-12-31")));
+      const initial = initialInPeriod ? Number(c.valueDecimal ?? c.value) : 0;
       const movementNet = c.movements.reduce((mSum, m) => {
         const mVal = Number(m.valueDecimal);
         if (m.type === "Reforço") return mSum + mVal;
@@ -273,7 +285,13 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
     }
   }
 
-  const totalLegalFixedExpense = fixations.reduce((sum, f) => sum + Number(f.fixedValue), 0);
+  // Se o relatório for filtrado por Unidade Gestora específica, a despesa fixada legal reflete a dotação da UG
+  const municipalFixed = fixations.reduce((sum, f) => sum + Number(f.fixedValue), 0);
+  const totalLegalFixedExpense = filter.budgetUnitId
+    ? expenseSummary.reduce((sum, e) => sum + e.fixedValue, 0)
+    : municipalFixed > 0
+    ? municipalFixed
+    : expenseSummary.reduce((sum, e) => sum + e.fixedValue, 0);
 
   return {
     expenseSummary,

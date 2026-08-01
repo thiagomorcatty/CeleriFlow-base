@@ -99,10 +99,10 @@ async function lockPayment(tx: Prisma.TransactionClient, paymentId: string) {
 
 async function lockPaymentWithholdings(tx: Prisma.TransactionClient, paymentId: string) {
   await tx.$queryRaw`
-    SELECT wp.id 
-    FROM "WithholdingPayable" wp 
-    JOIN "PaymentRetention" r ON wp."retentionId" = r.id 
-    WHERE r."paymentId" = ${paymentId} 
+    SELECT wp.id
+    FROM "WithholdingPayable" wp
+    JOIN "PaymentRetention" r ON wp."retentionId" = r.id
+    WHERE r."paymentId" = ${paymentId}
     FOR UPDATE
   `;
 }
@@ -711,13 +711,17 @@ export async function settleWithholdingPayable(
     const bankAccount = await tx.bankAccount.findUnique({ where: { id: input.bankAccountId } });
     if (!bankAccount?.isActive) throw new FinanceError("Conta bancária para recolhimento inativa.");
 
-    // Validação de compatibilidade de Fonte de Recursos para recolhimento da retenção
+    // Validação de compatibilidade de Fonte de Recursos e Unidade Gestora para recolhimento da retenção
     const origSourceId = payable.retention.payment.commitment.appropriation.resourceSourceId;
+    const origBudgetUnitId = payable.retention.payment.commitment.appropriation.budgetUnitId;
     if (!bankAccount.resourceSourceId) {
       throw new FinanceError("A conta bancária para recolhimento da retenção deve possuir fonte de recursos configurada.");
     }
     if (origSourceId && bankAccount.resourceSourceId !== origSourceId) {
       throw new FinanceError("A fonte de recursos da conta bancária para recolhimento é incompatível com a fonte de recursos da retenção.");
+    }
+    if (bankAccount.budgetUnitId && origBudgetUnitId && bankAccount.budgetUnitId !== origBudgetUnitId) {
+      throw new FinanceError("A conta bancária selecionada pertence a outra Unidade Gestora e não pode debitar o recolhimento desta retenção.");
     }
 
     const value = requiredDecimal(payable.valueDecimal, "WithholdingPayable.valueDecimal");
