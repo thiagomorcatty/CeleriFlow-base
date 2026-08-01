@@ -124,5 +124,39 @@ export default async function PagamentosPage() {
     ratePercentage: Number(rule.ratePercentage),
   }));
 
-  return <PagamentosClient payments={displayPayments} commitments={displayCommitments} settlements={displaySettlements} bankAccounts={displayBankAccounts} suppliers={suppliers} retentionRules={displayRetentionRules} />
+  const pendingWithholdings = await prisma.withholdingPayable.findMany({
+    where: {
+      status: "Pendente",
+      retention: { payment: { status: "Paga", commitment: { appropriation: appropriationFilter } } },
+    },
+    include: {
+      retention: {
+        include: {
+          payment: { select: { orderNumber: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const displayPendingWithholdings = pendingWithholdings.map((pw) => ({
+    id: pw.id,
+    type: pw.retention.type,
+    description: pw.retention.description,
+    value: Number(pw.valueDecimal),
+    orderNumber: pw.retention.payment.orderNumber,
+    dueDate: pw.dueDate ? pw.dueDate.toISOString().substring(0, 10) : null,
+  }));
+
+  return (
+    <PagamentosClient
+      payments={displayPayments}
+      commitments={displayCommitments}
+      settlements={displaySettlements}
+      bankAccounts={displayBankAccounts}
+      suppliers={suppliers}
+      retentionRules={displayRetentionRules}
+      pendingWithholdings={displayPendingWithholdings}
+    />
+  );
 }

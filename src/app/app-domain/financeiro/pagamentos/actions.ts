@@ -75,6 +75,13 @@ export async function reversePaymentAction(paymentId: string, justification: str
 export async function settleWithholdingPayableAction(withholdingPayableId: string, bankAccountId: string): Promise<ActionResult> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const payable = await context.prisma.withholdingPayable.findUnique({
+      where: { id: withholdingPayableId },
+      select: { retention: { select: { payment: { select: { commitmentId: true } } } } },
+    });
+    if (!payable?.retention?.payment?.commitmentId) throw new FinanceError("Consignação/retenção não encontrada.");
+    await assertCommitmentAccess(context, payable.retention.payment.commitmentId);
+
     const { settleWithholdingPayable: settleOfficialWithholding } = await import("@/lib/financeiro");
     await settleOfficialWithholding(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, { withholdingPayableId, bankAccountId, paymentDate: new Date() });
     revalidatePath("/financeiro/pagamentos");

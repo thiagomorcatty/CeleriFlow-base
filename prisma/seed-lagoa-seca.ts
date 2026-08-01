@@ -3,12 +3,16 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../src/lib/prisma";
 import crypto from "node:crypto";
 
-function hashPassword(password: string) {
-  return crypto.pbkdf2Sync(password, "celeriflow-lagoaseca-salt", 10000, 64, "sha512").toString("hex");
+function generateSecureSeedPasswordHash() {
+  const password = process.env.SEED_USER_PASSWORD || crypto.randomBytes(16).toString("hex");
+  const salt = crypto.randomBytes(16).toString("hex");
+  return crypto.pbkdf2Sync(password, salt, 100000, 64, "sha512").toString("hex");
 }
 
 async function main() {
   console.log("🌱 Gerando Base Modelo Completa de Homologação e POC para Lagoa Seca/PB...");
+
+  const defaultUserHash = generateSecureSeedPasswordHash();
 
   // 1. Exercício Financeiro
   const year2026 = await prisma.financialYear.upsert({
@@ -53,14 +57,14 @@ async function main() {
     create: {
       email: "contador.prefeitura@lagoaseca.pb.gov.br",
       nome: "Contador Prefeitura - Lagoa Seca",
-      senha: hashPassword("SenhaSegura123!"),
+      senha: defaultUserHash,
       perfilId: perfilContador.id,
       ativo: true,
       unidadesGestoras: {
         create: { budgetUnitId: ugPrefeitura.id },
       },
     },
-    update: { nome: "Contador Prefeitura - Lagoa Seca", senha: hashPassword("SenhaSegura123!") },
+    update: { nome: "Contador Prefeitura - Lagoa Seca", senha: defaultUserHash },
   });
 
   await prisma.usuario.upsert({
@@ -68,14 +72,14 @@ async function main() {
     create: {
       email: "contador.camara@lagoaseca.pb.gov.br",
       nome: "Contador Câmara - Lagoa Seca",
-      senha: hashPassword("SenhaSegura123!"),
+      senha: defaultUserHash,
       perfilId: perfilContador.id,
       ativo: true,
       unidadesGestoras: {
         create: { budgetUnitId: ugCamara.id },
       },
     },
-    update: { nome: "Contador Câmara - Lagoa Seca", senha: hashPassword("SenhaSegura123!") },
+    update: { nome: "Contador Câmara - Lagoa Seca", senha: defaultUserHash },
   });
 
   // 4. Servidor Público

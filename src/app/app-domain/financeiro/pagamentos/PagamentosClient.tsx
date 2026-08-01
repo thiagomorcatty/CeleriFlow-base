@@ -19,7 +19,16 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MoneyInput } from "@/components/ui/MoneyInput";
-import { createPayment, cancelPayment, updatePaymentStatus, reversePaymentAction } from "./actions";
+import { createPayment, cancelPayment, updatePaymentStatus, reversePaymentAction, settleWithholdingPayableAction } from "./actions";
+
+type PendingWithholding = {
+  id: string;
+  type: string;
+  description: string | null;
+  value: number;
+  orderNumber: string;
+  dueDate: string | null;
+};
 
 type Payment = {
   id: string;
@@ -71,6 +80,7 @@ export default function PagamentosClient({
   bankAccounts,
   suppliers,
   retentionRules,
+  pendingWithholdings = [],
 }: {
   payments: Payment[];
   commitments: CommitmentOption[];
@@ -78,6 +88,7 @@ export default function PagamentosClient({
   bankAccounts: BankAccountOption[];
   suppliers: SupplierOption[];
   retentionRules: RetentionRule[];
+  pendingWithholdings?: PendingWithholding[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -87,6 +98,8 @@ export default function PagamentosClient({
   const [filterMethod, setFilterMethod] = useState("ALL");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRetentionModalOpen, setIsRetentionModalOpen] = useState(false);
+  const [selectedBankAccountId, setSelectedBankAccountId] = useState(bankAccounts[0]?.id || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -185,6 +198,15 @@ export default function PagamentosClient({
     if (result.error) alert(result.error);
   };
 
+  const handleSettleWithholding = async (withholdingPayableId: string) => {
+    if (!selectedBankAccountId) {
+      alert("Selecione uma conta bancária ativa para o recolhimento.");
+      return;
+    }
+    const result = await settleWithholdingPayableAction(withholdingPayableId, selectedBankAccountId);
+    if (result.error) alert(result.error);
+  };
+
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -193,6 +215,12 @@ export default function PagamentosClient({
           <p className="text-muted-foreground">Ordens de pagamento e execução financeira</p>
         </div>
         <div className="flex items-center space-x-2">
+          {pendingWithholdings.length > 0 && (
+            <Button variant="outline" onClick={() => setIsRetentionModalOpen(true)}>
+              <Wallet className="mr-2 h-4 w-4 text-amber-500" />
+              Recolher Retenções Pendentes ({pendingWithholdings.length})
+            </Button>
+          )}
           <Button onClick={handleOpenNew}>
             <Plus className="mr-2 h-4 w-4" />
             Nova Ordem de Pagamento
@@ -475,6 +503,58 @@ export default function PagamentosClient({
               <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Salvando..." : "Confirmar Pagamento"}</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isRetentionModalOpen} onOpenChange={setIsRetentionModalOpen}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>Recolhimento de Retenções Tributárias</DialogTitle>
+            <DialogDescription>Selecione a conta bancária e confirme a quitação da retenção tributária / consignação.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Conta Bancária para Débito do Recolhimento</Label>
+              <Select value={selectedBankAccountId} onValueChange={(v) => setSelectedBankAccountId(v as string)}>
+                <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
+                <SelectContent>
+                  {bankAccounts.map(b => (
+                    <SelectItem key={b.id} value={b.id}>{b.bankName} (Ag: {b.agency} Cc: {b.accountNumber})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ordem</TableHead>
+                  <TableHead>Tipo / Descrição</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead className="text-right">Ação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingWithholdings.map((pw) => (
+                  <TableRow key={pw.id}>
+                    <TableCell className="font-medium">{pw.orderNumber}</TableCell>
+                    <TableCell>
+                      <strong>{pw.type}</strong>
+                      {pw.description && <span className="block text-xs text-muted-foreground">{pw.description}</span>}
+                    </TableCell>
+                    <TableCell>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pw.value)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" onClick={() => handleSettleWithholding(pw.id)}>
+                        Recolher
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRetentionModalOpen(false)}>Fechar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

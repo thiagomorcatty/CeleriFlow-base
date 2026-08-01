@@ -93,6 +93,20 @@ async function lockWithholdingPayable(tx: Prisma.TransactionClient, payableId: s
   await tx.$queryRaw`SELECT id FROM "WithholdingPayable" WHERE id = ${payableId} FOR UPDATE`;
 }
 
+async function lockPayment(tx: Prisma.TransactionClient, paymentId: string) {
+  await tx.$queryRaw`SELECT id FROM "Payment" WHERE id = ${paymentId} FOR UPDATE`;
+}
+
+async function lockPaymentWithholdings(tx: Prisma.TransactionClient, paymentId: string) {
+  await tx.$queryRaw`
+    SELECT wp.id 
+    FROM "WithholdingPayable" wp 
+    JOIN "PaymentRetention" r ON wp."retentionId" = r.id 
+    WHERE r."paymentId" = ${paymentId} 
+    FOR UPDATE
+  `;
+}
+
 function commitmentValue(value: Prisma.Decimal | null, movements: { type: string; valueDecimal: Prisma.Decimal }[]) {
   return movements.reduce((total, movement) => {
     if (movement.type === "Reforço") return total.plus(movement.valueDecimal);
@@ -604,6 +618,8 @@ export async function reversePayment(
 ) {
   if (!justification.trim()) throw new FinanceError("A justificativa de estorno do pagamento é obrigatória.");
   return db.$transaction(async (tx) => {
+    await lockPayment(tx, paymentId);
+    await lockPaymentWithholdings(tx, paymentId);
     const payment = await tx.payment.findUnique({
       include: {
         commitment: { include: { appropriation: true } },
@@ -740,6 +756,7 @@ export async function settleWithholdingPayable(
 
 export async function updatePaymentStatus(db: PrismaClient, actor: FinanceActor, paymentId: string, status: string) {
   return db.$transaction(async (tx) => {
+    await lockPayment(tx, paymentId);
     const payment = await tx.payment.findUnique({
       include: {
         commitment: { include: { appropriation: true } },
@@ -748,11 +765,18 @@ export async function updatePaymentStatus(db: PrismaClient, actor: FinanceActor,
       where: { id: paymentId },
     });
     if (!payment) throw new FinanceError("Pagamento não encontrado.");
+
+    // Tratamento de dupla confirmação concorrente (idempotência perfeita para cliques múltiplos)
+    if (status === "Paga" && payment.status === "Paga") {
+      return payment;
+    }
+
     await lockCommitment(tx, payment.commitmentId);
     const year = await assertFinancialYearOpen(tx, payment.commitment.appropriation.financialYearId, payment.date);
     if (status === "Paga" && payment.status !== "Emitida") throw new FinanceError("Somente ordens emitidas podem ser marcadas como pagas.");
     if (status === "Cancelada" && payment.status !== "Emitida") throw new FinanceError("Somente ordens emitidas podem ser canceladas. Pagamentos efetivados exigem estorno.");
     if (status === "Cancelada") {
+      await lockPaymentWithholdings(tx, paymentId);
       const recolhida = payment.retentions.some((r) => r.withholdingPayable?.status === "Recolhida");
       if (recolhida) throw new FinanceError("Não é possível cancelar um pagamento com retenções tributárias já recolhidas.");
     }

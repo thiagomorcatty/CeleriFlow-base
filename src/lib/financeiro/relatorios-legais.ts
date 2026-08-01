@@ -123,7 +123,7 @@ export async function generateBalanceteContabil(db: Db, filter: ReportFilter) {
 
 // --- Relatório Resumido da Execução Orçamentária (RREO) ---
 export async function generateRREO(db: Db, filter: ReportFilter) {
-  const [appropriations, revenues, forecasts] = await Promise.all([
+  const [appropriations, revenues, forecasts, fixations] = await Promise.all([
     db.budgetAppropriation.findMany({
       where: {
         financialYearId: filter.financialYearId,
@@ -138,7 +138,10 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
           },
           include: {
             movements: {
-              select: { type: true, valueDecimal: true },
+              where: {
+                ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
+              },
+              select: { type: true, valueDecimal: true, date: true },
             },
             settlements: {
               where: {
@@ -173,6 +176,14 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
       include: { revenueNature: true },
     }),
     db.annualBudgetRevenueForecast.findMany({
+      where: {
+        annualBudgetLaw: {
+          financialYearId: filter.financialYearId,
+          status: "Vigente",
+        },
+      },
+    }),
+    db.annualBudgetExpenseFixation.findMany({
       where: {
         annualBudgetLaw: {
           financialYearId: filter.financialYearId,
@@ -262,9 +273,12 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
     }
   }
 
+  const totalLegalFixedExpense = fixations.reduce((sum, f) => sum + Number(f.fixedValue), 0);
+
   return {
     expenseSummary,
     revenueSummary: Object.values(revenueMap),
+    totalLegalFixedExpense: totalLegalFixedExpense > 0 ? totalLegalFixedExpense : expenseSummary.reduce((sum, e) => sum + e.fixedValue, 0),
   };
 }
 
@@ -314,7 +328,7 @@ export async function generateBalancoOrcamentario(db: Db, filter: ReportFilter) 
   const rreo = await generateRREO(db, filter);
   const totalReceitaPrevista = rreo.revenueSummary.reduce((sum, r) => sum + r.predictedValue, 0);
   const totalReceitaRealizada = rreo.revenueSummary.reduce((sum, r) => sum + r.realizedValue, 0);
-  const totalDespesaFixada = rreo.expenseSummary.reduce((sum, e) => sum + e.fixedValue, 0);
+  const totalDespesaFixada = rreo.totalLegalFixedExpense;
   const totalDespesaEmpenhada = rreo.expenseSummary.reduce((sum, e) => sum + e.committedValue, 0);
   const totalDespesaLiquidada = rreo.expenseSummary.reduce((sum, e) => sum + e.settledValue, 0);
   const totalDespesaPaga = rreo.expenseSummary.reduce((sum, e) => sum + e.paidValue, 0);
