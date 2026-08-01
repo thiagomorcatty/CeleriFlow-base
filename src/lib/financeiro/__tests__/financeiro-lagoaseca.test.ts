@@ -190,14 +190,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         },
       );
     } finally {
-      // Limpeza segura de dados de teste temporários para manter o banco e a auditoria limpos
-      const createdIds = [paymentId, settlementId, commitmentId, reservationId, expenseId].filter(Boolean);
-      if (createdIds.length > 0) {
-        await prisma.financialAuditLog.deleteMany({
-          where: { entityId: { in: createdIds } },
-        });
-      }
-
+      // A auditoria financeira e append-only; os fatos temporarios sao limpos, mas seus logs permanecem como evidencia.
       if (paymentId) {
         await prisma.treasuryMovement.deleteMany({ where: { sourceId: paymentId } });
         const retentions = await prisma.paymentRetention.findMany({ where: { paymentId }, select: { id: true } });

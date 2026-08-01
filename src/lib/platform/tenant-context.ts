@@ -36,6 +36,7 @@ type RolePermissions = {
   acesso?: unknown;
   modulosBloqueados?: unknown;
   modulosPermitidos?: unknown;
+  modulosSomenteLeitura?: unknown;
 };
 
 function parseRolePermissions(value: string | null | undefined): RolePermissions | null {
@@ -59,6 +60,7 @@ export function canEditModule(user: AppContext["user"], moduleCode: string) {
   const codeUpper = moduleCode.toUpperCase();
   const rolePermissions = parseRolePermissions(user.permissions);
   if (hasModuleAccess(rolePermissions?.modulosBloqueados, codeUpper)) return false;
+  if (hasModuleAccess(rolePermissions?.modulosSomenteLeitura, codeUpper)) return false;
 
   const allowedModules = rolePermissions?.modulosPermitidos;
   if (Array.isArray(allowedModules) && !hasModuleAccess(allowedModules, codeUpper)) return false;

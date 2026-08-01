@@ -53,7 +53,7 @@ export default async function PagamentosPage() {
       isActive: true,
       ...(isSystemAdministrator(context.user)
         ? {}
-        : { OR: [{ budgetUnitId: null }, { budgetUnitId: { in: context.user.allowedBudgetUnitIds } }] }),
+        : { budgetUnitId: { in: context.user.allowedBudgetUnitIds } }),
     },
   });
 

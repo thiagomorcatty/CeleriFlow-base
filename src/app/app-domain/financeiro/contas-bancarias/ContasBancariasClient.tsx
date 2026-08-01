@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Landmark, Pencil, Plus, Search, Check, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -28,16 +28,20 @@ type BankAccount = {
   accountType: string;
   currentBalance: number;
   resourceSourceId: string | null;
+  budgetUnitId: string | null;
   isActive: boolean;
   resourceSource?: { id: string; name: string } | null;
+  budgetUnit?: { id: string; code: string; name: string } | null;
 };
 
 export default function ContasBancariasClient({
   accounts,
-  resourceSources
+  resourceSources,
+  budgetUnits,
 }: {
   accounts: BankAccount[];
   resourceSources: { id: string; name: string }[];
+  budgetUnits: { id: string; code: string; name: string }[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,6 +55,7 @@ export default function ContasBancariasClient({
     accountType: "Movimento",
     currentBalance: 0,
     resourceSourceId: "",
+    budgetUnitId: "",
     isActive: true
   });
 
@@ -69,6 +74,7 @@ export default function ContasBancariasClient({
       accountType: "Movimento",
       currentBalance: 0,
       resourceSourceId: "",
+      budgetUnitId: "",
       isActive: true
     });
     setIsModalOpen(true);
@@ -83,6 +89,7 @@ export default function ContasBancariasClient({
       accountType: account.accountType,
       currentBalance: 0,
       resourceSourceId: account.resourceSourceId || "",
+      budgetUnitId: account.budgetUnitId || "",
       isActive: account.isActive
     });
     setIsModalOpen(true);
@@ -153,6 +160,7 @@ export default function ContasBancariasClient({
                 <TableHead>Agência / Conta</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Fonte de Recurso</TableHead>
+                <TableHead>Unidade Gestora</TableHead>
                 <TableHead>Saldo Atual (R$)</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -161,7 +169,7 @@ export default function ContasBancariasClient({
             <TableBody>
               {filteredAccounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground h-32">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground h-32">
                     <div className="flex flex-col items-center justify-center">
                       <Landmark className="h-8 w-8 mb-2 opacity-20" />
                       Nenhuma conta bancária encontrada.
@@ -175,6 +183,7 @@ export default function ContasBancariasClient({
                     <TableCell>{account.agency} / {account.accountNumber}</TableCell>
                     <TableCell>{account.accountType}</TableCell>
                     <TableCell>{account.resourceSource?.name || 'Não vinculada'}</TableCell>
+                    <TableCell>{account.budgetUnit ? `${account.budgetUnit.code} - ${account.budgetUnit.name}` : "Não vinculada"}</TableCell>
                     <TableCell className={account.currentBalance < 0 ? "text-rose-500 font-medium" : "text-emerald-500 font-medium"}>
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.currentBalance)}
                     </TableCell>
@@ -238,13 +247,23 @@ export default function ContasBancariasClient({
               </div>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="resourceSourceId">Fonte de Recurso (Opcional)</Label>
+              <Label htmlFor="resourceSourceId">Fonte de Recurso</Label>
               <Select value={formData.resourceSourceId} onValueChange={v => setFormData({...formData, resourceSourceId: v as string})}>
                 <SelectTrigger><SelectValue placeholder="Selecione a fonte" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value=" ">Sem vinculação</SelectItem>
                   {resourceSources.map(s => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="budgetUnitId">Unidade Gestora</Label>
+              <Select value={formData.budgetUnitId} onValueChange={v => setFormData({...formData, budgetUnitId: v as string})}>
+                <SelectTrigger><SelectValue placeholder="Selecione a Unidade Gestora" /></SelectTrigger>
+                <SelectContent>
+                  {budgetUnits.map(unit => (
+                    <SelectItem key={unit.id} value={unit.id}>{unit.code} - {unit.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

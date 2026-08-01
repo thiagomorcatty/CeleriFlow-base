@@ -16,6 +16,15 @@ async function assertCommitmentAccess(context: AppContext, commitmentId: string)
   assertBudgetUnitAccess(context.user, commitment.appropriation.budgetUnitId);
 }
 
+async function assertBankAccountAccess(context: AppContext, bankAccountId: string) {
+  const account = await context.prisma.bankAccount.findUnique({
+    where: { id: bankAccountId },
+    select: { budgetUnitId: true },
+  });
+  if (!account?.budgetUnitId) throw new FinanceError("A conta bancária deve estar vinculada a uma Unidade Gestora.");
+  assertBudgetUnitAccess(context.user, account.budgetUnitId);
+}
+
 export async function createPayment(data: {
   orderNumber: string;
   date: Date;
@@ -31,6 +40,7 @@ export async function createPayment(data: {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     await assertCommitmentAccess(context, data.commitmentId);
+    await assertBankAccountAccess(context, data.bankAccountId);
     await createOfficialPayment(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, data);
     revalidatePath("/financeiro/pagamentos");
     return {};
@@ -82,10 +92,7 @@ export async function settleWithholdingPayableAction(withholdingPayableId: strin
     if (!payable?.retention?.payment?.commitmentId) throw new FinanceError("Consignação/retenção não encontrada.");
     await assertCommitmentAccess(context, payable.retention.payment.commitmentId);
 
-    const bankAccount = await context.prisma.bankAccount.findUnique({ where: { id: bankAccountId }, select: { budgetUnitId: true } });
-    if (bankAccount?.budgetUnitId) {
-      assertBudgetUnitAccess(context.user, bankAccount.budgetUnitId);
-    }
+    await assertBankAccountAccess(context, bankAccountId);
 
     const { settleWithholdingPayable: settleOfficialWithholding } = await import("@/lib/financeiro");
     await settleOfficialWithholding(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, { withholdingPayableId, bankAccountId, paymentDate: new Date() });

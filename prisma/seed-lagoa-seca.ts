@@ -46,12 +46,22 @@ async function main() {
     update: { name: "Câmara Municipal de Lagoa Seca", secretariatId: secretariaFinancas.id },
   });
 
-  // 3. Perfis e Usuários Segregados por UG com Hash Seguro de Senha
-  const perfilContador = await prisma.configuracaoPerfil.upsert({
-    where: { id: "perfil-contador-lagoaseca" },
-    create: { id: "perfil-contador-lagoaseca", nome: "Contador Responsável", ativo: true, permissoes: '{"FINANCEIRO": true}' },
-    update: { nome: "Contador Responsável" },
-  });
+  // 3. Perfis mínimos da POC, com auditoria somente leitura e acesso por módulo.
+  const profileDefinitions = [
+    { id: "perfil-administrador-lagoaseca", nome: "Administrador", permissoes: { acesso: "total" } },
+    { id: "perfil-solicitante-lagoaseca", nome: "Solicitante", permissoes: { acesso: "operacional", modulosPermitidos: ["FINANCEIRO"] } },
+    { id: "perfil-aprovador-lagoaseca", nome: "Aprovador/Gestor", permissoes: { acesso: "operacional", modulosPermitidos: ["FINANCEIRO"] } },
+    { id: "perfil-contador-lagoaseca", nome: "Contador", permissoes: { acesso: "operacional", modulosPermitidos: ["FINANCEIRO"] } },
+    { id: "perfil-tesoureiro-lagoaseca", nome: "Tesoureiro", permissoes: { acesso: "operacional", modulosPermitidos: ["FINANCEIRO"] } },
+    { id: "perfil-auditor-lagoaseca", nome: "Auditor", permissoes: { acesso: "operacional", modulosPermitidos: ["FINANCEIRO"], modulosSomenteLeitura: ["FINANCEIRO"] } },
+    { id: "perfil-transparencia-lagoaseca", nome: "Transparência", permissoes: { acesso: "operacional", modulosPermitidos: ["TRANSPARENCIA"] } },
+  ];
+  await Promise.all(profileDefinitions.map((profile) => prisma.configuracaoPerfil.upsert({
+    where: { id: profile.id },
+    create: { ...profile, permissoes: JSON.stringify(profile.permissoes), ativo: true },
+    update: { nome: profile.nome, permissoes: JSON.stringify(profile.permissoes), ativo: true },
+  })));
+  const perfilContador = await prisma.configuracaoPerfil.findUniqueOrThrow({ where: { id: "perfil-contador-lagoaseca" } });
 
   await prisma.usuario.upsert({
     where: { email: "contador.prefeitura@lagoaseca.pb.gov.br" },
@@ -102,7 +112,7 @@ async function main() {
     update: {},
   });
 
-  const fonteEducacao = await prisma.resourceSource.upsert({
+  await prisma.resourceSource.upsert({
     where: { code: "15010000" },
     create: { code: "15010000", name: "Outros Recursos Vinculados à Educação (MDE)" },
     update: {},

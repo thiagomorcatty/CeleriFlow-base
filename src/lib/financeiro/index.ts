@@ -517,20 +517,23 @@ export async function createPayment(
     const { commitment, year } = await commitmentForPosting(tx, input.commitmentId, input.date);
     const bankAccount = await tx.bankAccount.findUnique({
       where: { id: input.bankAccountId },
-      select: { id: true, isActive: true, resourceSourceId: true },
+      select: { id: true, isActive: true, resourceSourceId: true, budgetUnitId: true },
     });
     if (!bankAccount?.isActive) throw new FinanceError("Selecione uma conta bancária ativa.");
 
     // Validação de compatibilidade de fonte de recursos (Fonte Obrigatória)
     const appropriation = await tx.budgetAppropriation.findUnique({
       where: { id: commitment.appropriationId },
-      select: { resourceSourceId: true },
+      select: { resourceSourceId: true, budgetUnitId: true },
     });
     if (!bankAccount.resourceSourceId) {
       throw new FinanceError("A conta bancária para pagamento deve possuir fonte de recursos configurada.");
     }
     if (appropriation?.resourceSourceId && bankAccount.resourceSourceId !== appropriation.resourceSourceId) {
       throw new FinanceError("A fonte de recursos da conta bancária é incompatível com a fonte de recursos da dotação orçamentária.");
+    }
+    if (!bankAccount.budgetUnitId || bankAccount.budgetUnitId !== appropriation?.budgetUnitId) {
+      throw new FinanceError("A conta bancária deve estar vinculada à mesma Unidade Gestora da dotação.");
     }
 
     if (commitment.supplierId !== input.supplierId) throw new FinanceError("O fornecedor do pagamento deve ser o mesmo do empenho.");
@@ -720,7 +723,7 @@ export async function settleWithholdingPayable(
     if (origSourceId && bankAccount.resourceSourceId !== origSourceId) {
       throw new FinanceError("A fonte de recursos da conta bancária para recolhimento é incompatível com a fonte de recursos da retenção.");
     }
-    if (bankAccount.budgetUnitId && origBudgetUnitId && bankAccount.budgetUnitId !== origBudgetUnitId) {
+    if (!bankAccount.budgetUnitId || bankAccount.budgetUnitId !== origBudgetUnitId) {
       throw new FinanceError("A conta bancária selecionada pertence a outra Unidade Gestora e não pode debitar o recolhimento desta retenção.");
     }
 
@@ -787,6 +790,20 @@ export async function updatePaymentStatus(db: PrismaClient, actor: FinanceActor,
     if (!["Paga", "Cancelada"].includes(status)) throw new FinanceError("Transição de pagamento inválida.");
 
     if (status === "Paga") {
+      const bankAccount = await tx.bankAccount.findUnique({
+        where: { id: payment.bankAccountId },
+        select: { isActive: true, resourceSourceId: true, budgetUnitId: true },
+      });
+      if (!bankAccount?.isActive) throw new FinanceError("A conta bancária do pagamento está inativa.");
+      if (
+        !bankAccount.budgetUnitId ||
+        bankAccount.budgetUnitId !== payment.commitment.appropriation.budgetUnitId ||
+        !bankAccount.resourceSourceId ||
+        bankAccount.resourceSourceId !== payment.commitment.appropriation.resourceSourceId
+      ) {
+        throw new FinanceError("A conta bancária do pagamento não é compatível com a Unidade Gestora ou fonte da dotação.");
+      }
+
       // Bloqueia a conta bancária para evitar race condition entre pagamentos simultâneos
       await lockBankAccount(tx, payment.bankAccountId);
 
@@ -878,10 +895,11 @@ export async function getBankAccountBalances(tx: Db, bankAccountIds?: string[]) 
 export async function createBankAccountWithOpeningBalance(
   db: PrismaClient,
   actor: FinanceActor,
-  input: { bankName: string; agency: string; accountNumber: string; accountType: string; openingBalance?: Prisma.Decimal | string | number; resourceSourceId?: string; isActive: boolean; openingDate?: Date },
+  input: { bankName: string; agency: string; accountNumber: string; accountType: string; openingBalance?: Prisma.Decimal | string | number; resourceSourceId: string; budgetUnitId: string; isActive: boolean; openingDate?: Date },
 ) {
   const openingBalance = input.openingBalance === undefined ? new Prisma.Decimal(0) : new Prisma.Decimal(String(input.openingBalance)).toDecimalPlaces(2);
   if (!openingBalance.isFinite() || openingBalance.lessThan(0)) throw new FinanceError("O saldo de abertura não pode ser negativo.");
+  if (!input.resourceSourceId.trim() || !input.budgetUnitId.trim()) throw new FinanceError("Conta bancária exige fonte de recursos e Unidade Gestora.");
   const openingDate = input.openingDate ?? new Date();
   return db.$transaction(async (tx) => {
     const account = await tx.bankAccount.create({
@@ -892,7 +910,8 @@ export async function createBankAccountWithOpeningBalance(
         accountType: input.accountType.trim(),
         currentBalance: 0,
         currentBalanceDecimal: new Prisma.Decimal(0),
-        resourceSourceId: input.resourceSourceId?.trim() || undefined,
+        resourceSourceId: input.resourceSourceId.trim(),
+        budgetUnitId: input.budgetUnitId.trim(),
         isActive: input.isActive,
       },
     });
@@ -925,7 +944,7 @@ export async function updateBankAccountDetails(
   db: PrismaClient,
   actor: FinanceActor,
   id: string,
-  input: { bankName?: string; agency?: string; accountNumber?: string; accountType?: string; resourceSourceId?: string; isActive?: boolean },
+  input: { bankName?: string; agency?: string; accountNumber?: string; accountType?: string; resourceSourceId?: string; budgetUnitId?: string; isActive?: boolean },
 ) {
   return db.$transaction(async (tx) => {
     const account = await tx.bankAccount.update({
@@ -936,6 +955,7 @@ export async function updateBankAccountDetails(
         accountNumber: input.accountNumber?.trim(),
         accountType: input.accountType?.trim(),
         resourceSourceId: input.resourceSourceId?.trim() || undefined,
+        budgetUnitId: input.budgetUnitId?.trim() || undefined,
         isActive: input.isActive,
       },
     });

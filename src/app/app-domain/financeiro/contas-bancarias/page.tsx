@@ -1,12 +1,15 @@
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModule, isSystemAdministrator } from "@/lib/platform/tenant-context";
 import { getBankAccountBalances } from "@/lib/financeiro";
 import ContasBancariasClient from "./ContasBancariasClient"
 
 export default async function ContasBancariasPage() {
-  const { prisma } = await getTenantContextForModule("FINANCEIRO");
+  const context = await getTenantContextForModule("FINANCEIRO");
+  const { prisma } = context;
   const accounts = await prisma.bankAccount.findMany({
+    where: isSystemAdministrator(context.user) ? {} : { budgetUnitId: { in: context.user.allowedBudgetUnitIds } },
     include: {
-      resourceSource: true
+      resourceSource: true,
+      budgetUnit: true,
     },
     orderBy: {
       bankName: 'asc'
@@ -18,10 +21,15 @@ export default async function ContasBancariasPage() {
   })
 
   const balances = await getBankAccountBalances(prisma, accounts.map((account) => account.id));
-  const displayAccounts = accounts.map(({ currentBalanceDecimal: _currentBalanceDecimal, ...account }) => ({
+  const displayAccounts = accounts.map((account) => ({
     ...account,
     currentBalance: Number(balances[account.id] ?? 0),
   }))
 
-  return <ContasBancariasClient accounts={displayAccounts} resourceSources={resourceSources} />
+  const budgetUnits = await prisma.budgetUnit.findMany({
+    where: isSystemAdministrator(context.user) ? {} : { id: { in: context.user.allowedBudgetUnitIds } },
+    orderBy: { code: "asc" },
+  });
+
+  return <ContasBancariasClient accounts={displayAccounts} resourceSources={resourceSources} budgetUnits={budgetUnits} />
 }
