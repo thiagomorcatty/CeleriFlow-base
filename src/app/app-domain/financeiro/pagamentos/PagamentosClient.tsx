@@ -98,8 +98,6 @@ export default function PagamentosClient({
     bankAccountId: "",
     supplierId: "",
     paymentMethod: "Transferência",
-    isExceptional: false,
-    exceptionJustification: "",
     serviceCode: "",
     retentionRuleIds: [] as string[],
   });
