@@ -475,6 +475,7 @@ model Supplier {
   // Mod 8
   commitments Commitment[] @relation("SupplierCommitments")
   payments    Payment[]    @relation("SupplierPayments")
+  expenses    Expense[]    @relation("SupplierExpenses")
   creditor    Creditor?    @relation("SupplierCreditor")
 
   // Mod 9
@@ -1817,6 +1818,7 @@ model MultiYearPlan {
   updatedAt   DateTime @updatedAt
 
   programs ProgramPPA[]
+  budgetGuidelines BudgetGuideline[]
 }
 
 model ProgramPPA {
@@ -1879,15 +1881,20 @@ model GoalPPA {
 }
 
 model BudgetGuideline {
-  id              String        @id @default(cuid())
-  financialYearId String
-  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id])
-  status          String        @default("Vigente")
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id               String        @id @default(cuid())
+  financialYearId  String
+  financialYear    FinancialYear @relation(fields: [financialYearId], references: [id])
+  multiYearPlanId  String?
+  multiYearPlan    MultiYearPlan? @relation(fields: [multiYearPlanId], references: [id], onDelete: Restrict)
+  status           String        @default("Vigente")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  priorities BudgetGuidelinePriority[]
-  risks      BudgetGuidelineRisk[]
+  priorities      BudgetGuidelinePriority[]
+  risks           BudgetGuidelineRisk[]
+  annualBudgetLaws AnnualBudgetLaw[]
+
+  @@index([multiYearPlanId])
 }
 
 model BudgetGuidelinePriority {
@@ -1908,21 +1915,25 @@ model BudgetGuidelineRisk {
 }
 
 model AnnualBudgetLaw {
-  id              String        @id @default(cuid())
-  lawNumber       String
-  publicationDate DateTime
-  financialYearId String
-  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id])
-  status          String        @default("Sancionada")
-  totalRevenue    Decimal       @db.Decimal(18, 2)
-  totalExpense    Decimal       @db.Decimal(18, 2)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                String        @id @default(cuid())
+  lawNumber         String
+  publicationDate   DateTime
+  financialYearId   String
+  financialYear     FinancialYear @relation(fields: [financialYearId], references: [id])
+  budgetGuidelineId String?
+  budgetGuideline   BudgetGuideline? @relation(fields: [budgetGuidelineId], references: [id], onDelete: Restrict)
+  status            String        @default("Sancionada")
+  totalRevenue      Decimal       @db.Decimal(18, 2)
+  totalExpense      Decimal       @db.Decimal(18, 2)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   revenueForecasts AnnualBudgetRevenueForecast[]
   expenseFixations AnnualBudgetExpenseFixation[]
   cmdSchedules     MonthlyDisbursementSchedule[]
   mbaTargets       BimonthlyRevenueTarget[]
+
+  @@index([budgetGuidelineId])
 }
 
 model AnnualBudgetRevenueForecast {
@@ -1941,6 +1952,8 @@ model AnnualBudgetExpenseFixation {
   code              String
   name              String
   fixedValue        Decimal         @db.Decimal(18, 2)
+
+  appropriations BudgetAppropriation[]
 }
 
 model MonthlyDisbursementSchedule {
@@ -2053,6 +2066,8 @@ model BudgetAppropriation {
   expenseNature         ExpenseNature  @relation(fields: [expenseNatureId], references: [id])
   resourceSourceId      String
   resourceSource        ResourceSource @relation(fields: [resourceSourceId], references: [id])
+  annualBudgetExpenseFixationId String?
+  annualBudgetExpenseFixation   AnnualBudgetExpenseFixation? @relation(fields: [annualBudgetExpenseFixationId], references: [id], onDelete: Restrict)
   initialValue          Float          @default(0)
   initialValueDecimal   Decimal?       @db.Decimal(18, 2)
   updatedValue          Float          @default(0)
@@ -2070,6 +2085,8 @@ model BudgetAppropriation {
   obrasServices      ObrasServico[]      @relation("ObrasServicoBudget")
   culturaProjects    CulturaProjeto[]    @relation("CulturaProjectBudget")
   culturaFunds       CulturaFundo[]      @relation("CulturaFundBudget")
+
+  @@index([annualBudgetExpenseFixationId])
 }
 
 model Revenue {
@@ -2110,7 +2127,14 @@ model Expense {
   appropriation   BudgetAppropriation @relation(fields: [appropriationId], references: [id])
   secretariatId   String
   secretariat     Secretariat         @relation("SecretariatExpenses", fields: [secretariatId], references: [id])
-  status          String              @default("Solicitada") // Solicitada, Reservada, Empenhada
+  supplierId      String?
+  supplier        Supplier?           @relation("SupplierExpenses", fields: [supplierId], references: [id])
+  requestedById   String?
+  requestedBy     Usuario?            @relation("ExpenseRequestedBy", fields: [requestedById], references: [id])
+  approvedById    String?
+  approvedBy      Usuario?            @relation("ExpenseApprovedBy", fields: [approvedById], references: [id])
+  approvedAt      DateTime?
+  status          String              @default("Solicitada") // Solicitada, Aprovada, Rejeitada, Reservada, Empenhada
   sourceModule    String              @default("MANUAL")
   sourceType      String              @default("EXPENSE_REQUEST")
   sourceId        String?
@@ -5235,6 +5259,8 @@ model Usuario {
   annualAccountingCloses   AnnualAccountingClose[]  @relation("AnnualCloseUsuario")
   creditRequestsRequested  CreditRequest[]          @relation("CreditRequestRequestedBy")
   creditRequestsApproved   CreditRequest[]          @relation("CreditRequestApprovedBy")
+  expenseRequests          Expense[]                @relation("ExpenseRequestedBy")
+  expenseApprovals         Expense[]                @relation("ExpenseApprovedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

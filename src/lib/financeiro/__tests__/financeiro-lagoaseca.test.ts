@@ -4,6 +4,7 @@ import { test, describe } from "node:test";
 import { prisma } from "../../prisma";
 import {
   createExpenseRequest,
+  approveExpenseRequest,
   createBudgetReservation,
   createCommitment,
   createSettlement,
@@ -20,6 +21,7 @@ import {
   generateBalancoOrcamentario,
   generateBalancoPatrimonial,
 } from "../relatorios-legais";
+import { createAnnualBudgetLaw, createBudgetAppropriationFromFixation, createBudgetGuideline, createMultiYearPlan } from "../planejamento";
 
 describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Estritas", () => {
   async function getActor(): Promise<FinanceActor> {
@@ -77,6 +79,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         description: `Teste Integrado Lagoa Seca - ${timestamp}`,
         value: "1000.00",
         appropriationId: dotacaoPref.id,
+        supplierId: "supp-lagoaseca-01",
         secretariatId: "sec-fin-01",
         sourceModule: "TEST",
         sourceType: "EXPENSE_REQUEST",
@@ -84,6 +87,17 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       });
       expenseId = expense.id;
       assert.ok(expenseId);
+
+      const approver = await prisma.usuario.findFirst({
+        where: { id: { not: actor.usuarioId }, ativo: true },
+        select: { id: true, employeeId: true },
+      });
+      assert.ok(approver, "A base de teste deve possuir um aprovador diferente do solicitante");
+      await assert.rejects(
+        () => approveExpenseRequest(prisma, actor, expense.id),
+        /solicitante não pode aprovar a própria solicitação/i,
+      );
+      await approveExpenseRequest(prisma, { ...actor, usuarioId: approver.id, employeeId: approver.employeeId }, expense.id);
 
       // b) Reserva de dotação
       const reservation = await createBudgetReservation(prisma, actor, {
@@ -241,5 +255,91 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
     const balancoPat = await generateBalancoPatrimonial(prisma, filter);
     assert.ok(balancoPat.totais);
     assert.ok(balancoPat.patrimonioLiquido, "Patrimônio Líquido deve estar separado do Passivo");
+  });
+
+  test("5. Deve rastrear PPA, LDO e LOA e aceitar publicação no exercício anterior", async () => {
+    const actor = await getActor();
+    const planningActor = { ...actor, allowedBudgetUnitIds: undefined };
+    const suffix = Date.now().toString();
+    let financialYearId = "";
+    let planId = "";
+    let guidelineId = "";
+    let loaId = "";
+    let appropriationId = "";
+
+    try {
+      const financialYear = await prisma.financialYear.create({
+        data: {
+          year: 2031,
+          status: "Preparação",
+          startDate: new Date("2031-01-01T00:00:00.000Z"),
+          endDate: new Date("2031-12-31T23:59:59.999Z"),
+        },
+      });
+      financialYearId = financialYear.id;
+      const plan = await createMultiYearPlan(prisma, actor, {
+        code: `PPA-${suffix}`,
+        name: "PPA de rastreabilidade",
+        startYear: 2030,
+        endYear: 2034,
+      });
+      planId = plan.id;
+      const guideline = await createBudgetGuideline(prisma, actor, {
+        financialYearId,
+        multiYearPlanId: plan.id,
+      });
+      guidelineId = guideline.id;
+      const loa = await createAnnualBudgetLaw(prisma, actor, {
+        lawNumber: `LOA-${suffix}`,
+        publicationDate: new Date("2030-12-20T00:00:00.000Z"),
+        financialYearId,
+        budgetGuidelineId: guideline.id,
+        totalRevenue: 100,
+        totalExpense: 100,
+        revenueForecasts: [{ code: "1.0.0", name: "Receita de teste", estimatedValue: 100 }],
+        expenseFixations: [{ code: "3.3.9", name: "Despesa de teste", fixedValue: 100 }],
+      });
+      loaId = loa.id;
+      const [budgetUnit, expenseNature, resourceSource] = await Promise.all([
+        prisma.budgetUnit.findFirst({ select: { id: true } }),
+        prisma.expenseNature.findFirst({ select: { id: true } }),
+        prisma.resourceSource.findFirst({ select: { id: true } }),
+      ]);
+      assert.ok(budgetUnit && expenseNature && resourceSource, "Cadastros orcamentarios de apoio devem existir");
+      const appropriation = await createBudgetAppropriationFromFixation(prisma, planningActor, {
+        annualBudgetExpenseFixationId: loa.expenseFixations[0].id,
+        code: `DOT-${suffix}`,
+        budgetUnitId: budgetUnit.id,
+        expenseNatureId: expenseNature.id,
+        resourceSourceId: resourceSource.id,
+        initialValue: 100,
+      });
+      appropriationId = appropriation.id;
+      await assert.rejects(
+        () => createBudgetAppropriationFromFixation(prisma, planningActor, {
+          annualBudgetExpenseFixationId: loa.expenseFixations[0].id,
+          code: `DOT-EXCESSO-${suffix}`,
+          budgetUnitId: budgetUnit.id,
+          expenseNatureId: expenseNature.id,
+          resourceSourceId: resourceSource.id,
+          initialValue: 1,
+        }),
+        /excede o saldo disponivel da fixacao/i,
+      );
+
+      const trace = await prisma.annualBudgetLaw.findUniqueOrThrow({
+        where: { id: loa.id },
+        include: { budgetGuideline: { include: { multiYearPlan: true } }, expenseFixations: { include: { appropriations: true } } },
+      });
+      assert.equal(trace.budgetGuideline?.multiYearPlan?.id, plan.id);
+      assert.equal(trace.financialYearId, financialYear.id);
+      assert.equal(trace.expenseFixations[0].appropriations[0]?.id, appropriation.id);
+    } finally {
+      if (appropriationId) await prisma.budgetAppropriation.delete({ where: { id: appropriationId } });
+      if (loaId) await prisma.annualBudgetLaw.delete({ where: { id: loaId } });
+      if (guidelineId) await prisma.budgetGuideline.delete({ where: { id: guidelineId } });
+      if (planId) await prisma.multiYearPlan.delete({ where: { id: planId } });
+      if (financialYearId) await prisma.financialYear.delete({ where: { id: financialYearId } });
+    }
   });
 });

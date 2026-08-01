@@ -81,6 +81,10 @@ async function lockAppropriation(tx: Prisma.TransactionClient, appropriationId: 
   await tx.$queryRaw`SELECT id FROM "BudgetAppropriation" WHERE id = ${appropriationId} FOR UPDATE`;
 }
 
+async function lockExpense(tx: Prisma.TransactionClient, expenseId: string) {
+  await tx.$queryRaw`SELECT id FROM "Expense" WHERE id = ${expenseId} FOR UPDATE`;
+}
+
 async function lockCommitment(tx: Prisma.TransactionClient, commitmentId: string) {
   await tx.$queryRaw`SELECT id FROM "Commitment" WHERE id = ${commitmentId} FOR UPDATE`;
 }
@@ -193,6 +197,7 @@ export async function createExpenseRequest(
     description: string;
     value: Prisma.Decimal | string | number;
     appropriationId: string;
+    supplierId: string;
     secretariatId: string;
     sourceModule: string;
     sourceType: string;
@@ -207,8 +212,12 @@ export async function createExpenseRequest(
       const existing = await tx.expense.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
       if (existing) return existing;
     }
-    const appropriation = await tx.budgetAppropriation.findUnique({ where: { id: input.appropriationId } });
+    const [appropriation, supplier] = await Promise.all([
+      tx.budgetAppropriation.findUnique({ where: { id: input.appropriationId } }),
+      tx.supplier.findUnique({ where: { id: input.supplierId }, select: { id: true, status: true } }),
+    ]);
     if (!appropriation) throw new FinanceError("Dotação orçamentária não encontrada.");
+    if (!supplier || supplier.status !== "Ativo") throw new FinanceError("Selecione um fornecedor ativo para a solicitação de despesa.");
     const year = await assertFinancialYearOpen(tx, appropriation.financialYearId, input.date);
     const expense = await tx.expense.create({
       data: {
@@ -218,6 +227,8 @@ export async function createExpenseRequest(
         value: legacyMoney(value),
         appropriationId: input.appropriationId,
         secretariatId: input.secretariatId,
+        supplierId: supplier.id,
+        requestedById: actor.usuarioId,
         sourceModule: input.sourceModule.trim(),
         sourceType: input.sourceType.trim(),
         sourceId: input.sourceId?.trim() || undefined,
@@ -225,8 +236,22 @@ export async function createExpenseRequest(
         idempotencyKey: input.idempotencyKey?.trim() || undefined,
       },
     });
-    await audit(tx, actor, "CREATE", "Expense", expense.id, { value: jsonMoney(value), sourceModule: expense.sourceModule, sourceType: expense.sourceType, sourceId: expense.sourceId, eventType: expense.eventType }, year.id);
+    await audit(tx, actor, "CREATE", "Expense", expense.id, { value: jsonMoney(value), supplierId: supplier.id, sourceModule: expense.sourceModule, sourceType: expense.sourceType, sourceId: expense.sourceId, eventType: expense.eventType }, year.id, appropriation.budgetUnitId);
     return expense;
+  });
+}
+
+export async function approveExpenseRequest(db: PrismaClient, actor: FinanceActor, expenseId: string) {
+  return db.$transaction(async (tx) => {
+    await lockExpense(tx, expenseId);
+    const expense = await tx.expense.findUnique({ include: { appropriation: true }, where: { id: expenseId } });
+    if (!expense) throw new FinanceError("Solicitação de despesa não encontrada.");
+    const year = await assertFinancialYearOpen(tx, expense.appropriation.financialYearId, new Date());
+    if (expense.status !== "Solicitada") throw new FinanceError("Somente solicitações pendentes podem ser aprovadas.");
+    if (expense.requestedById === actor.usuarioId) throw new FinanceError("Segregação de funções: o solicitante não pode aprovar a própria solicitação.");
+    const approved = await tx.expense.update({ where: { id: expense.id }, data: { status: "Aprovada", approvedById: actor.usuarioId, approvedAt: new Date() } });
+    await audit(tx, actor, "APPROVE", "Expense", expense.id, { requestedById: expense.requestedById, approvedById: actor.usuarioId }, year.id, expense.appropriation.budgetUnitId);
+    return approved;
   });
 }
 
@@ -308,7 +333,7 @@ export async function createBudgetMovement(
 export async function createBudgetReservation(
   db: PrismaClient,
   actor: FinanceActor,
-  input: { number: string; date: Date; value: Prisma.Decimal | string | number; appropriationId: string; expenseId?: string; justification?: string },
+  input: { number: string; date: Date; value: Prisma.Decimal | string | number; appropriationId: string; expenseId: string; justification?: string },
 ) {
   const value = money(input.value);
   return db.$transaction(async (tx) => {
@@ -316,20 +341,19 @@ export async function createBudgetReservation(
     const appropriation = await tx.budgetAppropriation.findUnique({ where: { id: input.appropriationId } });
     if (!appropriation) throw new FinanceError("Dotação orçamentária não encontrada.");
     const year = await assertFinancialYearOpen(tx, appropriation.financialYearId, input.date);
-    if (input.expenseId) {
-      const expense = await tx.expense.findUnique({ where: { id: input.expenseId } });
-      if (!expense || expense.appropriationId !== appropriation.id) throw new FinanceError("A solicitação de despesa não pertence à dotação informada.");
-      if (expense.status !== "Solicitada") throw new FinanceError("A solicitação de despesa não está disponível para reserva.");
-      const requested = requiredDecimal(expense.valueDecimal, "Expense.valueDecimal");
-      if (!requested.equals(value)) throw new FinanceError("A reserva deve corresponder ao valor da solicitação de despesa.");
-    }
+    await lockExpense(tx, input.expenseId);
+    const expense = await tx.expense.findUnique({ where: { id: input.expenseId } });
+    if (!expense || expense.appropriationId !== appropriation.id) throw new FinanceError("A solicitação de despesa não pertence à dotação informada.");
+    if (expense.status !== "Aprovada") throw new FinanceError("A reserva exige uma solicitação de despesa aprovada.");
+    const requested = requiredDecimal(expense.valueDecimal, "Expense.valueDecimal");
+    if (!requested.equals(value)) throw new FinanceError("A reserva deve corresponder ao valor da solicitação de despesa.");
     const availability = await getBudgetAvailability(tx, appropriation.id);
     if (availability.available.lessThan(value)) throw new FinanceError("A reserva excede a disponibilidade da dotação.");
     const reservation = await tx.budgetReservation.create({
-      data: { number: input.number.trim(), date: input.date, valueDecimal: value, value: legacyMoney(value), appropriationId: appropriation.id, expenseId: input.expenseId, justification: input.justification?.trim() || undefined },
+      data: { number: input.number.trim(), date: input.date, valueDecimal: value, value: legacyMoney(value), appropriationId: appropriation.id, expenseId: expense.id, justification: input.justification?.trim() || undefined },
     });
-    if (input.expenseId) await tx.expense.update({ where: { id: input.expenseId }, data: { status: "Reservada" } });
-    await audit(tx, actor, "CREATE", "BudgetReservation", reservation.id, { value: jsonMoney(value), appropriationId: appropriation.id, expenseId: input.expenseId ?? null }, year.id);
+    await tx.expense.update({ where: { id: expense.id }, data: { status: "Reservada" } });
+    await audit(tx, actor, "CREATE", "BudgetReservation", reservation.id, { value: jsonMoney(value), appropriationId: appropriation.id, expenseId: expense.id }, year.id, appropriation.budgetUnitId);
     return reservation;
   });
 }
@@ -342,7 +366,7 @@ export async function cancelBudgetReservation(db: PrismaClient, actor: FinanceAc
     const year = await assertFinancialYearOpen(tx, reservation.appropriation.financialYearId, reservation.date);
     if (reservation.status !== ACTIVE_RESERVATION_STATUS) throw new FinanceError("Somente reservas ativas podem ser canceladas.");
     const canceled = await tx.budgetReservation.update({ where: { id: reservationId }, data: { status: "Cancelada" } });
-    if (reservation.expenseId) await tx.expense.update({ where: { id: reservation.expenseId }, data: { status: "Solicitada" } });
+    if (reservation.expenseId) await tx.expense.update({ where: { id: reservation.expenseId }, data: { status: "Aprovada" } });
     await audit(tx, actor, "CANCEL", "BudgetReservation", reservationId, { previousStatus: reservation.status }, year.id);
     return canceled;
   });

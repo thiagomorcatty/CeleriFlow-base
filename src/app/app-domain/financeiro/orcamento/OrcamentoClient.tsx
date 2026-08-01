@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cancelBudgetReservationAction, createBudgetMovementAction, createBudgetReservationAction, setFinancialYearStatusAction } from "./actions";
+import { approveExpenseRequestAction, cancelBudgetReservationAction, createBudgetMovementAction, createBudgetReservationAction, createExpenseRequestAction, setFinancialYearStatusAction } from "./actions";
 
 import { CreditRequestDialog } from "./CreditRequestDialog";
 import { actionApproveCreditRequest, actionExecuteCreditRequest } from "./planejamento-actions";
@@ -18,7 +18,7 @@ import { actionApproveCreditRequest, actionExecuteCreditRequest } from "./planej
 type Appropriation = {
   id: string;
   code: string;
-  budgetUnit: { name: string; code: string; };
+  budgetUnit: { name: string; code: string; secretariatId: string };
   expenseNature: { name: string; code: string; };
   resourceSource: { name: string; code: string; };
   initialValue: number;
@@ -50,22 +50,29 @@ type CreditRequest = {
   totalValue: number;
   status: string;
 };
+type ExpenseRequest = { id: string; description: string; value: number; status: string; appropriationId: string; appropriation: { code: string }; supplier: { company?: { corporateName: string } | null; person?: { fullName: string } | null } | null };
+type SupplierOption = { id: string; name: string };
 
 export default function OrcamentoClient({
   appropriations,
   reservations,
   financialYears,
   creditRequests = [],
+  expenses = [],
+  suppliers = [],
   canEdit,
 }: {
   appropriations: Appropriation[];
   reservations: Reservation[];
   financialYears: FinancialYear[];
   creditRequests?: CreditRequest[];
+  expenses?: ExpenseRequest[];
+  suppliers?: SupplierOption[];
   canEdit: boolean;
 }) {
   const [movement, setMovement] = useState({ appropriationId: "", type: "Suplementação", value: 0, justification: "" });
-  const [reservation, setReservation] = useState({ number: "", appropriationId: "", value: 0, justification: "" });
+  const [reservation, setReservation] = useState({ number: "", appropriationId: "", expenseId: "", value: 0, justification: "" });
+  const [expenseRequest, setExpenseRequest] = useState({ description: "", appropriationId: "", supplierId: "", value: 0 });
   const [pending, setPending] = useState(false);
 
   const submitMovement = async (event: React.FormEvent) => {
@@ -79,7 +86,21 @@ export default function OrcamentoClient({
     event.preventDefault(); setPending(true);
     const result = await createBudgetReservationAction({ ...reservation, date: new Date() }); setPending(false);
     if (result.error) return alert(result.error);
-    setReservation({ number: "", appropriationId: "", value: 0, justification: "" });
+    setReservation({ number: "", appropriationId: "", expenseId: "", value: 0, justification: "" });
+  };
+
+  const submitExpenseRequest = async (event: React.FormEvent) => {
+    event.preventDefault(); setPending(true);
+    const appropriation = appropriations.find((item) => item.id === expenseRequest.appropriationId);
+    if (!appropriation) { setPending(false); return alert("Selecione a dotação orçamentária."); }
+    const result = await createExpenseRequestAction({ ...expenseRequest, date: new Date(), secretariatId: appropriation.budgetUnit.secretariatId }); setPending(false);
+    if (result.error) return alert(result.error);
+    setExpenseRequest({ description: "", appropriationId: "", supplierId: "", value: 0 });
+  };
+
+  const approveExpense = async (id: string) => {
+    setPending(true); const result = await approveExpenseRequestAction(id); setPending(false);
+    if (result.error) alert(result.error);
   };
 
   const cancelReservation = async (id: string) => {
@@ -129,11 +150,15 @@ export default function OrcamentoClient({
        <Card><CardHeader><CardTitle>Exercícios Financeiros</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{financialYears.map(year => <div key={year.id} className="flex items-center justify-between rounded border p-3"><span className="font-medium">{year.year}</span>{canEdit ? <Select value={year.status} onValueChange={status => status && changeYearStatus(year.id, status)}><SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Preparação">Preparação</SelectItem><SelectItem value="Aberto">Aberto</SelectItem><SelectItem value="Em Encerramento">Em Encerramento</SelectItem><SelectItem value="Encerrado">Encerrado</SelectItem></SelectContent></Select> : <Badge variant="outline">{year.status}</Badge>}</div>)}</CardContent></Card>
 
        {canEdit && <div className="grid gap-4 xl:grid-cols-2">
-        <Card><CardHeader><CardTitle>Movimento Orçamentário</CardTitle></CardHeader><CardContent><form onSubmit={submitMovement} className="grid gap-3 md:grid-cols-2"><Select value={movement.appropriationId} onValueChange={appropriationId => setMovement({ ...movement, appropriationId: appropriationId ?? "" })}><SelectTrigger><SelectValue placeholder="Dotação" /></SelectTrigger><SelectContent>{appropriations.map(app => <SelectItem key={app.id} value={app.id}>{app.code}</SelectItem>)}</SelectContent></Select><Select value={movement.type} onValueChange={type => setMovement({ ...movement, type: type ?? "Suplementação" })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Dotação Inicial">Dotação Inicial</SelectItem><SelectItem value="Crédito Adicional">Crédito Adicional</SelectItem><SelectItem value="Suplementação">Suplementação</SelectItem><SelectItem value="Remanejamento">Remanejamento</SelectItem><SelectItem value="Anulação">Anulação</SelectItem></SelectContent></Select><MoneyInput value={movement.value} onChange={value => setMovement({ ...movement, value })} /><Input required placeholder="Justificativa" value={movement.justification} onChange={event => setMovement({ ...movement, justification: event.target.value })} /><Button type="submit" disabled={pending}>Registrar movimento</Button></form></CardContent></Card>
-        <Card><CardHeader><CardTitle>Reserva Orçamentária</CardTitle></CardHeader><CardContent><form onSubmit={submitReservation} className="grid gap-3 md:grid-cols-2"><Input required placeholder="Número da reserva" value={reservation.number} onChange={event => setReservation({ ...reservation, number: event.target.value })} /><Select value={reservation.appropriationId} onValueChange={appropriationId => setReservation({ ...reservation, appropriationId: appropriationId ?? "" })}><SelectTrigger><SelectValue placeholder="Dotação" /></SelectTrigger><SelectContent>{appropriations.map(app => <SelectItem key={app.id} value={app.id}>{app.code} (saldo: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(app.availableValue)})</SelectItem>)}</SelectContent></Select><MoneyInput value={reservation.value} onChange={value => setReservation({ ...reservation, value })} /><Input placeholder="Justificativa" value={reservation.justification} onChange={event => setReservation({ ...reservation, justification: event.target.value })} /><Button type="submit" disabled={pending}>Criar reserva</Button></form></CardContent></Card>
-       </div>}
+        <Card><CardHeader><CardTitle>Solicitação de Despesa</CardTitle></CardHeader><CardContent><form onSubmit={submitExpenseRequest} className="grid gap-3 md:grid-cols-2"><Input required placeholder="Descrição" value={expenseRequest.description} onChange={event => setExpenseRequest({ ...expenseRequest, description: event.target.value })} /><Select value={expenseRequest.appropriationId} onValueChange={appropriationId => setExpenseRequest({ ...expenseRequest, appropriationId: appropriationId ?? "" })}><SelectTrigger><SelectValue placeholder="Dotação" /></SelectTrigger><SelectContent>{appropriations.map(app => <SelectItem key={app.id} value={app.id}>{app.code}</SelectItem>)}</SelectContent></Select><Select value={expenseRequest.supplierId} onValueChange={supplierId => setExpenseRequest({ ...expenseRequest, supplierId: supplierId ?? "" })}><SelectTrigger><SelectValue placeholder="Fornecedor" /></SelectTrigger><SelectContent>{suppliers.map(supplier => <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>)}</SelectContent></Select><MoneyInput value={expenseRequest.value} onChange={value => setExpenseRequest({ ...expenseRequest, value })} /><Button type="submit" disabled={pending}>Solicitar aprovação</Button></form></CardContent></Card>
+        <Card><CardHeader><CardTitle>Reserva Orçamentária</CardTitle></CardHeader><CardContent><form onSubmit={submitReservation} className="grid gap-3 md:grid-cols-2"><Input required placeholder="Número da reserva" value={reservation.number} onChange={event => setReservation({ ...reservation, number: event.target.value })} /><Select value={reservation.appropriationId} onValueChange={appropriationId => setReservation({ ...reservation, appropriationId: appropriationId ?? "", expenseId: "" })}><SelectTrigger><SelectValue placeholder="Dotação" /></SelectTrigger><SelectContent>{appropriations.map(app => <SelectItem key={app.id} value={app.id}>{app.code}</SelectItem>)}</SelectContent></Select><Select value={reservation.expenseId} onValueChange={expenseId => { const expense = expenses.find(item => item.id === expenseId); setReservation({ ...reservation, expenseId: expenseId ?? "", value: expense?.value ?? reservation.value }); }}><SelectTrigger><SelectValue placeholder="Solicitação aprovada" /></SelectTrigger><SelectContent>{expenses.filter(expense => expense.status === "Aprovada" && expense.appropriationId === reservation.appropriationId).map(expense => <SelectItem key={expense.id} value={expense.id}>{expense.description} - {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(expense.value)}</SelectItem>)}</SelectContent></Select><MoneyInput value={reservation.value} onChange={value => setReservation({ ...reservation, value })} /><Input placeholder="Justificativa" value={reservation.justification} onChange={event => setReservation({ ...reservation, justification: event.target.value })} /><Button type="submit" disabled={pending}>Criar reserva</Button></form></CardContent></Card>
+        </div>}
 
-      <Card>
+       {canEdit && <Card><CardHeader><CardTitle>Movimento Orçamentário</CardTitle></CardHeader><CardContent><form onSubmit={submitMovement} className="grid gap-3 md:grid-cols-2"><Select value={movement.appropriationId} onValueChange={appropriationId => setMovement({ ...movement, appropriationId: appropriationId ?? "" })}><SelectTrigger><SelectValue placeholder="Dotação" /></SelectTrigger><SelectContent>{appropriations.map(app => <SelectItem key={app.id} value={app.id}>{app.code}</SelectItem>)}</SelectContent></Select><Select value={movement.type} onValueChange={type => setMovement({ ...movement, type: type ?? "Suplementação" })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Dotação Inicial">Dotação Inicial</SelectItem><SelectItem value="Crédito Adicional">Crédito Adicional</SelectItem><SelectItem value="Suplementação">Suplementação</SelectItem><SelectItem value="Remanejamento">Remanejamento</SelectItem><SelectItem value="Anulação">Anulação</SelectItem></SelectContent></Select><MoneyInput value={movement.value} onChange={value => setMovement({ ...movement, value })} /><Input required placeholder="Justificativa" value={movement.justification} onChange={event => setMovement({ ...movement, justification: event.target.value })} /><Button type="submit" disabled={pending}>Registrar movimento</Button></form></CardContent></Card>}
+
+       <Card><CardHeader><CardTitle>Solicitações de Despesa</CardTitle></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>Descrição</TableHead><TableHead>Dotação</TableHead><TableHead>Fornecedor</TableHead><TableHead className="text-right">Valor</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader><TableBody>{expenses.length === 0 ? <TableRow><TableCell colSpan={6} className="h-20 text-center text-muted-foreground">Nenhuma solicitação de despesa pendente.</TableCell></TableRow> : expenses.map(expense => <TableRow key={expense.id}><TableCell>{expense.description}</TableCell><TableCell>{expense.appropriation.code}</TableCell><TableCell>{expense.supplier?.company?.corporateName ?? expense.supplier?.person?.fullName ?? "-"}</TableCell><TableCell className="text-right">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(expense.value)}</TableCell><TableCell><Badge variant="outline">{expense.status}</Badge></TableCell><TableCell className="text-right">{canEdit && expense.status === "Solicitada" && <Button size="sm" variant="outline" onClick={() => approveExpense(expense.id)} disabled={pending}>Aprovar</Button>}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+
+       <Card>
         <CardHeader>
           <CardTitle>Listagem de Dotações</CardTitle>
         </CardHeader>

@@ -10,7 +10,7 @@ export default async function OrcamentoPage() {
   const budgetUnitFilter = isSystemAdministrator(context.user)
     ? {}
     : { budgetUnitId: { in: context.user.allowedBudgetUnitIds } };
-  const [appropriations, reservations, financialYears, creditRequests] = await Promise.all([
+  const [appropriations, reservations, financialYears, creditRequests, expenses, suppliers] = await Promise.all([
     prisma.budgetAppropriation.findMany({
       where: budgetUnitFilter,
       include: {
@@ -33,6 +33,17 @@ export default async function OrcamentoPage() {
         : { items: { every: { appropriation: budgetUnitFilter } } },
       orderBy: { createdAt: "desc" },
       take: 50,
+    }),
+    prisma.expense.findMany({
+      where: { appropriation: budgetUnitFilter, status: { in: ["Solicitada", "Aprovada"] } },
+      include: { appropriation: { select: { code: true } }, supplier: { include: { person: true, company: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+    prisma.supplier.findMany({
+      where: { status: "Ativo" },
+      include: { person: true, company: true },
+      orderBy: { createdAt: "desc" },
     }),
   ]);
 
@@ -63,6 +74,8 @@ export default async function OrcamentoPage() {
       reservations={displayReservations}
       financialYears={financialYears}
       creditRequests={displayCreditRequests}
+      expenses={expenses.map(({ valueDecimal, ...expense }) => ({ ...expense, value: Number(valueDecimal ?? expense.value) }))}
+      suppliers={suppliers.map((supplier) => ({ id: supplier.id, name: supplier.company?.corporateName ?? supplier.person?.fullName ?? "Fornecedor sem identificação" }))}
       canEdit={canEditModule(context.user, "FINANCEIRO")}
     />
   )

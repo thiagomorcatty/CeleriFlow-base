@@ -46,6 +46,8 @@ O login da aplicacao e autenticado pelo Firebase. A seed cria os perfis e cadast
 | Integracoes TCE-PB, SICONFI, bancos e certificados | Pendente | TI municipal | Pendente | Pendente |
 | Plano de migracao e totais de controle | Pendente | Robonuvem + Prefeitura | Pendente | Pendente |
 
+O detalhamento de cadastros, ambientes e evidencias exigidos para cada conexao esta em `docs/LAGOA_SECA_INTEGRACOES_EXTERNAS_PENDENTES.md`.
+
 ## Criterio de saida M0
 
 - Responsaveis formalmente nomeados.

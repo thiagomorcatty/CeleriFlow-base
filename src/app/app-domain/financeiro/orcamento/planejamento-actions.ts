@@ -6,6 +6,7 @@ import {
   addProgramPPA,
   createBudgetGuideline,
   createAnnualBudgetLaw,
+  createBudgetAppropriationFromFixation,
   createCreditRequest,
   approveCreditRequest,
   executeCreditRequest,
@@ -80,6 +81,7 @@ export async function actionAddProgramPPA(input: {
 
 export async function actionCreateBudgetGuideline(input: {
   financialYearId: string;
+  multiYearPlanId?: string;
   priorities?: { description: string; targetValue?: number }[];
   risks?: { description: string; estimatedImpact: number; mitigation: string }[];
 }): Promise<ActionResult<{ id: string }>> {
@@ -98,6 +100,7 @@ export async function actionCreateAnnualBudgetLaw(input: {
   lawNumber: string;
   publicationDate: string;
   financialYearId: string;
+  budgetGuidelineId?: string;
   totalRevenue: number;
   totalExpense: number;
   revenueForecasts?: { code: string; name: string; estimatedValue: number }[];
@@ -114,6 +117,24 @@ export async function actionCreateAnnualBudgetLaw(input: {
     return { data: { id: loa.id } };
   } catch (error) {
     return { error: errorMessage(error, "Não foi possível cadastrar a LOA.") };
+  }
+}
+
+export async function actionCreateBudgetAppropriationFromFixation(input: {
+  annualBudgetExpenseFixationId: string;
+  code: string;
+  budgetUnitId: string;
+  expenseNatureId: string;
+  resourceSourceId: string;
+  initialValue: number;
+}): Promise<ActionResult<{ id: string }>> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const appropriation = await createBudgetAppropriationFromFixation(context.prisma, financeActor(context), input);
+    revalidatePath("/financeiro/orcamento");
+    return { data: { id: appropriation.id } };
+  } catch (error) {
+    return { error: errorMessage(error, "Nao foi possivel criar a dotacao orcamentaria.") };
   }
 }
 

@@ -3,6 +3,8 @@
 import {
   FinanceError,
   cancelBudgetReservation,
+  createExpenseRequest,
+  approveExpenseRequest,
   createBudgetMovement,
   createBudgetReservation,
   setFinancialYearStatus,
@@ -93,12 +95,39 @@ export async function createBudgetReservationAction(data: { number: string; date
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     await assertAppropriationAccess(context, data.appropriationId);
-    await createBudgetReservation(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, data);
+    if (!data.expenseId) throw new FinanceError("Selecione uma solicitação de despesa aprovada.");
+    await createBudgetReservation(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, { ...data, expenseId: data.expenseId });
     revalidatePath("/financeiro/orcamento");
     revalidatePath("/financeiro/empenhos");
     return {};
   } catch (error) {
     return failure(error, "Não foi possível criar a reserva orçamentária.");
+  }
+}
+
+export async function createExpenseRequestAction(data: { date: Date; description: string; value: number; appropriationId: string; supplierId: string; secretariatId: string }): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    await assertAppropriationAccess(context, data.appropriationId);
+    await createExpenseRequest(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, { ...data, sourceModule: "FINANCEIRO", sourceType: "EXPENSE_REQUEST", eventType: "EXPENSE_REQUEST" });
+    revalidatePath("/financeiro/orcamento");
+    return {};
+  } catch (error) {
+    return failure(error, "Não foi possível criar a solicitação de despesa.");
+  }
+}
+
+export async function approveExpenseRequestAction(expenseId: string): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const expense = await context.prisma.expense.findUnique({ where: { id: expenseId }, select: { appropriationId: true } });
+    if (!expense) throw new FinanceError("Solicitação de despesa não encontrada.");
+    await assertAppropriationAccess(context, expense.appropriationId);
+    await approveExpenseRequest(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, expenseId);
+    revalidatePath("/financeiro/orcamento");
+    return {};
+  } catch (error) {
+    return failure(error, "Não foi possível aprovar a solicitação de despesa.");
   }
 }
 

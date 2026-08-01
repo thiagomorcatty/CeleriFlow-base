@@ -9,6 +9,15 @@ const creditItemTypes = ["Acréscimo", "Anulação"] as const;
 type CreditType = (typeof creditTypes)[number];
 type CreditItemType = (typeof creditItemTypes)[number];
 
+async function assertFinancialYearPlanningEligible(tx: Db, financialYearId: string) {
+  const financialYear = await tx.financialYear.findUnique({ where: { id: financialYearId } });
+  if (!financialYear) throw new FinanceError("Exercício financeiro não encontrado.");
+  if (!['Preparação', 'Aberto'].includes(financialYear.status)) {
+    throw new FinanceError(`O exercício ${financialYear.year} não está disponível para planejamento.`);
+  }
+  return financialYear;
+}
+
 function requireText(value: string, field: string) {
   if (!value.trim()) throw new FinanceError(`${field} é obrigatório.`);
   return value.trim();
@@ -40,6 +49,7 @@ async function audit(
   entityId: string,
   payload: Prisma.InputJsonValue,
   financialYearId?: string,
+  budgetUnitId?: string,
 ) {
   await tx.financialAuditLog.create({
     data: {
@@ -47,7 +57,7 @@ async function audit(
       entityType,
       entityId,
       financialYearId,
-      budgetUnitId: actor.budgetUnitId || undefined,
+      budgetUnitId: budgetUnitId || actor.budgetUnitId || undefined,
       payload,
       authorUsuarioId: actor.usuarioId,
       authorEmployeeId: actor.employeeId,
@@ -130,12 +140,20 @@ export async function createBudgetGuideline(
   actor: FinanceActor,
   input: {
     financialYearId: string;
+    multiYearPlanId?: string;
     priorities?: { description: string; targetValue?: number }[];
     risks?: { description: string; estimatedImpact: number; mitigation: string }[];
   },
 ) {
   return db.$transaction(async (tx) => {
-    await assertFinancialYearOpen(tx, input.financialYearId, new Date());
+    const financialYear = await assertFinancialYearPlanningEligible(tx, input.financialYearId);
+    if (input.multiYearPlanId) {
+      const plan = await tx.multiYearPlan.findUnique({ where: { id: input.multiYearPlanId } });
+      if (!plan) throw new FinanceError("Plano Plurianual não encontrado.");
+      if (financialYear.year < plan.startYear || financialYear.year > plan.endYear) {
+        throw new FinanceError("O exercício da LDO deve estar dentro da vigência do PPA selecionado.");
+      }
+    }
     const priorities = input.priorities ?? [];
     const risks = input.risks ?? [];
     for (const priority of priorities) requireText(priority.description, "Descrição da prioridade");
@@ -145,8 +163,9 @@ export async function createBudgetGuideline(
       requirePositiveMoney(risk.estimatedImpact, "Impacto estimado do risco");
     }
     const guideline = await tx.budgetGuideline.create({
-      data: {
-        financialYearId: input.financialYearId,
+        data: {
+          financialYearId: input.financialYearId,
+          multiYearPlanId: input.multiYearPlanId,
         priorities: {
           create: priorities.map((p) => ({
             description: p.description.trim(),
@@ -178,6 +197,7 @@ export async function createAnnualBudgetLaw(
     lawNumber: string;
     publicationDate: Date;
     financialYearId: string;
+    budgetGuidelineId?: string;
     totalRevenue: number;
     totalExpense: number;
     revenueForecasts?: { code: string; name: string; estimatedValue: number }[];
@@ -216,13 +236,21 @@ export async function createAnnualBudgetLaw(
   }
 
   return db.$transaction(async (tx) => {
-    await assertFinancialYearOpen(tx, input.financialYearId, input.publicationDate);
+    await assertFinancialYearPlanningEligible(tx, input.financialYearId);
+    if (input.budgetGuidelineId) {
+      const guideline = await tx.budgetGuideline.findUnique({ where: { id: input.budgetGuidelineId } });
+      if (!guideline) throw new FinanceError("Lei de Diretrizes Orçamentárias não encontrada.");
+      if (guideline.financialYearId !== input.financialYearId) {
+        throw new FinanceError("A LDO selecionada deve pertencer ao mesmo exercício financeiro da LOA.");
+      }
+    }
 
     const loa = await tx.annualBudgetLaw.create({
       data: {
         lawNumber: input.lawNumber.trim(),
         publicationDate: input.publicationDate,
         financialYearId: input.financialYearId,
+        budgetGuidelineId: input.budgetGuidelineId,
         totalRevenue: revenue,
         totalExpense: expense,
         revenueForecasts: {
@@ -245,6 +273,86 @@ export async function createAnnualBudgetLaw(
 
     await audit(tx, actor, "CREATE", "AnnualBudgetLaw", loa.id, { lawNumber: loa.lawNumber }, input.financialYearId);
     return loa;
+  });
+}
+
+export async function createBudgetAppropriationFromFixation(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: {
+    annualBudgetExpenseFixationId: string;
+    code: string;
+    budgetUnitId: string;
+    expenseNatureId: string;
+    resourceSourceId: string;
+    initialValue: number;
+  },
+) {
+  const code = requireText(input.code, "Codigo da dotacao");
+  if (!input.annualBudgetExpenseFixationId) throw new FinanceError("Selecione a fixacao de despesa da LOA.");
+  if (!input.budgetUnitId) throw new FinanceError("Selecione a unidade orcamentaria.");
+  if (!input.expenseNatureId) throw new FinanceError("Selecione a natureza de despesa.");
+  if (!input.resourceSourceId) throw new FinanceError("Selecione a fonte de recursos.");
+  const initialValue = requirePositiveMoney(input.initialValue, "Valor inicial da dotacao");
+  assertBudgetUnitPermission(actor, input.budgetUnitId);
+
+  return db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "AnnualBudgetExpenseFixation" WHERE id = ${input.annualBudgetExpenseFixationId} FOR UPDATE`;
+    const fixation = await tx.annualBudgetExpenseFixation.findUnique({
+      where: { id: input.annualBudgetExpenseFixationId },
+      include: { annualBudgetLaw: { select: { financialYearId: true } } },
+    });
+    if (!fixation) throw new FinanceError("Fixacao de despesa da LOA nao encontrada.");
+
+    await assertFinancialYearPlanningEligible(tx, fixation.annualBudgetLaw.financialYearId);
+    const [budgetUnit, expenseNature, resourceSource, existing] = await Promise.all([
+      tx.budgetUnit.findUnique({ where: { id: input.budgetUnitId }, select: { id: true } }),
+      tx.expenseNature.findUnique({ where: { id: input.expenseNatureId }, select: { id: true } }),
+      tx.resourceSource.findUnique({ where: { id: input.resourceSourceId }, select: { id: true } }),
+      tx.budgetAppropriation.findMany({
+        where: { annualBudgetExpenseFixationId: fixation.id },
+        select: { initialValue: true, initialValueDecimal: true },
+      }),
+    ]);
+    if (!budgetUnit) throw new FinanceError("Unidade orcamentaria nao encontrada.");
+    if (!expenseNature) throw new FinanceError("Natureza de despesa nao encontrada.");
+    if (!resourceSource) throw new FinanceError("Fonte de recursos nao encontrada.");
+
+    const allocated = existing.reduce(
+      (total, appropriation) => total.plus(appropriation.initialValueDecimal ?? appropriation.initialValue),
+      new Prisma.Decimal(0),
+    );
+    if (allocated.plus(initialValue).greaterThan(fixation.fixedValue)) {
+      throw new FinanceError("O valor da dotacao excede o saldo disponivel da fixacao de despesa da LOA.");
+    }
+
+    const appropriation = await tx.budgetAppropriation.create({
+      data: {
+        code,
+        financialYearId: fixation.annualBudgetLaw.financialYearId,
+        budgetUnitId: budgetUnit.id,
+        expenseNatureId: expenseNature.id,
+        resourceSourceId: resourceSource.id,
+        annualBudgetExpenseFixationId: fixation.id,
+        initialValue: Number(initialValue.toString()),
+        initialValueDecimal: initialValue,
+        updatedValue: Number(initialValue.toString()),
+        updatedValueDecimal: initialValue,
+        committedValue: 0,
+        committedValueDecimal: new Prisma.Decimal(0),
+      },
+    });
+    await audit(
+      tx,
+      actor,
+      "CREATE",
+      "BudgetAppropriation",
+      appropriation.id,
+      { code: appropriation.code, annualBudgetExpenseFixationId: fixation.id, initialValue: initialValue.toFixed(2) },
+      appropriation.financialYearId,
+      appropriation.budgetUnitId,
+    );
+    return appropriation;
   });
 }
 
