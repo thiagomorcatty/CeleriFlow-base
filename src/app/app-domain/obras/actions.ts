@@ -2,7 +2,8 @@
 
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModule, getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
+import { applyStockMovement, StockServiceError } from "@/lib/patrimonio/stock-service";
 import { revalidatePath } from "next/cache";
 
 async function getTenantPrisma() {
@@ -258,33 +259,31 @@ export async function assignEquipmentToServico(serviceId: string, assetId: strin
 }
 
 export async function issueMaterialToServico(data: { serviceId: string; stockId: string; quantity: number }): Promise<ActionResult> {
-  const prisma = await getTenantPrisma();
   const parsed = z.object({ serviceId: text, stockId: text, quantity: z.number().finite().positive("Informe uma quantidade maior que zero.") }).safeParse(data);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   try {
+    const context = await getTenantContextForModuleEdit("OBRAS");
+    const prisma = context.prisma;
     await prisma.$transaction(async (tx) => {
       const [service, stock] = await Promise.all([
         tx.obrasServico.findFirst({ where: { id: parsed.data.serviceId, active: true }, select: { id: true, departmentId: true } }),
-        tx.materialStock.findUnique({ where: { id: parsed.data.stockId }, select: { id: true, materialId: true, warehouseId: true, quantity: true, unitCost: true } }),
+        tx.materialStock.findUnique({ where: { id: parsed.data.stockId }, select: { id: true, materialId: true, warehouseId: true, batchNumber: true, unitCost: true } }),
       ]);
       if (!service) throw new Error("ORDER_NOT_FOUND");
-      if (!stock || stock.quantity < parsed.data.quantity) throw new Error("INSUFFICIENT_STOCK");
+      if (!stock) throw new Error("INSUFFICIENT_STOCK");
 
-      const updated = await tx.materialStock.updateMany({ where: { id: stock.id, quantity: { gte: parsed.data.quantity } }, data: { quantity: { decrement: parsed.data.quantity } } });
-      if (updated.count !== 1) throw new Error("INSUFFICIENT_STOCK");
-
-      await tx.materialMovement.create({
-        data: {
-          type: "Saída",
-          quantity: parsed.data.quantity,
-          unitValue: stock.unitCost,
-          reason: "Execução de ordem de serviço",
-          warehouseId: stock.warehouseId,
-          materialId: stock.materialId,
-          departmentId: service.departmentId,
-          obrasServicoId: service.id,
-        },
+      await applyStockMovement(tx, {
+        kind: "EXIT",
+        quantity: parsed.data.quantity,
+        warehouseId: stock.warehouseId,
+        materialId: stock.materialId,
+        batchNumber: stock.batchNumber,
+        unitCost: stock.unitCost,
+        reason: "Execução de ordem de serviço",
+        departmentId: service.departmentId,
+        obrasServicoId: service.id,
+        actor: { usuarioId: context.user.id, employeeId: context.user.employeeId },
       });
 
       await tx.obrasServicoMaterial.upsert({
@@ -295,6 +294,7 @@ export async function issueMaterialToServico(data: { serviceId: string; stockId:
     });
   } catch (error) {
     if (error instanceof Error && error.message === "ORDER_NOT_FOUND") return { error: "Ordem de serviço não disponível." };
+    if (error instanceof StockServiceError && error.message === "Estoque insuficiente para atender a solicitação.") return { error: error.message };
     if (error instanceof Error && error.message === "INSUFFICIENT_STOCK") return { error: "Estoque insuficiente para atender a solicitação." };
     return { error: errorMessage(error, "Não foi possível baixar o material do estoque.") };
   }

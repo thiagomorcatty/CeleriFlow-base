@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { FileCheck, Plus, Search, Ban, Pencil } from "lucide-react";
+import { FileCheck, Plus, Search, Ban } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ type Settlement = {
   value: number;
   documentRef: string | null;
   document: { id: string; title: string } | null;
+  financialDocument: { id: string; number: string; title: string } | null;
   notes: string | null;
   status: string;
   paidValue: number;
@@ -44,6 +45,9 @@ type Settlement = {
   };
 };
 
+type CommitmentOption = { id: string; number: string; availableToSettle: number };
+type EmployeeOption = { id: string; name: string };
+
 export default function LiquidacoesClient({
   settlements,
   commitments,
@@ -51,8 +55,8 @@ export default function LiquidacoesClient({
   documents,
 }: {
   settlements: Settlement[];
-  commitments: any[];
-  employees: any[];
+  commitments: CommitmentOption[];
+  employees: EmployeeOption[];
   documents: { id: string; title: string; documentType: string }[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -95,20 +99,6 @@ export default function LiquidacoesClient({
       commitmentId: "",
       authorId: "",
       notes: ""
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleEdit = (settlement: Settlement) => {
-    setEditingId(settlement.id);
-    setFormData({
-      date: new Date(settlement.date).toISOString().substring(0, 10),
-      value: settlement.value,
-      documentRef: settlement.documentRef || "",
-      documentId: settlement.document?.id || "",
-      commitmentId: settlement.commitment.id,
-      authorId: settlement.author.id,
-      notes: settlement.notes || ""
     });
     setIsModalOpen(true);
   };
@@ -221,6 +211,7 @@ export default function LiquidacoesClient({
                 <TableHead>Documento (NF/Recibo)</TableHead>
                 <TableHead>Responsável (Ateste)</TableHead>
                 <TableHead>Valor (R$)</TableHead>
+                <TableHead>Documento interno</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -228,7 +219,7 @@ export default function LiquidacoesClient({
             <TableBody>
               {filteredSettlements.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground h-32">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground h-32">
                     <div className="flex flex-col items-center justify-center">
                       <FileCheck className="h-8 w-8 mb-2 opacity-20" />
                       Nenhuma liquidação encontrada.
@@ -249,6 +240,7 @@ export default function LiquidacoesClient({
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(settlement.value)}
                       {settlement.paidValue > 0 && <span className="block text-xs text-muted-foreground">Pago: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(settlement.paidValue)}</span>}
                     </TableCell>
+                    <TableCell className="text-sm">{settlement.financialDocument?.number || "-"}</TableCell>
                     <TableCell>
                       <Badge variant={
                         settlement.status === 'Liquidado' ? 'default' : 

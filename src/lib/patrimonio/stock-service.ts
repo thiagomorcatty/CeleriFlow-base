@@ -1,0 +1,152 @@
+import { type Prisma, type PrismaClient } from "@prisma/client";
+
+export class StockServiceError extends Error {}
+
+export type StockMovementKind = "ENTRY" | "EXIT" | "ADJUSTMENT";
+
+export type StockActor = {
+  usuarioId: string;
+  employeeId?: string | null;
+};
+
+export type StockMovementInput = {
+  kind: StockMovementKind;
+  warehouseId: string;
+  materialId: string;
+  quantity: number;
+  batchNumber?: string | null;
+  expirationDate?: Date | null;
+  unitCost?: number | null;
+  reason?: string | null;
+  supplierId?: string | null;
+  departmentId?: string | null;
+  obrasServicoId?: string | null;
+  actor: StockActor;
+};
+
+type ValidStockMovementInput = StockMovementInput & { batchNumber: string };
+
+function required(value: string, label: string) {
+  if (!value.trim()) throw new StockServiceError(`${label} é obrigatório.`);
+  return value.trim();
+}
+
+export function normalizeStockMovement(input: StockMovementInput): ValidStockMovementInput {
+  const warehouseId = required(input.warehouseId, "Almoxarifado");
+  const materialId = required(input.materialId, "Material");
+  const batchNumber = input.batchNumber?.trim() ?? "";
+  const actorUsuarioId = required(input.actor.usuarioId, "Usuário responsável");
+
+  if (!Number.isFinite(input.quantity) || input.quantity === 0) {
+    throw new StockServiceError("Informe uma quantidade diferente de zero.");
+  }
+  if (input.kind !== "ENTRY" && input.kind !== "EXIT" && input.kind !== "ADJUSTMENT") {
+    throw new StockServiceError("Tipo de movimentação inválido.");
+  }
+  if ((input.kind === "ENTRY" || input.kind === "EXIT") && input.quantity < 0) {
+    throw new StockServiceError("Entrada e saída devem informar quantidade positiva.");
+  }
+  if (input.unitCost !== undefined && input.unitCost !== null && (!Number.isFinite(input.unitCost) || input.unitCost < 0)) {
+    throw new StockServiceError("O custo unitário deve ser maior ou igual a zero.");
+  }
+  if (input.expirationDate && Number.isNaN(input.expirationDate.valueOf())) {
+    throw new StockServiceError("Data de validade inválida.");
+  }
+
+  return { ...input, warehouseId, materialId, batchNumber, actor: { ...input.actor, usuarioId: actorUsuarioId } };
+}
+
+function updateMetadata(input: ValidStockMovementInput) {
+  return {
+    ...(input.expirationDate !== undefined ? { expirationDate: input.expirationDate } : {}),
+    ...(input.unitCost !== undefined ? { unitCost: input.unitCost } : {}),
+  };
+}
+
+async function ensureStockTarget(tx: Prisma.TransactionClient, input: ValidStockMovementInput) {
+  const [warehouse, material] = await Promise.all([
+    tx.warehouse.findFirst({ where: { id: input.warehouseId, isActive: true }, select: { id: true } }),
+    tx.material.findUnique({ where: { id: input.materialId }, select: { id: true } }),
+  ]);
+  if (!warehouse) throw new StockServiceError("Almoxarifado não encontrado ou inativo.");
+  if (!material) throw new StockServiceError("Material não encontrado.");
+}
+
+async function increaseStock(tx: Prisma.TransactionClient, input: ValidStockMovementInput, quantity: number) {
+  return tx.materialStock.upsert({
+    where: {
+      warehouseId_materialId_batchNumber: {
+        warehouseId: input.warehouseId,
+        materialId: input.materialId,
+        batchNumber: input.batchNumber,
+      },
+    },
+    create: {
+      warehouseId: input.warehouseId,
+      materialId: input.materialId,
+      batchNumber: input.batchNumber,
+      quantity,
+      expirationDate: input.expirationDate ?? null,
+      unitCost: input.unitCost ?? null,
+    },
+    update: {
+      quantity: { increment: quantity },
+      ...updateMetadata(input),
+    },
+    select: { id: true, unitCost: true },
+  });
+}
+
+async function decreaseStock(tx: Prisma.TransactionClient, input: ValidStockMovementInput, quantity: number) {
+  const stock = await tx.materialStock.findUnique({
+    where: {
+      warehouseId_materialId_batchNumber: {
+        warehouseId: input.warehouseId,
+        materialId: input.materialId,
+        batchNumber: input.batchNumber,
+      },
+    },
+    select: { id: true, unitCost: true },
+  });
+  if (!stock) throw new StockServiceError("Estoque não encontrado para o lote informado.");
+
+  const updated = await tx.materialStock.updateMany({
+    where: { id: stock.id, quantity: { gte: quantity } },
+    data: { quantity: { decrement: quantity } },
+  });
+  if (updated.count !== 1) throw new StockServiceError("Estoque insuficiente para atender a solicitação.");
+  return stock;
+}
+
+/** Applies a movement inside an existing transaction so callers can add domain records atomically. */
+export async function applyStockMovement(tx: Prisma.TransactionClient, rawInput: StockMovementInput) {
+  const input = normalizeStockMovement(rawInput);
+  await ensureStockTarget(tx, input);
+
+  const stock = input.kind === "ENTRY" || (input.kind === "ADJUSTMENT" && input.quantity > 0)
+    ? await increaseStock(tx, input, input.quantity)
+    : await decreaseStock(tx, input, Math.abs(input.quantity));
+
+  const type = input.kind === "ENTRY" ? "Entrada" : input.kind === "EXIT" ? "Saída" : "Ajuste";
+  const movement = await tx.materialMovement.create({
+    data: {
+      type,
+      quantity: input.quantity,
+      unitValue: input.unitCost ?? stock.unitCost,
+      reason: input.reason?.trim() || null,
+      warehouseId: input.warehouseId,
+      materialId: input.materialId,
+      stockId: stock.id,
+      supplierId: input.supplierId?.trim() || null,
+      departmentId: input.departmentId?.trim() || null,
+      obrasServicoId: input.obrasServicoId?.trim() || null,
+      actorUsuarioId: input.actor.usuarioId,
+      actorEmployeeId: input.actor.employeeId ?? null,
+    },
+  });
+  return { stock, movement };
+}
+
+export async function recordStockMovement(db: PrismaClient, input: StockMovementInput) {
+  return db.$transaction((tx) => applyStockMovement(tx, input));
+}

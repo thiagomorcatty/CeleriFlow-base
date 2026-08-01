@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { FileText, Pencil, Plus, Search, Filter, Ban } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { FileText, Plus, Search, Filter, Ban } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -41,7 +41,19 @@ type Commitment = {
     code: string;
     budgetUnit: { name: string };
   };
+  financialDocument: { id: string; number: string; title: string } | null;
 };
+
+type SupplierOption = {
+  id: string;
+  company?: { corporateName: string } | null;
+  person?: { fullName: string } | null;
+};
+
+type AppropriationOption = { id: string; code: string; budgetUnit: { name: string } };
+type ReservationOption = { id: string; number: string; value: number; appropriationId: string; appropriation: { code: string } };
+type ProcessOption = { id: string; protocolNumber: string; description: string | null };
+type ContractOption = { id: string; number: string; object: string; supplierId: string; status: string };
 
 export default function EmpenhosClient({
   commitments,
@@ -52,11 +64,11 @@ export default function EmpenhosClient({
   contracts,
 }: {
   commitments: Commitment[];
-  suppliers: any[];
-  appropriations: any[];
-  reservations: any[];
-  processes: any[];
-  contracts: any[];
+  suppliers: SupplierOption[];
+  appropriations: AppropriationOption[];
+  reservations: ReservationOption[];
+  processes: ProcessOption[];
+  contracts: ContractOption[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -92,23 +104,6 @@ export default function EmpenhosClient({
       history: "",
       supplierId: "",
       appropriationId: "",
-      reservationId: "",
-      processId: "",
-      contractId: "",
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleOpenEdit = (c: Commitment) => {
-    setEditingId(c.id);
-    setFormData({
-      number: c.number,
-      date: new Date(c.date).toISOString().substring(0, 10),
-      value: c.value,
-      type: c.type,
-      history: c.history,
-      supplierId: c.supplierId,
-      appropriationId: c.appropriationId,
       reservationId: "",
       processId: "",
       contractId: "",
@@ -192,6 +187,7 @@ export default function EmpenhosClient({
                 <TableHead>Fornecedor/Credor</TableHead>
                 <TableHead>Unidade Orçamentária</TableHead>
                 <TableHead>Valor (R$)</TableHead>
+                <TableHead>Documento interno</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -199,7 +195,7 @@ export default function EmpenhosClient({
             <TableBody>
               {filteredCommitments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground h-32">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground h-32">
                     <div className="flex flex-col items-center justify-center">
                       <FileText className="h-8 w-8 mb-2 opacity-20" />
                       Nenhum empenho encontrado.
@@ -218,6 +214,7 @@ export default function EmpenhosClient({
                     <TableCell>
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(commitment.value)}
                     </TableCell>
+                    <TableCell className="text-sm">{commitment.financialDocument?.number || "-"}</TableCell>
                     <TableCell>
                       <Badge variant={
                         commitment.status === 'Pago' ? 'default' : 

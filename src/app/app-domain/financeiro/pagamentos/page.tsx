@@ -12,6 +12,7 @@ export default async function PagamentosPage() {
     include: {
       commitment: true,
       settlement: { select: { id: true, documentRef: true, valueDecimal: true, value: true } },
+      financialDocument: { select: { id: true, number: true, title: true } },
       bankAccount: true,
       retentions: { select: { valueDecimal: true } },
       supplier: {

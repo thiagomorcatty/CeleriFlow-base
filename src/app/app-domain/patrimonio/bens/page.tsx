@@ -51,6 +51,9 @@ export default async function BensPatrimoniaisPage(
             <Plus className="mr-2 h-4 w-4" />
             Tombar Novo Bem
           </Link>
+          <Link href="/patrimonio/ciclo-vida" className={buttonVariants({ variant: "outline" })}>
+            Ciclo de Vida
+          </Link>
         </div>
       </div>
 
@@ -101,12 +104,13 @@ export default async function BensPatrimoniaisPage(
                   <th className="font-medium p-4 whitespace-nowrap">Imóvel (Localização Física)</th>
                   <th className="font-medium p-4 whitespace-nowrap">Setor / Responsável</th>
                   <th className="font-medium p-4 whitespace-nowrap">Status</th>
+                  <th className="font-medium p-4 whitespace-nowrap">Valor Contábil</th>
                 </tr>
               </thead>
               <tbody>
                 {assets.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center p-8 text-muted-foreground">
+                    <td colSpan={7} className="text-center p-8 text-muted-foreground">
                       Nenhum bem patrimonial encontrado com os filtros atuais.
                     </td>
                   </tr>
@@ -137,6 +141,7 @@ export default async function BensPatrimoniaisPage(
                           {asset.status}
                         </Badge>
                       </td>
+                      <td className="p-4 whitespace-nowrap">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(asset.currentValue)}</td>
                     </tr>
                   ))
                 )}

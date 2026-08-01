@@ -13,7 +13,7 @@ import {
   ArrowLeft,
   Menu,
   X
-  , BookOpenCheck
+  , BookOpenCheck, ClipboardList
 } from "lucide-react";
 
 const sidebarNavItems = [
@@ -25,7 +25,8 @@ const sidebarNavItems = [
    { title: "Conciliação Bancária", href: "/financeiro/conciliacao-bancaria", icon: WalletCards },
   { title: "Gestão de Empenhos", href: "/financeiro/empenhos", icon: FileText },
   { title: "Liquidações", href: "/financeiro/liquidacoes", icon: Receipt },
-   { title: "Pagamentos", href: "/financeiro/pagamentos", icon: WalletCards },
+    { title: "Pagamentos", href: "/financeiro/pagamentos", icon: WalletCards },
+    { title: "Restos a Pagar", href: "/financeiro/restos-a-pagar", icon: ClipboardList },
    { title: "Relatórios", href: "/financeiro/relatorios", icon: FileText },
  ];
 

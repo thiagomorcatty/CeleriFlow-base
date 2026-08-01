@@ -14,7 +14,8 @@ import { revalidatePath } from "next/cache";
 
 type ActionResult = { error?: string };
 type MasterDataType = "budgetUnit" | "resourceSource" | "revenueNature" | "expenseNature";
-type MasterDataInput = { code: string; name: string; secretariatId?: string };
+type ProcurementOriginPolicy = "NONE" | "PROCUREMENT_SOURCE" | "CONTRACT";
+type MasterDataInput = { code: string; name: string; secretariatId?: string; procurementOriginPolicy?: ProcurementOriginPolicy };
 
 function failure(error: unknown, fallback: string) {
   return { error: error instanceof FinanceError ? error.message : fallback };
@@ -23,6 +24,9 @@ function failure(error: unknown, fallback: string) {
 function validateMasterData(data: MasterDataInput, type: MasterDataType) {
   if (!data.code.trim() || !data.name.trim()) throw new FinanceError("Código e nome são obrigatórios.");
   if (type === "budgetUnit" && !data.secretariatId) throw new FinanceError("Selecione a secretaria da unidade orçamentária.");
+  if (type === "expenseNature" && data.procurementOriginPolicy && !["NONE", "PROCUREMENT_SOURCE", "CONTRACT"].includes(data.procurementOriginPolicy)) {
+    throw new FinanceError("Política de origem da contratação inválida.");
+  }
 }
 
 async function assertAppropriationAccess(context: AppContext, appropriationId: string) {
@@ -41,7 +45,7 @@ export async function createMasterData(type: MasterDataType, data: MasterDataInp
     if (type === "budgetUnit") await prisma.budgetUnit.create({ data: { code: data.code.trim(), name: data.name.trim(), secretariatId: data.secretariatId! } });
     if (type === "resourceSource") await prisma.resourceSource.create({ data: { code: data.code.trim(), name: data.name.trim() } });
     if (type === "revenueNature") await prisma.revenueNature.create({ data: { code: data.code.trim(), name: data.name.trim() } });
-    if (type === "expenseNature") await prisma.expenseNature.create({ data: { code: data.code.trim(), name: data.name.trim() } });
+    if (type === "expenseNature") await prisma.expenseNature.create({ data: { code: data.code.trim(), name: data.name.trim(), procurementOriginPolicy: data.procurementOriginPolicy ?? "NONE" } });
     revalidatePath("/financeiro/orcamento/cadastros");
     return {};
   } catch (error) {
@@ -56,7 +60,7 @@ export async function updateMasterData(type: MasterDataType, id: string, data: M
     if (type === "budgetUnit") await prisma.budgetUnit.update({ where: { id }, data: { code: data.code.trim(), name: data.name.trim(), secretariatId: data.secretariatId! } });
     if (type === "resourceSource") await prisma.resourceSource.update({ where: { id }, data: { code: data.code.trim(), name: data.name.trim() } });
     if (type === "revenueNature") await prisma.revenueNature.update({ where: { id }, data: { code: data.code.trim(), name: data.name.trim() } });
-    if (type === "expenseNature") await prisma.expenseNature.update({ where: { id }, data: { code: data.code.trim(), name: data.name.trim() } });
+    if (type === "expenseNature") await prisma.expenseNature.update({ where: { id }, data: { code: data.code.trim(), name: data.name.trim(), procurementOriginPolicy: data.procurementOriginPolicy ?? "NONE" } });
     revalidatePath("/financeiro/orcamento/cadastros");
     revalidatePath("/financeiro/orcamento");
     return {};

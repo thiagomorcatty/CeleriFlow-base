@@ -15,7 +15,8 @@ export default async function EmpenhosPage() {
         include: {
           budgetUnit: true
         }
-      }
+      },
+      financialDocument: { select: { id: true, number: true, title: true } },
     },
     orderBy: {
       date: 'desc'

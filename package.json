@@ -9,7 +9,7 @@
     "build:check": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "test:unit": "npx tsx --test tests/public-finance.test.ts src/lib/financeiro/__tests__/financeiro-lagoaseca.test.ts src/lib/financeiro/__tests__/commitment-protocol-gate.test.ts",
+    "test:unit": "npx tsx --test tests/public-finance.test.ts src/lib/financeiro/__tests__/financeiro-lagoaseca.test.ts src/lib/financeiro/__tests__/commitment-protocol-gate.test.ts src/lib/financeiro/__tests__/financial-documents.test.ts src/lib/financeiro/__tests__/procurement-origin-policy.test.ts src/lib/financeiro/__tests__/accounting-close-workflow.test.ts src/lib/patrimonio/__tests__/asset-lifecycle.test.ts src/lib/patrimonio/__tests__/stock-service.test.ts",
     "seed:poc": "npx tsx prisma/seed-poc-completo.ts",
     "seed:firebase": "npx tsx scripts/seed-firebase-users.ts",
     "seed:all": "npm run seed:poc && npm run seed:firebase",

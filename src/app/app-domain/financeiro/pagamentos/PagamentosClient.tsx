@@ -40,6 +40,7 @@ type Payment = {
   paymentMethod: string;
   status: string;
   isExceptional: boolean;
+  financialDocument: { id: string; number: string; title: string } | null;
   settlement: { id: string; documentRef: string | null } | null;
   commitment: {
     id: string;
@@ -310,6 +311,7 @@ export default function PagamentosClient({
                 <TableHead>Conta Bancária</TableHead>
                 <TableHead>Forma Pgto.</TableHead>
                 <TableHead>Bruto / Líquido (R$)</TableHead>
+                <TableHead>Documento interno</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -317,7 +319,7 @@ export default function PagamentosClient({
             <TableBody>
               {filteredPayments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground h-32">
+                    <TableCell colSpan={10} className="text-center text-muted-foreground h-32">
                     <div className="flex flex-col items-center justify-center">
                       <Wallet className="h-8 w-8 mb-2 opacity-20" />
                       Nenhum pagamento encontrado.
@@ -342,6 +344,7 @@ export default function PagamentosClient({
                       {(payment.retentionValue > 0 || payment.netValue !== payment.value) && <span className="block text-xs text-muted-foreground">Líquido: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payment.netValue)}{payment.retentionValue > 0 ? ` | Retido: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payment.retentionValue)}` : ''}</span>}
                       {payment.isExceptional && <span className="block text-xs text-amber-600">Exceção justificada</span>}
                     </TableCell>
+                    <TableCell className="text-sm">{payment.financialDocument?.number || "-"}</TableCell>
                     <TableCell>
                       <Badge variant={
                         payment.status === 'Paga' ? 'default' : 

@@ -9,7 +9,8 @@ import {
   Wrench,
   Tags,
   QrCode,
-  ArrowRightLeft
+  ArrowRightLeft,
+  ChartNoAxesCombined
 } from "lucide-react"
 import Link from "next/link"
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
@@ -31,7 +32,7 @@ export default async function PatrimonioDashboard() {
             <QrCode className="mr-2 h-4 w-4" />
             Tombar Bem
           </Link>
-          <Link href="/patrimonio/materiais/entrada" className={buttonVariants()}>
+          <Link href="/patrimonio/materiais" className={buttonVariants()}>
             <Package className="mr-2 h-4 w-4" />
             Entrada de Estoque
           </Link>
@@ -142,6 +143,13 @@ export default async function PatrimonioDashboard() {
                 <div>
                   <div className="font-semibold">Transferências</div>
                   <div className="text-sm text-muted-foreground">Entre setores e responsáveis</div>
+                </div>
+              </Link>
+              <Link href="/patrimonio/ciclo-vida" className="flex items-center p-4 border rounded-lg hover:bg-muted transition-colors">
+                <ChartNoAxesCombined className="h-6 w-6 mr-4 text-amber-600" />
+                <div>
+                  <div className="font-semibold">Ciclo de Vida</div>
+                  <div className="text-sm text-muted-foreground">Depreciação, baixas e alienações</div>
                 </div>
               </Link>
             </div>

@@ -22,6 +22,7 @@ export default async function LiquidacoesPage() {
       },
       author: true,
       document: { select: { id: true, title: true } },
+      financialDocument: { select: { id: true, number: true, title: true } },
       payments: { where: { status: { in: ["Emitida", "Paga"] } }, select: { valueDecimal: true, value: true } },
     },
     orderBy: {

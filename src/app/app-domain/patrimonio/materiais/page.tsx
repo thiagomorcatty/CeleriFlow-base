@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { StockOperationsClient } from "./StockOperationsClient";
 
 export default async function MateriaisPage(
   props: { searchParams?: Promise<{ q?: string }> }
@@ -38,6 +39,15 @@ export default async function MateriaisPage(
       }
     }
   })
+  const [warehouses, movementMaterials, stockRows] = await Promise.all([
+    prisma.warehouse.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.material.findMany({ take: 200, orderBy: { name: "asc" }, select: { id: true, code: true, name: true } }),
+    prisma.materialStock.findMany({
+      take: 100,
+      orderBy: [{ warehouse: { name: "asc" } }, { material: { name: "asc" } }, { batchNumber: "asc" }],
+      include: { warehouse: { select: { name: true } }, material: { select: { code: true, name: true, unitOfMeasure: true } } },
+    }),
+  ]);
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
@@ -50,6 +60,19 @@ export default async function MateriaisPage(
           </Link>
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Movimentar Estoque</CardTitle>
+          <CardDescription>Entradas, saídas e ajustes são registrados com o usuário responsável e mantêm um saldo único por almoxarifado, material e lote.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <StockOperationsClient
+            materials={movementMaterials.map((material) => ({ id: material.id, label: `${material.code} - ${material.name}` }))}
+            warehouses={warehouses.map((warehouse) => ({ id: warehouse.id, label: warehouse.name }))}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-4">
@@ -113,6 +136,41 @@ export default async function MateriaisPage(
                     )
                   })
                 )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle>Saldos por Almoxarifado e Lote</CardTitle>
+          <CardDescription>Até 100 posições de estoque, ordenadas por almoxarifado e material.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-muted text-muted-foreground border-b">
+                <tr>
+                  <th className="font-medium p-4 whitespace-nowrap">Almoxarifado</th>
+                  <th className="font-medium p-4 whitespace-nowrap">Material</th>
+                  <th className="font-medium p-4 whitespace-nowrap">Lote</th>
+                  <th className="font-medium p-4 whitespace-nowrap">Saldo</th>
+                  <th className="font-medium p-4 whitespace-nowrap">Custo Unit.</th>
+                  <th className="font-medium p-4 whitespace-nowrap">Validade</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stockRows.length === 0 ? <tr><td colSpan={6} className="text-center p-8 text-muted-foreground">Nenhuma posição de estoque registrada.</td></tr> : stockRows.map((stock) => (
+                  <tr key={stock.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+                    <td className="p-4 whitespace-nowrap">{stock.warehouse.name}</td>
+                    <td className="p-4 whitespace-nowrap">{stock.material.code} - {stock.material.name}</td>
+                    <td className="p-4 whitespace-nowrap">{stock.batchNumber || "Sem lote"}</td>
+                    <td className="p-4 whitespace-nowrap font-medium">{stock.quantity.toLocaleString()} {stock.material.unitOfMeasure}</td>
+                    <td className="p-4 whitespace-nowrap">{stock.unitCost === null ? "-" : stock.unitCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
+                    <td className="p-4 whitespace-nowrap">{stock.expirationDate ? stock.expirationDate.toLocaleDateString("pt-BR") : "-"}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

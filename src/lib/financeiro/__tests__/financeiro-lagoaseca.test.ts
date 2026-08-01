@@ -281,6 +281,9 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       );
     } finally {
       // A auditoria financeira e append-only; os fatos temporarios sao limpos, mas seus logs permanecem como evidencia.
+      if (paymentIds.length) await prisma.financialDocument.deleteMany({ where: { paymentId: { in: paymentIds } } });
+      if (settlementId) await prisma.financialDocument.deleteMany({ where: { settlementId } });
+      if (commitmentId) await prisma.financialDocument.deleteMany({ where: { commitmentId } });
       await cleanupAccountingTransactions([commitmentId, settlementId, ...paymentIds, ...payableIds].filter(Boolean));
       if (paymentIds.length) {
         await prisma.treasuryMovement.deleteMany({ where: { sourceId: { in: paymentIds } } });
@@ -425,6 +428,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
     } finally {
       await cleanupAccountingTransactions([commitmentId].filter(Boolean));
       if (commitmentId) await prisma.commitmentMovement.deleteMany({ where: { commitmentId } });
+      if (commitmentId) await prisma.financialDocument.deleteMany({ where: { commitmentId } });
       if (commitmentId) await prisma.commitment.deleteMany({ where: { id: commitmentId } });
       if (firstReservationId) await prisma.budgetReservation.deleteMany({ where: { id: firstReservationId } });
       if (secondReservationId) await prisma.budgetReservation.deleteMany({ where: { id: secondReservationId } });

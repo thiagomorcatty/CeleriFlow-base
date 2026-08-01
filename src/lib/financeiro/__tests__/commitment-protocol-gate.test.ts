@@ -121,6 +121,7 @@ test("releases a protocol awaiting accounting when its commitment is issued", as
       await prisma.accountingEntry.deleteMany({ where: { transactionId: { in: transactions.map((transaction) => transaction.id) } } });
       await prisma.accountingTransaction.deleteMany({ where: { id: { in: transactions.map((transaction) => transaction.id) } } });
     }
+    if (commitmentId) await prisma.financialDocument.deleteMany({ where: { commitmentId } });
     if (commitmentId) await prisma.commitment.deleteMany({ where: { id: commitmentId } });
     if (reservationId) await prisma.budgetReservation.deleteMany({ where: { id: reservationId } });
     if (expenseId) await prisma.expense.deleteMany({ where: { id: expenseId } });

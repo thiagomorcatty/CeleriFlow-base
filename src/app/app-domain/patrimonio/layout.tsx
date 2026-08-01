@@ -8,6 +8,7 @@ import {
   Warehouse,
   Boxes,
   ClipboardList,
+  ChartNoAxesCombined,
   LayoutDashboard,
   ArrowLeft,
   Menu,
@@ -21,6 +22,7 @@ const sidebarNavItems = [
   { title: "Almoxarifados", href: "/patrimonio/almoxarifados", icon: Warehouse },
   { title: "Catálogo de Materiais", href: "/patrimonio/materiais", icon: Boxes },
   { title: "Requisições", href: "/patrimonio/requisicoes", icon: ClipboardList },
+  { title: "Ciclo de Vida", href: "/patrimonio/ciclo-vida", icon: ChartNoAxesCombined },
 ];
 
 export default function PatrimonioLayout({ children }: { children: React.ReactNode }) {
