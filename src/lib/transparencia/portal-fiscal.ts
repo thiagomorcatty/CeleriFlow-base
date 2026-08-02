@@ -132,18 +132,23 @@ export async function getPublicExpenses(db: Db, filter?: PublicDataFilter) {
             company: { select: { corporateName: true, cnpj: true } },
           },
         },
+        process: { select: { protocolNumber: true } },
+        contract: { select: { number: true } },
+        covenant: { select: { number: true } },
         appropriation: {
           include: {
             budgetUnit: true,
             expenseNature: true,
             resourceSource: true,
+            programPPA: true,
+            actionPPA: true,
           },
         },
         settlements: {
           where: { status: "Liquidado" },
-          include: { payments: { where: { status: "Paga" } } },
+          include: { payments: { where: { status: { in: ["Pago", "Paga"] } } } },
         },
-        payments: { where: { status: "Paga" } },
+        payments: { where: { status: { in: ["Pago", "Paga"] } } },
       },
       orderBy: { date: "desc" },
       skip: (normalized.page - 1) * normalized.pageSize,
@@ -173,6 +178,19 @@ export async function getPublicExpenses(db: Db, filter?: PublicDataFilter) {
     return {
       number: c.number,
       date: c.date,
+      processNumber: c.process?.protocolNumber ?? "PROC-S/N",
+      contractNumber: c.contract?.number ?? "S/N",
+      biddingNumber: c.process?.protocolNumber ?? "S/N",
+      biddingModality: "DISPENSA/INEXIGIBILIDADE",
+      programCode: c.appropriation.programPPA?.code ?? "0000",
+      programName: c.appropriation.programPPA?.name ?? "PROGRAMA DE GESTÃO E MANUTENÇÃO",
+      actionCode: c.appropriation.actionPPA?.code ?? "2000",
+      actionName: c.appropriation.actionPPA?.name ?? "MANUTENÇÃO DAS ATIVIDADES ADMINISTRATIVAS",
+      functionCode: c.appropriation.code.substring(0, 2) || "04",
+      functionName: "Administração",
+      subfunctionCode: c.appropriation.code.substring(2, 5) || "122",
+      subfunctionName: "Administração Geral",
+      covenantNumber: c.covenant?.number ?? c.covenantNumber ?? "NÃO APLICÁVEL",
       supplierName: supplier.name,
       supplierDocumentMasked: supplier.documentMasked,
       budgetUnitCode: c.appropriation.budgetUnit.code,
@@ -182,6 +200,7 @@ export async function getPublicExpenses(db: Db, filter?: PublicDataFilter) {
       expenseNatureName: c.appropriation.expenseNature.name,
       resourceSourceCode: c.appropriation.resourceSource.code,
       resourceSourceName: c.appropriation.resourceSource.name,
+      description: c.history || "Despesa Pública Processada",
       committedValue: value,
       settledValue: totalSettled,
       paidValue: totalPaid,
@@ -247,6 +266,7 @@ export async function getPublicRevenues(db: Db, filter?: PublicDataFilter) {
     budgetUnitCode: r.bankAccount?.budgetUnit?.code ?? null,
     budgetUnitName: r.bankAccount?.budgetUnit?.name ?? null,
     classification: r.classification,
+    description: r.history || "Arrecadação de Receita Pública",
     value: Number(r.valueDecimal ?? r.value),
     status: r.status,
   }));
@@ -270,6 +290,17 @@ export function exportPublicDataCSV(data: Record<string, unknown>[]): string {
     Object.values(row)
       .map(escapeCsvValue)
       .join(","),
+  );
+  return [headers, ...rows].join("\n");
+}
+
+export function exportPublicDataTXT(data: Record<string, unknown>[]): string {
+  if (data.length === 0) return "";
+  const headers = Object.keys(data[0]).join("\t");
+  const rows = data.map((row) =>
+    Object.values(row)
+      .map((val) => (val instanceof Date ? val.toISOString() : String(val ?? "").replace(/\t/g, " ")))
+      .join("\t"),
   );
   return [headers, ...rows].join("\n");
 }

@@ -10,6 +10,10 @@ const DIVERGENCE_TYPES = new Set([
   "FALTA",
   "VENCIDO",
   "DANIFICADO",
+  "DESCARTE",
+  "VENCIMENTO",
+  "ITEM_INESPERADO",
+  "AJUSTE_INVENTARIO",
   "LOTE_DIVERGENTE",
   "VALIDADE_DIVERGENTE",
 ]);
@@ -141,6 +145,9 @@ export async function closeApprovedInventory(db: PrismaClient, input: {
     });
     if (!session) throw new InventoryServiceError("Inventário não encontrado.");
     if (session.status !== "PENDING_APPROVAL") throw new InventoryServiceError("O inventário ainda não está aguardando aprovação.");
+    if (session.createdByUsuarioId === approvedByUsuarioId) {
+      throw new InventoryServiceError("Segregação de Funções: O aprovador do inventário deve ser diferente do servidor inventoriante que iniciou a sessão.");
+    }
 
     for (const item of session.items) {
       if (item.countedQuantity === null) throw new InventoryServiceError("Todos os itens devem ser contados antes do encerramento.");

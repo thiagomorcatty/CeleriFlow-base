@@ -59,6 +59,11 @@ export function normalizeStockMovement(input: StockMovementInput): ValidStockMov
   if (input.settlementId?.trim() && input.kind !== "EXIT") {
     throw new StockServiceError("A liquidação pode ser vinculada somente a uma saída de estoque.");
   }
+  if (input.kind === "EXIT" && (input.reason?.trim() === "CONSUMO_ORCAMENTARIO" || input.reason?.trim() === "CONSUMO_ORCAMENTARIO_DIRETO")) {
+    if (!input.settlementId?.trim()) {
+      throw new StockServiceError("Saída de estoque por consumo orçamentário exige o vínculo de uma liquidação ativa.");
+    }
+  }
 
   return { ...input, warehouseId, materialId, batchNumber, actor: { ...input.actor, usuarioId: actorUsuarioId } };
 }

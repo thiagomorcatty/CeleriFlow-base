@@ -81,6 +81,21 @@ export type PaymentPrintData = {
   gedAttachmentUrl?: string;
 };
 
+export type RetentionPrintData = {
+  number: string;
+  date: string;
+  paymentNumber: string;
+  settlementNumber: string;
+  commitmentNumber: string;
+  creditorName: string;
+  creditorDocument: string;
+  calculationBase: number;
+  retentionType: string; // INSS, IRRF, ISS, PIS/COFINS/CSLL
+  ratePercentage: number;
+  retentionValue: number;
+  destinationAccount: string;
+};
+
 function formatCurrency(val: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
 }
@@ -371,3 +386,392 @@ export function generatePaymentPrintHtml(data: PaymentPrintData, opts?: Document
     </html>
   `;
 }
+
+// -----------------------------------------------------------------------------
+// 3.1. Guia / Comprovante Oficial de Retenção Tributária Imprimível
+// -----------------------------------------------------------------------------
+export function generateRetentionPrintHtml(data: RetentionPrintData, opts?: DocumentPrintOptions): string {
+  return `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Guia de Retenção Tributária Nº ${data.number}</title>
+      ${getStylesHtml()}
+    </head>
+    <body>
+      ${getHeaderHtml("COMPROVANTE OFICIAL DE RETENÇÃO TRIBUTÁRIA E PREVIDENCIÁRIA", opts)}
+
+      <div style="display:flex; gap:15px; margin-bottom:15px;">
+        <div class="box" style="flex:1;">
+          <div class="box-title">Identificação da Retenção</div>
+          <p style="margin:3px 0;"><strong>Número do Comprovante:</strong> <span class="font-mono">${data.number}</span></p>
+          <p style="margin:3px 0;"><strong>Data de Recolhimento:</strong> ${data.date}</p>
+          <p style="margin:3px 0;"><strong>Pagamento Origem:</strong> <span class="font-mono">${data.paymentNumber}</span></p>
+          <p style="margin:3px 0;"><strong>Liquidação Origem:</strong> <span class="font-mono">${data.settlementNumber}</span></p>
+          <p style="margin:3px 0;"><strong>Empenho Origem:</strong> <span class="font-mono">${data.commitmentNumber}</span></p>
+        </div>
+        <div class="box" style="flex:1;">
+          <div class="box-title">Contribuinte / Sujeito Passivo</div>
+          <p style="margin:3px 0;"><strong>Nome/Razão Social:</strong> ${data.creditorName}</p>
+          <p style="margin:3px 0;"><strong>CPF/CNPJ:</strong> <span class="font-mono">${data.creditorDocument}</span></p>
+          <p style="margin:3px 0;"><strong>Conta Extraorçamentária:</strong> ${data.destinationAccount}</p>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">Memória de Cálculo do Tributo Retido</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Tipo de Tributo / Contribuição</th>
+              <th class="text-right">Base de Cálculo (R$)</th>
+              <th class="text-right">Alíquota (%)</th>
+              <th class="text-right">Valor Retido (R$)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>${data.retentionType}</strong></td>
+              <td class="text-right font-mono">${formatCurrency(data.calculationBase)}</td>
+              <td class="text-right font-mono">${data.ratePercentage.toFixed(2)}%</td>
+              <td class="text-right font-mono" style="font-weight:bold; color:#0f766e;">${formatCurrency(data.retentionValue)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:40px; display:flex; justify-content:space-around; text-align:center;">
+        <div><div style="border-top:1px solid #000; width:220px; padding-top:4px;">Agente Arrecadador / Tesouraria</div></div>
+        <div><div style="border-top:1px solid #000; width:220px; padding-top:4px;">Contador Responsável CRC</div></div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+
+// -----------------------------------------------------------------------------
+// 4. Prestação de Contas Anual (PCA) Imprimível Oficial
+// -----------------------------------------------------------------------------
+export function generatePcaPrintHtml(
+  data: {
+    year: number;
+    budgetBalance: { totalReceita: number; totalDespesa: number; resultado: number };
+    balanceSheet: { totalAtivo: number; totalPassivo: number; patrimonioLiquido: number };
+    financialBalance: { totalIngressos: number; totalDispendios: number; saldoFinal: number };
+    dvp: { totalVPA: number; totalVPD: number; resultadoPatrimonial: number };
+    dfc: { fluxoOperacional: number; fluxoInvestimento: number; fluxoFinanciamento: number; variacaoCaixa: number };
+    explanatoryNotes?: string[];
+  },
+  opts?: DocumentPrintOptions,
+): string {
+  const notes = data.explanatoryNotes || [
+    "Nota 1: As demonstrações contábeis foram elaboradas em conformidade com as Normas Brasileiras de Contabilidade Aplicadas ao Setor Público (NBC TSP) e o Manual de Demonstrativos Fiscais (MDF 14ª edição/STN).",
+    "Nota 2: A depreciação de bens patrimoniais é apurada pelo método linear simples com quotas mensais calculadas pela vida útil da categoria de ativo.",
+    "Nota 3: O superávit/déficit orçamentário e o resultado patrimonial encontram-se integralmente reconciliados com os lançamentos de encerramento do exercício.",
+    "Nota 4: As retenções tributárias e previdenciárias recolhidas foram auditadas e registradas na conta passiva de consignações extraorçamentárias.",
+  ];
+
+  return `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Prestação de Contas Anual (PCA) — Exercício ${data.year}</title>
+      ${getStylesHtml()}
+    </head>
+    <body>
+      ${getHeaderHtml(`PRESTAÇÃO DE CONTAS ANUAL (PCA) — EXERCÍCIO ${data.year}`, opts)}
+
+      <div class="box">
+        <div class="box-title">1. Resumo das Demonstrações Fiscais e Estatutárias</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Demonstração Contábil / Fiscal</th>
+              <th class="text-right">Receita / Ingressos / Ativo (R$)</th>
+              <th class="text-right">Despesa / Dispêndios / Passivo (R$)</th>
+              <th class="text-right">Resultado / Saldo (R$)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Balanço Orçamentário</strong></td>
+              <td class="text-right font-mono">${formatCurrency(data.budgetBalance.totalReceita)}</td>
+              <td class="text-right font-mono">${formatCurrency(data.budgetBalance.totalDespesa)}</td>
+              <td class="text-right font-mono" style="font-weight:bold;">${formatCurrency(data.budgetBalance.resultado)}</td>
+            </tr>
+            <tr>
+              <td><strong>Balanço Patrimonial</strong></td>
+              <td class="text-right font-mono">${formatCurrency(data.balanceSheet.totalAtivo)}</td>
+              <td class="text-right font-mono">${formatCurrency(data.balanceSheet.totalPassivo)}</td>
+              <td class="text-right font-mono" style="font-weight:bold;">${formatCurrency(data.balanceSheet.patrimonioLiquido)}</td>
+            </tr>
+            <tr>
+              <td><strong>Balanço Financeiro (Anexo 13)</strong></td>
+              <td class="text-right font-mono">${formatCurrency(data.financialBalance.totalIngressos)}</td>
+              <td class="text-right font-mono">${formatCurrency(data.financialBalance.totalDispendios)}</td>
+              <td class="text-right font-mono" style="font-weight:bold;">${formatCurrency(data.financialBalance.saldoFinal)}</td>
+            </tr>
+            <tr>
+              <td><strong>DVP (Variações Patrimoniais)</strong></td>
+              <td class="text-right font-mono">${formatCurrency(data.dvp.totalVPA)}</td>
+              <td class="text-right font-mono">${formatCurrency(data.dvp.totalVPD)}</td>
+              <td class="text-right font-mono" style="font-weight:bold;">${formatCurrency(data.dvp.resultadoPatrimonial)}</td>
+            </tr>
+            <tr>
+              <td><strong>DFC (Fluxo de Caixa Operacional)</strong></td>
+              <td class="text-right font-mono" colspan="2">Atividades Operacionais, Investimento e Financiamento</td>
+              <td class="text-right font-mono" style="font-weight:bold;">${formatCurrency(data.dfc.variacaoCaixa)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="box">
+        <div class="box-title">2. Notas Explicativas Obrigatórias (NBC TSP / MCASP)</div>
+        ${notes.map((note) => `<p style="margin:6px 0; text-align:justify; line-height:1.4;">${note}</p>`).join("")}
+      </div>
+
+      <div style="margin-top:50px; display:flex; justify-content:space-between; text-align:center;">
+        <div>
+          <div style="border-top:1px solid #000; width:180px; margin:0 auto; padding-top:4px;">Prefeito / Gestor Municipal</div>
+          <p style="margin:2px 0 0 0; font-size:9px; color:#666;">Ordenador Principal de Despesas</p>
+        </div>
+        <div>
+          <div style="border-top:1px solid #000; width:180px; margin:0 auto; padding-top:4px;">Contador Responsável</div>
+          <p style="margin:2px 0 0 0; font-size:9px; color:#666;">CRC-PB Nº 000.000/O-0</p>
+        </div>
+        <div>
+          <div style="border-top:1px solid #000; width:180px; margin:0 auto; padding-top:4px;">Controlador Interno</div>
+          <p style="margin:2px 0 0 0; font-size:9px; color:#666;">Sistema de Controle Interno</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// -----------------------------------------------------------------------------
+// 5. Balanço Financeiro (Anexo 13 da Lei 4.320/64) Imprimível
+// -----------------------------------------------------------------------------
+export function generateBalancoFinanceiroPrintHtml(
+  data: {
+    year: number;
+    ingressos: { receitaOrcamentaria: number; receitaExtraorcamentaria: number; saldoExercícioAnterior: number; totalIngressos: number };
+    dispendios: { despesaOrcamentaria: number; despesaExtraorcamentaria: number; saldoExercícioSeguinte: number; totalDispendios: number };
+  },
+  opts?: DocumentPrintOptions,
+): string {
+  return `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Balanço Financeiro — Anexo 13 (Lei 4.320/64) — ${data.year}</title>
+      ${getStylesHtml()}
+    </head>
+    <body>
+      ${getHeaderHtml(`BALANÇO FINANCEIRO (ANEXO 13 LEI 4.320/64) — EXERCÍCIO ${data.year}`, opts)}
+      <div style="display:flex; gap:15px;">
+        <div class="box" style="flex:1;">
+          <div class="box-title">Ingressos (Entradas de Caixa)</div>
+          <table>
+            <tr><td>Receita Orçamentária Realizada</td><td class="text-right font-mono">${formatCurrency(data.ingressos.receitaOrcamentaria)}</td></tr>
+            <tr><td>Receita Extraorçamentária (Consignações)</td><td class="text-right font-mono">${formatCurrency(data.ingressos.receitaExtraorcamentaria)}</td></tr>
+            <tr><td>Saldo do Exercício Anterior (Caixa/Bancos)</td><td class="text-right font-mono">${formatCurrency(data.ingressos.saldoExercícioAnterior)}</td></tr>
+            <tr style="font-weight:bold; background:#e2e8f0;"><td>TOTAL DOS INGRESSOS</td><td class="text-right font-mono">${formatCurrency(data.ingressos.totalIngressos)}</td></tr>
+          </table>
+        </div>
+        <div class="box" style="flex:1;">
+          <div class="box-title">Dispêndios (Saídas de Caixa)</div>
+          <table>
+            <tr><td>Despesa Orçamentária Paga</td><td class="text-right font-mono">${formatCurrency(data.dispendios.despesaOrcamentaria)}</td></tr>
+            <tr><td>Despesa Extraorçamentária (Recolhimentos)</td><td class="text-right font-mono">${formatCurrency(data.dispendios.despesaExtraorcamentaria)}</td></tr>
+            <tr><td>Saldo para o Exercício Seguinte (Caixa/Bancos)</td><td class="text-right font-mono">${formatCurrency(data.dispendios.saldoExercícioSeguinte)}</td></tr>
+            <tr style="font-weight:bold; background:#e2e8f0;"><td>TOTAL DOS DISPÊNDIOS</td><td class="text-right font-mono">${formatCurrency(data.dispendios.totalDispendios)}</td></tr>
+          </table>
+        </div>
+      </div>
+      <div style="margin-top:40px; display:flex; justify-content:space-around; text-align:center;">
+        <div><div style="border-top:1px solid #000; width:200px; padding-top:4px;">Contador Responsável CRC</div></div>
+        <div><div style="border-top:1px solid #000; width:200px; padding-top:4px;">Ordenador de Despesas</div></div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// -----------------------------------------------------------------------------
+// 6. Comparativo LOA (Original vs Alterado por Créditos Adicionais)
+// -----------------------------------------------------------------------------
+export function generateBudgetComparisonPrintHtml(
+  data: {
+    lawNumber: string;
+    totalFixadoOriginal: number;
+    totalCreditosAdicionais: number;
+    totalAtualizado: number;
+    variacaoPercentual: number;
+    dotacoesComparativo: {
+      code: string;
+      budgetUnit: string;
+      expenseNature: string;
+      valorInicial: number;
+      valorAtualizado: number;
+      variacaoCredito: number;
+      valorEmpenhado: number;
+      valorDisponivel: number;
+    }[];
+  },
+  opts?: DocumentPrintOptions,
+): string {
+  return `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Comparativo de Alterações Orçamentárias — ${data.lawNumber}</title>
+      ${getStylesHtml()}
+    </head>
+    <body>
+      ${getHeaderHtml(`DEMONSTRATIVO COMPARATIVO LOA (ORIGINAL VS ALTERADA) — LEI ${data.lawNumber}`, opts)}
+      <div class="box">
+        <div class="box-title">Síntese do Orçamento e Créditos Adicionais</div>
+        <table>
+          <tr>
+            <td><strong>Fixação Inicial (LOA Original):</strong> ${formatCurrency(data.totalFixadoOriginal)}</td>
+            <td><strong>Créditos Efetivados (Suplementar/Especial):</strong> ${formatCurrency(data.totalCreditosAdicionais)}</td>
+            <td><strong>Orçamento Atualizado:</strong> <strong style="color:#0f766e;">${formatCurrency(data.totalAtualizado)}</strong> (${data.variacaoPercentual}% de alteração)</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="box">
+        <div class="box-title">Detalhamento por Dotação Orçamentária</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Dotação</th>
+              <th>Unidade Gestora</th>
+              <th>Natureza Despesa</th>
+              <th class="text-right">Valor Inicial (R$)</th>
+              <th class="text-right">Créditos / Anulações (R$)</th>
+              <th class="text-right">Valor Atualizado (R$)</th>
+              <th class="text-right">Empenhado (R$)</th>
+              <th class="text-right">Disponível (R$)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.dotacoesComparativo
+              .map(
+                (d) => `
+              <tr>
+                <td class="font-mono">${d.code}</td>
+                <td>${d.budgetUnit}</td>
+                <td>${d.expenseNature}</td>
+                <td class="text-right font-mono">${formatCurrency(d.valorInicial)}</td>
+                <td class="text-right font-mono">${formatCurrency(d.variacaoCredito)}</td>
+                <td class="text-right font-mono" style="font-weight:bold;">${formatCurrency(d.valorAtualizado)}</td>
+                <td class="text-right font-mono">${formatCurrency(d.valorEmpenhado)}</td>
+                <td class="text-right font-mono" style="color:${d.valorDisponivel < 0 ? "#b91c1c" : "#0f766e"};">${formatCurrency(d.valorDisponivel)}</td>
+              </tr>
+            `,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:40px; display:flex; justify-content:space-around; text-align:center;">
+        <div><div style="border-top:1px solid #000; width:220px; padding-top:4px;">Diretor de Orçamento / Planejamento</div></div>
+        <div><div style="border-top:1px solid #000; width:220px; padding-top:4px;">Contador Responsável CRC</div></div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// -----------------------------------------------------------------------------
+// 7. Extrato Bancário Diário / Mensal Completo de Tesouraria Imprimível
+// -----------------------------------------------------------------------------
+export function generateBankStatementPrintHtml(
+  data: {
+    bankAccountName: string;
+    bankAgencyAccount: string;
+    startDate: string;
+    endDate: string;
+    openingBalance: number;
+    closingBalance: number;
+    statementItems: {
+      date: string;
+      type: string;
+      history: string;
+      direction: "ENTRADA" | "SAIDA";
+      value: number;
+      runningBalance: number;
+    }[];
+  },
+  opts?: DocumentPrintOptions,
+): string {
+  return `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Extrato Bancário de Tesouraria — ${data.bankAccountName}</title>
+      ${getStylesHtml()}
+    </head>
+    <body>
+      ${getHeaderHtml(`EXTRATO DE TESOURARIA — ${data.bankAccountName.toUpperCase()}`, opts)}
+      <div class="box">
+        <div class="box-title">Identificação da Conta & Período</div>
+        <p style="margin:3px 0;"><strong>Conta Bancária:</strong> ${data.bankAccountName} (Agência/Conta: ${data.bankAgencyAccount})</p>
+        <p style="margin:3px 0;"><strong>Período das Movimentações:</strong> ${data.startDate} a ${data.endDate}</p>
+        <p style="margin:3px 0;"><strong>Saldo Inicial do Período:</strong> ${formatCurrency(data.openingBalance)} | <strong>Saldo Final:</strong> <strong style="color:#0f766e;">${formatCurrency(data.closingBalance)}</strong></p>
+      </div>
+
+      <div class="box">
+        <div class="box-title">Movimentações Cronológicas no Período</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Histórico / Descrição do Lançamento</th>
+              <th class="text-right">Entrada (R$)</th>
+              <th class="text-right">Saída (R$)</th>
+              <th class="text-right">Saldo Acumulado (R$)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.statementItems
+              .map(
+                (item) => `
+              <tr>
+                <td class="font-mono text-center">${item.date}</td>
+                <td><span class="badge">${item.type}</span></td>
+                <td>${item.history}</td>
+                <td class="text-right font-mono" style="color:${item.direction === "ENTRADA" ? "#0f766e" : "#888"};">${item.direction === "ENTRADA" ? formatCurrency(item.value) : "-"}</td>
+                <td class="text-right font-mono" style="color:${item.direction === "SAIDA" ? "#b91c1c" : "#888"};">${item.direction === "SAIDA" ? formatCurrency(item.value) : "-"}</td>
+                <td class="text-right font-mono" style="font-weight:bold;">${formatCurrency(item.runningBalance)}</td>
+              </tr>
+            `,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:40px; display:flex; justify-content:space-around; text-align:center;">
+        <div><div style="border-top:1px solid #000; width:220px; padding-top:4px;">Agente Financeiro / Tesouraria</div></div>
+        <div><div style="border-top:1px solid #000; width:220px; padding-top:4px;">Contador Responsável CRC</div></div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+
+
+

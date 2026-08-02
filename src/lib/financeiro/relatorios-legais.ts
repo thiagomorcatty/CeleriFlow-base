@@ -142,7 +142,7 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
                     { date: dateCond },
                     { movements: { some: { date: dateCond } } },
                     { settlements: { some: { status: "Liquidado", date: dateCond } } },
-                    { payments: { some: { status: "Paga", date: dateCond } } },
+                    { payments: { some: { status: { in: ["Pago", "Paga"] }, date: dateCond } } },
                   ],
                 }
               : {}),
@@ -162,7 +162,7 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
               include: {
                 payments: {
                   where: {
-                    status: "Paga",
+                    status: { in: ["Pago", "Paga"] },
                     ...(dateCond ? { date: dateCond } : {}),
                   },
                 },
@@ -170,7 +170,7 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
             },
             payments: {
               where: {
-                status: "Paga",
+                status: { in: ["Pago", "Paga"] },
                 ...(dateCond ? { date: dateCond } : {}),
               },
             },

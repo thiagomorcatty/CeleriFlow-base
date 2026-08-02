@@ -293,7 +293,7 @@ export async function recordAssetDisposal(db: PrismaClient, input: AssetDisposal
   return db.$transaction(async (tx) => {
     const asset = await tx.asset.findUnique({
       where: { id: input.assetId },
-      select: { id: true, status: true, currentValue: true },
+      select: { id: true, status: true, currentValue: true, name: true },
     });
     if (!asset) throw new AssetLifecycleError("Bem patrimonial não encontrado.");
     if (asset.status === "Baixado") throw new AssetLifecycleError("Este bem já foi baixado.");
@@ -312,8 +312,69 @@ export async function recordAssetDisposal(db: PrismaClient, input: AssetDisposal
         ...calculation,
       },
     });
+
+    // Se for Alienação com valor recebido > 0, gera receita, tesouraria e contabilização automática
+    let alienationRevenueId: string | null = null;
+    let alienationTreasuryMovementId: string | null = null;
+
+    if (input.type === "Alienação" && disposalValue > 0 && input.actor) {
+      const [year, revenueNature, resourceSource, treasuryAccount] = await Promise.all([
+        tx.financialYear.findFirst({
+          where: { status: "Aberto", startDate: { lte: input.date }, endDate: { gte: input.date } },
+        }),
+        tx.revenueNature.findFirst(),
+        tx.resourceSource.findFirst(),
+        tx.bankAccount.findFirst({ where: { isActive: true } }),
+      ]);
+
+      if (year && revenueNature && resourceSource) {
+        // Registro de Receita Arrecadada de Alienação de Bens (Patrimonial)
+        const revenue = await tx.revenue.create({
+          data: {
+            financialYearId: year.id,
+            revenueNatureId: revenueNature.id,
+            resourceSourceId: resourceSource.id,
+            classification: "ORCAMENTARIA",
+            stage: "ARRECADADA",
+            date: input.date,
+            collectionDate: input.date,
+            valueDecimal: new Prisma.Decimal(disposalValue),
+            value: disposalValue,
+            history: `Receita de alienação do bem patrimonial ${asset.name}`,
+            sourceModule: "PATRIMONIO",
+            sourceType: "ASSET_ALIENATION",
+            sourceId: writeOff.id,
+            eventType: "REVENUE_COLLECTED",
+            idempotencyKey: `PATRIMONIO:ASSET_ALIENATION_REVENUE:${writeOff.id}`,
+          },
+        });
+        alienationRevenueId = revenue.id;
+
+        // Registro de Entrada em Tesouraria
+        if (treasuryAccount) {
+          const treasuryMovement = await tx.treasuryMovement.create({
+            data: {
+              type: "RECEITA",
+              direction: "ENTRADA",
+              date: input.date,
+              valueDecimal: new Prisma.Decimal(disposalValue),
+              bankAccountId: treasuryAccount.id,
+              financialYearId: year.id,
+              history: `Ingresso de receita de alienação do bem ${asset.name}`,
+              sourceModule: "PATRIMONIO",
+              sourceType: "ASSET_ALIENATION",
+              sourceId: writeOff.id,
+              eventType: "TREASURY_ENTRY",
+              idempotencyKey: `PATRIMONIO:ASSET_ALIENATION_TREASURY:${writeOff.id}`,
+            },
+          });
+          alienationTreasuryMovementId = treasuryMovement.id;
+        }
+      }
+    }
+
     const integration = await postDisposalGainLossOrRecordPending(tx, writeOff, input.actor);
     await tx.asset.update({ where: { id: asset.id }, data: { status: "Baixado" } });
-    return { ...writeOff, integration };
+    return { ...writeOff, integration, alienationRevenueId, alienationTreasuryMovementId };
   });
 }

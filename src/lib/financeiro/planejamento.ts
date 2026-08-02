@@ -832,3 +832,137 @@ export async function executeCreditRequest(
     return executed;
   });
 }
+
+// -----------------------------------------------------------------------------
+// Demonstrativo Comparativo da LOA (Original vs Alterações por Créditos)
+// -----------------------------------------------------------------------------
+export async function generateBudgetChangesComparison(db: PrismaClient, financialYearId: string) {
+  const [loa, creditRequests, appropriations] = await Promise.all([
+    db.annualBudgetLaw.findFirst({
+      where: { financialYearId },
+      include: { expenseFixations: true, revenueForecasts: true },
+    }),
+    db.creditRequest.findMany({
+      where: { financialYearId, status: "Efetivado" },
+      include: { items: true },
+    }),
+    db.budgetAppropriation.findMany({
+      where: { financialYearId },
+      include: { expenseNature: true, budgetUnit: true },
+    }),
+  ]);
+
+  if (!loa) throw new FinanceError("LOA não encontrada para o exercício.");
+
+  const totalFixadoOriginal = Number(loa.totalExpense);
+  const totalCreditosAdicionais = creditRequests.reduce((sum, req) => sum + Number(req.totalValue), 0);
+  const totalAtualizado = totalFixadoOriginal + totalCreditosAdicionais;
+
+  const dotacoesComparativo = appropriations.map((app) => {
+    const inicial = Number(app.initialValueDecimal ?? app.initialValue);
+    const atualizado = Number(app.updatedValueDecimal ?? app.updatedValue);
+    const empenhado = Number(app.committedValueDecimal ?? app.committedValue);
+    const disponivel = atualizado - empenhado;
+    const variacao = atualizado - inicial;
+
+    return {
+      code: app.code,
+      budgetUnit: `${app.budgetUnit.code} - ${app.budgetUnit.name}`,
+      expenseNature: `${app.expenseNature.code} - ${app.expenseNature.name}`,
+      valorInicial: inicial,
+      valorAtualizado: atualizado,
+      variacaoCredito: variacao,
+      valorEmpenhado: empenhado,
+      valorDisponivel: disponivel,
+    };
+  });
+
+  return {
+    financialYearId,
+    lawNumber: loa.lawNumber,
+    totalFixadoOriginal,
+    totalCreditosAdicionais,
+    totalAtualizado,
+    variacaoPercentual: totalFixadoOriginal > 0 ? Number(((totalCreditosAdicionais / totalFixadoOriginal) * 100).toFixed(2)) : 0,
+    dotacoesComparativo,
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Relatório de Acompanhamento Executivo CMD & MBA
+// -----------------------------------------------------------------------------
+export async function generateCmdMbaExecutionReport(db: PrismaClient, financialYearId: string) {
+  const [loa, cmdSchedules, mbaTargets, units, commitments, revenues] = await Promise.all([
+    db.annualBudgetLaw.findFirst({ where: { financialYearId } }),
+    db.monthlyDisbursementSchedule.findMany({ where: { annualBudgetLaw: { financialYearId } } }),
+    db.bimonthlyRevenueTarget.findMany({ where: { annualBudgetLaw: { financialYearId } } }),
+    db.budgetUnit.findMany({ select: { id: true, code: true, name: true } }),
+    db.commitment.findMany({
+      where: { appropriation: { financialYearId }, status: { in: ["Emitido", "Liquidado", "Pago"] } },
+      select: { date: true, valueDecimal: true, value: true, appropriation: { select: { budgetUnitId: true } } },
+    }),
+    db.revenue.findMany({
+      where: { financialYearId, stage: "ARRECADADA" },
+      select: { collectionDate: true, valueDecimal: true, value: true },
+    }),
+  ]);
+
+  if (!loa) throw new FinanceError("LOA não encontrada para o exercício.");
+
+  const unitsMap = new Map(units.map((u) => [u.id, `${u.code} - ${u.name}`]));
+
+  const cmdAcompanhamento = cmdSchedules.map((schedule) => {
+    const executado = commitments
+      .filter(
+        (c) =>
+          c.appropriation.budgetUnitId === schedule.budgetUnitId &&
+          c.date.getUTCMonth() + 1 === schedule.month,
+      )
+      .reduce((sum, c) => sum + Number(c.valueDecimal ?? c.value), 0);
+
+    const limite = Number(schedule.limitValue);
+    const saldo = limite - executado;
+    const estourado = executado > limite;
+
+    return {
+      budgetUnit: unitsMap.get(schedule.budgetUnitId) ?? schedule.budgetUnitId,
+      month: schedule.month,
+      limiteProgramado: limite,
+      executado,
+      saldoCota: saldo,
+      situacao: estourado ? "ALERTA_EXCESSO_CMD" : "DENTRO_DO_LIMITE",
+    };
+  });
+
+  const mbaAcompanhamento = mbaTargets.map((target) => {
+    const startMonth = (target.bimonth - 1) * 2;
+    const endMonth = startMonth + 1;
+
+    const arrecadado = revenues
+      .filter((r) => {
+        const m = (r.collectionDate || new Date()).getUTCMonth();
+        return m >= startMonth && m <= endMonth;
+      })
+      .reduce((sum, r) => sum + Number(r.valueDecimal ?? r.value), 0);
+
+    const meta = Number(target.targetValue);
+    const frustracao = Math.max(0, meta - arrecadado);
+    const percentualAtingido = meta > 0 ? Number(((arrecadado / meta) * 100).toFixed(2)) : 100;
+
+    return {
+      bimonth: target.bimonth,
+      metaArrecadacao: meta,
+      arrecadadoRealizado: arrecadado,
+      frustracaoReceita: frustracao,
+      percentualAtingido,
+      situacao: percentualAtingido < 90 ? "ALERTA_FRUSTRACAO_RECEITA" : "META_ATINGIDA",
+    };
+  });
+
+  return {
+    financialYearId,
+    cmdAcompanhamento,
+    mbaAcompanhamento,
+  };
+}
+

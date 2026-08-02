@@ -63,7 +63,7 @@ export async function reconcilePublicAndInternalData(
     db.payment.findMany({
       where: {
         commitment: { appropriation: { financialYearId } },
-        status: "Pago",
+        status: { in: ["Pago", "Paga"] },
       },
       select: { valueDecimal: true, value: true },
     }),

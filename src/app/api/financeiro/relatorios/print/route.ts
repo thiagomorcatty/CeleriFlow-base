@@ -4,7 +4,15 @@ import {
   generateCommitmentPrintHtml,
   generateSettlementPrintHtml,
   generatePaymentPrintHtml,
+  generatePcaPrintHtml,
+  generateBalancoFinanceiroPrintHtml,
+  generateBudgetComparisonPrintHtml,
+  generateRetentionPrintHtml,
+  generateBankStatementPrintHtml,
 } from "@/lib/financeiro/report-print";
+import { generatePCA, generateBalancoFinanceiro } from "@/lib/financeiro/relatorios-legais";
+import { generateBudgetChangesComparison } from "@/lib/financeiro/planejamento";
+import { generateTreasuryBankStatement } from "@/lib/financeiro";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -127,6 +135,136 @@ export async function GET(request: NextRequest) {
           netPaidValue: net,
           historical: payment.commitment.history,
         });
+        break;
+      }
+
+      case "PCA": {
+        const yearParam = request.nextUrl.searchParams.get("year");
+        const year = yearParam ? parseInt(yearParam, 10) : 2026;
+        const financialYear = await context.prisma.financialYear.findUnique({ where: { year } });
+        if (!financialYear) return NextResponse.json({ error: "Exercício financeiro não encontrado." }, { status: 404 });
+
+        const pcaData = await generatePCA(context.prisma, { financialYearId: financialYear.id });
+        const demos = pcaData.demonstrativos;
+
+        html = generatePcaPrintHtml({
+          year,
+          budgetBalance: {
+            totalReceita: demos.balancoOrcamentario.totais.totalReceitaRealizada,
+            totalDespesa: demos.balancoOrcamentario.totais.totalDespesaPaga,
+            resultado: demos.balancoOrcamentario.totais.superavitDeficitOrcamentario,
+          },
+          balanceSheet: {
+            totalAtivo: demos.balancoPatrimonial.totais.totalAtivo,
+            totalPassivo: demos.balancoPatrimonial.totais.totalPassivo,
+            patrimonioLiquido: demos.balancoPatrimonial.totais.totalPatrimonioLiquido,
+          },
+          financialBalance: {
+            totalIngressos: demos.balancoFinanceiro.ingressos.totalIngressos,
+            totalDispendios: demos.balancoFinanceiro.dispendios.totalDispendios,
+            saldoFinal: demos.balancoFinanceiro.dispendios.saldoExercícioSeguinte,
+          },
+          dvp: {
+            totalVPA: demos.dvp.totais.totalVPA,
+            totalVPD: demos.dvp.totais.totalVPD,
+            resultadoPatrimonial: demos.dvp.totais.resultadoPatrimonial,
+          },
+          dfc: {
+            fluxoOperacional: demos.dfc.fluxoOperacional,
+            fluxoInvestimento: demos.dfc.fluxoInvestimento,
+            fluxoFinanciamento: demos.dfc.fluxoFinanciamento,
+            variacaoCaixa: demos.dfc.geracaoLiquidaCaixa,
+          },
+        });
+        break;
+      }
+
+      case "BALANCO_FINANCEIRO": {
+        const yearParam = request.nextUrl.searchParams.get("year");
+        const year = yearParam ? parseInt(yearParam, 10) : 2026;
+        const financialYear = await context.prisma.financialYear.findUnique({ where: { year } });
+        if (!financialYear) return NextResponse.json({ error: "Exercício financeiro não encontrado." }, { status: 404 });
+
+        const bf = await generateBalancoFinanceiro(context.prisma, { financialYearId: financialYear.id });
+
+        html = generateBalancoFinanceiroPrintHtml({
+          year,
+          ingressos: bf.ingressos,
+          dispendios: bf.dispendios,
+        });
+        break;
+      }
+
+      case "COMPARATIVO_ORCAMENTO": {
+        const yearParam = request.nextUrl.searchParams.get("year");
+        const year = yearParam ? parseInt(yearParam, 10) : 2026;
+        const financialYear = await context.prisma.financialYear.findUnique({ where: { year } });
+        if (!financialYear) return NextResponse.json({ error: "Exercício financeiro não encontrado." }, { status: 404 });
+
+        const comp = await generateBudgetChangesComparison(context.prisma, financialYear.id);
+
+        html = generateBudgetComparisonPrintHtml(comp);
+        break;
+      }
+
+      case "RETENCAO": {
+        const id = request.nextUrl.searchParams.get("id");
+        if (!id) return NextResponse.json({ error: "ID da retenção é obrigatório." }, { status: 400 });
+
+        const retention = await context.prisma.paymentRetention.findUnique({
+          where: { id },
+          include: {
+            payment: {
+              include: {
+                settlement: {
+                  include: {
+                    commitment: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (!retention || !retention.payment) {
+          return NextResponse.json({ error: "Retenção não encontrada." }, { status: 404 });
+        }
+
+        const p = retention.payment;
+        const s = p.settlement;
+        const c = s?.commitment;
+        const grossValue = s ? Number(s.valueDecimal) : Number(retention.valueDecimal);
+        const retentionValue = Number(retention.valueDecimal);
+
+        html = generateRetentionPrintHtml({
+          number: `RET-${retention.id.slice(-6).toUpperCase()}`,
+          date: retention.createdAt.toLocaleDateString("pt-BR"),
+          paymentNumber: p.orderNumber || "OP-S/N",
+          settlementNumber: c?.number ? `NL-${c.number}` : "NL-S/N",
+          commitmentNumber: c?.number ? `NE-${c.number}` : "NE-S/N",
+          creditorName: retention.beneficiaryName || "FAVORECIDO NÃO INFORMADO",
+          creditorDocument: retention.beneficiaryDocument || "000.000.000-00",
+          calculationBase: grossValue,
+          retentionType: retention.type,
+          ratePercentage: grossValue > 0 ? Number(((retentionValue / grossValue) * 100).toFixed(2)) : 0,
+          retentionValue,
+          destinationAccount: "2.1.8.8.1.01.00 - Consignações Extraorçamentárias A Recolher",
+        });
+        break;
+      }
+
+      case "EXTRATO_BANCARIO": {
+        const bankAccountId = request.nextUrl.searchParams.get("bankAccountId");
+        if (!bankAccountId) return NextResponse.json({ error: "bankAccountId é obrigatório." }, { status: 400 });
+
+        const startDateParam = request.nextUrl.searchParams.get("startDate");
+        const endDateParam = request.nextUrl.searchParams.get("endDate");
+        const startDate = startDateParam ? new Date(startDateParam) : new Date(Date.UTC(2026, 0, 1));
+        const endDate = endDateParam ? new Date(endDateParam) : new Date(Date.UTC(2026, 11, 31));
+
+        const statement = await generateTreasuryBankStatement(context.prisma, { bankAccountId, startDate, endDate });
+
+        html = generateBankStatementPrintHtml(statement);
         break;
       }
 

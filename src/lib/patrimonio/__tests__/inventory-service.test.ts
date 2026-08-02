@@ -10,6 +10,7 @@ test("approved inventory closure records the adjustment and releases the movemen
     inventorySession: {
       findUnique: async () => ({
         id: "inventory-1",
+        createdByUsuarioId: "creator-1",
         status: "PENDING_APPROVAL",
         items: [{
           id: "item-1",
@@ -47,4 +48,28 @@ test("approved inventory closure records the adjustment and releases the movemen
   assert.equal(closedData?.status, "CLOSED");
   assert.equal(closedData?.lockMovements, false);
   assert.equal(closedData?.approvalEvidence, "Despacho 42/2026 aprovado pelo gestor");
+});
+
+test("rejeita encerramento de inventário quando aprovador é o mesmo inventoriante (segregação de funções)", async () => {
+  const transaction = {
+    inventorySession: {
+      findUnique: async () => ({
+        id: "inventory-1",
+        createdByUsuarioId: "user-same",
+        status: "PENDING_APPROVAL",
+        items: [],
+      }),
+    },
+  };
+  const database = { $transaction: async (callback: (tx: typeof transaction) => Promise<unknown>) => callback(transaction) };
+
+  await assert.rejects(
+    () =>
+      closeApprovedInventory(database as never, {
+        sessionId: "inventory-1",
+        approvalEvidence: "Tentativa do próprio inventoriante",
+        actor: { usuarioId: "user-same", employeeId: "emp-same" },
+      }),
+    /Segregação de Funções/,
+  );
 });
