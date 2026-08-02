@@ -5629,9 +5629,27 @@ model Usuario {
   creditRequestsApproved       CreditRequest[]               @relation("CreditRequestApprovedBy")
   expenseRequests              Expense[]                     @relation("ExpenseRequestedBy")
   expenseApprovals             Expense[]                     @relation("ExpenseApprovedBy")
+  auditEvents                  AuditEvent[]                  @relation("AuditEventActor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Cross-cutting, payload-free evidence for successful authenticated operations.
+// The database trigger created by the migration makes these records append-only.
+model AuditEvent {
+  id             String   @id @default(cuid())
+  eventType      String
+  targetType     String
+  targetId       String
+  actorUsuarioId String
+  actorUsuario   Usuario  @relation("AuditEventActor", fields: [actorUsuarioId], references: [id], onDelete: Restrict)
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorUsuarioId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([targetType, targetId, createdAt])
 }
 
 model FinancialAuditLog {

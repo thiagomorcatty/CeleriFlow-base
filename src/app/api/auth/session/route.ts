@@ -3,6 +3,8 @@ import { z } from "zod";
 import { createSession, SESSION_COOKIE_NAME, SESSION_DURATION_MS } from "@/lib/platform/session";
 import { checkRateLimit } from "@/lib/platform/rate-limit";
 import { AccessError, authorizeIdToken } from "@/lib/platform/tenant-context";
+import { auditEventTypes, writeAuditEvent } from "@/lib/platform/audit-evidence";
+import { prisma } from "@/lib/prisma";
 
 const bodySchema = z.object({
   idToken: z.string().min(100),
@@ -27,8 +29,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const { idToken } = bodySchema.parse(await request.json());
-    await authorizeIdToken(idToken);
+    const user = await authorizeIdToken(idToken);
     const sessionCookie = await createSession(idToken);
+    await writeAuditEvent(prisma, {
+      actorUsuarioId: user.id,
+      eventType: auditEventTypes.sessionLogin,
+      targetType: "SESSION",
+      targetId: user.id,
+    });
 
     const response = NextResponse.json({ ok: true });
 

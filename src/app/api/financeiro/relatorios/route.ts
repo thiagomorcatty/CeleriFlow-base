@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { financialReportFilename, generateInternalReportDataset, isFinancialReportType, isReportFormat, isReportMonth, reportDatasetCsv, reportRequiresMonth, savePublicFinancialReportSnapshot } from "@/lib/financeiro/report-delivery";
 import { generateReportPdf } from "@/lib/financeiro/report-export";
 import { AccessError, getTenantContextForModule, isSystemAdministrator } from "@/lib/platform/tenant-context";
+import { auditEventTypes, writeAuditEvent } from "@/lib/platform/audit-evidence";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,6 +57,12 @@ export async function GET(request: NextRequest) {
     const contentType = format === "CSV"
       ? "text/csv; charset=utf-8"
       : "application/pdf";
+    await writeAuditEvent(context.prisma, {
+      actorUsuarioId: context.user.id,
+      eventType: auditEventTypes.financialReportExport,
+      targetType: "FINANCIAL_REPORT",
+      targetId: `${reportType}:${financialYear.id}`,
+    });
 
     return new NextResponse(body as unknown as BodyInit, {
       headers: {

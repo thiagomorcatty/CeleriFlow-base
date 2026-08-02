@@ -3,6 +3,7 @@ import { AccessError, getCurrentTenantContext, getTenantContextForModule } from 
 import { downloadFilename, getFile } from "@/lib/platform/blob";
 import { getAttendanceContext, ombudsmanScope, ticketScope } from "@/lib/attendance/access";
 import { getProtocolContext, protocolScope } from "@/lib/protocols/access";
+import { auditEventTypes, writeAuditEvent } from "@/lib/platform/audit-evidence";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const context = await getCurrentTenantContext();
+    let auditTarget: { type: string; id: string } | null = null;
     const document = await context.prisma.document.findFirst({
       where: { fileUrl: url },
       select: {
@@ -52,6 +54,7 @@ export async function GET(request: NextRequest) {
       if (!process) throw new AccessError("Sem acesso ao documento vinculado.", 403);
     } else if (document) {
       await getTenantContextForModule("DOCUMENTOS");
+      auditTarget = { type: "DOCUMENT", id: document.id };
     } else {
       const envDocument = await context.prisma.envDocument.findFirst({
         where: { fileUrl: url },
@@ -59,7 +62,10 @@ export async function GET(request: NextRequest) {
       });
       if (!envDocument) return NextResponse.json({ error: "Documento nao encontrado" }, { status: 404 });
       await getTenantContextForModule("MEIO_AMBIENTE");
+      auditTarget = { type: "ENV_DOCUMENT", id: envDocument.id };
     }
+    if (document) auditTarget = { type: "DOCUMENT", id: document.id };
+    if (!auditTarget) throw new AccessError("Documento nao encontrado", 404);
     const response = await getFile(url);
 
     if (!response || !response.stream) {
@@ -68,6 +74,12 @@ export async function GET(request: NextRequest) {
 
     const contentType = response.blob?.contentType || "application/pdf";
     const filename = downloadFilename(response.blob.pathname);
+    await writeAuditEvent(context.prisma, {
+      actorUsuarioId: context.user.id,
+      eventType: auditEventTypes.documentDownload,
+      targetType: auditTarget.type,
+      targetId: auditTarget.id,
+    });
 
     return new NextResponse(response.stream, {
       headers: {
