@@ -279,7 +279,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Erro ao gerar impressão oficial:", error);
+    console.error("Erro ao gerar impressão técnica:", error);
     return NextResponse.json({ error: "Não foi possível gerar o documento imprimível." }, { status: 500 });
   }
 }

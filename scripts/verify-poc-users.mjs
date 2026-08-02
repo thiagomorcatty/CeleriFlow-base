@@ -56,7 +56,7 @@ async function main() {
     const databaseUsers = await prisma.usuario.findMany({
       where: { email: { in: emails } },
       include: {
-        perfil: { select: { nome: true, ativo: true } },
+        perfil: { select: { nome: true, ativo: true, permissoes: true } },
         unidadesGestoras: { include: { budgetUnit: { select: { code: true } } } },
       },
     });
@@ -70,7 +70,23 @@ async function main() {
         .then((user) => ({ exists: true, disabled: user.disabled, verified: user.emailVerified, uid: user.uid }))
         .catch(firebaseStatus);
       const units = databaseUser?.unidadesGestoras.map((link) => link.budgetUnit.code).join(", ") ?? "";
-      const databaseReady = Boolean(databaseUser?.ativo && databaseUser.perfil.ativo && units);
+      const allowedModules = (() => {
+        try {
+          return JSON.parse(databaseUser?.perfil.permissoes ?? "{}").modulosPermitidos;
+        } catch {
+          return undefined;
+        }
+      })();
+      const isCitizen = databaseUser?.perfil.nome === "Cidadão";
+      const citizenPermissionsReady = Array.isArray(allowedModules)
+        && allowedModules.length === 2
+        && allowedModules.includes("OUVIDORIA")
+        && allowedModules.includes("TRANSPARENCIA");
+      const databaseReady = Boolean(
+        databaseUser?.ativo
+        && databaseUser.perfil.ativo
+        && (isCitizen ? !units && citizenPermissionsReady : units),
+      );
       const firebaseReady = firebaseUser.exists && !firebaseUser.disabled && firebaseUser.verified;
 
       rows.push({
@@ -79,7 +95,6 @@ async function main() {
         database: databaseReady ? "OK" : databaseUser ? "PENDENTE" : "AUSENTE",
         perfil: databaseUser?.perfil.nome ?? "",
         ugs: units,
-        firebaseUid: firebaseUser.uid,
       });
     }
 

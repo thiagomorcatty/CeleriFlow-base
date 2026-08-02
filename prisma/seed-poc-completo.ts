@@ -148,6 +148,23 @@ async function main() {
     update: { nome: "Contador Responsável" },
   });
 
+  const perfilCidadao = await prisma.configuracaoPerfil.upsert({
+    where: { id: "perfil-cidadao-poc" },
+    create: {
+      id: "perfil-cidadao-poc",
+      nome: "Cidadão",
+      descricao: "Acesso à Ouvidoria e ao Portal da Transparência.",
+      ativo: true,
+      permissoes: JSON.stringify({ acesso: "cidadao", modulosPermitidos: ["OUVIDORIA", "TRANSPARENCIA"] }),
+    },
+    update: {
+      nome: "Cidadão",
+      descricao: "Acesso à Ouvidoria e ao Portal da Transparência.",
+      ativo: true,
+      permissoes: JSON.stringify({ acesso: "cidadao", modulosPermitidos: ["OUVIDORIA", "TRANSPARENCIA"] }),
+    },
+  });
+
   // Usuários — senha hash gerada dinamicamente com salt correto
   const pwHash = hashPassword(seedPassword);
 
@@ -207,16 +224,20 @@ async function main() {
     update: {},
   });
 
-  await prisma.usuario.upsert({
+  const usuarioCidadao1 = await prisma.usuario.upsert({
     where: { email: "pessoateste1@email.com" },
-    create: { email: "pessoateste1@email.com", nome: "Pessoa Teste1", senha: hashPassword(seedPassword), perfilId: perfilServidor.id, ativo: true },
-    update: { nome: "Pessoa Teste1", senha: hashPassword(seedPassword) },
+    create: { email: "pessoateste1@email.com", nome: "Pessoa Teste1", senha: hashPassword(seedPassword), perfilId: perfilCidadao.id, ativo: true },
+    update: { nome: "Pessoa Teste1", senha: hashPassword(seedPassword), perfilId: perfilCidadao.id, ativo: true },
   });
 
-  await prisma.usuario.upsert({
+  const usuarioCidadao2 = await prisma.usuario.upsert({
     where: { email: "pessoateste2@email.com" },
-    create: { email: "pessoateste2@email.com", nome: "Pessoa Teste2", senha: hashPassword(seedPassword), perfilId: perfilServidor.id, ativo: true },
-    update: { nome: "Pessoa Teste2", senha: hashPassword(seedPassword) },
+    create: { email: "pessoateste2@email.com", nome: "Pessoa Teste2", senha: hashPassword(seedPassword), perfilId: perfilCidadao.id, ativo: true },
+    update: { nome: "Pessoa Teste2", senha: hashPassword(seedPassword), perfilId: perfilCidadao.id, ativo: true },
+  });
+
+  await prisma.usuarioUnidadeGestora.deleteMany({
+    where: { usuarioId: { in: [usuarioCidadao1.id, usuarioCidadao2.id] } },
   });
 
   // ---------------------------------------------------------------------------

@@ -47,7 +47,7 @@ export default async function EmpenhosPage() {
     orderBy: { date: "desc" },
   });
 
-  const [processes, contracts, obrasServices] = await Promise.all([
+  const [processes, contracts, obrasServices, covenants, publicityCampaigns, fundedDebts] = await Promise.all([
     prisma.process.findMany({ select: { id: true, protocolNumber: true, description: true }, orderBy: { createdAt: "desc" }, take: 100 }),
     prisma.contract.findMany({ select: { id: true, number: true, object: true, supplierId: true, status: true }, orderBy: { createdAt: "desc" }, take: 100 }),
     prisma.obrasServico.findMany({
@@ -55,6 +55,21 @@ export default async function EmpenhosPage() {
       select: { id: true, protocolo: true, tipo: true, descricao: true, local: true, budgetAppropriationId: true, budgetAppropriation: { select: { code: true } } },
       orderBy: { createdAt: "desc" },
       take: 100,
+    }),
+    prisma.covenant.findMany({
+      where: { status: "Ativo" },
+      select: { id: true, number: true, grantor: true, startDate: true, endDate: true },
+      orderBy: { number: "asc" },
+    }),
+    prisma.publicityCampaign.findMany({
+      where: { status: "Ativa" },
+      select: { id: true, name: true, agency: true, startDate: true, endDate: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.fundedDebt.findMany({
+      where: { status: "Ativa" },
+      select: { id: true, lawNumber: true, creditorName: true },
+      orderBy: { lawNumber: "asc" },
     }),
   ]);
 
@@ -68,5 +83,5 @@ export default async function EmpenhosPage() {
     value: Number(valueDecimal ?? reservation.value),
   }));
 
-  return <EmpenhosClient commitments={displayCommitments} suppliers={suppliers} appropriations={appropriations} reservations={displayReservations} processes={processes} contracts={contracts} obrasServices={obrasServices} />
+  return <EmpenhosClient commitments={displayCommitments} suppliers={suppliers} appropriations={appropriations} reservations={displayReservations} processes={processes} contracts={contracts} obrasServices={obrasServices} covenants={covenants} publicityCampaigns={publicityCampaigns} fundedDebts={fundedDebts} />
 }

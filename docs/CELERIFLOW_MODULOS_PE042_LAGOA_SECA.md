@@ -20,7 +20,7 @@ O **CeleriFlow** é uma plataforma de gestão pública municipal de nova geraç�
 | **Banco de Dados** | PostgreSQL (Neon Serverless) | — | ACID, CUID, Decimal, Foreign Keys |
 | **Autenticação** | Firebase Auth + Admin SDK | 12.17.0 | JWT, sessão de 5 dias, RBAC |
 | **Armazenamento de Arquivos** | Vercel Blob | 2.6.1 | Documentos, PDFs, CSV, snapshots |
-| **Geração de PDF** | PDFKit | 0.17.2 | Relatórios e documentos oficiais |
+| **Geração de PDF** | PDFKit | 0.17.2 | Relatórios técnicos preliminares e documentos gerados pelo sistema |
 | **Validação de Formulários** | React Hook Form + Zod | 7.80 / 4.4 | Validação tipada client e server |
 | **Estilização** | Tailwind CSS + shadcn/ui | — | Design system governamental |
 | **Runtime de Datas** | date-fns | 4.4.0 | Competências, vencimentos, calendários |
@@ -257,7 +257,7 @@ reconcileBankStatement(db, actor, {
 - 7 demonstrativos unificados em um único relatório
 - 3 Notas Explicativas automáticas seguindo NBC TSP 01-09
 - Bloco de 3 assinaturas legais: **Prefeito, Contador (CRC) e Controlador Interno**
-- Geração em HTML imprimível com layout oficial (6.457+ caracteres)
+- Geração em HTML imprimível como modelo interno sujeito à homologação (6.457+ caracteres)
 
 #### Parâmetros da API
 
@@ -483,7 +483,7 @@ descrição, valor empenhado, valor liquidado, valor pago
 | **Firebase Auth** | JWT + Admin SDK | ✅ Ativa |
 | **Neon PostgreSQL (Serverless)** | `@neondatabase/serverless` + WebSocket | ✅ Ativa |
 | **Vercel Blob** | Armazenamento de arquivos e PDFs | ✅ Ativa |
-| **PDFKit** | Geração de documentos oficiais | ✅ Ativa |
+| **PDFKit** | Geração de documentos técnicos preliminares | ✅ Ativa |
 
 ### ⚠️ Integrações Futuras (Roadmap pós-POC)
 
@@ -529,10 +529,10 @@ descrição, valor empenhado, valor liquidado, valor pago
 | Fechamento financeiro diário por conta e fonte | Módulo 4 — Tesouraria | ✅ Atende |
 | Extrato de tesouraria imprimível | Módulo 4 — Tesouraria | ✅ Atende |
 | Conciliação manual com itens a regularizar | Módulo 4 — Tesouraria | ✅ Atende |
-| RREO Bimestral | Módulo 5 — Relatórios | ✅ Atende |
-| RGF Quadrimestral | Módulo 5 — Relatórios | ✅ Atende |
-| Balanço Orçamentário, Patrimonial e Financeiro | Módulo 5 — Relatórios | ✅ Atende |
-| PCA com notas NBC TSP e 3 assinaturas | Módulo 5 — Relatórios | ✅ Atende |
+| RREO Bimestral | Módulo 5 — Relatórios técnicos preliminares | ⚠️ Parcial |
+| RGF Quadrimestral | Módulo 5 — Relatórios técnicos preliminares | ⚠️ Parcial |
+| Balanço Orçamentário, Patrimonial e Financeiro | Módulo 5 — Demonstrativos gerados pelo sistema | ⚠️ Parcial |
+| PCA com referência NBC TSP e campos de assinatura | Módulo 5 — Modelo interno sujeito à homologação | ⚠️ Parcial |
 | Depreciação linear conforme MCASP | Módulo 7 — Patrimônio | ✅ Atende |
 | Reavaliação, Impairment e Custos Subsequentes | Módulo 7 — Patrimônio | ✅ Atende |
 | Descarte e baixa patrimonial | Módulo 7 — Patrimônio | ✅ Atende |
@@ -547,7 +547,7 @@ descrição, valor empenhado, valor liquidado, valor pago
 | Processos e Protocolo Digital | Módulo 12 — Protocolo | ✅ Atende |
 | Licitações e Contratos (Lei 14.133/2021) | Módulo 11 — Compras | ✅ Atende (estrutura) |
 
-**RESULTADO GERAL DO GRUPO A:** ✅ **42/42 itens — 100% ATENDE**
+**RESULTADO GERAL DO GRUPO A:** **PARCIAL.** Consulte `MATRIZ_EVIDENCIAS_GRUPO_A_PE042.md` e `AVALIACAO_POC_PE042_SITUACAO_ATUAL.md`; os quatro itens de relatórios do Módulo 5 não são declarados oficiais nem `ATENDE`.
 
 ---
 

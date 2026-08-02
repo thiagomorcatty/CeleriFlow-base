@@ -12,6 +12,7 @@
     "test:unit": "node scripts/run-group-a-tests.mjs",
     "seed:poc": "npx tsx prisma/seed-poc-completo.ts",
     "seed:firebase": "npx tsx scripts/seed-firebase-users.ts",
+    "provision:citizens": "npx tsx scripts/provision-citizen-test-users.ts",
     "seed:all": "npm run seed:poc && npm run seed:firebase",
     "verify:poc-users": "node scripts/verify-poc-users.mjs",
     "verify:poc-base": "npx tsx scripts/verify-poc-base.ts",

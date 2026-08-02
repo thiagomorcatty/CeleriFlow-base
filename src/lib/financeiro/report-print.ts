@@ -1,8 +1,8 @@
 /**
  * report-print.ts
  * 
- * Gerador de documentos oficiais e relatórios contábeis no formato 
- * HTML/CSS de Impressão Oficial (@media print), pronto para visualização, 
+ * Gerador de documentos e relatórios técnicos preliminares no formato
+ * HTML/CSS para impressão (@media print), pronto para visualização,
  * impressão nativa do navegador e conversão para PDF/XLSX.
  */
 
@@ -109,7 +109,7 @@ function getHeaderHtml(title: string, opts?: DocumentPrintOptions): string {
       <div>
         <h2 style="margin:0; font-size:16px; font-weight:bold; text-transform:uppercase;">${inst}</h2>
         <p style="margin:2px 0 0 0; font-size:12px; color:#444;">Estado de ${uf} — Governo Municipal de ${city}</p>
-        <p style="margin:2px 0 0 0; font-size:11px; color:#666;">Sistema Integrado CeleriFlow • Versão Oficial MCASP / LRF</p>
+        <p style="margin:2px 0 0 0; font-size:11px; color:#666;">CeleriFlow • Relatório técnico preliminar, sujeito à homologação contábil e institucional</p>
       </div>
       <div style="text-align:right;">
         <h1 style="margin:0; font-size:18px; font-weight:bold; color:#1e293b; text-transform:uppercase;">${title}</h1>
@@ -143,7 +143,7 @@ function getStylesHtml(): string {
 }
 
 // -----------------------------------------------------------------------------
-// 1. Nota de Empenho Imprimível Oficial
+// 1. Nota de Empenho para validação interna
 // -----------------------------------------------------------------------------
 export function generateCommitmentPrintHtml(data: CommitmentPrintData, opts?: DocumentPrintOptions): string {
   return `
@@ -232,7 +232,7 @@ export function generateCommitmentPrintHtml(data: CommitmentPrintData, opts?: Do
 }
 
 // -----------------------------------------------------------------------------
-// 2. Nota de Liquidação Imprimível Oficial
+// 2. Nota de Liquidação para validação interna
 // -----------------------------------------------------------------------------
 export function generateSettlementPrintHtml(data: SettlementPrintData, opts?: DocumentPrintOptions): string {
   return `
@@ -310,7 +310,7 @@ export function generateSettlementPrintHtml(data: SettlementPrintData, opts?: Do
 }
 
 // -----------------------------------------------------------------------------
-// 3. Ordem de Pagamento Imprimível Oficial
+// 3. Ordem de Pagamento para validação interna
 // -----------------------------------------------------------------------------
 export function generatePaymentPrintHtml(data: PaymentPrintData, opts?: DocumentPrintOptions): string {
   return `
@@ -388,7 +388,7 @@ export function generatePaymentPrintHtml(data: PaymentPrintData, opts?: Document
 }
 
 // -----------------------------------------------------------------------------
-// 3.1. Guia / Comprovante Oficial de Retenção Tributária Imprimível
+// 3.1. Guia / Comprovante técnico preliminar de retenção tributária
 // -----------------------------------------------------------------------------
 export function generateRetentionPrintHtml(data: RetentionPrintData, opts?: DocumentPrintOptions): string {
   return `
@@ -400,7 +400,7 @@ export function generateRetentionPrintHtml(data: RetentionPrintData, opts?: Docu
       ${getStylesHtml()}
     </head>
     <body>
-      ${getHeaderHtml("COMPROVANTE OFICIAL DE RETENÇÃO TRIBUTÁRIA E PREVIDENCIÁRIA", opts)}
+      ${getHeaderHtml("COMPROVANTE TÉCNICO PRELIMINAR DE RETENÇÃO TRIBUTÁRIA E PREVIDENCIÁRIA", opts)}
 
       <div style="display:flex; gap:15px; margin-bottom:15px;">
         <div class="box" style="flex:1;">
@@ -452,7 +452,7 @@ export function generateRetentionPrintHtml(data: RetentionPrintData, opts?: Docu
 
 
 // -----------------------------------------------------------------------------
-// 4. Prestação de Contas Anual (PCA) Imprimível Oficial
+// 4. Modelo interno de Prestação de Contas Anual (PCA)
 // -----------------------------------------------------------------------------
 export function generatePcaPrintHtml(
   data: {
@@ -467,10 +467,10 @@ export function generatePcaPrintHtml(
   opts?: DocumentPrintOptions,
 ): string {
   const notes = data.explanatoryNotes || [
-    "Nota 1: As demonstrações contábeis foram elaboradas em conformidade com as Normas Brasileiras de Contabilidade Aplicadas ao Setor Público (NBC TSP) e o Manual de Demonstrativos Fiscais (MDF 14ª edição/STN).",
-    "Nota 2: A depreciação de bens patrimoniais é apurada pelo método linear simples com quotas mensais calculadas pela vida útil da categoria de ativo.",
-    "Nota 3: O superávit/déficit orçamentário e o resultado patrimonial encontram-se integralmente reconciliados com os lançamentos de encerramento do exercício.",
-    "Nota 4: As retenções tributárias e previdenciárias recolhidas foram auditadas e registradas na conta passiva de consignações extraorçamentárias.",
+    "Nota 1: Modelo interno para validação contábil. A referência à NBC TSP e ao MDF não substitui a revisão, os leiautes ou a homologação pelos órgãos competentes.",
+    "Nota 2: A depreciação de bens patrimoniais é calculada internamente pelo método linear simples, sujeita à validação do responsável contábil.",
+    "Nota 3: Os saldos exibidos são gerados a partir dos lançamentos registrados no sistema e requerem reconciliação e validação antes de qualquer uso institucional.",
+    "Nota 4: As retenções exibidas são registros internos e não comprovam recolhimento ou auditoria externa.",
   ];
 
   return `
@@ -478,14 +478,14 @@ export function generatePcaPrintHtml(
     <html lang="pt-BR">
     <head>
       <meta charset="UTF-8">
-      <title>Prestação de Contas Anual (PCA) — Exercício ${data.year}</title>
+      <title>Modelo Interno de PCA — Exercício ${data.year}</title>
       ${getStylesHtml()}
     </head>
     <body>
-      ${getHeaderHtml(`PRESTAÇÃO DE CONTAS ANUAL (PCA) — EXERCÍCIO ${data.year}`, opts)}
+      ${getHeaderHtml(`MODELO INTERNO DE PCA — EXERCÍCIO ${data.year}`, opts)}
 
       <div class="box">
-        <div class="box-title">1. Resumo das Demonstrações Fiscais e Estatutárias</div>
+          <div class="box-title">1. Resumo dos demonstrativos gerados pelo sistema</div>
         <table>
           <thead>
             <tr>
@@ -530,22 +530,22 @@ export function generatePcaPrintHtml(
       </div>
 
       <div class="box">
-        <div class="box-title">2. Notas Explicativas Obrigatórias (NBC TSP / MCASP)</div>
+          <div class="box-title">2. Notas técnicas para validação (referência NBC TSP / MCASP)</div>
         ${notes.map((note) => `<p style="margin:6px 0; text-align:justify; line-height:1.4;">${note}</p>`).join("")}
       </div>
 
       <div style="margin-top:50px; display:flex; justify-content:space-between; text-align:center;">
         <div>
           <div style="border-top:1px solid #000; width:180px; margin:0 auto; padding-top:4px;">Prefeito / Gestor Municipal</div>
-          <p style="margin:2px 0 0 0; font-size:9px; color:#666;">Ordenador Principal de Despesas</p>
+          <p style="margin:2px 0 0 0; font-size:9px; color:#666;">Campo para assinatura após homologação</p>
         </div>
         <div>
           <div style="border-top:1px solid #000; width:180px; margin:0 auto; padding-top:4px;">Contador Responsável</div>
-          <p style="margin:2px 0 0 0; font-size:9px; color:#666;">CRC-PB Nº 000.000/O-0</p>
+          <p style="margin:2px 0 0 0; font-size:9px; color:#666;">Campo para CRC e assinatura após homologação</p>
         </div>
         <div>
           <div style="border-top:1px solid #000; width:180px; margin:0 auto; padding-top:4px;">Controlador Interno</div>
-          <p style="margin:2px 0 0 0; font-size:9px; color:#666;">Sistema de Controle Interno</p>
+          <p style="margin:2px 0 0 0; font-size:9px; color:#666;">Campo para assinatura após homologação</p>
         </div>
       </div>
     </body>
@@ -771,7 +771,6 @@ export function generateBankStatementPrintHtml(
     </html>
   `;
 }
-
 
 
 

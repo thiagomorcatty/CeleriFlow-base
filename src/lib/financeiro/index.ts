@@ -583,6 +583,29 @@ export async function createCommitment(
     if (contract) {
       if (contract.supplierId !== input.supplierId) throw new FinanceError("O contrato informado não pertence ao fornecedor do empenho.");
     }
+    const [covenant, publicityCampaign, fundedDebt] = await Promise.all([
+      input.covenantId
+        ? tx.covenant.findUnique({ where: { id: input.covenantId }, select: { id: true, number: true, status: true, startDate: true, endDate: true } })
+        : null,
+      input.publicityCampaignId
+        ? tx.publicityCampaign.findUnique({ where: { id: input.publicityCampaignId }, select: { id: true, name: true, status: true, startDate: true, endDate: true } })
+        : null,
+      input.fundedDebtId
+        ? tx.fundedDebt.findUnique({ where: { id: input.fundedDebtId }, select: { id: true, creditorName: true, lawNumber: true, status: true } })
+        : null,
+    ]);
+    if (input.covenantId && !covenant) throw new FinanceError("Convênio informado não encontrado.");
+    if (covenant && (covenant.status !== "Ativo" || input.date < covenant.startDate || input.date > covenant.endDate)) {
+      throw new FinanceError("O convênio deve estar ativo e vigente na data do empenho.");
+    }
+    if (input.publicityCampaignId && !publicityCampaign) throw new FinanceError("Campanha de publicidade informada não encontrada.");
+    if (publicityCampaign && (publicityCampaign.status !== "Ativa" || input.date < publicityCampaign.startDate || input.date > publicityCampaign.endDate)) {
+      throw new FinanceError("A campanha de publicidade deve estar ativa e vigente na data do empenho.");
+    }
+    if (input.fundedDebtId && !fundedDebt) throw new FinanceError("Dívida fundada informada não encontrada.");
+    if (fundedDebt?.status !== undefined && fundedDebt.status !== "Ativa") {
+      throw new FinanceError("A dívida fundada deve estar ativa para receber empenhos.");
+    }
     const obrasService = obrasServiceId
       ? await tx.obrasServico.findUnique({
           where: { id: obrasServiceId },
@@ -615,12 +638,12 @@ export async function createCommitment(
         creditorId: creditor.id,
         processId: input.processId || undefined,
         contractId: input.contractId || undefined,
-        covenantId: input.covenantId || undefined,
-        covenantNumber: input.covenantNumber?.trim() || undefined,
-        publicityCampaignId: input.publicityCampaignId || undefined,
-        publicityCampaignName: input.publicityCampaignName?.trim() || undefined,
-        fundedDebtId: input.fundedDebtId || undefined,
-        fundedDebtName: input.fundedDebtName?.trim() || undefined,
+        covenantId: covenant?.id,
+        covenantNumber: covenant?.number,
+        publicityCampaignId: publicityCampaign?.id,
+        publicityCampaignName: publicityCampaign?.name,
+        fundedDebtId: fundedDebt?.id,
+        fundedDebtName: fundedDebt ? `${fundedDebt.lawNumber} - ${fundedDebt.creditorName}` : undefined,
         reservationId: reservation.id,
         status: "Emitido",
         obrasServices: obrasService ? { connect: { id: obrasService.id } } : undefined,
@@ -2662,4 +2685,3 @@ export async function generateBankReconciliationReport(
     })),
   };
 }
-

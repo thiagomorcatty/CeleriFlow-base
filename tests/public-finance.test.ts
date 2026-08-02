@@ -320,7 +320,7 @@ test("gera relatório de conciliações e síntese anual somente a partir dos re
   assert.match(balance.warnings.join(" "), /não constitui Balanço Financeiro oficial/);
 });
 
-test("gera leiaute imprimível oficial da PCA com notas explicativas NBC TSP e bloco de 3 assinaturas", () => {
+test("gera modelo interno de PCA com notas técnicas e campos de assinatura sujeitos à homologação", () => {
   const html = generatePcaPrintHtml({
     year: 2026,
     budgetBalance: { totalReceita: 15000000, totalDespesa: 14500000, resultado: 500000 },
@@ -330,8 +330,8 @@ test("gera leiaute imprimível oficial da PCA com notas explicativas NBC TSP e b
     dfc: { fluxoOperacional: 1200000, fluxoInvestimento: -400000, fluxoFinanciamento: 0, variacaoCaixa: 800000 },
   });
 
-  assert.match(html, /PRESTAÇÃO DE CONTAS ANUAL \(PCA\) — EXERCÍCIO 2026/);
-  assert.match(html, /Notas Explicativas Obrigatórias \(NBC TSP \/ MCASP\)/);
+  assert.match(html, /MODELO INTERNO DE PCA — EXERCÍCIO 2026/);
+  assert.match(html, /Notas técnicas para validação \(referência NBC TSP \/ MCASP\)/);
   assert.match(html, /Prefeito \/ Gestor Municipal/);
   assert.match(html, /Contador Responsável/);
   assert.match(html, /Controlador Interno/);
@@ -364,7 +364,7 @@ test("gera leiaute imprimível do comparativo LOA original vs alterada por créd
   assert.match(html, /Diretor de Orçamento \/ Planejamento/);
 });
 
-test("gera guia e comprovante imprimível oficial de retenção tributária e previdenciária", () => {
+test("gera comprovante técnico preliminar de retenção tributária e previdenciária", () => {
   const html = generateRetentionPrintHtml({
     number: "RET-000145",
     date: "02/08/2026",
@@ -380,7 +380,7 @@ test("gera guia e comprovante imprimível oficial de retenção tributária e pr
     destinationAccount: "2.1.8.8.1.01.00 - Consignações Extraorçamentárias A Recolher",
   });
 
-  assert.match(html, /COMPROVANTE OFICIAL DE RETENÇÃO TRIBUTÁRIA E PREVIDENCIÁRIA/);
+  assert.match(html, /COMPROVANTE TÉCNICO PRELIMINAR DE RETENÇÃO TRIBUTÁRIA E PREVIDENCIÁRIA/);
   assert.match(html, /INSS - Retenção 11%/);
   assert.match(html, /Agente Arrecadador \/ Tesouraria/);
 });

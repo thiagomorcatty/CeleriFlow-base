@@ -56,6 +56,9 @@ type ReservationOption = { id: string; number: string; value: number; appropriat
 type ProcessOption = { id: string; protocolNumber: string; description: string | null };
 type ContractOption = { id: string; number: string; object: string; supplierId: string; status: string };
 type ObrasServiceOption = { id: string; protocolo: string; tipo: string; descricao: string; local: string; budgetAppropriationId: string | null; budgetAppropriation: { code: string } | null };
+type CovenantOption = { id: string; number: string; grantor: string | null };
+type PublicityCampaignOption = { id: string; name: string; agency: string | null };
+type FundedDebtOption = { id: string; lawNumber: string; creditorName: string | null };
 
 export default function EmpenhosClient({
   commitments,
@@ -65,6 +68,9 @@ export default function EmpenhosClient({
   processes,
   contracts,
   obrasServices,
+  covenants,
+  publicityCampaigns,
+  fundedDebts,
 }: {
   commitments: Commitment[];
   suppliers: SupplierOption[];
@@ -73,6 +79,9 @@ export default function EmpenhosClient({
   processes: ProcessOption[];
   contracts: ContractOption[];
   obrasServices: ObrasServiceOption[];
+  covenants: CovenantOption[];
+  publicityCampaigns: PublicityCampaignOption[];
+  fundedDebts: FundedDebtOption[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -91,6 +100,9 @@ export default function EmpenhosClient({
     processId: "",
     contractId: "",
     obrasServiceId: "",
+    covenantId: "",
+    publicityCampaignId: "",
+    fundedDebtId: "",
   });
 
   const filteredCommitments = commitments.filter(c =>
@@ -113,6 +125,9 @@ export default function EmpenhosClient({
       processId: "",
       contractId: "",
       obrasServiceId: "",
+      covenantId: "",
+      publicityCampaignId: "",
+      fundedDebtId: "",
     });
     setIsModalOpen(true);
   };
@@ -271,7 +286,30 @@ export default function EmpenhosClient({
                   {obrasServices.filter((service) => !service.budgetAppropriationId || service.budgetAppropriationId === formData.appropriationId).map((service) => <SelectItem key={service.id} value={service.id}>{service.protocolo} - {service.tipo}: {service.descricao}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">Somente ordens ativas e ainda não vinculadas podem ser selecionadas. Convênio, campanha/publicidade e dívida fundada não são exibidos porque não há cadastro referencial próprio neste ambiente.</p>
+              <p className="text-xs text-muted-foreground">Somente ordens ativas e ainda não vinculadas podem ser selecionadas.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="covenantId">Convênio (opcional)</Label>
+                <Select value={formData.covenantId} onValueChange={value => setFormData({ ...formData, covenantId: value ?? "" })}>
+                  <SelectTrigger><SelectValue placeholder="Sem convênio" /></SelectTrigger>
+                  <SelectContent>{covenants.map((covenant) => <SelectItem key={covenant.id} value={covenant.id}>{covenant.number} - {covenant.grantor ?? "Concedente não informado"}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="publicityCampaignId">Campanha (opcional)</Label>
+                <Select value={formData.publicityCampaignId} onValueChange={value => setFormData({ ...formData, publicityCampaignId: value ?? "" })}>
+                  <SelectTrigger><SelectValue placeholder="Sem campanha" /></SelectTrigger>
+                  <SelectContent>{publicityCampaigns.map((campaign) => <SelectItem key={campaign.id} value={campaign.id}>{campaign.name} - {campaign.agency ?? "Agência não informada"}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fundedDebtId">Dívida fundada (opcional)</Label>
+                <Select value={formData.fundedDebtId} onValueChange={value => setFormData({ ...formData, fundedDebtId: value ?? "" })}>
+                  <SelectTrigger><SelectValue placeholder="Sem dívida" /></SelectTrigger>
+                  <SelectContent>{fundedDebts.map((debt) => <SelectItem key={debt.id} value={debt.id}>{debt.lawNumber} - {debt.creditorName ?? "Credor não informado"}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

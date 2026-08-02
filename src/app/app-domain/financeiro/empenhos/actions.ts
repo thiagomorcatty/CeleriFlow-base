@@ -54,6 +54,9 @@ export async function createCommitment(data: {
   processId?: string;
   contractId?: string;
   obrasServiceId?: string;
+  covenantId?: string;
+  publicityCampaignId?: string;
+  fundedDebtId?: string;
 }): Promise<ActionResult> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");

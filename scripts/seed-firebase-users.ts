@@ -36,7 +36,8 @@ const adminAuth = getAuth(app);
 // ---------------------------------------------------------------------------
 // Usuários de teste — alinhados com seed-poc-completo.ts
 // ---------------------------------------------------------------------------
-const DEFAULT_PASSWORD = process.env.SEED_USER_PASSWORD || "SenhaSegura123!";
+const DEFAULT_PASSWORD = process.env.SEED_USER_PASSWORD;
+if (!DEFAULT_PASSWORD) throw new Error("SEED_USER_PASSWORD deve ser configurada em cofre ou variável de ambiente antes do provisionamento.");
 
 const TEST_USERS = [
   {
@@ -74,6 +75,18 @@ const TEST_USERS = [
     displayName: "Pessoa Teste2",
     password: DEFAULT_PASSWORD,
     role: "Cidadão",
+  },
+  {
+    email: "contador.prefeitura@lagoaseca.pb.gov.br",
+    displayName: "Contador Prefeitura Lagoa Seca",
+    password: DEFAULT_PASSWORD,
+    role: "Contador Prefeitura",
+  },
+  {
+    email: "contador.camara@lagoaseca.pb.gov.br",
+    displayName: "Contador Câmara Lagoa Seca",
+    password: DEFAULT_PASSWORD,
+    role: "Contador Câmara",
   },
 ];
 
@@ -125,7 +138,6 @@ async function main() {
       const { uid, action } = await upsertFirebaseUser(user);
       results.push({ email: user.email, role: user.role, uid, action });
       console.log(`  ✅ [${action.toUpperCase()}] ${user.email} (${user.role})`);
-      console.log(`        UID: ${uid}`);
     } catch (err) {
       console.error(`  ❌ Erro ao processar ${user.email}:`, err);
     }
@@ -133,8 +145,6 @@ async function main() {
 
   console.log("─".repeat(60));
   console.log(`\n✅ ${results.length}/${TEST_USERS.length} usuários sincronizados com sucesso!`);
-  console.log("\n🔑 Credenciais de acesso:");
-  console.log(`   Senha padrão: ${DEFAULT_PASSWORD}`);
   console.log("\n📋 Usuários prontos para login:");
 
   const maxEmail = Math.max(...results.map((r) => r.email.length));

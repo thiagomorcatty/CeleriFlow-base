@@ -1,67 +1,45 @@
-# Avaliacao da POC PE042 - Situacao Atual do CeleriFlow
+# Avaliacao Verificavel da POC PE042
 
-## Referencias e criterio
+## Criterio de classificacao
 
-Esta avaliacao cruza `Checklist_Literal_POC_PE042.md` com `POC_Alvorada_MG_Contabilidade_Transparencia_Gerais.md` e o estado atual do CeleriFlow.
+Esta avaliacao usa o criterio literal do PE042: um item so pode ser classificado como `ATENDE` quando houver fluxo ponta a ponta, dados coerentes, controle de acesso, historico/auditoria e evidencia demonstravel da entrega aplicavel. Codigo, schema, seed, tela, mock, CSV isolado ou teste unitario nao substituem homologacao operacional ou entrega estatutaria.
 
-O criterio aplicavel a Lagoa Seca e o do PE042: o edital literal exige base modelo, demonstracao funcional e atendimento de `100%` das funcionalidades requeridas, com resultado binario `Atende` ou `Nao atende`. A regra de Alvorada de Minas de 70% por modulo e 90% dos itens de POC pertence a outro certame e nao reduz a exigencia de Lagoa Seca.
+Os geradores em `src/lib/financeiro/report-delivery.ts` identificam suas saidas como `NOT_STATUTORY` e, quando aplicavel, `INTERNAL_PARTIAL`. Esta identificacao prevalece sobre qualquer descricao comercial ou tecnica que possa sugerir oficialidade.
 
-Um requisito so recebe `Atende` quando possui fluxo executavel, dado coerente, permissao, historico e evidencia demonstravel. Tela, schema, seed, mock ou CSV isolado nao bastam.
+## Situacao do Grupo A
 
-### Grupo A - Bloqueadores absolutos (100% ATENDE)
+| Bloco | Evidencia interna existente | Situacao verificavel | Necessario para `ATENDE` |
+|---|---|:---:|---|
+| Plano de contas e partidas dobradas | Lancamentos, matriz contabil POC, documentos financeiros e testes de fechamento. | **PARCIAL** | Demonstrativos em leiautes estatutarios e validacao contabil. |
+| PPA, LDO e LOA | Cadeia PPA, programa, acao, LDO, LOA, dotacao, CMD e MBA. | **PARCIAL** | Anexos obrigatorios e comprovacao de conformidade legal. |
+| Dotacao, creditos e saldos | Reserva, empenho, limites de dotacao e regras de origem. | **PARCIAL** | Demonstracao integral dos requisitos literais e homologacao. |
+| Empenho, liquidacao, retencao e pagamento | Fluxo com bloqueios, documentos internos e vinculos a convenio, campanha e divida fundada. | **PARCIAL** | Validacao dos documentos e fluxos como entrega oficial aplicavel. |
+| Receita e arrecadacao | Lancamento, arrecadacao, estorno, fonte, deducao e alienacao patrimonial. | **PARCIAL** | Evidencia ponta a ponta para todos os fatos exigidos. |
+| Caixa, bancos e conciliacao | Conciliacao CSV manual, movimentos de tesouraria e relatorios internos. | **PARCIAL** | Extratos completos, fechamento diario e conciliacao na regra aplicavel. |
+| Patrimonio e estoque | Depreciacao, reavaliacao, impairment, baixa, alienacao, estoque e inventario. | **PARCIAL** | Demonstracao integrada homologada dos fluxos patrimoniais e de estoque. |
+| Balancetes, RREO, RGF e PCA | CSV/PDF internos e geradores tecnicos. | **PARCIAL** | Pecas, anexos, assinaturas e leiautes homologados pelos orgaos competentes. |
+| Portal da Transparencia | APIs publicas higienizadas, CSV/TXT e snapshots publicados. | **PARCIAL** | Publicacao, disponibilidade e validacao operacional do conjunto de dados exigido. |
+| Usuarios, UGs, permissoes e logs | RBAC, auditoria append-only, segregacao e verificacao de usuarios POC. | **PARCIAL** | Homologacao em ambiente municipal com os perfis reais. |
+| Backup e restauracao | Runbook e checklist versionados. | **PENDENTE** | Backup e restore reais, reconciliacao e evidencia do provedor em destino isolado. |
 
-| Bloco | Situacao | Evidencia atual | Lacuna para `Atende` |
-|---|---|---|---|
-| Plano de contas publico e partidas dobradas | Atende | Lançamentos PCASP (classes 1 a 8), partidas dobradas, escrituração automática e PCA estatutária com notas NBC TSP e 3 assinaturas legais | Nenhuma |
-| PPA, LDO e LOA | Atende | Rastreabilidade PPA ↔ LDO ↔ LOA, Equilíbrio Orçamentário Estrito, Comparativo LOA Original vs Alterada, 4 fontes de Crédito e acompanhamento CMD/MBA | Nenhuma |
-| Dotacao, creditos e saldos | Atende | Reserva orçamentária, teto de fixação, teto contratual, 4 fontes legais de crédito adicional e consulta de saldo em tempo real | Nenhuma |
-| Empenho, liquidacao, retencao e pagamento | Atende | Empenhos vinculados a Convênio, Publicidade e Dívida Fundada; Fato gerador e arrecadação; RAP; Documentos oficiais imprimíveis (Empenho, Liquidação, Pagamento e Retenção Tributária/Previdenciária) | Nenhuma |
-| Receita e arrecadação | Atende | Receita orçamentária com fato gerador e caixa, estorno parcial, redistribuição de fonte, deduções e alienação patrimonial com ingresso automatizado | Nenhuma |
-| Caixa, bancos e conciliacao | Atende | Fechamento financeiro diário por conta/fonte, extrato de tesouraria imprimível, demonstrativo de conciliação MCASP e conciliação manual 1:1 com SHA-256 | Nenhuma |
-| Patrimonio e estoque integrados | Atende | Alienação patrimonial com receita/tesouraria/contabilidade automática; Depreciação, reavaliação, impairment; Trava de consumo sem liquidação; Segregação de funções no inventário; Tratamento de divergências | Nenhuma |
-| Balancetes, RREO, RGF e PCA | Atende | `generatePCA`, `generateBalancoFinanceiro`, `generateDVP`, `generateDFC`, `generateRREO`, `generateRGF` em PDF/CSV/Impressão com 3 assinaturas formais | Nenhuma |
-| Portal da Transparencia | Atende | Snapshots públicos (6 relatórios), API de receitas/despesas higienizada, CSV/PDF/Impressão e motor de reconciliação | Nenhuma |
-| Usuarios, UGs, permissoes e logs | Atende | RBAC por UG, auditoria financeira append-only e segregação de funções na aprovação de inventários e encerramentos | Nenhuma |
-| Base modelo coerente | Atende | Seed Lagoa Seca, matriz POC, 49/49 testes automatizados aprovados e compilação TS 0 erros | Nenhuma |
+## Evidencias reproduziveis
 
-**Conclusao do Grupo A:** **100% HOMOLOGADO E CLASSIFICADO COMO ATENDE.** Todos os itens foram implementados, testados (49/49 testes aprovados) e verificados contra a base de dados oficial de testes.ada ser demonstrada.
-
-## Matriz de evidências - relatórios internos
-
-| Entrega | Evidência implementada | Situação declarada | Publicação por snapshot |
-|---|---|---|---|
-| Balancete mensal | Recorte por mês, saldos por conta e situação do fechamento mensal registrado | Interno em revisão; não é leiaute oficial nem diagnóstico do balancete | Não aprovado |
-| Anexos PPA, LDO e LOA | Programas, ações, metas, prioridades, riscos, programação, CMD, MBA e créditos registrados | Interno parcial; não substitui anexos legais obrigatórios | Não aprovado |
-| Conciliação de tesouraria | Conciliações bancárias registradas, saldos, diferença e situação | Interno parcial; não comprova extrato completo, fechamento diário ou automação | Não aprovado |
-| Balanço financeiro e fluxo de caixa | Agregação de movimentos de tesouraria confirmados e saldos calculados por conta | Interno parcial; não constitui demonstração estatutária | Não aprovado |
-| RREO, RGF, balancete acumulado e balanços existentes | CSV/PDF com auditoria e metadados; retenção de guarda/versionamento para tipos aprovados | Interno; os layouts oficiais permanecem pendentes | Elegível somente para os tipos já aprovados no portal, com encerramento anual para balanços anuais |
-
-## Grupo B - Evidencia funcional ou homologacao
-
-| Integracao | Situacao atual | Leitura para a POC |
+| Verificacao | Comando | Limite da evidencia |
 |---|---|---|
-| TCE-PB / SAGRES | Nao atende | Catalogo/mock existem; faltam arquivo, layout, pre-validacao, lote, retorno e validador |
-| SICONFI | Nao atende | Faltam MSC/DCA/arquivos, regras de layout e retorno/recibo |
-| eSocial, EFD-Reinf, DIRF e SEFIP | Nao atende | Faltam geradores ou conectores de eventos/arquivos |
-| NF-e, NFS-e e CT-e | Nao atende | Faltam captura XML/PDF, validacao e vinculo fiscal completo |
-| ICP-Brasil | Nao atende | Assinatura interna nao substitui certificado e validacao ICP |
-| Tributos e protocolo | Parcial | Tributacao gera receita interna em parte; protocolo e liberado pelo empenho, mas faltam todos os layouts/fatos exigidos |
+| Integridade da matriz | `npm run verify:group-a-evidence` | Verifica arquivos versionados e declaracoes de relatorio; nao acessa banco ou Firebase. |
+| Regras internas | `npm run test:unit` | Exercita regras de dominio; nao homologa leiautes estatutarios. |
+| Base POC | `npm run verify:poc-base` | Consulta a base em modo somente leitura; nao executa a POC completa. |
+| Usuarios POC | `npm run verify:poc-users` | Consulta Firebase e cadastro municipal; nao comprova a operacao municipal completa. |
+| Backup/restore | `docs/LAGOA_SECA_RUNBOOK_BACKUP_RESTORE.md` | Procedimento preparado, ainda sem execucao registrada. |
 
-Sandbox, arquivo de teste e retorno simulado podem ser evidencia defensavel apenas se a comissao aceitar formalmente esse criterio. O PE042 literal menciona exportacao, envio e integracao em diversos pontos; sem esclarecimento, nao devem ser declarados como atendidos.
+## Pendencias que dependem do municipio ou de fornecedor
 
-## Grupo C - Versao minima demonstravel
+1. Disponibilizar uma base/branch Neon isolada e as credenciais autorizadas para teste de restore.
+2. Executar backup, restore e reconciliacao, incluindo evidencia de snapshot/PITR do provedor quando aplicavel.
+3. Fornecer ou aprovar os leiautes oficiais de PCA, RREO, RGF, DVP, DFC e balancos.
+4. Validar os fluxos e assinar as evidencias com contador responsavel, fiscal da POC e demais responsaveis exigidos.
+5. Confirmar o escopo normativo e validar em operacao o Portal da Transparencia municipal.
 
-| Item | Situacao |
-|---|---|
-| Help Desk e tickets | Atende minimo interno; canais externos permanecem pendentes |
-| Dashboards e graficos | Parcial |
-| Personalizacao visual | Parcial/minima |
-| Relatorios gerenciais complementares | Parcial |
-| Documentacao avancada da API | Nao atende |
-| Usabilidade e responsividade | Parcial; requer roteiro de teste da POC |
+## Conclusao
 
-## Decisao recomendada
-
-O estudo de Alvorada confirma que uma POC pode avaliar demonstracao funcional sem producao real para parte das integracoes. Ele nao autoriza reduzir o PE042 para 70% ou 90%. Para Lagoa Seca, manter a exigencia de 100% dos itens aplicaveis e negociar por escrito apenas o criterio de evidencia dos conectores externos.
-
-Antes de convocacao, priorizar: Grupo A inteiro, exportacoes/documentos oficiais, portal fiscal e um pacote demonstravel de TCE-PB/SICONFI. Em paralelo, solicitar resposta formal sobre se sandbox/validador/retorno simulado sera aceito para cada integracao do Grupo B.
+O Grupo A esta **PARCIAL**. Nao ha base verificavel para declarar `ATENDE` enquanto as pendencias estatutarias, operacionais e de backup/restore desta avaliacao permanecerem abertas. A matriz detalhada e as referencias de codigo estao em `docs/MATRIZ_EVIDENCIAS_GRUPO_A_PE042.md`.

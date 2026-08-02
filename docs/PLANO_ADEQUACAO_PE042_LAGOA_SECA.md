@@ -371,7 +371,7 @@ Nao avancar para apresentacao comercial com marco anterior incompleto. O PE042 n
 | Itens criticos em status parcial/ausente | Zero. |
 | Cenarios da POC executados em simulacao | 100%, em tres reunioes ou menos. |
 | Fluxos financeiros com testes de autorizacao, concorrencia e estorno | 100% dos fluxos criticos. |
-| Relatorios oficiais | Gerados com dados reais da base modelo e validados pelo contador. |
+| Relatorios tecnicos preliminares | Gerados com dados reais da base modelo e submetidos à validacao do contador; nao possuem validade oficial sem homologacao documental. |
 | Integracoes externas | Homologadas, ou contorno funcional formalmente aceito para ambiente de POC. |
 | Portal publico | Dados internos e publicos reconciliados para todos os cenarios demonstrados. |
 | Auditoria | Inclusao, alteracao, exclusao/cancelamento, aprovacao, pagamento, estorno, exportacao e consulta sensivel cobertos. |
