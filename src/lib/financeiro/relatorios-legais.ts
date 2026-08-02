@@ -422,3 +422,188 @@ export async function generateBalancoPatrimonial(db: Db, filter: ReportFilter) {
     },
   };
 }
+
+// --- Balanço Financeiro (MCASP / Anexo 13 da Lei 4.320/64) ---
+export async function generateBalancoFinanceiro(db: Db, filter: ReportFilter) {
+  const [rreo, bankAccounts, withholdings] = await Promise.all([
+    generateRREO(db, filter),
+    db.bankAccount.findMany({
+      where: {
+        isActive: true,
+        ...(filter.budgetUnitId ? { budgetUnitId: filter.budgetUnitId } : {}),
+      },
+    }),
+    db.withholdingPayable.findMany({
+      where: filter.budgetUnitId
+        ? {
+            retention: {
+              payment: {
+                commitment: {
+                  appropriation: {
+                    budgetUnitId: filter.budgetUnitId,
+                  },
+                },
+              },
+            },
+          }
+        : {},
+    }),
+  ]);
+
+  const receitaOrcamentariaRealizada = rreo.revenueSummary.reduce((s, r) => s + r.realizedValue, 0);
+  const despesaOrcamentariaPaga = rreo.expenseSummary.reduce((s, e) => s + e.paidValue, 0);
+
+  const receitasExtraorcamentarias = withholdings
+    .filter((w) => w.status === "Recolhida" || w.status === "Pendente")
+    .reduce((s, w) => s + Number(w.valueDecimal), 0);
+
+  const despesasExtraorcamentarias = withholdings
+    .filter((w) => w.status === "Recolhida")
+    .reduce((s, w) => s + Number(w.valueDecimal), 0);
+
+  const saldoInicialCaixaBancos = bankAccounts.reduce((s, b) => s + Number(b.currentBalanceDecimal ?? b.currentBalance), 0);
+  const saldoAtualCaixaBancos = bankAccounts.reduce((s, b) => s + Number(b.currentBalanceDecimal ?? b.currentBalance), 0);
+
+  const totalIngressos = receitaOrcamentariaRealizada + receitasExtraorcamentarias + saldoInicialCaixaBancos;
+  const totalDispendios = despesaOrcamentariaPaga + despesasExtraorcamentarias + saldoAtualCaixaBancos;
+
+  return {
+    ingressos: {
+      receitaOrcamentaria: receitaOrcamentariaRealizada,
+      receitaExtraorcamentaria: receitasExtraorcamentarias,
+      saldoExercícioAnterior: saldoInicialCaixaBancos,
+      totalIngressos,
+    },
+    dispendios: {
+      despesaOrcamentaria: despesaOrcamentariaPaga,
+      despesaExtraorcamentaria: despesasExtraorcamentarias,
+      saldoExercícioSeguinte: saldoAtualCaixaBancos,
+      totalDispendios,
+    },
+    equilibrado: Math.abs(totalIngressos - totalDispendios) < 0.01,
+  };
+}
+
+// --- Demonstração das Variações Patrimoniais (DVP / MCASP) ---
+export async function generateDVP(db: Db, filter: ReportFilter) {
+  const accounts = await db.accountingPlan.findMany({
+    include: {
+      entries: {
+        where: {
+          transaction: {
+            financialYearId: filter.financialYearId,
+            status: "POSTADO",
+            ...(filter.startDate || filter.endDate ? { date: dateFilter(filter) } : {}),
+          },
+        },
+      },
+    },
+    orderBy: { code: "asc" },
+  });
+
+  // VPA: Variações Patrimoniais Aumentativas (Classe 4 do PCASP)
+  const vpaAccounts = accounts.filter((acc) => acc.code.startsWith("4"));
+  const vpa = vpaAccounts.map((acc) => {
+    const credit = acc.entries.filter((e) => e.type === "Crédito").reduce((s, e) => s + Number(e.valueDecimal), 0);
+    const debit = acc.entries.filter((e) => e.type === "Débito").reduce((s, e) => s + Number(e.valueDecimal), 0);
+    return { code: acc.code, name: acc.name, value: credit - debit };
+  }).filter((acc) => Math.abs(acc.value) > 0.001);
+
+  // VPD: Variações Patrimoniais Diminuídas (Classe 3 do PCASP)
+  const vpdAccounts = accounts.filter((acc) => acc.code.startsWith("3"));
+  const vpd = vpdAccounts.map((acc) => {
+    const debit = acc.entries.filter((e) => e.type === "Débito").reduce((s, e) => s + Number(e.valueDecimal), 0);
+    const credit = acc.entries.filter((e) => e.type === "Crédito").reduce((s, e) => s + Number(e.valueDecimal), 0);
+    return { code: acc.code, name: acc.name, value: debit - credit };
+  }).filter((acc) => Math.abs(acc.value) > 0.001);
+
+  const totalVPA = vpa.reduce((s, a) => s + a.value, 0);
+  const totalVPD = vpd.reduce((s, a) => s + a.value, 0);
+  const resultadoPatrimonial = totalVPA - totalVPD;
+
+  return {
+    variacoesAumentativas: vpa,
+    variacoesDiminuidas: vpd,
+    totais: {
+      totalVPA,
+      totalVPD,
+      resultadoPatrimonial,
+      situacao: resultadoPatrimonial >= 0 ? "SUPERAVIT_PATRIMONIAL" : "DEFICIT_PATRIMONIAL",
+    },
+  };
+}
+
+// --- Demonstração dos Fluxos de Caixa (DFC / MCASP) ---
+export async function generateDemonstracaoFluxosCaixa(db: Db, filter: ReportFilter) {
+  const [bf] = await Promise.all([generateBalancoFinanceiro(db, filter)]);
+
+  const fluxoOperacional = bf.ingressos.receitaOrcamentaria - bf.dispendios.despesaOrcamentaria;
+  const fluxoInvestimento = 0; // Recursos direcionados a investimentos fixos
+  const fluxoFinanciamento = bf.ingressos.receitaExtraorcamentaria - bf.dispendios.despesaExtraorcamentaria;
+  const geracaoLiquidaCaixa = fluxoOperacional + fluxoInvestimento + fluxoFinanciamento;
+
+  return {
+    fluxoOperacional,
+    fluxoInvestimento,
+    fluxoFinanciamento,
+    geracaoLiquidaCaixa,
+    saldoInicialCaixa: bf.ingressos.saldoExercícioAnterior,
+    saldoFinalCaixa: bf.dispendios.saldoExercícioSeguinte,
+    conciliado: Math.abs((bf.ingressos.saldoExercícioAnterior + geracaoLiquidaCaixa) - bf.dispendios.saldoExercícioSeguinte) < 0.01,
+  };
+}
+
+// --- Prestação de Contas Anual Completa (PCA) ---
+export async function generatePCA(db: Db, filter: ReportFilter) {
+  const [
+    balancoOrcamentario,
+    balancoPatrimonial,
+    balancoFinanceiro,
+    dvp,
+    dfc,
+    rreo,
+    rgf,
+  ] = await Promise.all([
+    generateBalancoOrcamentario(db, filter),
+    generateBalancoPatrimonial(db, filter),
+    generateBalancoFinanceiro(db, filter),
+    generateDVP(db, filter),
+    generateDemonstracaoFluxosCaixa(db, filter),
+    generateRREO(db, filter),
+    generateRGF(db, filter),
+  ]);
+
+  const notasExplicativas = [
+    {
+      num: 1,
+      titulo: "Contexto Operacional e Unidades Gestoras",
+      conteudo: "A Prestação de Contas Anual consolida a execução orçamentária, financeira e patrimonial do Município de Lagoa Seca, abrangendo a Administração Direta e Indireta.",
+    },
+    {
+      num: 2,
+      titulo: "Critérios de Apuração Orçamentária e Patrimonial",
+      conteudo: "As receitas orçamentárias foram reconhecidas pelo regime de caixa e as despesas pelo regime de competência/empenho, observando rigorosamente os ditames do MCASP e da LRF (LC 101/2000).",
+    },
+    {
+      num: 3,
+      titulo: "Cumprimento dos Limites Legais Fiscais (LRF)",
+      conteudo: `A Despesa Total com Pessoal encerrou o período em ${rgf.percentualAtingido}% da RCL, em situação ${rgf.situacao} perante o limite legal de ${rgf.limiteLegal}%.`,
+    },
+  ];
+
+  return {
+    exercicioFiscalId: filter.financialYearId,
+    dataEmissao: new Date().toISOString(),
+    statusConformidade: rgf.situacao === "EXCEDIDO" ? "IRREGULAR" : "REGULAR_COM_ATENCAO",
+    demonstrativos: {
+      balancoOrcamentario,
+      balancoPatrimonial,
+      balancoFinanceiro,
+      dvp,
+      dfc,
+      rreo,
+      rgf,
+    },
+    notasExplicativas,
+  };
+}
