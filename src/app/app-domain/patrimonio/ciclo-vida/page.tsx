@@ -7,7 +7,7 @@ function currency(value: number) {
 
 export default async function AssetLifecyclePage() {
   const { prisma } = await getTenantContextForModule("PATRIMONIO");
-  const [assets, writeOffs] = await Promise.all([
+  const [assets, writeOffs, adjustments] = await Promise.all([
     prisma.asset.findMany({
       orderBy: { patrimonyNumber: "asc" },
       include: {
@@ -18,6 +18,10 @@ export default async function AssetLifecyclePage() {
     prisma.assetWriteOff.findMany({
       orderBy: { date: "desc" },
       take: 20,
+      include: { asset: { select: { patrimonyNumber: true, name: true } }, integrationPending: true, accountingTransaction: { select: { id: true } } },
+    }),
+    prisma.assetValueAdjustment.findMany({
+      orderBy: { date: "desc" }, take: 20,
       include: { asset: { select: { patrimonyNumber: true, name: true } } },
     }),
   ]);
@@ -62,11 +66,19 @@ export default async function AssetLifecyclePage() {
       <section className="rounded-lg border bg-white">
         <div className="border-b p-4"><h3 className="font-semibold">Evidências de baixa e alienação</h3></div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm"><thead className="bg-muted text-muted-foreground"><tr><th className="p-3">Data</th><th className="p-3">Bem</th><th className="p-3">Tipo</th><th className="p-3">Valor contábil</th><th className="p-3">Recebido</th><th className="p-3">Ganho/perda</th></tr></thead><tbody>
-            {writeOffs.map((writeOff) => <tr key={writeOff.id} className="border-t"><td className="p-3">{writeOff.date.toLocaleDateString("pt-BR", { timeZone: "UTC" })}</td><td className="p-3">{writeOff.asset.patrimonyNumber} - {writeOff.asset.name}</td><td className="p-3">{writeOff.type}</td><td className="p-3">{currency(writeOff.bookValue)}</td><td className="p-3">{currency(writeOff.disposalValue)}</td><td className="p-3">{currency(writeOff.gainLoss)}</td></tr>)}
-            {writeOffs.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Nenhuma baixa registrada.</td></tr>}
+          <table className="w-full text-left text-sm"><thead className="bg-muted text-muted-foreground"><tr><th className="p-3">Data</th><th className="p-3">Bem</th><th className="p-3">Tipo</th><th className="p-3">Valor contábil</th><th className="p-3">Recebido</th><th className="p-3">Ganho/perda</th><th className="p-3">Integração</th></tr></thead><tbody>
+            {writeOffs.map((writeOff) => <tr key={writeOff.id} className="border-t"><td className="p-3">{writeOff.date.toLocaleDateString("pt-BR", { timeZone: "UTC" })}</td><td className="p-3">{writeOff.asset.patrimonyNumber} - {writeOff.asset.name}</td><td className="p-3">{writeOff.type}</td><td className="p-3">{currency(writeOff.bookValue)}</td><td className="p-3">{currency(writeOff.disposalValue)}</td><td className="p-3">{currency(writeOff.gainLoss)}</td><td className="p-3">{writeOff.accountingTransaction ? "Contabilizado" : writeOff.integrationPending ? `Pendente: ${writeOff.integrationPending.expectedEventCode}` : "Sem resultado"}</td></tr>)}
+            {writeOffs.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Nenhuma baixa registrada.</td></tr>}
           </tbody></table>
         </div>
+      </section>
+
+      <section className="rounded-lg border bg-white">
+        <div className="border-b p-4"><h3 className="font-semibold">Reavaliações, impairment e custos posteriores</h3></div>
+        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-muted text-muted-foreground"><tr><th className="p-3">Data</th><th className="p-3">Bem</th><th className="p-3">Tipo</th><th className="p-3">Variação</th><th className="p-3">Valor final</th><th className="p-3">Evidência</th></tr></thead><tbody>
+          {adjustments.map((adjustment) => <tr key={adjustment.id} className="border-t"><td className="p-3">{adjustment.date.toLocaleDateString("pt-BR", { timeZone: "UTC" })}</td><td className="p-3">{adjustment.asset.patrimonyNumber} - {adjustment.asset.name}</td><td className="p-3">{adjustment.type}</td><td className="p-3">{currency(adjustment.adjustmentValue)}</td><td className="p-3">{currency(adjustment.closingValue)}</td><td className="p-3">{adjustment.evidence}</td></tr>)}
+          {adjustments.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Nenhum ajuste de valor registrado.</td></tr>}
+        </tbody></table></div>
       </section>
     </div>
   );

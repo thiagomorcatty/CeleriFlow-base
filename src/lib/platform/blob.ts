@@ -84,6 +84,15 @@ export async function uploadProcessFile(file: File) {
   });
 }
 
+// Generated public reports are stored as the exact CSV that was issued internally.
+export async function uploadGeneratedReport(filename: string, csv: string) {
+  return put(`documents/relatorios/${crypto.randomUUID()}-${safeFilename(filename)}`, csv, {
+    access: "private",
+    contentType: "text/csv; charset=utf-8",
+    token: getBlobToken(),
+  });
+}
+
 export async function getFile(url: string) {
   try {
     const file = await get(url, { access: "private", token: getBlobToken() });

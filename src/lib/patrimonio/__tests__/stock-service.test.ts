@@ -29,6 +29,14 @@ test("rejects invalid stock quantities and costs before writing", () => {
   );
 });
 
+test("allows a settlement only on stock exits", () => {
+  assert.equal(normalizeStockMovement({ kind: "EXIT", warehouseId: "warehouse-1", materialId: "material-1", quantity: 1, settlementId: "settlement-1", actor }).settlementId, "settlement-1");
+  assert.throws(
+    () => normalizeStockMovement({ kind: "ENTRY", warehouseId: "warehouse-1", materialId: "material-1", quantity: 1, settlementId: "settlement-1", actor }),
+    StockServiceError,
+  );
+});
+
 test("records the stock row and audit evidence in one transaction", async () => {
   const movements: Array<Record<string, unknown>> = [];
   const transaction = {
@@ -63,10 +71,33 @@ test("records the stock row and audit evidence in one transaction", async () => 
     supplierId: null,
     departmentId: null,
     obrasServicoId: null,
+    settlementId: null,
     inventorySessionId: null,
     actorUsuarioId: "user-1",
     actorEmployeeId: "employee-1",
   });
+});
+
+test("persists an active settlement reference with a stock exit", async () => {
+  const movements: Array<Record<string, unknown>> = [];
+  const transaction = {
+    warehouse: { findFirst: async () => ({ id: "warehouse-1" }) },
+    material: { findUnique: async () => ({ id: "material-1" }) },
+    settlement: { findFirst: async () => ({ id: "settlement-1" }) },
+    inventorySession: { findFirst: async () => null },
+    materialStock: {
+      findUnique: async () => ({ id: "stock-1", unitCost: 12 }),
+      updateMany: async () => ({ count: 1 }),
+    },
+    materialMovement: { create: async ({ data }: { data: Record<string, unknown> }) => { movements.push(data); return { id: "movement-1" }; } },
+  };
+  const database = { $transaction: async (callback: (tx: typeof transaction) => Promise<unknown>) => callback(transaction) };
+
+  await recordStockMovement(database as never, {
+    kind: "EXIT", warehouseId: "warehouse-1", materialId: "material-1", quantity: 1, settlementId: "settlement-1", actor,
+  });
+
+  assert.equal(movements[0].settlementId, "settlement-1");
 });
 
 test("blocks every regular stock movement while the warehouse inventory is locked", async () => {

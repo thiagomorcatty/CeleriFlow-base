@@ -145,7 +145,7 @@ async function main() {
   });
 
   // 8. Planejamento Orçamentário Equilibrado (PPA, LDO, LOA = R$ 15.000.000,00)
-  await prisma.multiYearPlan.upsert({
+  const ppa = await prisma.multiYearPlan.upsert({
     where: { code: "PPA-2026-2029" },
     create: {
       code: "PPA-2026-2029",
@@ -155,18 +155,105 @@ async function main() {
       description: "Plano Plurianual de Lagoa Seca/PB 2026-2029",
       status: "Aprovado",
     },
-    update: {},
+    update: { status: "Aprovado" },
   });
 
-  await prisma.budgetGuideline.upsert({
+  const programaAdministracao = await prisma.programPPA.upsert({
+    where: { id: "ppa-programa-administracao-lagoaseca-2026" },
+    create: {
+      id: "ppa-programa-administracao-lagoaseca-2026",
+      multiYearPlanId: ppa.id,
+      code: "0001",
+      name: "Gestão Administrativa Municipal",
+      type: "Gestão",
+    },
+    update: { multiYearPlanId: ppa.id, code: "0001", name: "Gestão Administrativa Municipal", type: "Gestão" },
+  });
+
+  const acaoPrefeitura = await prisma.actionPPA.upsert({
+    where: { id: "ppa-acao-prefeitura-lagoaseca-2026" },
+    create: {
+      id: "ppa-acao-prefeitura-lagoaseca-2026",
+      programId: programaAdministracao.id,
+      code: "2002",
+      name: "Manutenção da Administração Geral",
+      type: "Atividade",
+    },
+    update: { programId: programaAdministracao.id, code: "2002", name: "Manutenção da Administração Geral", type: "Atividade" },
+  });
+
+  const acaoCamara = await prisma.actionPPA.upsert({
+    where: { id: "ppa-acao-camara-lagoaseca-2026" },
+    create: {
+      id: "ppa-acao-camara-lagoaseca-2026",
+      programId: programaAdministracao.id,
+      code: "2001",
+      name: "Manutenção das Atividades Legislativas",
+      type: "Atividade",
+    },
+    update: { programId: programaAdministracao.id, code: "2001", name: "Manutenção das Atividades Legislativas", type: "Atividade" },
+  });
+
+  const objetivoAdministracao = await prisma.objectivePPA.upsert({
+    where: { id: "ppa-objetivo-administracao-lagoaseca-2026" },
+    create: {
+      id: "ppa-objetivo-administracao-lagoaseca-2026",
+      programId: programaAdministracao.id,
+      code: "OBJ-001",
+      description: "Assegurar a continuidade dos serviços administrativos e legislativos municipais.",
+    },
+    update: { programId: programaAdministracao.id, code: "OBJ-001", description: "Assegurar a continuidade dos serviços administrativos e legislativos municipais." },
+  });
+
+  await prisma.indicatorPPA.upsert({
+    where: { id: "ppa-indicador-administracao-lagoaseca-2026" },
+    create: {
+      id: "ppa-indicador-administracao-lagoaseca-2026",
+      objectiveId: objetivoAdministracao.id,
+      name: "Unidades administrativas com execução orçamentária monitorada",
+      unit: "%",
+      baselineValue: 100,
+      targetValue: 100,
+    },
+    update: { objectiveId: objetivoAdministracao.id, name: "Unidades administrativas com execução orçamentária monitorada", unit: "%", baselineValue: 100, targetValue: 100 },
+  });
+
+  await Promise.all([
+    prisma.goalPPA.upsert({
+      where: { id: "ppa-meta-prefeitura-lagoaseca-2026" },
+      create: { id: "ppa-meta-prefeitura-lagoaseca-2026", actionId: acaoPrefeitura.id, year: 2026, physical: 100, financial: new Prisma.Decimal("10000000.00") },
+      update: { actionId: acaoPrefeitura.id, year: 2026, physical: 100, financial: new Prisma.Decimal("10000000.00") },
+    }),
+    prisma.goalPPA.upsert({
+      where: { id: "ppa-meta-camara-lagoaseca-2026" },
+      create: { id: "ppa-meta-camara-lagoaseca-2026", actionId: acaoCamara.id, year: 2026, physical: 100, financial: new Prisma.Decimal("5000000.00") },
+      update: { actionId: acaoCamara.id, year: 2026, physical: 100, financial: new Prisma.Decimal("5000000.00") },
+    }),
+  ]);
+
+  const ldo = await prisma.budgetGuideline.upsert({
     where: { id: "ldo-2026-lagoaseca" },
     create: {
       id: "ldo-2026-lagoaseca",
       financialYearId: year2026.id,
+      multiYearPlanId: ppa.id,
       status: "Vigente",
     },
-    update: {},
+    update: { multiYearPlanId: ppa.id, status: "Vigente" },
   });
+
+  await Promise.all([
+    prisma.budgetGuidelinePriority.upsert({
+      where: { id: "ldo-prioridade-administracao-lagoaseca-2026" },
+      create: { id: "ldo-prioridade-administracao-lagoaseca-2026", budgetGuidelineId: ldo.id, description: "Manutenção dos serviços administrativos e legislativos", targetValue: new Prisma.Decimal("100.00") },
+      update: { budgetGuidelineId: ldo.id, description: "Manutenção dos serviços administrativos e legislativos", targetValue: new Prisma.Decimal("100.00") },
+    }),
+    prisma.budgetGuidelineRisk.upsert({
+      where: { id: "ldo-risco-arrecadacao-lagoaseca-2026" },
+      create: { id: "ldo-risco-arrecadacao-lagoaseca-2026", budgetGuidelineId: ldo.id, description: "Frustração de receita própria", estimatedImpact: new Prisma.Decimal("150000.00"), mitigation: "Acompanhar a MBA e reprogramar o CMD conforme a arrecadação." },
+      update: { budgetGuidelineId: ldo.id, description: "Frustração de receita própria", estimatedImpact: new Prisma.Decimal("150000.00"), mitigation: "Acompanhar a MBA e reprogramar o CMD conforme a arrecadação." },
+    }),
+  ]);
 
   const loa = await prisma.annualBudgetLaw.upsert({
     where: { id: "loa-2026-lagoaseca" },
@@ -175,11 +262,12 @@ async function main() {
       financialYearId: year2026.id,
       lawNumber: "LOA nº 1.050/2025",
       publicationDate: new Date("2025-12-15T00:00:00.000Z"),
+      budgetGuidelineId: ldo.id,
       totalRevenue: 15000000,
       totalExpense: 15000000,
       status: "Vigente",
     },
-    update: { status: "Vigente" },
+    update: { budgetGuidelineId: ldo.id, status: "Vigente" },
   });
 
   // Previsão de Receita na LOA (Total: R$ 15.000.000,00)
@@ -192,7 +280,7 @@ async function main() {
       name: nrIPTU.name,
       estimatedValue: new Prisma.Decimal("3000000.00"),
     },
-    update: { estimatedValue: new Prisma.Decimal("3000000.00") },
+    update: { annualBudgetLawId: loa.id, code: nrIPTU.code, name: nrIPTU.name, estimatedValue: new Prisma.Decimal("3000000.00") },
   });
 
   await prisma.annualBudgetRevenueForecast.upsert({
@@ -204,11 +292,11 @@ async function main() {
       name: nrFPM.name,
       estimatedValue: new Prisma.Decimal("12000000.00"),
     },
-    update: { estimatedValue: new Prisma.Decimal("12000000.00") },
+    update: { annualBudgetLawId: loa.id, code: nrFPM.code, name: nrFPM.name, estimatedValue: new Prisma.Decimal("12000000.00") },
   });
 
   // Fixação de Despesa na LOA (Total: R$ 15.000.000,00)
-  await prisma.annualBudgetExpenseFixation.upsert({
+  const fixationPrefeitura = await prisma.annualBudgetExpenseFixation.upsert({
     where: { id: "fixation-pref-2026" },
     create: {
       id: "fixation-pref-2026",
@@ -217,10 +305,10 @@ async function main() {
       name: "Manutenção da Administração Geral - Prefeitura",
       fixedValue: new Prisma.Decimal("10000000.00"),
     },
-    update: { fixedValue: new Prisma.Decimal("10000000.00") },
+    update: { annualBudgetLawId: loa.id, code: ndMaterial.code, name: "Manutenção da Administração Geral - Prefeitura", fixedValue: new Prisma.Decimal("10000000.00") },
   });
 
-  await prisma.annualBudgetExpenseFixation.upsert({
+  const fixationCamara = await prisma.annualBudgetExpenseFixation.upsert({
     where: { id: "fixation-cam-2026" },
     create: {
       id: "fixation-cam-2026",
@@ -229,8 +317,31 @@ async function main() {
       name: "Folha de Pagamento - Câmara Municipal",
       fixedValue: new Prisma.Decimal("5000000.00"),
     },
-    update: { fixedValue: new Prisma.Decimal("5000000.00") },
+    update: { annualBudgetLawId: loa.id, code: ndPessoal.code, name: "Folha de Pagamento - Câmara Municipal", fixedValue: new Prisma.Decimal("5000000.00") },
   });
+
+  for (let month = 1; month <= 12; month += 1) {
+    await Promise.all([
+      prisma.monthlyDisbursementSchedule.upsert({
+        where: { annualBudgetLawId_month_budgetUnitId: { annualBudgetLawId: loa.id, month, budgetUnitId: ugPrefeitura.id } },
+        create: { annualBudgetLawId: loa.id, month, budgetUnitId: ugPrefeitura.id, limitValue: new Prisma.Decimal(month === 12 ? "833333.37" : "833333.33") },
+        update: { limitValue: new Prisma.Decimal(month === 12 ? "833333.37" : "833333.33") },
+      }),
+      prisma.monthlyDisbursementSchedule.upsert({
+        where: { annualBudgetLawId_month_budgetUnitId: { annualBudgetLawId: loa.id, month, budgetUnitId: ugCamara.id } },
+        create: { annualBudgetLawId: loa.id, month, budgetUnitId: ugCamara.id, limitValue: new Prisma.Decimal(month === 12 ? "416666.63" : "416666.67") },
+        update: { limitValue: new Prisma.Decimal(month === 12 ? "416666.63" : "416666.67") },
+      }),
+    ]);
+  }
+
+  for (let bimonth = 1; bimonth <= 6; bimonth += 1) {
+    await prisma.bimonthlyRevenueTarget.upsert({
+      where: { annualBudgetLawId_bimonth: { annualBudgetLawId: loa.id, bimonth } },
+      create: { annualBudgetLawId: loa.id, bimonth, targetValue: new Prisma.Decimal("2500000.00") },
+      update: { targetValue: new Prisma.Decimal("2500000.00") },
+    });
+  }
 
   // 9. Contas Bancárias Ativas com Fonte Obrigatória, Unidade Gestora Vinculada e Saldo de Abertura
   const contaBBPrefeitura = await prisma.bankAccount.upsert({
@@ -366,13 +477,17 @@ async function main() {
     ["PAGAMENTO_EFETIVADO", "Pagamento efetivado", accountCreditors.id, accountCash.id],
     ["RETENCAO_RECOLHIDA", "Retencao recolhida", accountCreditors.id, accountCash.id],
     ["PAGAMENTO_ESTORNADO", "Pagamento estornado", accountCash.id, accountCreditors.id],
-    ["RECEITA_LANCADA", "Receita lancada", accountEquity.id, accountCreditors.id],
+    ["RECEITA_LANCADA", "Receita lancada", accountCash.id, accountEquity.id],
     ["RECEITA_ARRECADADA", "Receita arrecadada", accountCash.id, accountEquity.id],
     ["RECEITA_ESTORNADA", "Receita estornada", accountEquity.id, accountCash.id],
-    ["RECEITA_REDISTRIBUIDA_FONTE", "Receita redistribuida por fonte", accountEquity.id, accountCreditors.id],
+    ["RECEITA_REDISTRIBUIDA_FONTE", "Receita redistribuida por fonte", accountCash.id, accountEquity.id],
   ] as const;
   for (const [code, name, debitAccountId, creditAccountId] of pocAccountingRules) {
     const event = await prisma.accountingEventCatalog.upsert({ where: { code }, create: { code, name, description: "REFERENCIA POC - substituir por matriz PCASP homologada" }, update: { name, description: "REFERENCIA POC - substituir por matriz PCASP homologada", isActive: true } });
+    await prisma.accountingPostingRule.updateMany({
+      where: { eventId: event.id, isReference: true, NOT: { debitAccountId, creditAccountId } },
+      data: { isActive: false },
+    });
     await prisma.accountingPostingRule.upsert({ where: { eventId_debitAccountId_creditAccountId: { eventId: event.id, debitAccountId, creditAccountId } }, create: { eventId: event.id, debitAccountId, creditAccountId, description: "REFERENCIA POC - nao utilizar em producao", isReference: true }, update: { isActive: true, isReference: true, description: "REFERENCIA POC - nao utilizar em producao" } });
   }
 
@@ -386,6 +501,9 @@ async function main() {
       budgetUnitId: ugPrefeitura.id,
       expenseNatureId: ndMaterial.id,
       resourceSourceId: fonteOrdinaria.id,
+      annualBudgetExpenseFixationId: fixationPrefeitura.id,
+      programPPAId: programaAdministracao.id,
+      actionPPAId: acaoPrefeitura.id,
       initialValueDecimal: new Prisma.Decimal("10000000.00"),
       updatedValueDecimal: new Prisma.Decimal("10000000.00"),
       committedValueDecimal: new Prisma.Decimal("0.00"),
@@ -393,7 +511,7 @@ async function main() {
       updatedValue: 10000000,
       committedValue: 0,
     },
-    update: { initialValueDecimal: new Prisma.Decimal("10000000.00"), updatedValueDecimal: new Prisma.Decimal("10000000.00") },
+    update: { financialYearId: year2026.id, budgetUnitId: ugPrefeitura.id, expenseNatureId: ndMaterial.id, resourceSourceId: fonteOrdinaria.id, annualBudgetExpenseFixationId: fixationPrefeitura.id, programPPAId: programaAdministracao.id, actionPPAId: acaoPrefeitura.id, initialValueDecimal: new Prisma.Decimal("10000000.00"), updatedValueDecimal: new Prisma.Decimal("10000000.00") },
   });
 
   await prisma.budgetAppropriation.upsert({
@@ -405,6 +523,9 @@ async function main() {
       budgetUnitId: ugCamara.id,
       expenseNatureId: ndPessoal.id,
       resourceSourceId: fonteOrdinaria.id,
+      annualBudgetExpenseFixationId: fixationCamara.id,
+      programPPAId: programaAdministracao.id,
+      actionPPAId: acaoCamara.id,
       initialValueDecimal: new Prisma.Decimal("5000000.00"),
       updatedValueDecimal: new Prisma.Decimal("5000000.00"),
       committedValueDecimal: new Prisma.Decimal("0.00"),
@@ -412,7 +533,7 @@ async function main() {
       updatedValue: 5000000,
       committedValue: 0,
     },
-    update: { initialValueDecimal: new Prisma.Decimal("5000000.00"), updatedValueDecimal: new Prisma.Decimal("5000000.00") },
+    update: { financialYearId: year2026.id, budgetUnitId: ugCamara.id, expenseNatureId: ndPessoal.id, resourceSourceId: fonteOrdinaria.id, annualBudgetExpenseFixationId: fixationCamara.id, programPPAId: programaAdministracao.id, actionPPAId: acaoCamara.id, initialValueDecimal: new Prisma.Decimal("5000000.00"), updatedValueDecimal: new Prisma.Decimal("5000000.00") },
   });
 
   // 13. Fornecedor e Credor

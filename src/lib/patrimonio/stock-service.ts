@@ -21,6 +21,8 @@ export type StockMovementInput = {
   supplierId?: string | null;
   departmentId?: string | null;
   obrasServicoId?: string | null;
+  /** Optional financial proof of delivery. Never required for Obras service issues. */
+  settlementId?: string | null;
   /** Reserved for the approved inventory-close workflow. */
   inventorySessionId?: string | null;
   actor: StockActor;
@@ -54,6 +56,9 @@ export function normalizeStockMovement(input: StockMovementInput): ValidStockMov
   if (input.expirationDate && Number.isNaN(input.expirationDate.valueOf())) {
     throw new StockServiceError("Data de validade inválida.");
   }
+  if (input.settlementId?.trim() && input.kind !== "EXIT") {
+    throw new StockServiceError("A liquidação pode ser vinculada somente a uma saída de estoque.");
+  }
 
   return { ...input, warehouseId, materialId, batchNumber, actor: { ...input.actor, usuarioId: actorUsuarioId } };
 }
@@ -66,12 +71,16 @@ function updateMetadata(input: ValidStockMovementInput) {
 }
 
 async function ensureStockTarget(tx: Prisma.TransactionClient, input: ValidStockMovementInput) {
-  const [warehouse, material] = await Promise.all([
+  const [warehouse, material, settlement] = await Promise.all([
     tx.warehouse.findFirst({ where: { id: input.warehouseId, isActive: true }, select: { id: true } }),
     tx.material.findUnique({ where: { id: input.materialId }, select: { id: true } }),
+    input.settlementId?.trim()
+      ? tx.settlement.findFirst({ where: { id: input.settlementId.trim(), status: "Liquidado" }, select: { id: true } })
+      : null,
   ]);
   if (!warehouse) throw new StockServiceError("Almoxarifado não encontrado ou inativo.");
   if (!material) throw new StockServiceError("Material não encontrado.");
+  if (input.settlementId?.trim() && !settlement) throw new StockServiceError("Liquidação não encontrada ou não está ativa.");
 }
 
 async function ensureWarehouseIsNotCounting(tx: Prisma.TransactionClient, input: ValidStockMovementInput) {
@@ -157,6 +166,7 @@ export async function applyStockMovement(tx: Prisma.TransactionClient, rawInput:
       supplierId: input.supplierId?.trim() || null,
       departmentId: input.departmentId?.trim() || null,
       obrasServicoId: input.obrasServicoId?.trim() || null,
+      settlementId: input.settlementId?.trim() || null,
       inventorySessionId: input.inventorySessionId?.trim() || null,
       actorUsuarioId: input.actor.usuarioId,
       actorEmployeeId: input.actor.employeeId ?? null,

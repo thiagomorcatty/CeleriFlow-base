@@ -6,8 +6,9 @@ import { useState, useTransition } from "react";
 
 type Option = { id: string; label: string };
 type Operation = "ENTRY" | "EXIT" | "ADJUSTMENT";
+type SettlementOption = { id: string; label: string };
 
-export function StockOperationsClient({ materials, warehouses }: { materials: Option[]; warehouses: Option[] }) {
+export function StockOperationsClient({ materials, warehouses, settlements }: { materials: Option[]; warehouses: Option[]; settlements: SettlementOption[] }) {
   const router = useRouter();
   const [operation, setOperation] = useState<Operation>("ENTRY");
   const [pending, startTransition] = useTransition();
@@ -22,6 +23,7 @@ export function StockOperationsClient({ materials, warehouses }: { materials: Op
       expirationDate: String(formData.get("expirationDate") ?? "") || undefined,
       unitCost: typeof unitCost === "string" && unitCost !== "" ? Number(unitCost) : undefined,
       reason: String(formData.get("reason") ?? "") || undefined,
+      settlementId: String(formData.get("settlementId") ?? "") || undefined,
       quantity: Number(formData.get("quantity")),
     };
 
@@ -80,6 +82,14 @@ export function StockOperationsClient({ materials, warehouses }: { materials: Op
       {operation !== "EXIT" && <label className="grid gap-1 text-sm font-medium">
         Validade
         <input name="expirationDate" type="date" className="h-9 rounded-md border bg-background px-3 text-sm" />
+      </label>}
+      {operation === "EXIT" && <label className="grid gap-1 text-sm font-medium md:col-span-2">
+        Liquidação de referência
+        <select name="settlementId" className="h-9 rounded-md border bg-background px-3 text-sm">
+          <option value="">Não vincular a uma liquidação</option>
+          {settlements.map((settlement) => <option key={settlement.id} value={settlement.id}>{settlement.label}</option>)}
+        </select>
+        <span className="text-xs font-normal text-muted-foreground">Opcional. Use quando a saída comprovar o recebimento de material liquidado; saídas para Obras continuam independentes.</span>
       </label>}
       {operation !== "EXIT" && <label className="grid gap-1 text-sm font-medium">
         Custo unitário

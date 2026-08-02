@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { registerAssetDisposal, runMonthlyDepreciation } from "./actions";
+import { registerAssetDisposal, registerAssetValueAdjustment, runMonthlyDepreciation } from "./actions";
 
 type AssetOption = { id: string; patrimonyNumber: string; name: string; currentValue: number };
 
@@ -16,6 +16,11 @@ export function AssetLifecycleClient({ assets, initialCompetence }: { assets: As
   const [reason, setReason] = useState("");
   const [justification, setJustification] = useState("");
   const [disposalValue, setDisposalValue] = useState("");
+  const [adjustmentType, setAdjustmentType] = useState<"REVALUATION" | "IMPAIRMENT" | "SUBSEQUENT_COST">("REVALUATION");
+  const [adjustmentDate, setAdjustmentDate] = useState(initialCompetence ? `${initialCompetence}-01` : "");
+  const [adjustmentValue, setAdjustmentValue] = useState("");
+  const [adjustmentJustification, setAdjustmentJustification] = useState("");
+  const [adjustmentEvidence, setAdjustmentEvidence] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +31,7 @@ export function AssetLifecycleClient({ assets, initialCompetence }: { assets: As
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid gap-4 lg:grid-cols-3">
       <section className="rounded-lg border bg-white p-4">
         <h3 className="font-semibold">Depreciação mensal</h3>
         <p className="mt-1 text-sm text-muted-foreground">Método linear a partir da competência de aquisição, usando a vida útil da categoria.</p>
@@ -48,7 +53,7 @@ export function AssetLifecycleClient({ assets, initialCompetence }: { assets: As
 
       <section className="rounded-lg border bg-white p-4">
         <h3 className="font-semibold">Baixa ou alienação</h3>
-        <p className="mt-1 text-sm text-muted-foreground">Registra valor contábil, valor recebido e ganho ou perda apenas como evidência interna.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Registra valor contábil, valor recebido e resultado. Só posta contabilmente com evento homologado; caso contrário registra pendência.</p>
         {assets.length === 0 ? <p className="mt-4 text-sm text-muted-foreground">Não há bens disponíveis para baixa.</p> : (
           <form className="mt-4 grid gap-2" onSubmit={(event) => {
             event.preventDefault();
@@ -88,7 +93,41 @@ export function AssetLifecycleClient({ assets, initialCompetence }: { assets: As
           </form>
         )}
       </section>
-      {(message || error) && <p className={`lg:col-span-2 text-sm ${error ? "text-red-600" : "text-emerald-700"}`}>{error ?? message}</p>}
+      <section className="rounded-lg border bg-white p-4">
+        <h3 className="font-semibold">Reavaliação e custos posteriores</h3>
+        <p className="mt-1 text-sm text-muted-foreground">Informe o novo valor contábil em reavaliação ou impairment; em custo subsequente informe o valor a capitalizar.</p>
+        {assets.length === 0 ? <p className="mt-4 text-sm text-muted-foreground">Não há bens disponíveis para ajuste.</p> : (
+          <form className="mt-4 grid gap-2" onSubmit={(event) => {
+            event.preventDefault();
+            startTransition(async () => {
+              const result = await registerAssetValueAdjustment({ assetId, date: adjustmentDate, type: adjustmentType, value: adjustmentValue, justification: adjustmentJustification, evidence: adjustmentEvidence });
+              showResult(result);
+              if (!result.error) {
+                setAdjustmentValue("");
+                setAdjustmentJustification("");
+                setAdjustmentEvidence("");
+              }
+            });
+          }}>
+            <select className="h-9 rounded-md border px-3 text-sm" value={assetId} onChange={(event) => setAssetId(event.target.value)}>
+              {assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.patrimonyNumber} - {asset.name}</option>)}
+            </select>
+            <div className="grid grid-cols-2 gap-2">
+              <select className="h-9 rounded-md border px-3 text-sm" value={adjustmentType} onChange={(event) => setAdjustmentType(event.target.value as typeof adjustmentType)}>
+                <option value="REVALUATION">Reavaliação</option>
+                <option value="IMPAIRMENT">Impairment</option>
+                <option value="SUBSEQUENT_COST">Custo subsequente</option>
+              </select>
+              <input className="h-9 rounded-md border px-3 text-sm" type="date" required value={adjustmentDate} onChange={(event) => setAdjustmentDate(event.target.value)} />
+            </div>
+            <input className="h-9 rounded-md border px-3 text-sm" placeholder={adjustmentType === "SUBSEQUENT_COST" ? "Valor a capitalizar (R$)" : "Novo valor contábil (R$)"} inputMode="decimal" required value={adjustmentValue} onChange={(event) => setAdjustmentValue(event.target.value)} />
+            <input className="h-9 rounded-md border px-3 text-sm" placeholder="Justificativa" required value={adjustmentJustification} onChange={(event) => setAdjustmentJustification(event.target.value)} />
+            <textarea className="min-h-20 rounded-md border px-3 py-2 text-sm" placeholder="Laudo, processo ou outra evidência" required value={adjustmentEvidence} onChange={(event) => setAdjustmentEvidence(event.target.value)} />
+            <button className="h-9 rounded-md border border-amber-600 px-4 text-sm font-medium text-amber-700 disabled:opacity-50" disabled={isPending}>Registrar ajuste</button>
+          </form>
+        )}
+      </section>
+      {(message || error) && <p className={`lg:col-span-3 text-sm ${error ? "text-red-600" : "text-emerald-700"}`}>{error ?? message}</p>}
     </div>
   );
 }

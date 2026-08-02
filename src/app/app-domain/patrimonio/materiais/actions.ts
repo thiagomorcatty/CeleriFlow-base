@@ -15,6 +15,7 @@ const stockInput = z.object({
   expirationDate: z.string().trim().optional(),
   unitCost: z.number().finite().nonnegative("O custo unitário deve ser maior ou igual a zero.").optional(),
   reason: z.string().trim().max(500, "A justificativa deve ter no máximo 500 caracteres.").optional(),
+  settlementId: z.string().trim().min(1, "Liquidação inválida.").optional(),
 });
 
 function expirationDate(value?: string) {
@@ -33,6 +34,7 @@ async function registerMovement(kind: StockMovementKind, data: {
   expirationDate?: string;
   unitCost?: number;
   reason?: string;
+  settlementId?: string;
   quantity: number;
 }): Promise<ActionResult> {
   const parsed = stockInput.extend({ quantity: z.number().finite() }).safeParse(data);
@@ -73,6 +75,7 @@ export async function registerMaterialExitAction(data: {
   quantity: number;
   batchNumber?: string;
   reason?: string;
+  settlementId?: string;
 }) {
   return registerMovement("EXIT", data);
 }

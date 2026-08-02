@@ -14,6 +14,7 @@
     "seed:firebase": "npx tsx scripts/seed-firebase-users.ts",
     "seed:all": "npm run seed:poc && npm run seed:firebase",
     "verify:poc-users": "node scripts/verify-poc-users.mjs",
+    "verify:poc-base": "npx tsx scripts/verify-poc-base.ts",
     "finance:decimal:reconcile": "node scripts/finance-decimal-reconcile.mjs",
     "finance:decimal:backfill": "node scripts/finance-decimal-reconcile.mjs --backfill",
     "finance:treasury:opening-backfill": "node scripts/finance-treasury-opening-backfill.mjs",
@@ -39,6 +40,7 @@
     "lucide-react": "^1.23.0",
     "mammoth": "^1.12.0",
     "next": "16.2.12",
+    "pdfkit": "^0.17.2",
     "prisma": "^7.9.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -52,6 +54,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pdfkit": "^0.17.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

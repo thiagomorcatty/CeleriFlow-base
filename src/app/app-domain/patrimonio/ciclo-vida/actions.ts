@@ -1,6 +1,6 @@
 "use server";
 
-import { AssetLifecycleError, depreciateAssetsForMonth, recordAssetDisposal } from "@/lib/patrimonio/asset-lifecycle";
+import { AssetLifecycleError, depreciateAssetsForMonth, recordAssetDisposal, recordAssetValueAdjustment, type AssetValueAdjustmentType } from "@/lib/patrimonio/asset-lifecycle";
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
@@ -47,11 +47,43 @@ export async function registerAssetDisposal(input: {
     }
     const disposalValue = input.disposalValue.trim() === "" ? 0 : Number(input.disposalValue.replace(",", "."));
     const context = await getTenantContextForModuleEdit("PATRIMONIO");
-    await recordAssetDisposal(context.prisma, { ...input, date, disposalValue });
+    const writeOff = await recordAssetDisposal(context.prisma, {
+      ...input,
+      date,
+      disposalValue,
+      actor: { usuarioId: context.user.id, employeeId: context.user.employeeId },
+    });
     revalidatePath("/patrimonio/ciclo-vida");
     revalidatePath("/patrimonio/bens");
     revalidatePath("/patrimonio");
-    return { message: "Baixa patrimonial registrada com a evidência de valor contábil." };
+    return { message: writeOff.integration.pending
+      ? "Baixa registrada. O resultado contábil ficou pendente de parametrização; nenhuma receita ou lançamento foi criado."
+      : "Baixa patrimonial registrada com a evidência de valor contábil." };
+  } catch (error) {
+    return { error: messageFor(error) };
+  }
+}
+
+export async function registerAssetValueAdjustment(input: {
+  assetId: string;
+  date: string;
+  type: AssetValueAdjustmentType;
+  value: string;
+  justification: string;
+  evidence: string;
+}): Promise<ActionResult> {
+  try {
+    const date = new Date(`${input.date}T12:00:00.000Z`);
+    if (!input.date || Number.isNaN(date.valueOf()) || date.toISOString().slice(0, 10) !== input.date) {
+      throw new AssetLifecycleError("Data do ajuste inválida.");
+    }
+    const value = Number(input.value.replace(",", "."));
+    const context = await getTenantContextForModuleEdit("PATRIMONIO");
+    await recordAssetValueAdjustment(context.prisma, { ...input, date, value });
+    revalidatePath("/patrimonio/ciclo-vida");
+    revalidatePath("/patrimonio/bens");
+    revalidatePath("/patrimonio");
+    return { message: "Ajuste de valor registrado com justificativa e evidência." };
   } catch (error) {
     return { error: messageFor(error) };
   }

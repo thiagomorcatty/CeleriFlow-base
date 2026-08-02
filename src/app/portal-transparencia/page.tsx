@@ -6,6 +6,7 @@ import {
   parsePublicDataFilter,
   type PublicDataFilter,
 } from "@/lib/transparencia/portal-fiscal";
+import { getPublicBiddings, getPublicContracts, getPublicFinancialReportSnapshots } from "@/lib/transparencia/portal-public";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +80,12 @@ export default async function PortalTransparenciaPage({ searchParams }: { search
   const revenues = view === "receitas" ? await getPublicRevenues(prisma, filter) : null;
   const activeResult = expenses ?? revenues!;
   const exportPath = `/api/transparencia/${view}?${queryFor(filter, activeResult.page, { format: "csv" })}`;
+  const [reports, contracts, biddings, institution] = await Promise.all([
+    getPublicFinancialReportSnapshots(prisma),
+    getPublicContracts(prisma),
+    getPublicBiddings(prisma),
+    prisma.institution.findFirst({ select: { name: true, phone: true, email: true, address: true, city: true, state: true, website: true } }),
+  ]);
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
@@ -148,7 +155,30 @@ export default async function PortalTransparenciaPage({ searchParams }: { search
           ) : null}
         </section>
 
-        <p className="mt-6 text-xs leading-5 text-slate-500">API pública: <code>/api/transparencia/despesas</code> e <code>/api/transparencia/receitas</code>. Parâmetros disponíveis: exercício, busca, unidade orçamentária, fonte de recursos, classificação aplicável, página e tamanho de página. Esta entrega publica CSV; formatos PDF e TXT e demonstrativos legais não são disponibilizados nesta rota.</p>
+        <section className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <div><h2 className="text-lg font-bold">Relatórios legais</h2><p className="text-sm text-slate-500">Snapshots CSV gerados internamente e versionados.</p></div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm"><thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600"><tr><th className="px-4 py-3">Relatório</th><th className="px-4 py-3">Exercício</th><th className="px-4 py-3">Versão</th><th className="px-4 py-3">Gerado em</th><th className="px-4 py-3"></th></tr></thead><tbody className="divide-y divide-slate-200">{reports.map((report) => <tr key={`${report.type}-${report.year}`}><td className="px-4 py-3 font-medium">{report.label}</td><td className="px-4 py-3">{report.year}</td><td className="px-4 py-3">v{report.version}</td><td className="px-4 py-3">{formatDate(report.finalizedAt)}</td><td className="px-4 py-3"><a className="font-semibold text-sky-800 hover:underline" href={`/api/transparencia/relatorios?year=${report.year}&reportType=${report.type}&version=${report.version}`}>CSV</a></td></tr>)}{!reports.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">Nenhum snapshot publicado.</td></tr>}</tbody></table>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><h2 className="text-lg font-bold">Licitações publicadas</h2><p className="text-sm text-slate-500">Somente certames com data de publicação.</p></div><a className="text-sm font-semibold text-sky-800 hover:underline" href="/api/transparencia/licitacoes?format=csv">CSV</a></div>
+            <div className="max-h-[420px] overflow-auto"><table className="min-w-full text-left text-sm"><thead className="sticky top-0 bg-slate-100 text-xs uppercase tracking-wide text-slate-600"><tr><th className="px-4 py-3">Licitação</th><th className="px-4 py-3">Processo / objeto</th><th className="px-4 py-3">Sessão</th></tr></thead><tbody className="divide-y divide-slate-200">{biddings.map((bidding) => <tr key={bidding.number}><td className="px-4 py-3 font-medium">{bidding.number}<span className="block text-xs font-normal text-slate-500">{bidding.modality} · {bidding.status}</span></td><td className="px-4 py-3">{bidding.processNumber}<span className="block max-w-xs truncate text-xs text-slate-500" title={bidding.object}>{bidding.object}</span></td><td className="px-4 py-3">{formatDate(bidding.sessionDate)}</td></tr>)}{!biddings.length && <tr><td colSpan={3} className="px-4 py-8 text-center text-slate-500">Nenhuma licitação publicada.</td></tr>}</tbody></table></div>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4"><div><h2 className="text-lg font-bold">Contratos</h2><p className="text-sm text-slate-500">Contratos não preliminares; pessoas físicas e documentos são protegidos.</p></div><a className="text-sm font-semibold text-sky-800 hover:underline" href="/api/transparencia/contratos?format=csv">Exportar CSV</a></div>
+          <div className="max-h-[420px] overflow-auto"><table className="min-w-full text-left text-sm"><thead className="sticky top-0 bg-slate-100 text-xs uppercase tracking-wide text-slate-600"><tr><th className="px-4 py-3">Contrato</th><th className="px-4 py-3">Fornecedor</th><th className="px-4 py-3">Objeto / processo</th><th className="px-4 py-3">Vigência</th><th className="px-4 py-3 text-right">Valor atualizado</th></tr></thead><tbody className="divide-y divide-slate-200">{contracts.map((contract) => <tr key={contract.number}><td className="px-4 py-3 font-medium">{contract.number}<span className="block text-xs font-normal text-slate-500">{contract.status}</span></td><td className="px-4 py-3">{contract.supplier.name}<span className="block text-xs text-slate-500">{contract.supplier.documentMasked}</span></td><td className="px-4 py-3"><span className="block max-w-sm truncate" title={contract.object}>{contract.object}</span><span className="block text-xs text-slate-500">{contract.processNumber}{contract.modality ? ` · ${contract.modality}` : ""}</span></td><td className="px-4 py-3">{formatDate(contract.startDate)}<span className="block text-xs text-slate-500">até {formatDate(contract.endDate)}</span></td><td className="px-4 py-3 text-right font-medium">{formatMoney(contract.updatedValue)}</td></tr>)}{!contracts.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">Nenhum contrato publicável.</td></tr>}</tbody></table></div>
+        </section>
+
+        {institution && (institution.phone || institution.email || institution.address || institution.website) && <section className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"><h2 className="font-bold">Contato institucional</h2><p className="mt-1">{institution.name}</p>{institution.address && <p>{institution.address}{institution.city ? `, ${institution.city}` : ""}{institution.state ? `/${institution.state}` : ""}</p>}{institution.phone && <p>Telefone: {institution.phone}</p>}{institution.email && <p>E-mail: <a className="font-semibold text-sky-800 hover:underline" href={`mailto:${institution.email}`}>{institution.email}</a></p>}{institution.website && <p>Site: <a className="font-semibold text-sky-800 hover:underline" href={institution.website}>{institution.website}</a></p>}</section>}
+
+        <p className="mt-6 text-xs leading-5 text-slate-500">API pública: <code>/api/transparencia/despesas</code>, <code>/api/transparencia/receitas</code>, <code>/api/transparencia/contratos</code>, <code>/api/transparencia/licitacoes</code> e <code>/api/transparencia/relatorios</code>. Exportações e snapshots são CSV; não há PDF ou TXT nesta entrega.</p>
       </div>
     </main>
   );

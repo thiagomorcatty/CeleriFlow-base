@@ -2,11 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { 
-  Package,
-  Plus,
-  Search
-} from "lucide-react"
+import { Plus, Search } from "lucide-react"
+import type { Prisma } from "@prisma/client"
 import Link from "next/link"
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { StockOperationsClient } from "./StockOperationsClient";
@@ -18,7 +15,7 @@ export default async function MateriaisPage(
   const searchParams = await props.searchParams;
   const q = searchParams?.q || "";
 
-  const where: any = {};
+  const where: Prisma.MaterialWhereInput = {};
   if (q) {
     where.OR = [
       { name: { contains: q, mode: 'insensitive' } },
@@ -39,13 +36,19 @@ export default async function MateriaisPage(
       }
     }
   })
-  const [warehouses, movementMaterials, stockRows] = await Promise.all([
+  const [warehouses, movementMaterials, stockRows, settlements] = await Promise.all([
     prisma.warehouse.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.material.findMany({ take: 200, orderBy: { name: "asc" }, select: { id: true, code: true, name: true } }),
     prisma.materialStock.findMany({
       take: 100,
       orderBy: [{ warehouse: { name: "asc" } }, { material: { name: "asc" } }, { batchNumber: "asc" }],
       include: { warehouse: { select: { name: true } }, material: { select: { code: true, name: true, unitOfMeasure: true } } },
+    }),
+    prisma.settlement.findMany({
+      where: { status: "Liquidado" },
+      take: 100,
+      orderBy: { date: "desc" },
+      select: { id: true, date: true, value: true, commitment: { select: { number: true } } },
     }),
   ]);
 
@@ -70,6 +73,7 @@ export default async function MateriaisPage(
           <StockOperationsClient
             materials={movementMaterials.map((material) => ({ id: material.id, label: `${material.code} - ${material.name}` }))}
             warehouses={warehouses.map((warehouse) => ({ id: warehouse.id, label: warehouse.name }))}
+            settlements={settlements.map((settlement) => ({ id: settlement.id, label: `${settlement.commitment.number} - ${settlement.date.toLocaleDateString("pt-BR", { timeZone: "UTC" })} - ${settlement.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` }))}
           />
         </CardContent>
       </Card>

@@ -3,7 +3,9 @@ import test from "node:test";
 import { calculateRetentions } from "../src/lib/financeiro/retencoes.ts";
 import { runMockIntegration } from "../src/lib/integrations/registry.ts";
 import { exportPublicDataCSV, getPublicExpenses, getPublicRevenues, parsePublicDataFilter } from "../src/lib/transparencia/portal-fiscal.ts";
-import { financialReportFilename, generateFinancialReportCsv, isFinancialReportType } from "../src/lib/financeiro/report-delivery.ts";
+import { financialReportFilename, generateFinancialReportCsv, isFinancialReportType, isReportFormat, reportDatasetCsv } from "../src/lib/financeiro/report-delivery.ts";
+import { generateReportPdf } from "../src/lib/financeiro/report-export.ts";
+import { getPublicBiddings, getPublicContracts, getPublicFinancialReportSnapshots, isPublicFinancialReportType, publicFinancialReportDocumentType } from "../src/lib/transparencia/portal-public.ts";
 
 test("calcula retenções com base e alíquota configuradas", () => {
   const [retention] = calculateRetentions(1_000, [
@@ -117,7 +119,90 @@ test("executa conectores externos em modo mock sem chamada de rede", () => {
 test("aceita apenas tipos internos de relatório e gera nome CSV previsível", () => {
   assert.equal(isFinancialReportType("RREO"), true);
   assert.equal(isFinancialReportType("PDF"), false);
+  assert.equal(isReportFormat("PDF"), true);
+  assert.equal(isReportFormat("HTML"), false);
   assert.equal(financialReportFilename("BALANCO_PATRIMONIAL", 2026), "relatorio-balanco_patrimonial-2026.csv");
+});
+
+test("gera PDF binário a partir do conjunto canônico", async () => {
+  const dataset = {
+    title: "Relatório interno de teste",
+    year: 2026,
+    warnings: ["Uso interno."],
+    sections: [{ title: "Dados", rows: [{ descricao: "=não é fórmula", valor: 10 }] }],
+  };
+  const pdf = await generateReportPdf(dataset);
+  const csv = reportDatasetCsv(dataset);
+
+  assert.equal(Buffer.from(pdf).subarray(0, 5).toString("ascii"), "%PDF-");
+  assert.match(csv.csv, /"'=não é fórmula"/);
+});
+
+test("reconhece apenas relatórios legais publicáveis e cria uma chave estável para o snapshot", () => {
+  assert.equal(isPublicFinancialReportType("RREO"), true);
+  assert.equal(isPublicFinancialReportType("DIARIO"), false);
+  assert.equal(publicFinancialReportDocumentType("year-2026", "RGF"), "PUBLIC_FINANCIAL_REPORT:year-2026:RGF");
+});
+
+test("lista apenas snapshots publicados e impede balanços antes do encerramento anual", async () => {
+  const db = {
+    financialYear: {
+      findMany: async () => [
+        { id: "year-open", year: 2026, annualAccountingCloses: [] },
+        { id: "year-closed", year: 2025, annualAccountingCloses: [{ status: "ENCERRADO", closedAt: new Date("2026-02-01T00:00:00.000Z") }] },
+      ],
+    },
+    document: {
+      findMany: async () => [
+        { id: "rreo", documentType: publicFinancialReportDocumentType("year-open", "RREO"), versions: [{ versionNumber: 2, finalizedAt: new Date("2026-03-01T00:00:00.000Z") }] },
+        { id: "open-balance", documentType: publicFinancialReportDocumentType("year-open", "BALANCO_PATRIMONIAL"), versions: [{ versionNumber: 1, finalizedAt: new Date("2026-03-01T00:00:00.000Z") }] },
+        { id: "closed-balance", documentType: publicFinancialReportDocumentType("year-closed", "BALANCO_ORCAMENTARIO"), versions: [{ versionNumber: 1, finalizedAt: new Date("2026-02-02T00:00:00.000Z") }] },
+      ],
+    },
+  } as never;
+
+  const reports = await getPublicFinancialReportSnapshots(db);
+
+  assert.deepEqual(reports.map((report) => `${report.year}:${report.type}:v${report.version}`), ["2026:RREO:v2", "2025:BALANCO_ORCAMENTARIO:v1"]);
+});
+
+test("projeta contratos e licitações sem ids internos, rascunhos ou identificação de pessoa física", async () => {
+  const db = {
+    contract: {
+      findMany: async () => [{
+        id: "contract-internal-id",
+        number: "CT-001/2026",
+        object: "Aquisição de materiais",
+        initialValue: 100,
+        updatedValue: 120,
+        startDate: new Date("2026-01-01T00:00:00.000Z"),
+        endDate: new Date("2026-12-31T00:00:00.000Z"),
+        status: "Vigente",
+        supplier: { person: { fullName: "Maria da Silva", cpf: "12345678901" }, company: null },
+        process: { number: "PROC-001/2026", modality: "Pregão" },
+        secretariat: { name: "Saúde" },
+      }],
+    },
+    bidding: {
+      findMany: async () => [{
+        id: "bidding-internal-id",
+        number: "PE-010/2026",
+        modality: "Pregão",
+        status: "Publicada",
+        publicationDate: new Date("2026-01-10T00:00:00.000Z"),
+        sessionDate: new Date("2026-01-20T00:00:00.000Z"),
+        process: { number: "PROC-001/2026", object: "Aquisição de materiais", estimatedValue: 100, secretariat: { name: "Saúde" } },
+      }],
+    },
+  } as never;
+
+  const [contracts, biddings] = await Promise.all([getPublicContracts(db), getPublicBiddings(db)]);
+
+  assert.equal(contracts[0].supplier.name, "PESSOA FÍSICA");
+  assert.equal(contracts[0].supplier.documentMasked, "***.456.789-**");
+  assert.equal("id" in contracts[0], false);
+  assert.equal(biddings[0].processNumber, "PROC-001/2026");
+  assert.equal("id" in biddings[0], false);
 });
 
 test("entrega o Diário canônico como CSV seguro", async () => {

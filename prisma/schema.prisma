@@ -2335,6 +2335,7 @@ model Settlement {
   payments          Payment[]
   retentions        SettlementRetention[]
   financialDocument FinancialDocument?    @relation("FinancialDocumentSettlement")
+  materialMovements MaterialMovement[]    @relation("SettlementMaterialMovements")
 
   @@index([documentId])
   @@index([fiscalDocumentNumber, fiscalDocumentSeries])
@@ -2724,6 +2725,7 @@ model AccountingTransaction {
   reversalOf       AccountingTransaction? @relation("AccountingReversal", fields: [reversalOfId], references: [id])
   reversedBy       AccountingTransaction? @relation("AccountingReversal")
   entries          AccountingEntry[]
+  assetWriteOff    AssetWriteOff?         @relation("AssetWriteOffAccountingTransaction")
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
 
@@ -3298,6 +3300,7 @@ model Asset {
   transfers          AssetTransfer[]
   maintenances       AssetMaintenance[]
   valueHistory       AssetValueHistory[]
+  valueAdjustments   AssetValueAdjustment[]
   writeOffs          AssetWriteOff[]
   targetServices     ObrasServico[]                @relation("ObrasServicoTargetAsset")
   serviceEquipment   ObrasServicoEquipamento[]
@@ -3372,12 +3375,47 @@ model AssetWriteOff {
   disposalValue Float    @default(0)
   bookValue     Float
   gainLoss      Float
+  accountingTransactionId String?                @unique
+  accountingTransaction   AccountingTransaction? @relation("AssetWriteOffAccountingTransaction", fields: [accountingTransactionId], references: [id])
 
   assetId String
   asset   Asset  @relation(fields: [assetId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  integrationPending AssetIntegrationPendingConfiguration?
+}
+
+model AssetValueAdjustment {
+  id              String   @id @default(cuid())
+  type            String   // REVALUATION, IMPAIRMENT, SUBSEQUENT_COST
+  date            DateTime
+  openingValue    Float
+  adjustmentValue Float
+  closingValue    Float
+  justification   String
+  evidence        String
+
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([assetId, date])
+}
+
+// This is evidence of a missing configuration, never a substitute financial record.
+model AssetIntegrationPendingConfiguration {
+  id                String        @id @default(cuid())
+  assetWriteOffId   String        @unique
+  assetWriteOff     AssetWriteOff @relation(fields: [assetWriteOffId], references: [id], onDelete: Restrict)
+  expectedEventCode String
+  reason            String
+  status            String        @default("PENDING_CONFIGURATION")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 }
 
 // Almoxarifado
@@ -3488,6 +3526,9 @@ model MaterialMovement {
   obrasServicoId String?
   obrasServico   ObrasServico? @relation(fields: [obrasServicoId], references: [id], onDelete: SetNull)
 
+  settlementId String?
+  settlement   Settlement? @relation("SettlementMaterialMovements", fields: [settlementId], references: [id], onDelete: Restrict)
+
   actorUsuarioId  String?
   actorUsuario    Usuario?  @relation("MaterialMovementActorUsuario", fields: [actorUsuarioId], references: [id])
   actorEmployeeId String?
@@ -3504,6 +3545,7 @@ model MaterialMovement {
   @@index([actorUsuarioId])
   @@index([actorEmployeeId])
   @@index([inventorySessionId])
+  @@index([settlementId])
 }
 
 model InventorySession {
