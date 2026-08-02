@@ -68,24 +68,6 @@ export default async function PagamentosPage() {
     }
   })
 
-  const retentionRules = await prisma.retentionRule.findMany({
-    where: {
-      isActive: true,
-      effectiveFrom: { lte: new Date() },
-      OR: [{ effectiveTo: null }, { effectiveTo: { gte: new Date() } }],
-    },
-    select: {
-      id: true,
-      code: true,
-      type: true,
-      description: true,
-      calculationBasePercentage: true,
-      ratePercentage: true,
-      serviceCode: true,
-    },
-    orderBy: { code: "asc" },
-  });
-
   const displayPayments = payments.map(({ valueDecimal, netValueDecimal, retentions, commitment, bankAccount, ...payment }) => {
     const { valueDecimal: commitmentValueDecimal, ...displayCommitment } = commitment
     const { currentBalanceDecimal, ...displayBankAccount } = bankAccount
@@ -122,12 +104,6 @@ export default async function PagamentosPage() {
     currentBalance: Number(currentBalanceDecimal ?? account.currentBalance),
   }))
 
-  const displayRetentionRules = retentionRules.map((rule) => ({
-    ...rule,
-    calculationBasePercentage: Number(rule.calculationBasePercentage),
-    ratePercentage: Number(rule.ratePercentage),
-  }));
-
   const pendingWithholdings = await prisma.withholdingPayable.findMany({
     where: {
       status: "Pendente",
@@ -159,7 +135,6 @@ export default async function PagamentosPage() {
       settlements={displaySettlements}
       bankAccounts={displayBankAccounts}
       suppliers={suppliers}
-      retentionRules={displayRetentionRules}
       pendingWithholdings={displayPendingWithholdings}
     />
   );

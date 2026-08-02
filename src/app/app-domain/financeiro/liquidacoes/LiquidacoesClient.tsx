@@ -26,6 +26,10 @@ type Settlement = {
   date: Date;
   value: number;
   documentRef: string | null;
+  fiscalDocumentNumber: string | null;
+  fiscalDocumentSeries: string | null;
+  fiscalDocumentIssueDate: Date | null;
+  fiscalDocumentAccessKey: string | null;
   document: { id: string; title: string } | null;
   financialDocument: { id: string; number: string; title: string } | null;
   notes: string | null;
@@ -47,17 +51,20 @@ type Settlement = {
 
 type CommitmentOption = { id: string; number: string; availableToSettle: number };
 type EmployeeOption = { id: string; name: string };
+type RetentionRule = { id: string; code: string; type: string; description: string; calculationBasePercentage: number; ratePercentage: number; serviceCode: string | null };
 
 export default function LiquidacoesClient({
   settlements,
   commitments,
   employees,
   documents,
+  retentionRules,
 }: {
   settlements: Settlement[];
   commitments: CommitmentOption[];
   employees: EmployeeOption[];
   documents: { id: string; title: string; documentType: string }[];
+  retentionRules: RetentionRule[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -72,10 +79,16 @@ export default function LiquidacoesClient({
     date: new Date().toISOString().substring(0, 10),
     value: 0,
     documentRef: "",
+    fiscalDocumentNumber: "",
+    fiscalDocumentSeries: "",
+    fiscalDocumentIssueDate: "",
+    fiscalDocumentAccessKey: "",
     documentId: "",
     commitmentId: "",
     authorId: "",
-    notes: ""
+    notes: "",
+    serviceCode: "",
+    retentionRuleIds: [] as string[],
   });
 
   const filteredSettlements = settlements.filter(s => {
@@ -95,10 +108,16 @@ export default function LiquidacoesClient({
       date: new Date().toISOString().substring(0, 10),
       value: 0,
       documentRef: "",
+      fiscalDocumentNumber: "",
+      fiscalDocumentSeries: "",
+      fiscalDocumentIssueDate: "",
+      fiscalDocumentAccessKey: "",
       documentId: "",
       commitmentId: "",
       authorId: "",
-      notes: ""
+      notes: "",
+      serviceCode: "",
+      retentionRuleIds: [],
     });
     setIsModalOpen(true);
   };
@@ -109,7 +128,8 @@ export default function LiquidacoesClient({
     try {
       const dataToSubmit = {
         ...formData,
-        date: new Date(formData.date)
+        date: new Date(formData.date),
+        fiscalDocumentIssueDate: formData.fiscalDocumentIssueDate ? new Date(formData.fiscalDocumentIssueDate) : undefined,
       };
       
       if (editingId) {
@@ -234,7 +254,10 @@ export default function LiquidacoesClient({
                     <TableCell>
                       {settlement.commitment.supplier.company?.corporateName || settlement.commitment.supplier.person?.fullName || 'Não identificado'}
                     </TableCell>
-                      <TableCell>{settlement.document?.title || settlement.documentRef || '-'}</TableCell>
+                       <TableCell>
+                         {settlement.fiscalDocumentNumber ? <><strong>NF {settlement.fiscalDocumentNumber}{settlement.fiscalDocumentSeries ? ` / Série ${settlement.fiscalDocumentSeries}` : ""}</strong><span className="block text-xs text-muted-foreground">{settlement.fiscalDocumentIssueDate ? format(new Date(settlement.fiscalDocumentIssueDate), "dd/MM/yyyy") : ""}</span></> : settlement.documentRef || "-"}
+                         <span className="block text-xs text-muted-foreground">GED: {settlement.document?.title || "-"}</span>
+                       </TableCell>
                     <TableCell>{settlement.author.name}</TableCell>
                     <TableCell>
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(settlement.value)}
@@ -264,13 +287,13 @@ export default function LiquidacoesClient({
       </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[680px]">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar Liquidação" : "Nova Liquidação"}</DialogTitle>
             <DialogDescription>Ateste o recebimento de materiais ou serviços vinculados a um empenho.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="date">Data da Liquidação</Label>
                 <Input id="date" type="date" required value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
@@ -320,6 +343,46 @@ export default function LiquidacoesClient({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="rounded-md border p-3 space-y-3">
+              <p className="text-sm font-medium">Dados do documento fiscal</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fiscalDocumentNumber">Número</Label>
+                  <Input id="fiscalDocumentNumber" value={formData.fiscalDocumentNumber} onChange={e => setFormData({ ...formData, fiscalDocumentNumber: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fiscalDocumentSeries">Série</Label>
+                  <Input id="fiscalDocumentSeries" value={formData.fiscalDocumentSeries} onChange={e => setFormData({ ...formData, fiscalDocumentSeries: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fiscalDocumentIssueDate">Data de emissão</Label>
+                  <Input id="fiscalDocumentIssueDate" type="date" value={formData.fiscalDocumentIssueDate} onChange={e => setFormData({ ...formData, fiscalDocumentIssueDate: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fiscalDocumentAccessKey">Chave de acesso (quando houver)</Label>
+                  <Input id="fiscalDocumentAccessKey" inputMode="numeric" value={formData.fiscalDocumentAccessKey} onChange={e => setFormData({ ...formData, fiscalDocumentAccessKey: e.target.value })} />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">Informe número e data de emissão juntos. A chave é somente registrada, sem consulta externa de NF.</p>
+            </div>
+
+            <div className="rounded-md border p-3 space-y-3">
+              <p className="text-sm font-medium">Retenções parametrizadas</p>
+              <Input placeholder="Código do serviço (opcional)" value={formData.serviceCode} onChange={event => setFormData({ ...formData, serviceCode: event.target.value })} />
+              {retentionRules.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma regra ativa cadastrada.</p>
+              ) : (
+                <div className="space-y-2">
+                  {retentionRules.map((rule) => {
+                    const selected = formData.retentionRuleIds.includes(rule.id);
+                    const disabled = Boolean(rule.serviceCode && rule.serviceCode !== formData.serviceCode.trim());
+                    return <label key={rule.id} className="flex items-start gap-2 rounded border p-2 text-sm"><input type="checkbox" checked={selected} disabled={disabled} onChange={() => setFormData({ ...formData, retentionRuleIds: selected ? formData.retentionRuleIds.filter((id) => id !== rule.id) : [...formData.retentionRuleIds, rule.id] })} /><span><strong>{rule.code} - {rule.type}</strong><br />{rule.description} ({rule.calculationBasePercentage}% x {rule.ratePercentage}%)</span></label>;
+                  })}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">O cálculo é registrado na liquidação e será rateado nas ordens de pagamento posteriores.</p>
             </div>
 
             <div className="space-y-2">

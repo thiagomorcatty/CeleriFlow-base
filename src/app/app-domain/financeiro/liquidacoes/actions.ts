@@ -23,7 +23,21 @@ function revalidateContractExecution(contractId?: string | null) {
   revalidatePath(`/compras/contratos/${contractId}`);
 }
 
-export async function createSettlement(data: { date: Date; value: number; documentRef: string; documentId?: string; commitmentId: string; authorId: string; notes: string }): Promise<ActionResult> {
+export async function createSettlement(data: {
+  date: Date;
+  value: number;
+  documentRef: string;
+  fiscalDocumentNumber?: string;
+  fiscalDocumentSeries?: string;
+  fiscalDocumentIssueDate?: Date;
+  fiscalDocumentAccessKey?: string;
+  documentId?: string;
+  commitmentId: string;
+  authorId: string;
+  notes: string;
+  serviceCode?: string;
+  retentionRuleIds?: string[];
+}): Promise<ActionResult> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const commitment = await assertCommitmentAccess(context, data.commitmentId);
@@ -53,7 +67,7 @@ export async function cancelSettlement(id: string): Promise<ActionResult> {
   }
 }
 
-export async function updateSettlement(_id: string, _data: { date: Date; value: number; documentRef: string; documentId?: string; commitmentId: string; authorId: string; notes: string }): Promise<ActionResult> {
+export async function updateSettlement(_id: string, _data: { date: Date; value: number; documentRef: string; fiscalDocumentNumber?: string; fiscalDocumentSeries?: string; fiscalDocumentIssueDate?: Date; fiscalDocumentAccessKey?: string; documentId?: string; commitmentId: string; authorId: string; notes: string; serviceCode?: string; retentionRuleIds?: string[] }): Promise<ActionResult> {
   void _id;
   void _data;
   return { error: "Liquidações não podem ser editadas. Cancele o registro e realize uma nova liquidação." };

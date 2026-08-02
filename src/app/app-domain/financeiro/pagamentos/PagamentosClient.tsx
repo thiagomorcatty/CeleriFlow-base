@@ -59,16 +59,6 @@ type Payment = {
   };
 };
 
-type RetentionRule = {
-  id: string;
-  code: string;
-  type: string;
-  description: string;
-  calculationBasePercentage: number;
-  ratePercentage: number;
-  serviceCode: string | null;
-};
-
 type CommitmentOption = { id: string; number: string; value: number; supplierId: string };
 type SettlementOption = { id: string; commitmentId: string; documentRef: string | null; availableToPay: number };
 type BankAccountOption = { id: string; bankName: string; agency: string; accountNumber: string };
@@ -80,7 +70,6 @@ export default function PagamentosClient({
   settlements,
   bankAccounts,
   suppliers,
-  retentionRules,
   pendingWithholdings = [],
 }: {
   payments: Payment[];
@@ -88,7 +77,6 @@ export default function PagamentosClient({
   settlements: SettlementOption[];
   bankAccounts: BankAccountOption[];
   suppliers: SupplierOption[];
-  retentionRules: RetentionRule[];
   pendingWithholdings?: PendingWithholding[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -110,10 +98,8 @@ export default function PagamentosClient({
     commitmentId: "",
     settlementId: "",
     bankAccountId: "",
-    supplierId: "",
-    paymentMethod: "Transferência",
-    serviceCode: "",
-    retentionRuleIds: [] as string[],
+      supplierId: "",
+      paymentMethod: "Transferência",
   });
 
   const filteredPayments = payments.filter(p => {
@@ -142,8 +128,6 @@ export default function PagamentosClient({
       bankAccountId: "",
       supplierId: "",
       paymentMethod: "Transferência",
-      serviceCode: "",
-      retentionRuleIds: [],
     });
     setIsModalOpen(true);
   };
@@ -165,8 +149,6 @@ export default function PagamentosClient({
         bankAccountId: formData.bankAccountId,
         supplierId: formData.supplierId,
         paymentMethod: formData.paymentMethod,
-        serviceCode: formData.serviceCode.trim() || undefined,
-        retentionRuleIds: formData.retentionRuleIds,
       };
       
       const result = await createPayment(dataToSubmit);
@@ -457,37 +439,7 @@ export default function PagamentosClient({
               </Select>
             </div>
 
-            <div className="rounded-md border p-3 space-y-3">
-              <p className="text-sm font-medium">Retenções parametrizadas</p>
-              <Input placeholder="Código do serviço (opcional)" value={formData.serviceCode} onChange={event => setFormData({ ...formData, serviceCode: event.target.value })} />
-              {retentionRules.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhuma regra vigente. Cadastre as regras de retenção antes de emitir o pagamento.</p>
-              ) : (
-                <div className="space-y-2">
-                  {retentionRules.map((rule) => {
-                    const selected = formData.retentionRuleIds.includes(rule.id);
-                    const disabled = Boolean(rule.serviceCode && rule.serviceCode !== formData.serviceCode.trim());
-                    return (
-                      <label key={rule.id} className="flex items-start gap-2 rounded border p-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          disabled={disabled}
-                          onChange={() => setFormData({
-                            ...formData,
-                            retentionRuleIds: selected
-                              ? formData.retentionRuleIds.filter((id) => id !== rule.id)
-                              : [...formData.retentionRuleIds, rule.id],
-                          })}
-                        />
-                        <span><strong>{rule.code} - {rule.type}</strong><br />{rule.description} ({rule.calculationBasePercentage}% x {rule.ratePercentage}%)</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground">Os valores são calculados no servidor conforme a regra vigente na data do pagamento.</p>
-            </div>
+            <p className="text-xs text-muted-foreground">As retenções são calculadas na liquidação selecionada e rateadas automaticamente nesta ordem de pagamento.</p>
             
             <div className="space-y-2">
               <Label htmlFor="bankAccountId">Conta Bancária Pagadora</Label>

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -17,6 +18,7 @@ import {
   actionCreateAnnualBudgetLaw,
   actionCreateBudgetAppropriationFromFixation,
   actionCreateBudgetGuideline,
+  actionCreatePlanningAmendment,
   actionCreateMultiYearPlan,
   actionSaveBimonthlyRevenueTarget,
   actionSaveMonthlyDisbursementSchedule,
@@ -64,18 +66,20 @@ type Plan = {
   }[];
 };
 type FinancialYear = { id: string; year: number; status: string };
+type PlanningAmendment = { id: string; entityType: string; entityId: string; version: number; reason: string; originalSnapshot: unknown; amendedSnapshot: unknown; createdAt: string };
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const emptyForecast = () => ({ code: "", name: "", estimatedValue: 0 });
 const emptyFixation = () => ({ code: "", name: "", fixedValue: 0 });
 
-export default function PlanejamentoClient({ plans, financialYears, fixations, budgetUnits, expenseNatures, resourceSources, canEdit }: {
+export default function PlanejamentoClient({ plans, financialYears, fixations, budgetUnits, expenseNatures, resourceSources, amendments, canEdit }: {
   plans: Plan[];
   financialYears: FinancialYear[];
   fixations: Fixation[];
   budgetUnits: Option[];
   expenseNatures: Option[];
   resourceSources: Option[];
+  amendments: PlanningAmendment[];
   canEdit: boolean;
 }) {
   const [appropriationForm, setAppropriationForm] = useState({ annualBudgetExpenseFixationId: "", programPPAId: "", actionPPAId: "", code: "", budgetUnitId: "", expenseNatureId: "", resourceSourceId: "", initialValue: 0 });
@@ -89,6 +93,7 @@ export default function PlanejamentoClient({ plans, financialYears, fixations, b
   const [lawForm, setLawForm] = useState({ budgetGuidelineId: "", financialYearId: "", lawNumber: "", publicationDate: "", revenueForecasts: [emptyForecast()], expenseFixations: [emptyFixation()] });
   const [cmdForm, setCmdForm] = useState({ annualBudgetLawId: "", month: "1", budgetUnitId: "", limitValue: 0 });
   const [mbaForm, setMbaForm] = useState({ annualBudgetLawId: "", bimonth: "1", targetValue: 0 });
+  const [amendmentForm, setAmendmentForm] = useState({ entityType: "PPA" as "PPA" | "LDO" | "LOA", entityId: "", reason: "", amendedSnapshot: "{}" });
   const [pending, setPending] = useState(false);
 
   const programs = plans.flatMap((plan) => plan.programs);
@@ -98,6 +103,12 @@ export default function PlanejamentoClient({ plans, financialYears, fixations, b
   const laws = plans.flatMap((plan) => plan.guidelines.flatMap((guideline) => guideline.laws.map((law) => ({ ...law, year: guideline.financialYear.year }))));
   const totalRevenue = lawForm.revenueForecasts.reduce((total, forecast) => total + forecast.estimatedValue, 0);
   const totalExpense = lawForm.expenseFixations.reduce((total, fixation) => total + fixation.fixedValue, 0);
+  const amendmentEntities = amendmentForm.entityType === "PPA"
+    ? plans.map((plan) => ({ id: plan.id, label: `${plan.code} - ${plan.name}`, snapshot: plan }))
+    : amendmentForm.entityType === "LDO"
+      ? plans.flatMap((plan) => plan.guidelines.map((guideline) => ({ id: guideline.id, label: `LDO ${guideline.financialYear.year}`, snapshot: guideline })))
+      : laws.map((law) => ({ id: law.id, label: `${law.year} / ${law.lawNumber}`, snapshot: law }));
+  const selectedAmendmentEntity = amendmentEntities.find((entity) => entity.id === amendmentForm.entityId);
 
   async function run(action: () => Promise<{ error?: string }>) {
     setPending(true);
@@ -167,6 +178,19 @@ export default function PlanejamentoClient({ plans, financialYears, fixations, b
     if (!mbaForm.annualBudgetLawId) return alert("Selecione a LOA.");
     if (await run(() => actionSaveBimonthlyRevenueTarget({ ...mbaForm, bimonth: Number(mbaForm.bimonth) }))) setMbaForm({ annualBudgetLawId: "", bimonth: "1", targetValue: 0 });
   };
+  const submitAmendment = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!amendmentForm.entityId || !amendmentForm.reason.trim()) return alert("Selecione o registro e informe a justificativa da alteração.");
+    try {
+      const amendedSnapshot = JSON.parse(amendmentForm.amendedSnapshot) as Record<string, unknown>;
+      if (Array.isArray(amendedSnapshot) || amendedSnapshot === null) throw new Error();
+      if (await run(() => actionCreatePlanningAmendment({ entityType: amendmentForm.entityType, entityId: amendmentForm.entityId, reason: amendmentForm.reason, amendedSnapshot }))) {
+        setAmendmentForm({ entityType: "PPA", entityId: "", reason: "", amendedSnapshot: "{}" });
+      }
+    } catch {
+      alert("A versão proposta deve ser um objeto JSON válido.");
+    }
+  };
 
   return <div className="space-y-6 p-8 pt-6">
     <div>
@@ -198,6 +222,22 @@ export default function PlanejamentoClient({ plans, financialYears, fixations, b
             {guideline.laws.map((law) => <p key={law.id} className="text-muted-foreground">LOA {law.lawNumber}: receita {currency.format(law.totalRevenue)}, despesa {currency.format(law.totalExpense)}, {law.revenueForecasts.length} previsão(ões) e {law.expenseFixations.length} fixação(ões).</p>)}
           </div>)}
         </div>)}
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader><CardTitle>Histórico Interno de Alterações</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">Registro interno de versões para comparação. Não gera PDF nem substitui publicação, aprovação ou vigência legal.</p>
+        {canEdit && <form onSubmit={submitAmendment} className="grid gap-3 rounded-md border p-3 md:grid-cols-2">
+          <Select value={amendmentForm.entityType} onValueChange={(entityType) => setAmendmentForm({ ...amendmentForm, entityType: (entityType ?? "PPA") as "PPA" | "LDO" | "LOA", entityId: "", amendedSnapshot: "{}" })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="PPA">PPA</SelectItem><SelectItem value="LDO">LDO</SelectItem><SelectItem value="LOA">LOA</SelectItem></SelectContent></Select>
+          <Select value={amendmentForm.entityId} onValueChange={(entityId) => { const entity = amendmentEntities.find((item) => item.id === entityId); setAmendmentForm({ ...amendmentForm, entityId: entityId ?? "", amendedSnapshot: entity ? JSON.stringify(entity.snapshot, null, 2) : "{}" }); }}><SelectTrigger><SelectValue placeholder="Registro a alterar" /></SelectTrigger><SelectContent>{amendmentEntities.map((entity) => <SelectItem key={entity.id} value={entity.id}>{entity.label}</SelectItem>)}</SelectContent></Select>
+          <Input required placeholder="Justificativa da alteração" value={amendmentForm.reason} onChange={(event) => setAmendmentForm({ ...amendmentForm, reason: event.target.value })} />
+          <Button type="button" variant="outline" disabled={!selectedAmendmentEntity} onClick={() => selectedAmendmentEntity && setAmendmentForm({ ...amendmentForm, amendedSnapshot: JSON.stringify(selectedAmendmentEntity.snapshot, null, 2) })}>Carregar versão atual</Button>
+          <Textarea required className="min-h-48 font-mono text-xs md:col-span-2" aria-label="Versão proposta em JSON" value={amendmentForm.amendedSnapshot} onChange={(event) => setAmendmentForm({ ...amendmentForm, amendedSnapshot: event.target.value })} />
+          <Button type="submit" disabled={pending}>Registrar nova versão interna</Button>
+        </form>}
+        {amendments.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma alteração interna registrada.</p> : amendments.map((amendment) => <details key={amendment.id} className="rounded-md border p-3"><summary className="cursor-pointer font-medium">{amendment.entityType} versão {amendment.version}: {amendment.reason}</summary><p className="mt-2 text-xs text-muted-foreground">Registrada em {new Date(amendment.createdAt).toLocaleString("pt-BR")}</p><div className="mt-3 grid gap-3 lg:grid-cols-2"><div><Label>Original preservado</Label><pre className="mt-1 max-h-64 overflow-auto rounded bg-muted p-3 text-xs">{JSON.stringify(amendment.originalSnapshot, null, 2)}</pre></div><div><Label>Versão proposta</Label><pre className="mt-1 max-h-64 overflow-auto rounded bg-muted p-3 text-xs">{JSON.stringify(amendment.amendedSnapshot, null, 2)}</pre></div></div></details>)}
       </CardContent>
     </Card>
 
@@ -260,6 +300,6 @@ export default function PlanejamentoClient({ plans, financialYears, fixations, b
 
     <Card><CardHeader><CardTitle>Fixações e Alocações</CardTitle></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>PPA</TableHead><TableHead>LOA</TableHead><TableHead>Fixação</TableHead><TableHead className="text-right">Fixado</TableHead><TableHead className="text-right">Alocado</TableHead><TableHead className="text-right">Disponível</TableHead></TableRow></TableHeader><TableBody>{fixations.length === 0 ? <TableRow><TableCell colSpan={6} className="h-20 text-center text-muted-foreground">Nenhuma fixação de despesa vinculada a um PPA/LDO/LOA.</TableCell></TableRow> : fixations.map((fixation) => <TableRow key={fixation.id}><TableCell>{fixation.plan.code}</TableCell><TableCell>{fixation.annualBudgetLaw.financialYear} / {fixation.annualBudgetLaw.lawNumber}</TableCell><TableCell>{fixation.code} - {fixation.name}</TableCell><TableCell className="text-right">{currency.format(fixation.fixedValue)}</TableCell><TableCell className="text-right">{currency.format(fixation.allocatedValue)}</TableCell><TableCell className="text-right">{currency.format(fixation.fixedValue - fixation.allocatedValue)}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
 
-    <Card><CardHeader><CardTitle>CMD e MBA Registrados</CardTitle></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>LOA</TableHead><TableHead>CMD</TableHead><TableHead>MBA</TableHead></TableRow></TableHeader><TableBody>{laws.length === 0 ? <TableRow><TableCell colSpan={3} className="h-20 text-center text-muted-foreground">Nenhuma LOA vinculada a PPA/LDO.</TableCell></TableRow> : laws.map((law) => <TableRow key={law.id}><TableCell>{law.year} / {law.lawNumber}</TableCell><TableCell>{law.cmdSchedules.length === 0 ? "Sem CMD" : law.cmdSchedules.map((schedule) => <p key={schedule.id}>Mês {schedule.month}: {schedule.budgetUnit.code} - {currency.format(schedule.limitValue)}</p>)}</TableCell><TableCell>{law.mbaTargets.length === 0 ? "Sem MBA" : law.mbaTargets.map((target) => <p key={target.id}>{target.bimonth}º bim.: {currency.format(target.targetValue)}</p>)}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+    <Card><CardHeader><CardTitle>CMD e MBA Registrados</CardTitle></CardHeader><CardContent><Table><TableHeader><TableRow><TableHead>LOA</TableHead><TableHead>CMD</TableHead><TableHead>MBA</TableHead></TableRow></TableHeader><TableBody>{laws.length === 0 ? <TableRow><TableCell colSpan={3} className="h-20 text-center text-muted-foreground">Nenhuma LOA vinculada a PPA/LDO.</TableCell></TableRow> : laws.map((law) => { const schedulesByUnit = new Map<string, typeof law.cmdSchedules>(); for (const schedule of law.cmdSchedules) schedulesByUnit.set(schedule.budgetUnit.code, [...(schedulesByUnit.get(schedule.budgetUnit.code) ?? []), schedule]); const mbaComplete = new Set(law.mbaTargets.map((target) => target.bimonth)).size === 6; return <TableRow key={law.id}><TableCell>{law.year} / {law.lawNumber}</TableCell><TableCell>{schedulesByUnit.size === 0 ? "Sem CMD" : Array.from(schedulesByUnit.entries()).map(([unitCode, schedules]) => <p key={unitCode}>{unitCode}: {new Set(schedules.map((schedule) => schedule.month)).size}/12 meses {new Set(schedules.map((schedule) => schedule.month)).size === 12 ? "completo" : "incompleto"}</p>)}</TableCell><TableCell>{new Set(law.mbaTargets.map((target) => target.bimonth)).size}/6 bimestres {mbaComplete ? "completa" : "incompleta"}</TableCell></TableRow>; })}</TableBody></Table></CardContent></Card>
   </div>;
 }

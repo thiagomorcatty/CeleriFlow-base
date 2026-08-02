@@ -41,6 +41,7 @@ export async function createPayment(data: {
   bankAccountId: string;
   supplierId: string;
   paymentMethod: string;
+  // Kept for direct callers; the domain validates it against the settlement calculation.
   serviceCode?: string;
   retentionRuleIds?: string[];
 }): Promise<ActionResult> {

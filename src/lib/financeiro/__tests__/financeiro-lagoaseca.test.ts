@@ -25,7 +25,7 @@ import {
   generateBalancoOrcamentario,
   generateBalancoPatrimonial,
 } from "../relatorios-legais";
-import { addActionPPA, addGoalPPA, addIndicatorPPA, addObjectivePPA, addProgramPPA, createAnnualBudgetLaw, createBudgetAppropriationFromFixation, createBudgetGuideline, createMultiYearPlan, saveBimonthlyRevenueTarget, saveMonthlyDisbursementSchedule } from "../planejamento";
+import { addActionPPA, addGoalPPA, addIndicatorPPA, addObjectivePPA, addProgramPPA, createAnnualBudgetLaw, createBudgetAppropriationFromFixation, createBudgetGuideline, createMultiYearPlan, createPlanningAmendment, getAnnualBudgetScheduleCompletion, saveBimonthlyRevenueTarget, saveMonthlyDisbursementSchedule } from "../planejamento";
 
 describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Estritas", () => {
   const pocAccountingEvents = [
@@ -177,16 +177,27 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       await assertAccountingTransaction("EMPENHO_EMITIDO", commitment.id);
 
       // d) Liquidação com documento GED
+      const inssRule = await prisma.retentionRule.findUnique({ where: { code: "INSS_11" } });
+      assert.ok(inssRule);
       const settlement = await createSettlement(prisma, actor, {
         date: testDate,
         value: "1000.00",
         commitmentId: commitment.id,
         documentId: "doc-nf-lagoaseca-01",
         authorId: actor.employeeId ?? "emp-servidor-lagoaseca",
+        fiscalDocumentNumber: "1452",
+        fiscalDocumentSeries: "1",
+        fiscalDocumentIssueDate: testDate,
+        fiscalDocumentAccessKey: "12345678901234567890123456789012345678901234",
+        retentionRuleIds: [inssRule.id],
       });
       settlementId = settlement.id;
       assert.ok(settlementId);
       await assertAccountingTransaction("LIQUIDACAO_REGISTRADA", settlement.id);
+      const settlementRetention = await prisma.settlementRetention.findUniqueOrThrow({
+        where: { settlementId_retentionRuleId: { settlementId, retentionRuleId: inssRule.id } },
+      });
+      assert.equal(settlementRetention.valueDecimal.toString(), "110");
 
       // e) Efetiva e estorna um pagamento sem retenções para validar o evento de estorno.
       const initialBankBalance = await getBankAccountBalance(prisma, "cl-lagoaseca-bb-pref-1000");
@@ -208,10 +219,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       const bankBalanceAfterReversal = await getBankAccountBalance(prisma, "cl-lagoaseca-bb-pref-1000");
       assert.equal(Number(bankBalanceAfterReversal.minus(initialBankBalance).toFixed(2)), 0);
 
-      // f) Emissão de pagamento com retenção INSS (11% = R$ 110,00)
-      const inssRule = await prisma.retentionRule.findUnique({ where: { code: "INSS_11" } });
-      assert.ok(inssRule);
-
+      // f) Emissão de pagamento com retenção INSS já apurada na liquidação (R$ 110,00)
       const payment = await createPayment(prisma, actor, {
         orderNumber: `OP-${timestamp}`,
         date: testDate,
@@ -228,7 +236,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
 
       // g) Busca retenção criada
       const payable = await prisma.withholdingPayable.findFirst({
-        where: { retention: { paymentId: payment.id } },
+        where: { retention: { paymentId: payment.id, settlementRetentionId: settlementRetention.id } },
       });
       assert.ok(payable, "Devia ter criado a retenção");
       payableIds.push(payable.id);
@@ -296,6 +304,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         await prisma.paymentRetention.deleteMany({ where: { paymentId: { in: paymentIds } } });
         await prisma.payment.deleteMany({ where: { id: { in: paymentIds } } });
       }
+      if (settlementId) await prisma.settlementRetention.deleteMany({ where: { settlementId } });
       if (settlementId) await prisma.settlement.deleteMany({ where: { id: settlementId } });
       if (commitmentId) await prisma.commitment.deleteMany({ where: { id: commitmentId } });
       if (reservationId) await prisma.budgetReservation.deleteMany({ where: { id: reservationId } });
@@ -561,6 +570,8 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
     let guidelineId = "";
     let loaId = "";
     let appropriationId = "";
+    let expenseId = "";
+    let reservationId = "";
 
     try {
       const financialYear = await prisma.financialYear.create({
@@ -584,6 +595,15 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       const objective = await addObjectivePPA(prisma, actor, { programId: program.id, code: `OBJ-${suffix}`, description: "Ampliar a cobertura do programa" });
       const indicator = await addIndicatorPPA(prisma, actor, { objectiveId: objective.id, name: "Cobertura", unit: "%", baselineValue: 40, targetValue: 60 });
       const goal = await addGoalPPA(prisma, actor, { actionId: action.id, year: 2031, physical: 60, financial: 100 });
+      const amendment = await createPlanningAmendment(prisma, actor, {
+        entityType: "PPA",
+        entityId: plan.id,
+        reason: "Revisão interna de metas",
+        amendedSnapshot: { code: plan.code, name: "PPA de rastreabilidade revisado" },
+      });
+      assert.equal(amendment.version, 1);
+      assert.match(JSON.stringify(amendment.originalSnapshot), /PPA de rastreabilidade/);
+      assert.match(JSON.stringify(amendment.amendedSnapshot), /revisado/);
       const guideline = await createBudgetGuideline(prisma, actor, {
         financialYearId,
         multiYearPlanId: plan.id,
@@ -591,6 +611,14 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         risks: [{ description: "Risco de teste", estimatedImpact: 10, mitigation: "Monitorar execução" }],
       });
       guidelineId = guideline.id;
+      const guidelineAmendment = await createPlanningAmendment(prisma, actor, {
+        entityType: "LDO",
+        entityId: guideline.id,
+        reason: "Revisão interna de prioridades",
+        amendedSnapshot: { financialYear: 2031, priorities: [{ description: "Prioridade revisada" }] },
+      });
+      assert.equal(guidelineAmendment.version, 1);
+      assert.match(JSON.stringify(guidelineAmendment.originalSnapshot), /Prioridade de teste/);
       const loa = await createAnnualBudgetLaw(prisma, actor, {
         lawNumber: `LOA-${suffix}`,
         publicationDate: new Date("2030-12-20T00:00:00.000Z"),
@@ -602,12 +630,21 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         expenseFixations: [{ code: "3.3.9", name: "Despesa de teste A", fixedValue: 50 }, { code: "4.4.9", name: "Despesa de teste B", fixedValue: 50 }],
       });
       loaId = loa.id;
-      const [budgetUnit, expenseNature, resourceSource] = await Promise.all([
-        prisma.budgetUnit.findFirst({ select: { id: true } }),
+      const lawAmendment = await createPlanningAmendment(prisma, actor, {
+        entityType: "LOA",
+        entityId: loa.id,
+        reason: "Revisão interna de previsão",
+        amendedSnapshot: { lawNumber: loa.lawNumber, totalRevenue: "110.00", totalExpense: "110.00" },
+      });
+      assert.equal(lawAmendment.version, 1);
+      assert.match(JSON.stringify(lawAmendment.originalSnapshot), /Receita de teste A/);
+      const [budgetUnit, expenseNature, resourceSource, supplier] = await Promise.all([
+        prisma.budgetUnit.findFirst({ select: { id: true, secretariatId: true } }),
         prisma.expenseNature.findFirst({ select: { id: true } }),
         prisma.resourceSource.findFirst({ select: { id: true } }),
+        prisma.supplier.findFirst({ where: { status: "Ativo" }, select: { id: true } }),
       ]);
-      assert.ok(budgetUnit && expenseNature && resourceSource, "Cadastros orcamentarios de apoio devem existir");
+      assert.ok(budgetUnit && expenseNature && resourceSource && supplier, "Cadastros orcamentarios de apoio devem existir");
       const appropriation = await createBudgetAppropriationFromFixation(prisma, planningActor, {
         annualBudgetExpenseFixationId: loa.expenseFixations[0].id,
         programPPAId: program.id,
@@ -619,23 +656,77 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         initialValue: 50,
       });
       appropriationId = appropriation.id;
+      await prisma.financialYear.update({ where: { id: financialYearId }, data: { status: "Aberto" } });
+      const expense = await prisma.expense.create({
+        data: {
+          date: new Date("2031-01-15T00:00:00.000Z"),
+          description: "Despesa para validar CMD",
+          value: 50,
+          valueDecimal: 50,
+          appropriationId: appropriation.id,
+          secretariatId: budgetUnit.secretariatId,
+          supplierId: supplier.id,
+          status: "Aprovada",
+        },
+      });
+      expenseId = expense.id;
+      await assert.rejects(
+        () => createBudgetReservation(prisma, planningActor, {
+          number: `RES-CMD-INCOMPLETO-${suffix}`,
+          date: new Date("2031-01-15T00:00:00.000Z"),
+          value: 50,
+          appropriationId: appropriation.id,
+          expenseId: expense.id,
+        }),
+        /CMD completo/i,
+      );
+      for (let month = 1; month <= 12; month += 1) {
+        await saveMonthlyDisbursementSchedule(prisma, planningActor, {
+          annualBudgetLawId: loa.id,
+          month,
+          budgetUnitId: budgetUnit.id,
+          limitValue: 60,
+        });
+      }
+      for (let bimonth = 1; bimonth <= 6; bimonth += 1) {
+        await saveBimonthlyRevenueTarget(prisma, planningActor, {
+          annualBudgetLawId: loa.id,
+          bimonth,
+          targetValue: 100,
+        });
+      }
+      const completion = await getAnnualBudgetScheduleCompletion(prisma, loa.id, budgetUnit.id);
+      assert.equal(completion.cmdComplete, true);
+      assert.equal(completion.mbaComplete, true);
+      assert.deepEqual(completion.missingCmdMonths, []);
+      assert.deepEqual(completion.missingMbaBimesters, []);
+      const reservation = await createBudgetReservation(prisma, planningActor, {
+        number: `RES-CMD-${suffix}`,
+        date: new Date("2031-01-15T00:00:00.000Z"),
+        value: 50,
+        appropriationId: appropriation.id,
+        expenseId: expense.id,
+      });
+      reservationId = reservation.id;
       await saveMonthlyDisbursementSchedule(prisma, planningActor, {
         annualBudgetLawId: loa.id,
         month: 1,
         budgetUnitId: budgetUnit.id,
         limitValue: 40,
       });
-      await saveMonthlyDisbursementSchedule(prisma, planningActor, {
-        annualBudgetLawId: loa.id,
-        month: 1,
-        budgetUnitId: budgetUnit.id,
-        limitValue: 60,
-      });
-      await saveBimonthlyRevenueTarget(prisma, planningActor, {
-        annualBudgetLawId: loa.id,
-        bimonth: 1,
-        targetValue: 100,
-      });
+      await assert.rejects(
+        () => createCommitment(prisma, planningActor, {
+          number: `EMP-CMD-${suffix}`,
+          date: new Date("2031-01-15T00:00:00.000Z"),
+          value: 50,
+          type: "Ordinário",
+          history: "Empenho para validar CMD",
+          appropriationId: appropriation.id,
+          supplierId: supplier.id,
+          reservationId: reservation.id,
+        }),
+        /CMD/i,
+      );
       await assert.rejects(
         () => createBudgetAppropriationFromFixation(prisma, planningActor, {
           annualBudgetExpenseFixationId: loa.expenseFixations[0].id,
@@ -663,14 +754,19 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       assert.equal(trace.expenseFixations[0].appropriations[0]?.id, appropriation.id);
       assert.equal(trace.expenseFixations[0].appropriations[0]?.programPPA?.id, program.id);
       assert.equal(trace.expenseFixations[0].appropriations[0]?.actionPPA?.id, action.id);
-      assert.equal(Number(trace.cmdSchedules[0]?.limitValue), 60);
-      assert.equal(Number(trace.mbaTargets[0]?.targetValue), 100);
+       assert.equal(trace.cmdSchedules.length, 12);
+       assert.equal(trace.mbaTargets.length, 6);
+       assert.equal(Number(trace.cmdSchedules[0]?.limitValue), 60);
+       assert.equal(Number(trace.mbaTargets[0]?.targetValue), 100);
       const hierarchy = await prisma.programPPA.findUniqueOrThrow({ where: { id: program.id }, include: { objectives: { include: { indicators: true } }, actions: { include: { goals: true } } } });
       assert.equal(hierarchy.objectives[0]?.id, objective.id);
       assert.equal(hierarchy.objectives[0]?.indicators[0]?.id, indicator.id);
       assert.equal(hierarchy.actions[0]?.goals[0]?.id, goal.id);
     } finally {
-      if (appropriationId) await prisma.budgetAppropriation.delete({ where: { id: appropriationId } });
+       if (reservationId) await prisma.budgetReservation.delete({ where: { id: reservationId } });
+       if (expenseId) await prisma.expense.delete({ where: { id: expenseId } });
+       if (appropriationId) await prisma.budgetAppropriation.delete({ where: { id: appropriationId } });
+       await prisma.planningAmendment.deleteMany({ where: { entityId: { in: [planId, guidelineId, loaId].filter(Boolean) } } });
       if (loaId) await prisma.annualBudgetLaw.delete({ where: { id: loaId } });
       if (guidelineId) await prisma.budgetGuideline.delete({ where: { id: guidelineId } });
       if (planId) await prisma.multiYearPlan.delete({ where: { id: planId } });

@@ -64,6 +64,12 @@ export default async function LiquidacoesPage() {
     take: 100,
   });
 
+  const retentionRules = await prisma.retentionRule.findMany({
+    where: { isActive: true },
+    select: { id: true, code: true, type: true, description: true, calculationBasePercentage: true, ratePercentage: true, serviceCode: true },
+    orderBy: { code: "asc" },
+  });
+
   const displaySettlements = settlements.map(({ valueDecimal, payments, ...settlement }) => ({
     ...settlement,
     value: Number(valueDecimal ?? settlement.value),
@@ -77,5 +83,5 @@ export default async function LiquidacoesPage() {
     return { ...commitment, value, settledValue, availableToSettle: value - settledValue };
   })
 
-  return <LiquidacoesClient settlements={displaySettlements} commitments={displayCommitments} employees={employees} documents={documents} />
+  return <LiquidacoesClient settlements={displaySettlements} commitments={displayCommitments} employees={employees} documents={documents} retentionRules={retentionRules.map((rule) => ({ ...rule, calculationBasePercentage: Number(rule.calculationBasePercentage), ratePercentage: Number(rule.ratePercentage) }))} />
 }

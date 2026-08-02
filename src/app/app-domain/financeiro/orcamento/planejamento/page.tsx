@@ -8,7 +8,7 @@ export default async function PlanejamentoPage() {
   const budgetUnitFilter = isSystemAdministrator(context.user)
     ? {}
     : { id: { in: context.user.allowedBudgetUnitIds } };
-  const [plans, financialYears, budgetUnits, expenseNatures, resourceSources] = await Promise.all([
+  const [plans, financialYears, budgetUnits, expenseNatures, resourceSources, amendments] = await Promise.all([
     context.prisma.multiYearPlan.findMany({
       include: {
         programs: {
@@ -44,6 +44,10 @@ export default async function PlanejamentoPage() {
     context.prisma.budgetUnit.findMany({ where: budgetUnitFilter, select: { id: true, code: true, name: true }, orderBy: { code: "asc" } }),
     context.prisma.expenseNature.findMany({ select: { id: true, code: true, name: true }, orderBy: { code: "asc" } }),
     context.prisma.resourceSource.findMany({ select: { id: true, code: true, name: true }, orderBy: { code: "asc" } }),
+    context.prisma.planningAmendment.findMany({
+      select: { id: true, entityType: true, entityId: true, version: true, reason: true, originalSnapshot: true, amendedSnapshot: true, createdAt: true },
+      orderBy: [{ entityType: "asc" }, { entityId: "asc" }, { version: "desc" }],
+    }),
   ]);
 
   const budgetUnitById = new Map(budgetUnits.map((unit) => [unit.id, unit]));
@@ -102,6 +106,7 @@ export default async function PlanejamentoPage() {
     budgetUnits={budgetUnits}
     expenseNatures={expenseNatures}
     resourceSources={resourceSources}
+    amendments={amendments.map((amendment) => ({ ...amendment, createdAt: amendment.createdAt.toISOString() }))}
     canEdit={canEditModule(context.user, "FINANCEIRO")}
   />;
 }

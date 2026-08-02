@@ -8,6 +8,7 @@ const creditItemTypes = ["Acréscimo", "Anulação"] as const;
 
 type CreditType = (typeof creditTypes)[number];
 type CreditItemType = (typeof creditItemTypes)[number];
+type PlanningEntityType = "PPA" | "LDO" | "LOA";
 
 async function assertFinancialYearPlanningEligible(tx: Db, financialYearId: string) {
   const financialYear = await tx.financialYear.findUnique({ where: { id: financialYearId } });
@@ -78,6 +79,115 @@ async function audit(
       authorEmployeeId: actor.employeeId,
     },
   });
+}
+
+function decimalSnapshot(value: Prisma.Decimal | null) {
+  return value === null ? null : value.toFixed(2);
+}
+
+async function planningSnapshot(tx: Db, entityType: PlanningEntityType, entityId: string): Promise<Prisma.InputJsonValue> {
+  if (entityType === "PPA") {
+    const plan = await tx.multiYearPlan.findUnique({
+      where: { id: entityId },
+      include: {
+        programs: {
+          orderBy: { code: "asc" },
+          include: {
+            objectives: { orderBy: { code: "asc" }, include: { indicators: { orderBy: { name: "asc" } } } },
+            actions: { orderBy: { code: "asc" }, include: { goals: { orderBy: { year: "asc" } } } },
+          },
+        },
+      },
+    });
+    if (!plan) throw new FinanceError("PPA não encontrado para registrar a alteração.");
+    return {
+      code: plan.code, name: plan.name, startYear: plan.startYear, endYear: plan.endYear, status: plan.status, description: plan.description,
+      programs: plan.programs.map((program) => ({
+        code: program.code, name: program.name, type: program.type,
+        objectives: program.objectives.map((objective) => ({ code: objective.code, description: objective.description, indicators: objective.indicators.map((indicator) => ({ name: indicator.name, unit: indicator.unit, baselineValue: indicator.baselineValue, targetValue: indicator.targetValue })) })),
+        actions: program.actions.map((action) => ({ code: action.code, name: action.name, type: action.type, goals: action.goals.map((goal) => ({ year: goal.year, physical: goal.physical, financial: decimalSnapshot(goal.financial) })) })),
+      })),
+    };
+  }
+
+  if (entityType === "LDO") {
+    const guideline = await tx.budgetGuideline.findUnique({
+      where: { id: entityId },
+      include: { financialYear: { select: { year: true } }, multiYearPlan: { select: { code: true } }, priorities: true, risks: true },
+    });
+    if (!guideline) throw new FinanceError("LDO não encontrada para registrar a alteração.");
+    return {
+      financialYear: guideline.financialYear.year, ppaCode: guideline.multiYearPlan?.code ?? null, status: guideline.status,
+      priorities: guideline.priorities.map((priority) => ({ description: priority.description, targetValue: decimalSnapshot(priority.targetValue) })),
+      risks: guideline.risks.map((risk) => ({ description: risk.description, estimatedImpact: risk.estimatedImpact.toFixed(2), mitigation: risk.mitigation })),
+    };
+  }
+
+  const law = await tx.annualBudgetLaw.findUnique({
+    where: { id: entityId },
+    include: { financialYear: { select: { year: true } }, revenueForecasts: true, expenseFixations: true, cmdSchedules: true, mbaTargets: true },
+  });
+  if (!law) throw new FinanceError("LOA não encontrada para registrar a alteração.");
+  return {
+    lawNumber: law.lawNumber, publicationDate: law.publicationDate.toISOString(), financialYear: law.financialYear.year, status: law.status,
+    totalRevenue: law.totalRevenue.toFixed(2), totalExpense: law.totalExpense.toFixed(2),
+    revenueForecasts: law.revenueForecasts.map((forecast) => ({ code: forecast.code, name: forecast.name, estimatedValue: forecast.estimatedValue.toFixed(2) })),
+    expenseFixations: law.expenseFixations.map((fixation) => ({ code: fixation.code, name: fixation.name, fixedValue: fixation.fixedValue.toFixed(2) })),
+    cmdSchedules: law.cmdSchedules.map((schedule) => ({ month: schedule.month, budgetUnitId: schedule.budgetUnitId, limitValue: schedule.limitValue.toFixed(2) })),
+    mbaTargets: law.mbaTargets.map((target) => ({ bimonth: target.bimonth, targetValue: target.targetValue.toFixed(2) })),
+  };
+}
+
+export async function createPlanningAmendment(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: { entityType: PlanningEntityType; entityId: string; reason: string; amendedSnapshot: Prisma.InputJsonValue },
+) {
+  const reason = requireText(input.reason, "Justificativa da alteração");
+  if (!input.entityId) throw new FinanceError("Selecione o registro de planejamento a alterar.");
+  return db.$transaction(async (tx) => {
+    // Serializes version allocation even before a record exists for this entity.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`PlanningAmendment:${input.entityType}:${input.entityId}`}))`;
+    const originalSnapshot = await planningSnapshot(tx, input.entityType, input.entityId);
+    const latest = await tx.planningAmendment.findFirst({
+      where: { entityType: input.entityType, entityId: input.entityId },
+      orderBy: { version: "desc" },
+      select: { version: true },
+    });
+    const amendment = await tx.planningAmendment.create({
+      data: {
+        entityType: input.entityType,
+        entityId: input.entityId,
+        version: (latest?.version ?? 0) + 1,
+        reason,
+        originalSnapshot,
+        amendedSnapshot: input.amendedSnapshot,
+        authorUsuarioId: actor.usuarioId,
+      },
+    });
+    await audit(tx, actor, "CREATE", "PlanningAmendment", amendment.id, { entityType: amendment.entityType, entityId: amendment.entityId, version: amendment.version, reason });
+    return amendment;
+  });
+}
+
+export async function getAnnualBudgetScheduleCompletion(tx: Db, annualBudgetLawId: string, budgetUnitId?: string) {
+  const [cmdSchedules, mbaTargets] = await Promise.all([
+    tx.monthlyDisbursementSchedule.findMany({
+      where: { annualBudgetLawId, ...(budgetUnitId ? { budgetUnitId } : {}) },
+      select: { month: true },
+    }),
+    tx.bimonthlyRevenueTarget.findMany({ where: { annualBudgetLawId }, select: { bimonth: true } }),
+  ]);
+  const cmdMonths = new Set(cmdSchedules.map((schedule) => schedule.month));
+  const mbaBimesters = new Set(mbaTargets.map((target) => target.bimonth));
+  return {
+    cmdMonths: cmdMonths.size,
+    mbaBimesters: mbaBimesters.size,
+    missingCmdMonths: Array.from({ length: 12 }, (_, index) => index + 1).filter((month) => !cmdMonths.has(month)),
+    missingMbaBimesters: Array.from({ length: 6 }, (_, index) => index + 1).filter((bimonth) => !mbaBimesters.has(bimonth)),
+    cmdComplete: cmdMonths.size === 12,
+    mbaComplete: mbaBimesters.size === 6,
+  };
 }
 
 // --- PPA (Plano Plurianual) ---

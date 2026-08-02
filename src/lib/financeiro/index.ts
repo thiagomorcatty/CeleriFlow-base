@@ -220,6 +220,77 @@ export async function getBudgetAvailability(tx: Db, appropriationId: string) {
   return { updated, reserved, committed, available: updated.minus(reserved).minus(committed) };
 }
 
+async function assertCmdAvailability(
+  tx: Prisma.TransactionClient,
+  appropriation: { financialYearId: string; budgetUnitId: string; annualBudgetExpenseFixationId: string | null },
+  date: Date,
+  value: Prisma.Decimal,
+  reservationForCommitment?: { date: Date },
+) {
+  // Records created before LOA traceability remain operational; new traced
+  // appropriations are subject to the CMD control below.
+  if (!appropriation.annualBudgetExpenseFixationId) return;
+
+  const fixation = await tx.annualBudgetExpenseFixation.findUnique({
+    where: { id: appropriation.annualBudgetExpenseFixationId },
+    select: { annualBudgetLawId: true },
+  });
+  if (!fixation) throw new FinanceError("A dotação possui rastreabilidade de LOA inválida.");
+
+  const month = date.getUTCMonth() + 1;
+  await tx.$queryRaw`
+    SELECT id FROM "MonthlyDisbursementSchedule"
+    WHERE "annualBudgetLawId" = ${fixation.annualBudgetLawId}
+      AND "budgetUnitId" = ${appropriation.budgetUnitId}
+    FOR UPDATE
+  `;
+  const schedules = await tx.monthlyDisbursementSchedule.findMany({
+    where: { annualBudgetLawId: fixation.annualBudgetLawId, budgetUnitId: appropriation.budgetUnitId },
+    select: { month: true, limitValue: true },
+  });
+  if (new Set(schedules.map((schedule) => schedule.month)).size !== 12) {
+    throw new FinanceError("A LOA vinculada à dotação exige CMD completo (12 meses) para esta unidade orçamentária.");
+  }
+  const schedule = schedules.find((item) => item.month === month);
+  if (!schedule) throw new FinanceError("Não há limite CMD para o mês da reserva/empenho.");
+
+  const periodStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+  const periodEnd = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
+  const [reservations, commitments] = await Promise.all([
+    tx.budgetReservation.findMany({
+      where: {
+        status: ACTIVE_RESERVATION_STATUS,
+        date: { gte: periodStart, lt: periodEnd },
+        appropriation: { financialYearId: appropriation.financialYearId, budgetUnitId: appropriation.budgetUnitId },
+      },
+      select: { valueDecimal: true },
+    }),
+    tx.commitment.findMany({
+      where: {
+        status: { in: ACTIVE_COMMITMENT_STATUSES },
+        date: { gte: periodStart, lt: periodEnd },
+        appropriation: { financialYearId: appropriation.financialYearId, budgetUnitId: appropriation.budgetUnitId },
+      },
+      select: { valueDecimal: true, movements: { select: { type: true, valueDecimal: true } } },
+    }),
+  ]);
+  const reservationsTotal = reservations.reduce(
+    (total, reservation) => total.plus(requiredDecimal(reservation.valueDecimal, "BudgetReservation.valueDecimal")),
+    new Prisma.Decimal(0),
+  );
+  const commitmentsTotal = commitments.reduce(
+    (total, commitment) => total.plus(commitmentValue(commitment.valueDecimal, commitment.movements)),
+    new Prisma.Decimal(0),
+  );
+  const reservationAlreadyCounted = reservationForCommitment
+    && reservationForCommitment.date.getUTCFullYear() === date.getUTCFullYear()
+    && reservationForCommitment.date.getUTCMonth() === date.getUTCMonth();
+  const projected = reservationsTotal.plus(commitmentsTotal).plus(reservationAlreadyCounted ? 0 : value);
+  if (projected.greaterThan(schedule.limitValue)) {
+    throw new FinanceError("O lançamento excede a disponibilidade do CMD da unidade orçamentária para este mês.");
+  }
+}
+
 async function refreshCommittedMirror(tx: Prisma.TransactionClient, appropriationId: string) {
   const commitments = await tx.commitment.findMany({
     where: { appropriationId, status: { in: ACTIVE_COMMITMENT_STATUSES } },
@@ -411,10 +482,14 @@ export async function createBudgetReservation(
   const value = money(input.value);
   return db.$transaction(async (tx) => {
     await lockAppropriation(tx, input.appropriationId);
-    const appropriation = await tx.budgetAppropriation.findUnique({ where: { id: input.appropriationId } });
+    const appropriation = await tx.budgetAppropriation.findUnique({
+      where: { id: input.appropriationId },
+      select: { id: true, financialYearId: true, budgetUnitId: true, annualBudgetExpenseFixationId: true },
+    });
     if (!appropriation) throw new FinanceError("Dotação orçamentária não encontrada.");
     const year = await assertFinancialYearOpen(tx, appropriation.financialYearId, input.date);
     await assertAccountingPeriodOpen(tx, year.id, input.date);
+    await assertCmdAvailability(tx, appropriation, input.date, value);
     await lockExpense(tx, input.expenseId);
     const expense = await tx.expense.findUnique({ where: { id: input.expenseId } });
     if (!expense || expense.appropriationId !== appropriation.id) throw new FinanceError("A solicitação de despesa não pertence à dotação informada.");
@@ -467,6 +542,7 @@ export async function createCommitment(
     await assertAccountingPeriodOpen(tx, year.id, input.date);
     if (!reservation || reservation.appropriationId !== appropriation.id || reservation.status !== ACTIVE_RESERVATION_STATUS) throw new FinanceError("Selecione uma reserva ativa da mesma dotação.");
     if (!requiredDecimal(reservation.valueDecimal, "BudgetReservation.valueDecimal").equals(value)) throw new FinanceError("O empenho deve corresponder integralmente à reserva selecionada.");
+    await assertCmdAvailability(tx, appropriation, input.date, value, reservation);
     const availability = await getBudgetAvailability(tx, appropriation.id);
     if (availability.available.lessThan(0)) throw new FinanceError("A dotação não possui disponibilidade válida para empenho.");
     const process = input.processId
@@ -629,8 +705,38 @@ async function refreshCommitmentExecutionStatus(tx: Prisma.TransactionClient, co
   if (commitment.status !== status) await tx.commitment.update({ where: { id: commitmentId }, data: { status } });
 }
 
-export async function createSettlement(db: PrismaClient, actor: FinanceActor, input: { date: Date; value: Prisma.Decimal | string | number; documentRef?: string; documentId?: string; commitmentId: string; authorId: string; notes?: string }) {
+export async function createSettlement(db: PrismaClient, actor: FinanceActor, input: {
+  date: Date;
+  value: Prisma.Decimal | string | number;
+  documentRef?: string;
+  fiscalDocumentNumber?: string;
+  fiscalDocumentSeries?: string;
+  fiscalDocumentIssueDate?: Date;
+  fiscalDocumentAccessKey?: string;
+  documentId?: string;
+  commitmentId: string;
+  authorId: string;
+  notes?: string;
+  serviceCode?: string;
+  retentionRuleIds?: string[];
+}) {
   const value = money(input.value);
+  const fiscalDocumentNumber = input.fiscalDocumentNumber?.trim() || undefined;
+  const fiscalDocumentSeries = input.fiscalDocumentSeries?.trim() || undefined;
+  const fiscalDocumentAccessKey = input.fiscalDocumentAccessKey?.replace(/\D/g, "") || undefined;
+  const fiscalDocumentIssueDate = input.fiscalDocumentIssueDate;
+  if (fiscalDocumentIssueDate && Number.isNaN(fiscalDocumentIssueDate.getTime())) {
+    throw new FinanceError("Data de emissão do documento fiscal inválida.");
+  }
+  if (Boolean(fiscalDocumentNumber) !== Boolean(fiscalDocumentIssueDate)) {
+    throw new FinanceError("Informe juntos o número e a data de emissão do documento fiscal.");
+  }
+  if (fiscalDocumentAccessKey && !fiscalDocumentNumber) {
+    throw new FinanceError("A chave de acesso exige o número do documento fiscal.");
+  }
+  if (fiscalDocumentAccessKey && !/^\d{44}$/.test(fiscalDocumentAccessKey)) {
+    throw new FinanceError("A chave de acesso do documento fiscal deve conter 44 dígitos.");
+  }
   return db.$transaction(async (tx) => {
     const { commitment, year } = await commitmentForPosting(tx, input.commitmentId, input.date);
     if (!input.documentId) throw new FinanceError("Vincule o documento fiscal ou comprobatório já cadastrado no GED.");
@@ -641,9 +747,52 @@ export async function createSettlement(db: PrismaClient, actor: FinanceActor, in
     ]);
     if (!document || document.status !== "Válido") throw new FinanceError("O documento GED informado não está válido.");
     if (!author?.isActive) throw new FinanceError("O responsável pelo ateste não está ativo.");
+    const retentionRules = input.retentionRuleIds?.length
+      ? await getActiveRetentionRules(tx, {
+          financialYearId: year.id,
+          date: input.date,
+          serviceCode: input.serviceCode?.trim() || undefined,
+          ruleIds: input.retentionRuleIds,
+        })
+      : [];
+    const calculatedRetentions = calculateRetentions(value, retentionRules).map((calculation, index) => ({
+      ...calculation,
+      rule: retentionRules[index],
+    }));
+    const retentionTotal = calculatedRetentions.reduce((total, retention) => total.plus(retention.retainedValue), new Prisma.Decimal(0));
+    if (retentionTotal.greaterThan(value)) throw new FinanceError("As retenções não podem exceder o valor bruto da liquidação.");
     const effectiveValue = commitmentValue(commitment.valueDecimal, commitment.movements);
     if (settled.plus(value).greaterThan(effectiveValue)) throw new FinanceError("A liquidação acumulada excede o valor vigente do empenho.");
-    const settlement = await tx.settlement.create({ data: { date: input.date, valueDecimal: value, value: legacyMoney(value), documentRef: input.documentRef?.trim() || undefined, documentId: document.id, commitmentId: commitment.id, authorId: input.authorId, notes: input.notes?.trim() || undefined, status: ACTIVE_SETTLEMENT_STATUS } });
+    const settlement = await tx.settlement.create({
+      data: {
+        date: input.date,
+        valueDecimal: value,
+        value: legacyMoney(value),
+        documentRef: input.documentRef?.trim() || undefined,
+        fiscalDocumentNumber,
+        fiscalDocumentSeries,
+        fiscalDocumentIssueDate,
+        fiscalDocumentAccessKey,
+        documentId: document.id,
+        commitmentId: commitment.id,
+        authorId: input.authorId,
+        notes: input.notes?.trim() || undefined,
+        status: ACTIVE_SETTLEMENT_STATUS,
+        retentions: {
+          create: calculatedRetentions.map((retention) => ({
+            retentionRuleId: retention.rule.id,
+            type: retention.type,
+            description: retention.rule.description,
+            calculationBaseDecimal: retention.baseValue,
+            ratePercentage: retention.ratePercentage,
+            valueDecimal: retention.retainedValue,
+            beneficiaryName: retention.rule.beneficiaryName,
+            beneficiaryDocument: retention.rule.beneficiaryDocument ?? undefined,
+            dueDate: calculateRetentionDueDate(input.date, retention.rule.dueDays),
+          })),
+        },
+      },
+    });
     await createFinancialDocument(tx, actor, {
       documentType: "NOTA_DE_LIQUIDACAO",
       number: `NL-${settlement.id}`,
@@ -655,12 +804,22 @@ export async function createSettlement(db: PrismaClient, actor: FinanceActor, in
           date: settlement.date.toISOString(),
           value: jsonMoney(value),
           documentRef: settlement.documentRef,
+          fiscalDocumentNumber: settlement.fiscalDocumentNumber,
+          fiscalDocumentSeries: settlement.fiscalDocumentSeries,
+          fiscalDocumentIssueDate: settlement.fiscalDocumentIssueDate?.toISOString(),
+          fiscalDocumentAccessKey: settlement.fiscalDocumentAccessKey,
           documentId: settlement.documentId,
           commitmentId: settlement.commitmentId,
           authorId: settlement.authorId,
           notes: settlement.notes,
         },
         commitment: { id: commitment.id, number: commitment.number },
+        retentions: calculatedRetentions.map((retention) => ({
+          ruleId: retention.rule.id,
+          type: retention.type,
+          baseValue: jsonMoney(retention.baseValue),
+          value: jsonMoney(retention.retainedValue),
+        })),
       },
     });
     await refreshCommitmentExecutionStatus(tx, commitment.id);
@@ -675,7 +834,7 @@ export async function createSettlement(db: PrismaClient, actor: FinanceActor, in
       sourceId: settlement.id,
       idempotencyKey: `FINANCEIRO:SETTLEMENT:${settlement.id}:LIQUIDACAO_REGISTRADA`,
     });
-    await audit(tx, actor, "CREATE", "Settlement", settlement.id, { value: jsonMoney(value), commitmentId: commitment.id, documentId: document.id, authorId: input.authorId }, year.id);
+    await audit(tx, actor, "CREATE", "Settlement", settlement.id, { value: jsonMoney(value), retentionValue: jsonMoney(retentionTotal), commitmentId: commitment.id, documentId: document.id, authorId: input.authorId }, year.id);
     return settlement;
   });
 }
@@ -743,7 +902,19 @@ export async function createPayment(
     const creditor = await creditorForSupplier(tx, input.supplierId);
     if (!commitment.creditorId || commitment.creditorId !== creditor.id) throw new FinanceError("O credor do pagamento deve ser o mesmo credor central do empenho.");
 
-    const settlement = await tx.settlement.findUnique({ where: { id: input.settlementId } });
+    const settlement = await tx.settlement.findUnique({
+      where: { id: input.settlementId },
+      include: {
+        retentions: {
+          include: {
+            paymentRetentions: {
+              where: { payment: { status: { in: ACTIVE_PAYMENT_STATUSES } } },
+              select: { valueDecimal: true },
+            },
+          },
+        },
+      },
+    });
     if (!settlement || settlement.status !== ACTIVE_SETTLEMENT_STATUS || settlement.commitmentId !== commitment.id) {
       throw new FinanceError("A liquidação selecionada não pertence ao empenho ou não está ativa.");
     }
@@ -752,20 +923,27 @@ export async function createPayment(
       throw new FinanceError("O pagamento acumulado excede o saldo disponível da liquidação.");
     }
 
-    const retentionRules = input.retentionRuleIds?.length
-      ? await getActiveRetentionRules(tx, {
-          financialYearId: year.id,
-          date: input.date,
-          serviceCode: input.serviceCode?.trim() || undefined,
-          ruleIds: input.retentionRuleIds,
-        })
-      : [];
-    const retentions = calculateRetentions(value, retentionRules).map((calculation, index) => ({
-      ...calculation,
-      rule: retentionRules[index],
-    }));
-    const retentionTotal = retentions.reduce((total, retention) => total.plus(retention.retainedValue), new Prisma.Decimal(0));
-    if (retentionTotal.greaterThan(value)) throw new FinanceError("As retenções não podem exceder o valor bruto do pagamento.");
+    const requestedRuleIds = [...new Set(input.retentionRuleIds ?? [])].sort();
+    const settlementRuleIds = settlement.retentions.map((retention) => retention.retentionRuleId).sort();
+    if (requestedRuleIds.length && requestedRuleIds.join(",") !== settlementRuleIds.join(",")) {
+      throw new FinanceError("As regras de retenção devem ser definidas na liquidação e corresponder à liquidação selecionada.");
+    }
+    const paidAfterThisPayment = paid.plus(value);
+    const retentions = settlement.retentions.flatMap((retention) => {
+      const previousAllocated = retention.paymentRetentions.reduce(
+        (total, allocation) => total.plus(allocation.valueDecimal),
+        new Prisma.Decimal(0),
+      );
+      const cumulativeAllocation = retention.valueDecimal
+        .mul(paidAfterThisPayment)
+        .div(requiredDecimal(settlement.valueDecimal, "Settlement.valueDecimal"))
+        .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+      const allocatedValue = cumulativeAllocation.minus(previousAllocated);
+      if (allocatedValue.lessThanOrEqualTo(0)) return [];
+      return [{ retention, allocatedValue }];
+    });
+    const retentionTotal = retentions.reduce((total, retention) => total.plus(retention.allocatedValue), new Prisma.Decimal(0));
+    if (retentionTotal.greaterThan(value)) throw new FinanceError("As retenções vinculadas à liquidação não podem exceder o valor bruto do pagamento.");
     const netValue = value.minus(retentionTotal);
 
     // Validação de saldo financeiro na conta bancária para o valor LÍQUIDO que efetivamente sairá
@@ -812,22 +990,28 @@ export async function createPayment(
         },
         commitment: { id: commitment.id, number: commitment.number },
         settlement: { id: settlement.id },
+        retentions: retentions.map(({ retention, allocatedValue }) => ({
+          settlementRetentionId: retention.id,
+          type: retention.type,
+          value: jsonMoney(allocatedValue),
+        })),
       },
     });
-    for (const retention of retentions) {
+    for (const { retention, allocatedValue } of retentions) {
       await tx.paymentRetention.create({
         data: {
           paymentId: payment.id,
-          retentionRuleId: retention.rule.id,
+          settlementRetentionId: retention.id,
+          retentionRuleId: retention.retentionRuleId,
           type: retention.type,
-          description: retention.rule.description,
-          valueDecimal: retention.retainedValue,
-          beneficiaryName: retention.rule.beneficiaryName,
-          beneficiaryDocument: retention.rule.beneficiaryDocument ?? undefined,
+          description: retention.description,
+          valueDecimal: allocatedValue,
+          beneficiaryName: retention.beneficiaryName,
+          beneficiaryDocument: retention.beneficiaryDocument ?? undefined,
           withholdingPayable: {
             create: {
-              valueDecimal: retention.retainedValue,
-              dueDate: calculateRetentionDueDate(input.date, retention.rule.dueDays),
+              valueDecimal: allocatedValue,
+              dueDate: retention.dueDate ?? undefined,
             },
           },
         },

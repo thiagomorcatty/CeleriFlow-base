@@ -13,6 +13,7 @@ import {
   createBudgetAppropriationFromFixation,
   saveBimonthlyRevenueTarget,
   saveMonthlyDisbursementSchedule,
+  createPlanningAmendment,
   createCreditRequest,
   approveCreditRequest,
   executeCreditRequest,
@@ -20,6 +21,7 @@ import {
 import { getTenantContextForModuleEdit, isSystemAdministrator, type AppContext } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 
 type ActionResult<T = undefined> = { error?: string; data?: T };
 
@@ -124,6 +126,13 @@ const annualBudgetLawSchema = z.object({
     name: z.string().trim().min(1),
     fixedValue: z.number().finite().positive(),
   })).min(1).optional(),
+});
+
+const planningAmendmentSchema = z.object({
+  entityType: z.enum(["PPA", "LDO", "LOA"]),
+  entityId: z.string().min(1),
+  reason: z.string().trim().min(1),
+  amendedSnapshot: z.record(z.string(), z.unknown()),
 });
 
 export async function actionCreateMultiYearPlan(input: {
@@ -264,6 +273,26 @@ export async function actionCreateAnnualBudgetLaw(input: {
     return { data: { id: loa.id } };
   } catch (error) {
     return { error: errorMessage(error, "Não foi possível cadastrar a LOA.") };
+  }
+}
+
+export async function actionCreatePlanningAmendment(input: {
+  entityType: "PPA" | "LDO" | "LOA";
+  entityId: string;
+  reason: string;
+  amendedSnapshot: Record<string, unknown>;
+}): Promise<ActionResult<{ id: string }>> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const parsedInput = planningAmendmentSchema.parse(input);
+    const amendment = await createPlanningAmendment(context.prisma, financeActor(context), {
+      ...parsedInput,
+      amendedSnapshot: parsedInput.amendedSnapshot as Prisma.InputJsonObject,
+    });
+    revalidatePath("/financeiro/orcamento/planejamento");
+    return { data: { id: amendment.id } };
+  } catch (error) {
+    return { error: errorMessage(error, "Não foi possível registrar a alteração interna de planejamento.") };
   }
 }
 

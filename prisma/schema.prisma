@@ -1825,6 +1825,23 @@ model MultiYearPlan {
   budgetGuidelines BudgetGuideline[]
 }
 
+// Immutable internal snapshots for planning amendments. They do not represent
+// publication, legal approval, or a legally effective version of a plan.
+model PlanningAmendment {
+  id               String   @id @default(cuid())
+  entityType       String // PPA, LDO, LOA
+  entityId         String
+  version          Int
+  reason           String
+  originalSnapshot Json
+  amendedSnapshot  Json
+  authorUsuarioId  String
+  createdAt        DateTime @default(now())
+
+  @@unique([entityType, entityId, version])
+  @@index([entityType, entityId, createdAt])
+}
+
 model ProgramPPA {
   id              String        @id @default(cuid())
   code            String
@@ -2295,26 +2312,32 @@ model CommitmentMovement {
 }
 
 model Settlement {
-  id           String     @id @default(cuid())
-  date         DateTime   @default(now())
-  value        Float
-  valueDecimal Decimal?   @db.Decimal(18, 2)
-  documentRef  String? // NF, Recibo, etc
-  documentId   String?
-  document     Document?  @relation("SettlementDocument", fields: [documentId], references: [id])
-  commitmentId String
-  commitment   Commitment @relation(fields: [commitmentId], references: [id])
-  authorId     String
-  author       Employee   @relation("SettlementAuthor", fields: [authorId], references: [id])
-  status       String     @default("Liquidado") // Liquidado, Cancelado
-  notes        String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id                      String     @id @default(cuid())
+  date                    DateTime   @default(now())
+  value                   Float
+  valueDecimal            Decimal?   @db.Decimal(18, 2)
+  documentRef             String? // NF, Recibo, etc
+  fiscalDocumentNumber    String?
+  fiscalDocumentSeries    String?
+  fiscalDocumentIssueDate DateTime?
+  fiscalDocumentAccessKey String?    @unique
+  documentId              String?
+  document                Document?  @relation("SettlementDocument", fields: [documentId], references: [id])
+  commitmentId            String
+  commitment              Commitment @relation(fields: [commitmentId], references: [id])
+  authorId                String
+  author                  Employee   @relation("SettlementAuthor", fields: [authorId], references: [id])
+  status                  String     @default("Liquidado") // Liquidado, Cancelado
+  notes                   String?
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
 
   payments          Payment[]
-  financialDocument FinancialDocument? @relation("FinancialDocumentSettlement")
+  retentions        SettlementRetention[]
+  financialDocument FinancialDocument?    @relation("FinancialDocumentSettlement")
 
   @@index([documentId])
+  @@index([fiscalDocumentNumber, fiscalDocumentSeries])
 }
 
 model Payment {
@@ -2371,20 +2394,47 @@ model FinancialDocument {
 }
 
 model PaymentRetention {
-  id                  String              @id @default(cuid())
-  paymentId           String
-  payment             Payment             @relation(fields: [paymentId], references: [id], onDelete: Restrict)
-  retentionRuleId     String?
-  retentionRule       RetentionRule?      @relation(fields: [retentionRuleId], references: [id], onDelete: Restrict)
-  type                String
-  description         String?
-  valueDecimal        Decimal             @db.Decimal(18, 2)
-  beneficiaryName     String
-  beneficiaryDocument String?
-  withholdingPayable  WithholdingPayable?
-  createdAt           DateTime            @default(now())
+  id                    String               @id @default(cuid())
+  paymentId             String
+  payment               Payment              @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  settlementRetentionId String?
+  settlementRetention   SettlementRetention? @relation(fields: [settlementRetentionId], references: [id], onDelete: Restrict)
+  retentionRuleId       String?
+  retentionRule         RetentionRule?       @relation(fields: [retentionRuleId], references: [id], onDelete: Restrict)
+  type                  String
+  description           String?
+  valueDecimal          Decimal              @db.Decimal(18, 2)
+  beneficiaryName       String
+  beneficiaryDocument   String?
+  withholdingPayable    WithholdingPayable?
+  createdAt             DateTime             @default(now())
 
   @@index([paymentId])
+  @@index([settlementRetentionId])
+  @@index([retentionRuleId])
+}
+
+// Retenções são apuradas no ateste da liquidação. PaymentRetention registra apenas
+// a parcela vinculada a cada ordem de pagamento e ao posterior recolhimento.
+model SettlementRetention {
+  id                     String        @id @default(cuid())
+  settlementId           String
+  settlement             Settlement    @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  retentionRuleId        String
+  retentionRule          RetentionRule @relation(fields: [retentionRuleId], references: [id], onDelete: Restrict)
+  type                   String
+  description            String?
+  calculationBaseDecimal Decimal       @db.Decimal(18, 2)
+  ratePercentage         Decimal       @db.Decimal(7, 4)
+  valueDecimal           Decimal       @db.Decimal(18, 2)
+  beneficiaryName        String
+  beneficiaryDocument    String?
+  dueDate                DateTime?
+  createdAt              DateTime      @default(now())
+
+  paymentRetentions PaymentRetention[]
+
+  @@unique([settlementId, retentionRuleId])
   @@index([retentionRuleId])
 }
 
@@ -2407,7 +2457,8 @@ model RetentionRule {
   createdAt                 DateTime       @default(now())
   updatedAt                 DateTime       @updatedAt
 
-  paymentRetentions PaymentRetention[]
+  paymentRetentions    PaymentRetention[]
+  settlementRetentions SettlementRetention[]
 
   @@index([isActive, effectiveFrom, effectiveTo])
   @@index([financialYearId, serviceCode])

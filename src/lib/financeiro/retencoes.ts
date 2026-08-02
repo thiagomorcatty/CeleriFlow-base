@@ -49,7 +49,7 @@ export function calculateRetentions(
 }
 
 export async function getActiveRetentionRules(tx: Db, criteria: RetentionRuleCriteria) {
-  if (Number.isNaN(criteria.date.getTime())) throw new Error("Data de pagamento inválida para cálculo de retenções.");
+  if (Number.isNaN(criteria.date.getTime())) throw new Error("Data de referência inválida para cálculo de retenções.");
 
   const ruleIds = [...new Set(criteria.ruleIds ?? [])];
   const rules = await tx.retentionRule.findMany({
@@ -82,9 +82,9 @@ export async function getActiveRetentionRules(tx: Db, criteria: RetentionRuleCri
   return rules;
 }
 
-export function calculateRetentionDueDate(paymentDate: Date, dueDays: number | null) {
+export function calculateRetentionDueDate(referenceDate: Date, dueDays: number | null) {
   if (!dueDays) return undefined;
-  const dueDate = new Date(paymentDate);
+  const dueDate = new Date(referenceDate);
   dueDate.setUTCDate(dueDate.getUTCDate() + dueDays);
   return dueDate;
 }

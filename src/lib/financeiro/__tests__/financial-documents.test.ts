@@ -89,11 +89,14 @@ test("generates linked internal financial documents with each financial fact", a
       commitmentId,
       documentId: document.id,
       authorId: employee.id,
+      fiscalDocumentNumber: `DOC-${suffix}`,
+      fiscalDocumentIssueDate: date,
     });
     settlementId = settlement.id;
     const settlementDocument = await prisma.financialDocument.findUniqueOrThrow({ where: { settlementId } });
     assert.equal(settlementDocument.documentType, "NOTA_DE_LIQUIDACAO");
     assert.equal((settlementDocument.snapshot as { settlement: { commitmentId: string } }).settlement.commitmentId, commitmentId);
+    assert.equal((settlementDocument.snapshot as { settlement: { fiscalDocumentNumber: string } }).settlement.fiscalDocumentNumber, `DOC-${suffix}`);
 
     const payment = await createPayment(prisma, actor, {
       orderNumber: `OP-DOC-${suffix}`,
