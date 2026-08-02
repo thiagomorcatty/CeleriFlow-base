@@ -99,7 +99,7 @@ export async function reversePaymentAction(paymentId: string, justification: str
   }
 }
 
-export async function settleWithholdingPayableAction(withholdingPayableId: string, bankAccountId: string): Promise<ActionResult> {
+export async function settleWithholdingPayableAction(withholdingPayableId: string, bankAccountId: string, receiptDocumentId: string): Promise<ActionResult> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const payable = await context.prisma.withholdingPayable.findUnique({
@@ -112,7 +112,7 @@ export async function settleWithholdingPayableAction(withholdingPayableId: strin
     await assertBankAccountAccess(context, bankAccountId);
 
     const { settleWithholdingPayable: settleOfficialWithholding } = await import("@/lib/financeiro");
-    await settleOfficialWithholding(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, { withholdingPayableId, bankAccountId, paymentDate: new Date() });
+    await settleOfficialWithholding(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, { withholdingPayableId, bankAccountId, receiptDocumentId, paymentDate: new Date() });
     revalidatePath("/financeiro/pagamentos");
     revalidateContractExecution(commitment.contractId);
     return {};

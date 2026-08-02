@@ -119,6 +119,13 @@ export default async function PagamentosPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  const receiptDocuments = await prisma.document.findMany({
+    where: { status: "Válido", documentType: { not: "Modelo" } },
+    select: { id: true, title: true, documentType: true },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
+
   const displayPendingWithholdings = pendingWithholdings.map((pw) => ({
     id: pw.id,
     type: pw.retention.type,
@@ -136,6 +143,7 @@ export default async function PagamentosPage() {
       bankAccounts={displayBankAccounts}
       suppliers={suppliers}
       pendingWithholdings={displayPendingWithholdings}
+      receiptDocuments={receiptDocuments}
     />
   );
 }

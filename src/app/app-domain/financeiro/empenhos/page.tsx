@@ -17,6 +17,7 @@ export default async function EmpenhosPage() {
         }
       },
       financialDocument: { select: { id: true, number: true, title: true } },
+      obrasServices: { select: { id: true, protocolo: true } },
     },
     orderBy: {
       date: 'desc'
@@ -46,9 +47,15 @@ export default async function EmpenhosPage() {
     orderBy: { date: "desc" },
   });
 
-  const [processes, contracts] = await Promise.all([
+  const [processes, contracts, obrasServices] = await Promise.all([
     prisma.process.findMany({ select: { id: true, protocolNumber: true, description: true }, orderBy: { createdAt: "desc" }, take: 100 }),
     prisma.contract.findMany({ select: { id: true, number: true, object: true, supplierId: true, status: true }, orderBy: { createdAt: "desc" }, take: 100 }),
+    prisma.obrasServico.findMany({
+      where: { active: true, commitmentId: null },
+      select: { id: true, protocolo: true, tipo: true, descricao: true, local: true, budgetAppropriationId: true, budgetAppropriation: { select: { code: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
   ]);
 
   const displayCommitments = commitments.map(({ valueDecimal, ...commitment }) => ({
@@ -61,5 +68,5 @@ export default async function EmpenhosPage() {
     value: Number(valueDecimal ?? reservation.value),
   }));
 
-  return <EmpenhosClient commitments={displayCommitments} suppliers={suppliers} appropriations={appropriations} reservations={displayReservations} processes={processes} contracts={contracts} />
+  return <EmpenhosClient commitments={displayCommitments} suppliers={suppliers} appropriations={appropriations} reservations={displayReservations} processes={processes} contracts={contracts} obrasServices={obrasServices} />
 }

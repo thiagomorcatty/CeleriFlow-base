@@ -659,6 +659,7 @@ model Document {
   camaraLegislativeLinks  CamDocumentoLegislativo[]     @relation("CamaraLegislativeDocument")
   segurancaRegistros      SegurancaMobilidadeRegistro[] @relation("SegurancaRegistroDocument")
   settlementDocuments     Settlement[]                  @relation("SettlementDocument")
+  withholdingReceipts     WithholdingPayable[]          @relation("WithholdingReceiptDocument")
   taxGuideDocuments       TaxGuide[]                    @relation("TaxGuideDocument")
   taxPaymentProofs        TaxPayment[]                  @relation("TaxPaymentProofDocument")
   taxServiceRequests      TaxServiceRequest[]
@@ -2381,16 +2382,19 @@ model FinancialDocument {
   snapshot             Json
   generatedAt          DateTime @default(now())
 
-  commitmentId String?
-  commitment   Commitment? @relation("FinancialDocumentCommitment", fields: [commitmentId], references: [id], onDelete: Restrict)
-  settlementId String?
-  settlement   Settlement? @relation("FinancialDocumentSettlement", fields: [settlementId], references: [id], onDelete: Restrict)
-  paymentId    String?
-  payment      Payment?    @relation("FinancialDocumentPayment", fields: [paymentId], references: [id], onDelete: Restrict)
+  commitmentId         String?
+  commitment           Commitment?         @relation("FinancialDocumentCommitment", fields: [commitmentId], references: [id], onDelete: Restrict)
+  settlementId         String?
+  settlement           Settlement?         @relation("FinancialDocumentSettlement", fields: [settlementId], references: [id], onDelete: Restrict)
+  paymentId            String?
+  payment              Payment?            @relation("FinancialDocumentPayment", fields: [paymentId], references: [id], onDelete: Restrict)
+  withholdingPayableId String?
+  withholdingPayable   WithholdingPayable? @relation("FinancialDocumentWithholdingPayable", fields: [withholdingPayableId], references: [id], onDelete: Restrict)
 
   @@unique([commitmentId])
   @@unique([settlementId])
   @@unique([paymentId])
+  @@unique([withholdingPayableId])
   @@index([documentType, generatedAt])
 }
 
@@ -2466,18 +2470,22 @@ model RetentionRule {
 }
 
 model WithholdingPayable {
-  id           String           @id @default(cuid())
-  retentionId  String           @unique
-  retention    PaymentRetention @relation(fields: [retentionId], references: [id], onDelete: Restrict)
-  creditorId   String?
-  creditor     Creditor?        @relation(fields: [creditorId], references: [id])
-  dueDate      DateTime?
-  valueDecimal Decimal          @db.Decimal(18, 2)
-  status       String           @default("Pendente") // Pendente, Recolhida, Cancelada
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id                String             @id @default(cuid())
+  retentionId       String             @unique
+  retention         PaymentRetention   @relation(fields: [retentionId], references: [id], onDelete: Restrict)
+  creditorId        String?
+  creditor          Creditor?          @relation(fields: [creditorId], references: [id])
+  receiptDocumentId String?
+  receiptDocument   Document?          @relation("WithholdingReceiptDocument", fields: [receiptDocumentId], references: [id], onDelete: Restrict)
+  dueDate           DateTime?
+  valueDecimal      Decimal            @db.Decimal(18, 2)
+  status            String             @default("Pendente") // Pendente, Recolhida, Cancelada
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  financialDocument FinancialDocument? @relation("FinancialDocumentWithholdingPayable")
 
   @@index([status, dueDate])
+  @@index([receiptDocumentId])
 }
 
 model BankAccount {

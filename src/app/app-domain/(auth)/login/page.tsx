@@ -80,19 +80,14 @@ export default function LoginPage() {
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
           
           <div className="flex flex-col items-center mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Image 
-                src="/logo1.png" 
-                alt="CeleriFlow" 
-                width={180} 
-                height={50}
-                className="object-contain drop-shadow-sm"
-                priority
-              />
-              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shadow-xs">
-                {APP_VERSION}
-              </span>
-            </div>
+            <Image 
+              src="/logo1.png" 
+              alt="CeleriFlow" 
+              width={180} 
+              height={50}
+              className="object-contain mx-auto mb-2 drop-shadow-sm"
+              priority
+            />
             <p className="text-xs sm:text-sm text-muted-foreground text-center font-medium">
               {view === "login" && "Acesse a plataforma de gestão integrada"}
               {view === "reset" && "Redefina sua senha de acesso"}
@@ -254,9 +249,12 @@ export default function LoginPage() {
           )}
 
           <div className="mt-6 pt-4 border-t border-border/40 flex flex-col items-center justify-center gap-1.5">
-            <p className="text-[9px] text-muted-foreground/60 text-center uppercase tracking-[0.2em] font-medium">
-              Developed by
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-[9px] text-muted-foreground/60 text-center uppercase tracking-[0.2em] font-medium">
+                Developed by
+              </p>
+              <span className="text-[10px] font-mono text-muted-foreground/60">| {APP_VERSION}</span>
+            </div>
             <Image 
               src="/logo_robonuvem.png" 
               alt="Robonuvem" 

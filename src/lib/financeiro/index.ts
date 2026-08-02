@@ -51,13 +51,14 @@ async function createFinancialDocument(
   tx: Prisma.TransactionClient,
   actor: FinanceActor,
   data: {
-    documentType: "NOTA_DE_EMPENHO" | "NOTA_DE_LIQUIDACAO" | "ORDEM_DE_PAGAMENTO";
+    documentType: "NOTA_DE_EMPENHO" | "NOTA_DE_LIQUIDACAO" | "ORDEM_DE_PAGAMENTO" | "COMPROVANTE_RECOLHIMENTO_RETENCAO";
     number: string;
     title: string;
     snapshot: Prisma.InputJsonValue;
     commitmentId?: string;
     settlementId?: string;
     paymentId?: string;
+    withholdingPayableId?: string;
   },
 ) {
   return tx.financialDocument.create({
@@ -112,6 +113,10 @@ async function lockExpense(tx: Prisma.TransactionClient, expenseId: string) {
 
 async function lockCommitment(tx: Prisma.TransactionClient, commitmentId: string) {
   await tx.$queryRaw`SELECT id FROM "Commitment" WHERE id = ${commitmentId} FOR UPDATE`;
+}
+
+async function lockObrasService(tx: Prisma.TransactionClient, obrasServiceId: string) {
+  await tx.$queryRaw`SELECT id FROM "ObrasServico" WHERE id = ${obrasServiceId} FOR UPDATE`;
 }
 
 async function lockContract(tx: Prisma.TransactionClient, contractId: string) {
@@ -524,9 +529,10 @@ export async function cancelBudgetReservation(db: PrismaClient, actor: FinanceAc
 export async function createCommitment(
   db: PrismaClient,
   actor: FinanceActor,
-  input: { number: string; date: Date; value: Prisma.Decimal | string | number; type: string; history: string; appropriationId: string; supplierId: string; reservationId: string; processId?: string; contractId?: string },
+  input: { number: string; date: Date; value: Prisma.Decimal | string | number; type: string; history: string; appropriationId: string; supplierId: string; reservationId: string; processId?: string; contractId?: string; obrasServiceId?: string },
 ) {
   const value = money(input.value);
+  const obrasServiceId = input.obrasServiceId?.trim() || undefined;
   if (!["Ordinário", "Estimativo", "Global"].includes(input.type)) throw new FinanceError("Tipo de empenho inválido.");
   return db.$transaction(async (tx) => {
     await lockAppropriation(tx, input.appropriationId);
@@ -545,6 +551,7 @@ export async function createCommitment(
     await assertCmdAvailability(tx, appropriation, input.date, value, reservation);
     const availability = await getBudgetAvailability(tx, appropriation.id);
     if (availability.available.lessThan(0)) throw new FinanceError("A dotação não possui disponibilidade válida para empenho.");
+    if (obrasServiceId) await lockObrasService(tx, obrasServiceId);
     const process = input.processId
       ? await tx.process.findUnique({
           where: { id: input.processId },
@@ -558,6 +565,18 @@ export async function createCommitment(
     if (contract) {
       if (contract.supplierId !== input.supplierId) throw new FinanceError("O contrato informado não pertence ao fornecedor do empenho.");
     }
+    const obrasService = obrasServiceId
+      ? await tx.obrasServico.findUnique({
+          where: { id: obrasServiceId },
+          select: { id: true, protocolo: true, active: true, commitmentId: true, budgetAppropriationId: true },
+        })
+      : null;
+    if (obrasServiceId && !obrasService) throw new FinanceError("Ordem de serviço/obra informada não encontrada.");
+    if (obrasService && !obrasService.active) throw new FinanceError("A ordem de serviço/obra informada está inativa.");
+    if (obrasService?.commitmentId) throw new FinanceError("A ordem de serviço/obra já está vinculada a outro empenho.");
+    if (obrasService?.budgetAppropriationId && obrasService.budgetAppropriationId !== appropriation.id) {
+      throw new FinanceError("A ordem de serviço/obra pertence a outra dotação orçamentária.");
+    }
     if (appropriation.expenseNature.procurementOriginPolicy === "CONTRACT" && !contract) {
       throw new FinanceError("A natureza de despesa exige um contrato vigente para emitir o empenho.");
     }
@@ -566,7 +585,7 @@ export async function createCommitment(
     }
     const creditor = await creditorForSupplier(tx, input.supplierId);
     const commitment = await tx.commitment.create({
-      data: { number: input.number.trim(), date: input.date, valueDecimal: value, value: legacyMoney(value), type: input.type, history: input.history.trim(), appropriationId: appropriation.id, supplierId: input.supplierId, creditorId: creditor.id, processId: input.processId || undefined, contractId: input.contractId || undefined, reservationId: reservation.id, status: "Emitido" },
+      data: { number: input.number.trim(), date: input.date, valueDecimal: value, value: legacyMoney(value), type: input.type, history: input.history.trim(), appropriationId: appropriation.id, supplierId: input.supplierId, creditorId: creditor.id, processId: input.processId || undefined, contractId: input.contractId || undefined, reservationId: reservation.id, status: "Emitido", obrasServices: obrasService ? { connect: { id: obrasService.id } } : undefined },
     });
     await createFinancialDocument(tx, actor, {
       documentType: "NOTA_DE_EMPENHO",
@@ -585,6 +604,7 @@ export async function createCommitment(
           supplierId: commitment.supplierId,
           creditorId: commitment.creditorId,
           reservationId: commitment.reservationId,
+          obrasService: obrasService ? { id: obrasService.id, protocolo: obrasService.protocolo, budgetAppropriationId: obrasService.budgetAppropriationId } : null,
         },
       },
     });
@@ -626,7 +646,7 @@ export async function createCommitment(
         });
       }
     }
-    await audit(tx, actor, "CREATE", "Commitment", commitment.id, { value: jsonMoney(value), reservationId: reservation.id, creditorId: creditor.id, processId: commitment.processId, contractId: commitment.contractId }, year.id);
+    await audit(tx, actor, "CREATE", "Commitment", commitment.id, { value: jsonMoney(value), reservationId: reservation.id, creditorId: creditor.id, processId: commitment.processId, contractId: commitment.contractId, obrasServiceId: obrasService?.id }, year.id);
     return commitment;
   });
 }
@@ -817,8 +837,13 @@ export async function createSettlement(db: PrismaClient, actor: FinanceActor, in
         retentions: calculatedRetentions.map((retention) => ({
           ruleId: retention.rule.id,
           type: retention.type,
+          description: retention.rule.description,
           baseValue: jsonMoney(retention.baseValue),
+          ratePercentage: retention.ratePercentage.toFixed(4),
           value: jsonMoney(retention.retainedValue),
+          beneficiaryName: retention.rule.beneficiaryName,
+          beneficiaryDocument: retention.rule.beneficiaryDocument,
+          dueDate: calculateRetentionDueDate(input.date, retention.rule.dueDays)?.toISOString(),
         })),
       },
     });
@@ -1103,6 +1128,7 @@ export async function settleWithholdingPayable(
     withholdingPayableId: string;
     bankAccountId: string;
     paymentDate: Date;
+    receiptDocumentId: string;
     idempotencyKey?: string;
   },
 ) {
@@ -1113,6 +1139,21 @@ export async function settleWithholdingPayable(
       include: {
         retention: {
           include: {
+            settlementRetention: {
+              include: {
+                settlement: {
+                  select: {
+                    id: true,
+                    documentRef: true,
+                    fiscalDocumentNumber: true,
+                    fiscalDocumentSeries: true,
+                    fiscalDocumentIssueDate: true,
+                    fiscalDocumentAccessKey: true,
+                    document: { select: { id: true, title: true, documentType: true, status: true } },
+                  },
+                },
+              },
+            },
             payment: {
               include: {
                 commitment: {
@@ -1130,6 +1171,16 @@ export async function settleWithholdingPayable(
     // Impede recolher retenção se o pagamento de origem não estiver no status 'Paga'
     if (payable.retention?.payment?.status !== "Paga") {
       throw new FinanceError("A retenção/consignação só pode ser recolhida após a efetivação (status Paga) do pagamento correspondente.");
+    }
+    if (!input.receiptDocumentId?.trim()) {
+      throw new FinanceError("Vincule o comprovante de recolhimento já cadastrado no GED.");
+    }
+    const receiptDocument = await tx.document.findUnique({
+      where: { id: input.receiptDocumentId.trim() },
+      select: { id: true, title: true, documentType: true, status: true },
+    });
+    if (!receiptDocument || receiptDocument.status !== "Válido") {
+      throw new FinanceError("O comprovante de recolhimento GED informado não está válido.");
     }
 
     await lockBankAccount(tx, input.bankAccountId);
@@ -1158,7 +1209,7 @@ export async function settleWithholdingPayable(
     const year = await financialYearForPosting(tx, input.paymentDate);
     const updated = await tx.withholdingPayable.update({
       where: { id: input.withholdingPayableId },
-      data: { status: "Recolhida" },
+      data: { status: "Recolhida", receiptDocumentId: receiptDocument.id },
     });
 
     await tx.treasuryMovement.create({
@@ -1178,6 +1229,31 @@ export async function settleWithholdingPayable(
       },
     });
 
+    await createFinancialDocument(tx, actor, {
+      documentType: "COMPROVANTE_RECOLHIMENTO_RETENCAO",
+      number: `CRR-${payable.id}`,
+      title: `Registro interno de recolhimento de retenção ${payable.retention.type}`,
+      withholdingPayableId: payable.id,
+      snapshot: {
+        withholdingPayable: { id: payable.id, status: "Recolhida", value: jsonMoney(value), dueDate: payable.dueDate?.toISOString(), paymentDate: input.paymentDate.toISOString() },
+        retention: {
+          id: payable.retention.id,
+          settlementRetentionId: payable.retention.settlementRetentionId,
+          retentionRuleId: payable.retention.retentionRuleId,
+          type: payable.retention.type,
+          description: payable.retention.description,
+          value: jsonMoney(payable.retention.valueDecimal),
+          beneficiaryName: payable.retention.beneficiaryName,
+          beneficiaryDocument: payable.retention.beneficiaryDocument,
+        },
+        sourcePayment: { id: payable.retention.payment.id, orderNumber: payable.retention.payment.orderNumber, date: payable.retention.payment.date.toISOString(), commitmentId: payable.retention.payment.commitmentId, settlementId: payable.retention.payment.settlementId },
+        sourceSettlement: payable.retention.settlementRetention?.settlement
+          ? { ...payable.retention.settlementRetention.settlement, fiscalDocumentIssueDate: payable.retention.settlementRetention.settlement.fiscalDocumentIssueDate?.toISOString() }
+          : null,
+        receiptDocument,
+      },
+    });
+
     await postAccountingEventInTransaction(tx, actor, {
       financialYearId: year.id,
       date: input.paymentDate,
@@ -1189,7 +1265,7 @@ export async function settleWithholdingPayable(
       sourceId: payable.id,
       idempotencyKey: `FINANCEIRO:WITHHOLDING:${payable.id}:RETENCAO_RECOLHIDA`,
     });
-    await audit(tx, actor, "SETTLE", "WithholdingPayable", payable.id, { value: jsonMoney(value), bankAccountId: input.bankAccountId }, year.id);
+    await audit(tx, actor, "SETTLE", "WithholdingPayable", payable.id, { value: jsonMoney(value), bankAccountId: input.bankAccountId, receiptDocumentId: receiptDocument.id }, year.id);
     return updated;
   });
 }

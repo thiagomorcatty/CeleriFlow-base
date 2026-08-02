@@ -1,6 +1,6 @@
 {
   "name": "celeriflow",
-  "version": "1.2151.0",
+  "version": "1.235.0",
   "private": true,
   "scripts": {
     "version:bump": "node scripts/bump-version.mjs",

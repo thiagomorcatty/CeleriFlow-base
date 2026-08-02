@@ -15,7 +15,7 @@ export default async function FinanceiroRelatoriosPage() {
     <div className="max-w-3xl space-y-6 p-6 md:p-8">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Relatórios Financeiros</h1>
-        <p className="mt-1 text-sm text-slate-500">Emissão interna em CSV ou PDF a partir dos dados contábeis, orçamentários e de planejamento vigentes.</p>
+        <p className="mt-1 text-sm text-slate-500">Emissão interna em CSV ou PDF a partir dos dados contábeis, orçamentários, de planejamento e de tesouraria registrados.</p>
       </div>
       <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="font-semibold text-slate-800">Emitir relatório</h2>
@@ -46,8 +46,15 @@ export default async function FinanceiroRelatoriosPage() {
                 <option value="CSV">CSV</option>
               </select>
             </label>
+            <label className="text-sm font-medium text-slate-700">
+              Mês do balancete mensal
+              <select name="month" defaultValue="" className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm">
+                <option value="">Não aplicável</option>
+                {Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1}</option>)}
+              </select>
+            </label>
             <div className="sm:col-span-2 flex items-center justify-between gap-4 border-t border-slate-100 pt-4">
-              <p className="text-xs text-slate-500">A emissão é registrada na auditoria financeira. Documentos internos não usam leiautes oficiais de TCE/STN.</p>
+              <p className="text-xs text-slate-500">Informe o mês somente para Balancete Contábil Mensal. A emissão é auditada e cada arquivo informa escopo, situação e completude; documentos internos não usam leiautes oficiais de TCE/STN.</p>
               <button type="submit" className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Baixar relatório</button>
             </div>
           </form>

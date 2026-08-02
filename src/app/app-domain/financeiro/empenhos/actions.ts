@@ -53,6 +53,7 @@ export async function createCommitment(data: {
   reservationId: string;
   processId?: string;
   contractId?: string;
+  obrasServiceId?: string;
 }): Promise<ActionResult> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
@@ -66,6 +67,10 @@ export async function createCommitment(data: {
     revalidatePath("/financeiro/empenhos");
     revalidatePath("/financeiro/orcamento");
     revalidateContractExecution(data.contractId);
+    if (data.obrasServiceId) {
+      revalidatePath("/obras");
+      revalidatePath("/obras/ordens-servico");
+    }
     revalidateProtocolProcess(commitment.processId);
     return {};
   } catch (error) {

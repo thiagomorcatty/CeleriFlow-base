@@ -42,6 +42,7 @@ type Commitment = {
     budgetUnit: { name: string };
   };
   financialDocument: { id: string; number: string; title: string } | null;
+  obrasServices: { id: string; protocolo: string }[];
 };
 
 type SupplierOption = {
@@ -54,6 +55,7 @@ type AppropriationOption = { id: string; code: string; budgetUnit: { name: strin
 type ReservationOption = { id: string; number: string; value: number; appropriationId: string; appropriation: { code: string } };
 type ProcessOption = { id: string; protocolNumber: string; description: string | null };
 type ContractOption = { id: string; number: string; object: string; supplierId: string; status: string };
+type ObrasServiceOption = { id: string; protocolo: string; tipo: string; descricao: string; local: string; budgetAppropriationId: string | null; budgetAppropriation: { code: string } | null };
 
 export default function EmpenhosClient({
   commitments,
@@ -62,6 +64,7 @@ export default function EmpenhosClient({
   reservations,
   processes,
   contracts,
+  obrasServices,
 }: {
   commitments: Commitment[];
   suppliers: SupplierOption[];
@@ -69,6 +72,7 @@ export default function EmpenhosClient({
   reservations: ReservationOption[];
   processes: ProcessOption[];
   contracts: ContractOption[];
+  obrasServices: ObrasServiceOption[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -86,6 +90,7 @@ export default function EmpenhosClient({
     reservationId: "",
     processId: "",
     contractId: "",
+    obrasServiceId: "",
   });
 
   const filteredCommitments = commitments.filter(c =>
@@ -107,6 +112,7 @@ export default function EmpenhosClient({
       reservationId: "",
       processId: "",
       contractId: "",
+      obrasServiceId: "",
     });
     setIsModalOpen(true);
   };
@@ -188,6 +194,7 @@ export default function EmpenhosClient({
                 <TableHead>Unidade Orçamentária</TableHead>
                 <TableHead>Valor (R$)</TableHead>
                 <TableHead>Documento interno</TableHead>
+                <TableHead>Obra/OS</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -195,7 +202,7 @@ export default function EmpenhosClient({
             <TableBody>
               {filteredCommitments.length === 0 ? (
                 <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground h-32">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground h-32">
                     <div className="flex flex-col items-center justify-center">
                       <FileText className="h-8 w-8 mb-2 opacity-20" />
                       Nenhum empenho encontrado.
@@ -215,6 +222,7 @@ export default function EmpenhosClient({
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(commitment.value)}
                     </TableCell>
                     <TableCell className="text-sm">{commitment.financialDocument?.number || "-"}</TableCell>
+                    <TableCell className="text-sm">{commitment.obrasServices.map((service) => service.protocolo).join(", ") || "-"}</TableCell>
                     <TableCell>
                       <Badge variant={
                         commitment.status === 'Pago' ? 'default' : 
@@ -253,6 +261,17 @@ export default function EmpenhosClient({
                 <Label htmlFor="date">Data</Label>
                 <Input id="date" type="date" required value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="obrasServiceId">Obra / ordem de serviço (opcional)</Label>
+              <Select value={formData.obrasServiceId} onValueChange={v => setFormData({...formData, obrasServiceId: v as string})}>
+                <SelectTrigger><SelectValue placeholder="Sem obra/ordem de serviço" /></SelectTrigger>
+                <SelectContent>
+                  {obrasServices.filter((service) => !service.budgetAppropriationId || service.budgetAppropriationId === formData.appropriationId).map((service) => <SelectItem key={service.id} value={service.id}>{service.protocolo} - {service.tipo}: {service.descricao}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Somente ordens ativas e ainda não vinculadas podem ser selecionadas. Convênio, campanha/publicidade e dívida fundada não são exibidos porque não há cadastro referencial próprio neste ambiente.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

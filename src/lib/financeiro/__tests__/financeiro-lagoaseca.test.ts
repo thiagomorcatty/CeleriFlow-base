@@ -247,6 +247,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
           await settleWithholdingPayable(prisma, actor, {
             withholdingPayableId: payable.id,
             bankAccountId: "cl-lagoaseca-bb-pref-1000",
+            receiptDocumentId: "doc-nf-lagoaseca-01",
             paymentDate: testDate,
           });
         },
@@ -266,12 +267,17 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       assert.equal(Number(bankBalanceBeforePayment.minus(bankBalanceAfterPayment).toFixed(2)), 890.00);
 
       // j) Recolhe a retenção INSS -> Status vira 'Recolhida'
-      await settleWithholdingPayable(prisma, actor, {
-        withholdingPayableId: payable.id,
-        bankAccountId: "cl-lagoaseca-bb-pref-1000",
-        paymentDate: testDate,
-      });
-      await assertAccountingTransaction("RETENCAO_RECOLHIDA", payable.id);
+        await settleWithholdingPayable(prisma, actor, {
+          withholdingPayableId: payable.id,
+          bankAccountId: "cl-lagoaseca-bb-pref-1000",
+          receiptDocumentId: "doc-nf-lagoaseca-01",
+          paymentDate: testDate,
+        });
+        await assertAccountingTransaction("RETENCAO_RECOLHIDA", payable.id);
+        const withholdingDocument = await prisma.financialDocument.findUniqueOrThrow({ where: { withholdingPayableId: payable.id } });
+        assert.equal(withholdingDocument.documentType, "COMPROVANTE_RECOLHIMENTO_RETENCAO");
+        assert.equal((withholdingDocument.snapshot as { receiptDocument: { id: string }; sourcePayment: { id: string } }).receiptDocument.id, "doc-nf-lagoaseca-01");
+        assert.equal((withholdingDocument.snapshot as { receiptDocument: { id: string }; sourcePayment: { id: string } }).sourcePayment.id, payment.id);
 
       const bankBalanceAfterRetention = await getBankAccountBalance(prisma, "cl-lagoaseca-bb-pref-1000", testDate);
       // Saída adicional da retenção de R$ 110,00 -> Total acumulado = 890 + 110 = 1000,00!
@@ -290,6 +296,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
     } finally {
       // A auditoria financeira e append-only; os fatos temporarios sao limpos, mas seus logs permanecem como evidencia.
       if (paymentIds.length) await prisma.financialDocument.deleteMany({ where: { paymentId: { in: paymentIds } } });
+      if (payableIds.length) await prisma.financialDocument.deleteMany({ where: { withholdingPayableId: { in: payableIds } } });
       if (settlementId) await prisma.financialDocument.deleteMany({ where: { settlementId } });
       if (commitmentId) await prisma.financialDocument.deleteMany({ where: { commitmentId } });
       await cleanupAccountingTransactions([commitmentId, settlementId, ...paymentIds, ...payableIds].filter(Boolean));

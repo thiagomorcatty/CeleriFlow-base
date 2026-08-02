@@ -71,6 +71,7 @@ export default function PagamentosClient({
   bankAccounts,
   suppliers,
   pendingWithholdings = [],
+  receiptDocuments,
 }: {
   payments: Payment[];
   commitments: CommitmentOption[];
@@ -78,6 +79,7 @@ export default function PagamentosClient({
   bankAccounts: BankAccountOption[];
   suppliers: SupplierOption[];
   pendingWithholdings?: PendingWithholding[];
+  receiptDocuments: { id: string; title: string; documentType: string }[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -89,6 +91,7 @@ export default function PagamentosClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRetentionModalOpen, setIsRetentionModalOpen] = useState(false);
   const [selectedBankAccountId, setSelectedBankAccountId] = useState(bankAccounts[0]?.id || "");
+  const [receiptDocumentId, setReceiptDocumentId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -186,7 +189,11 @@ export default function PagamentosClient({
       alert("Selecione uma conta bancária ativa para o recolhimento.");
       return;
     }
-    const result = await settleWithholdingPayableAction(withholdingPayableId, selectedBankAccountId);
+    if (!receiptDocumentId) {
+      alert("Selecione o comprovante de recolhimento cadastrado no GED.");
+      return;
+    }
+    const result = await settleWithholdingPayableAction(withholdingPayableId, selectedBankAccountId, receiptDocumentId);
     if (result.error) alert(result.error);
   };
 
@@ -411,7 +418,6 @@ export default function PagamentosClient({
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="commitmentId">Empenho de Referência</Label>
               <Select value={formData.commitmentId} onValueChange={v => {
@@ -478,6 +484,16 @@ export default function PagamentosClient({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Comprovante de Recolhimento (GED)</Label>
+              <Select value={receiptDocumentId} onValueChange={(v) => setReceiptDocumentId(v as string)}>
+                <SelectTrigger><SelectValue placeholder="Selecione o comprovante válido" /></SelectTrigger>
+                <SelectContent>
+                  {receiptDocuments.map((document) => <SelectItem key={document.id} value={document.id}>{document.title} ({document.documentType})</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">O recolhimento gera um registro interno vinculado a este comprovante, à retenção e à ordem de pagamento de origem.</p>
             </div>
             <Table>
               <TableHeader>

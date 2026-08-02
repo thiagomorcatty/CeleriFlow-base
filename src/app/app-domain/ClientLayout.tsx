@@ -66,8 +66,8 @@ export default function ClientLayout({
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/80 backdrop-blur-md px-4 sm:px-6 shadow-sm">
         
-        {/* Left: CeleriFlow Logo & Version Badge */}
-        <div className="w-1/3 flex justify-start items-center gap-2">
+        {/* Left: CeleriFlow Logo */}
+        <div className="w-1/3 flex justify-start items-center">
           <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity py-1">
             <Image 
               src="/favicon.png" 
@@ -78,9 +78,6 @@ export default function ClientLayout({
               priority
             />
           </Link>
-          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono bg-primary/10 text-primary border border-primary/20 shadow-xs">
-            {APP_VERSION}
-          </span>
         </div>
 
         {/* Center: City Hall Logo & Title */}

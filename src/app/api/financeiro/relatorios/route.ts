@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { financialReportFilename, generateInternalReportDataset, isFinancialReportType, isReportFormat, reportDatasetCsv, savePublicFinancialReportSnapshot } from "@/lib/financeiro/report-delivery";
+import { financialReportFilename, generateInternalReportDataset, isFinancialReportType, isReportFormat, isReportMonth, reportDatasetCsv, reportRequiresMonth, savePublicFinancialReportSnapshot } from "@/lib/financeiro/report-delivery";
 import { generateReportPdf } from "@/lib/financeiro/report-export";
 import { AccessError, getTenantContextForModule, isSystemAdministrator } from "@/lib/platform/tenant-context";
 
@@ -20,6 +20,11 @@ export async function GET(request: NextRequest) {
     if (!financialYearId || !isFinancialReportType(reportType) || !isReportFormat(format)) {
       return NextResponse.json({ error: "Selecione um exercício, tipo de relatório e formato válidos." }, { status: 400 });
     }
+    const monthParameter = request.nextUrl.searchParams.get("month");
+    const month = monthParameter === null || monthParameter === "" ? undefined : Number(monthParameter);
+    if ((reportRequiresMonth(reportType) && !isReportMonth(month ?? null)) || (month !== undefined && !isReportMonth(month))) {
+      return NextResponse.json({ error: "Informe um mês válido para o relatório selecionado." }, { status: 400 });
+    }
 
     const financialYear = await context.prisma.financialYear.findUnique({
       where: { id: financialYearId },
@@ -27,7 +32,7 @@ export async function GET(request: NextRequest) {
     });
     if (!financialYear) throw new AccessError("Exercício financeiro não encontrado.", 404);
 
-    const dataset = await generateInternalReportDataset(context.prisma, reportType, financialYear.id, financialYear.year);
+    const dataset = await generateInternalReportDataset(context.prisma, reportType, financialYear.id, financialYear.year, { month });
     const csv = reportDatasetCsv(dataset);
     const snapshot = await savePublicFinancialReportSnapshot(context.prisma, {
       reportType,

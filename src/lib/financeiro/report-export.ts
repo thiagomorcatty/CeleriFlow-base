@@ -21,7 +21,9 @@ export function generateReportPdf(dataset: InternalReportDataset): Promise<Uint8
     const bottom = () => document.page.height - document.page.margins.bottom;
     const heading = () => {
       document.font("Helvetica-Bold").fontSize(15).text(dataset.title);
-      document.font("Helvetica").fontSize(9).text(`Exercício ${dataset.year} | Uso interno | Gerado em ${new Date().toLocaleString("pt-BR")}`);
+      document.font("Helvetica").fontSize(9).text(`Exercício ${dataset.year} | ${dataset.metadata.scope} | ${dataset.metadata.referencePeriod}`);
+      document.font("Helvetica").fontSize(8).text(`Situação: ${dataset.metadata.status} | Completude estatutária: ${dataset.metadata.statutoryCompleteness} | Snapshot público: ${dataset.metadata.publicSnapshotEligible ? "elegível sob condição" : "não aprovado"}`);
+      document.font("Helvetica").fontSize(8).text(dataset.metadata.publicSnapshotCondition);
       dataset.warnings.forEach((warning) => document.fillColor("#8a3b12").fontSize(8).text(warning));
       document.fillColor("black").moveDown(0.7);
     };

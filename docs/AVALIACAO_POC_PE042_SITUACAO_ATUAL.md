@@ -19,12 +19,22 @@ Um requisito so recebe `Atende` quando possui fluxo executavel, dado coerente, p
 | Receita e arrecadacao | Parcial | Receita interna confirmada, tesouraria e tributacao integrada em parte | Receita intraorcamentaria/redutora, redistribuicao, anulação/estorno completo e classificacao exigida |
 | Caixa, bancos e conciliacao | Parcial avancado | Contas por UG/fonte, transferencias e conciliacao CSV manual | Fechamento diario, relatorio de extrato completo, automatizacao OFX/CNAB/API e conciliacao automatica |
 | Patrimonio e estoque integrados | Parcial | Depreciacao, historico de valor, baixa/alienacao interna, entradas/saidas/ajustes de estoque | Inventario com bloqueio, reavaliacao/impairment/custos subsequentes, reflexo contabil/receita da alienacao e integracao com liquidacao |
-| Balancetes, RREO, RGF e PCA | Parcial | Dados para Diario, Razao, Balancete, RREO, RGF e balancos; CSV auditado | Layouts oficiais completos, PCA, balancetes mensais, notas explicativas, PDF/XLSX/Word e demonstrativos faltantes |
+| Balancetes, RREO, RGF e PCA | Parcial | Emissão interna auditada em CSV/PDF de Diário, Razão, balancete acumulado e mensal, RREO, RGF, balanços orçamentário/patrimonial, sínteses anuais de tesouraria, PCA parcial e conciliações registradas; metadados de escopo/situação/completude e elegibilidade pública explícitos | Layouts oficiais completos, validações legais, notas explicativas, DVP/DFC e Balanço Financeiro estatutários, PCA completa, XLSX/Word e diagnóstico formal |
 | Portal da Transparencia | Parcial | Consultas publicas de receitas/despesas, API inicial e exportacao CSV | Cobertura de todos os campos, publicacao automatica de demonstrativos, PDF/TXT, documentos/versionamento, ajuda e reconciliacao integral |
 | Usuarios, UGs, permissoes e logs | Parcial avancado | RBAC, segregacao por UG, auditoria financeira append-only e bloqueios de fluxo | Usuarios Firebase provisionados, log transversal de login/leitura/exportacao/versoes e backup/restore comprovado |
 | Base modelo coerente | Parcial avancado | Seed Lagoa Seca, matriz POC, 27+ testes e cenarios financeiros | Dados integralmente ligados ao novo encadeamento PPA/Programa/Acao e roteiro/evidencias de todos os itens |
 
 **Conclusao do Grupo A:** ainda nao esta pronto para declarar POC PE042 aprovada. Os itens acima marcados como `Parcial` seriam `Nao atende` em avaliacao binaria ate a lacuna indicada ser demonstrada.
+
+## Matriz de evidências - relatórios internos
+
+| Entrega | Evidência implementada | Situação declarada | Publicação por snapshot |
+|---|---|---|---|
+| Balancete mensal | Recorte por mês, saldos por conta e situação do fechamento mensal registrado | Interno em revisão; não é leiaute oficial nem diagnóstico do balancete | Não aprovado |
+| Anexos PPA, LDO e LOA | Programas, ações, metas, prioridades, riscos, programação, CMD, MBA e créditos registrados | Interno parcial; não substitui anexos legais obrigatórios | Não aprovado |
+| Conciliação de tesouraria | Conciliações bancárias registradas, saldos, diferença e situação | Interno parcial; não comprova extrato completo, fechamento diário ou automação | Não aprovado |
+| Balanço financeiro e fluxo de caixa | Agregação de movimentos de tesouraria confirmados e saldos calculados por conta | Interno parcial; não constitui demonstração estatutária | Não aprovado |
+| RREO, RGF, balancete acumulado e balanços existentes | CSV/PDF com auditoria e metadados; retenção de guarda/versionamento para tipos aprovados | Interno; os layouts oficiais permanecem pendentes | Elegível somente para os tipos já aprovados no portal, com encerramento anual para balanços anuais |
 
 ## Grupo B - Evidencia funcional ou homologacao
 

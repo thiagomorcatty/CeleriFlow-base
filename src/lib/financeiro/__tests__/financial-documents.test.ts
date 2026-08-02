@@ -43,9 +43,20 @@ test("generates linked internal financial documents with each financial fact", a
   let commitmentId = "";
   let settlementId = "";
   let paymentId = "";
+  let obrasServiceId = "";
 
   process.env.CELERIFLOW_ACCOUNTING_MODE = "POC";
   try {
+    const obrasService = await prisma.obrasServico.create({
+      data: {
+        protocolo: `OS-DOC-${suffix}`,
+        tipo: "Teste",
+        descricao: "Ordem de serviço para rastreabilidade do empenho",
+        local: "Base POC",
+        budgetAppropriationId: appropriation.id,
+      },
+    });
+    obrasServiceId = obrasService.id;
     const expense = await createExpenseRequest(prisma, actor, {
       date,
       description: `Documentos financeiros ${suffix}`,
@@ -76,12 +87,15 @@ test("generates linked internal financial documents with each financial fact", a
       appropriationId: appropriation.id,
       supplierId: "supp-lagoaseca-01",
       reservationId: reservation.id,
+      obrasServiceId,
     });
     commitmentId = commitment.id;
     const commitmentDocument = await prisma.financialDocument.findUniqueOrThrow({ where: { commitmentId } });
     assert.equal(commitmentDocument.documentType, "NOTA_DE_EMPENHO");
     assert.equal(commitmentDocument.number, `NE-${commitment.number}`);
     assert.equal(commitmentDocument.generatedByUsuarioId, actor.usuarioId);
+    assert.equal((commitmentDocument.snapshot as { commitment: { obrasService: { id: string; protocolo: string } } }).commitment.obrasService.id, obrasServiceId);
+    assert.equal((commitmentDocument.snapshot as { commitment: { obrasService: { id: string; protocolo: string } } }).commitment.obrasService.protocolo, `OS-DOC-${suffix}`);
 
     const settlement = await createSettlement(prisma, actor, {
       date,
@@ -127,7 +141,9 @@ test("generates linked internal financial documents with each financial fact", a
     }
     if (paymentId) await prisma.payment.deleteMany({ where: { id: paymentId } });
     if (settlementId) await prisma.settlement.deleteMany({ where: { id: settlementId } });
+    if (obrasServiceId) await prisma.obrasServico.updateMany({ where: { id: obrasServiceId, commitmentId }, data: { commitmentId: null } });
     if (commitmentId) await prisma.commitment.deleteMany({ where: { id: commitmentId } });
+    if (obrasServiceId) await prisma.obrasServico.deleteMany({ where: { id: obrasServiceId } });
     if (reservationId) await prisma.budgetReservation.deleteMany({ where: { id: reservationId } });
     if (expenseId) await prisma.expense.deleteMany({ where: { id: expenseId } });
     if (previousAccountingMode === undefined) delete process.env.CELERIFLOW_ACCOUNTING_MODE;

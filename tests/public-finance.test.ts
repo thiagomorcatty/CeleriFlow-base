@@ -3,7 +3,7 @@ import test from "node:test";
 import { calculateRetentions } from "../src/lib/financeiro/retencoes.ts";
 import { runMockIntegration } from "../src/lib/integrations/registry.ts";
 import { exportPublicDataCSV, getPublicExpenses, getPublicRevenues, parsePublicDataFilter } from "../src/lib/transparencia/portal-fiscal.ts";
-import { financialReportFilename, generateFinancialReportCsv, isFinancialReportType, isReportFormat, reportDatasetCsv } from "../src/lib/financeiro/report-delivery.ts";
+import { financialReportFilename, generateFinancialReportCsv, generateInternalReportDataset, isFinancialReportType, isReportFormat, isReportMonth, reportDatasetCsv, reportRequiresMonth } from "../src/lib/financeiro/report-delivery.ts";
 import { generateReportPdf } from "../src/lib/financeiro/report-export.ts";
 import { getPublicBiddings, getPublicContracts, getPublicFinancialReportSnapshots, isPublicFinancialReportType, publicFinancialReportDocumentType } from "../src/lib/transparencia/portal-public.ts";
 
@@ -118,9 +118,15 @@ test("executa conectores externos em modo mock sem chamada de rede", () => {
 
 test("aceita apenas tipos internos de relatório e gera nome CSV previsível", () => {
   assert.equal(isFinancialReportType("RREO"), true);
+  assert.equal(isFinancialReportType("BALANCETE_MENSAL"), true);
+  assert.equal(isFinancialReportType("LOA_ANEXO_PROGRAMACAO"), true);
   assert.equal(isFinancialReportType("PDF"), false);
   assert.equal(isReportFormat("PDF"), true);
   assert.equal(isReportFormat("HTML"), false);
+  assert.equal(isReportMonth(1), true);
+  assert.equal(isReportMonth(13), false);
+  assert.equal(reportRequiresMonth("BALANCETE_MENSAL"), true);
+  assert.equal(reportRequiresMonth("BALANCETE"), false);
   assert.equal(financialReportFilename("BALANCO_PATRIMONIAL", 2026), "relatorio-balanco_patrimonial-2026.csv");
 });
 
@@ -129,6 +135,14 @@ test("gera PDF binário a partir do conjunto canônico", async () => {
     title: "Relatório interno de teste",
     year: 2026,
     warnings: ["Uso interno."],
+    metadata: {
+      status: "INTERNAL_PARTIAL" as const,
+      scope: "Teste",
+      referencePeriod: "Exercício 2026",
+      statutoryCompleteness: "NOT_STATUTORY" as const,
+      publicSnapshotEligible: false,
+      publicSnapshotCondition: "Não aprovado para snapshot público.",
+    },
     sections: [{ title: "Dados", rows: [{ descricao: "=não é fórmula", valor: 10 }] }],
   };
   const pdf = await generateReportPdf(dataset);
@@ -136,6 +150,8 @@ test("gera PDF binário a partir do conjunto canônico", async () => {
 
   assert.equal(Buffer.from(pdf).subarray(0, 5).toString("ascii"), "%PDF-");
   assert.match(csv.csv, /"'=não é fórmula"/);
+  assert.match(csv.csv, /"Metadados do relatório"/);
+  assert.match(csv.csv, /"INTERNAL_PARTIAL"/);
 });
 
 test("reconhece apenas relatórios legais publicáveis e cria uma chave estável para o snapshot", () => {
@@ -224,7 +240,81 @@ test("entrega o Diário canônico como CSV seguro", async () => {
 
   const result = await generateFinancialReportCsv(db, "DIARIO", "year-2026");
 
-  assert.equal(result.rowCount, 1);
+  assert.equal(result.rowCount, 2);
   assert.match(result.csv, /"data","historico","contaCodigo"/);
   assert.match(result.csv, /"'=FORMULA"/);
+});
+
+test("gera balancete mensal com período e situação de fechamento explícitos", async () => {
+  const db = {
+    accountingPlan: {
+      findMany: async () => [{
+        id: "account-1",
+        code: "1.1.1",
+        name: "Caixa",
+        entries: [
+          { type: "Débito", valueDecimal: 120 },
+          { type: "Crédito", valueDecimal: 20 },
+        ],
+      }],
+    },
+    monthlyAccountingClose: {
+      findMany: async () => [{
+        competence: new Date("2026-02-01T00:00:00.000Z"),
+        status: "ENCERRADO",
+        closedAt: new Date("2026-03-01T00:00:00.000Z"),
+        pendingSummary: null,
+      }],
+    },
+  } as never;
+
+  const report = await generateInternalReportDataset(db, "BALANCETE_MENSAL", "year-2026", 2026, { month: 2 });
+
+  assert.equal(report.metadata.scope, "Mensal");
+  assert.equal(report.metadata.referencePeriod, "Fevereiro de 2026");
+  assert.equal(report.metadata.publicSnapshotEligible, false);
+  assert.equal(report.sections[0].rows[0].situacao, "ENCERRADO");
+  assert.equal(report.sections[1].rows[0].saldoMovimentacao, 100);
+  await assert.rejects(() => generateInternalReportDataset(db, "BALANCETE_MENSAL", "year-2026", 2026), /mês válido/);
+});
+
+test("gera relatório de conciliações e síntese anual somente a partir dos registros internos", async () => {
+  const db = {
+    bankReconciliation: {
+      findMany: async () => [{
+        date: new Date("2026-03-01T00:00:00.000Z"),
+        periodStart: new Date("2026-02-01T00:00:00.000Z"),
+        periodEnd: new Date("2026-02-28T00:00:00.000Z"),
+        systemBalance: 100,
+        systemBalanceDecimal: null,
+        bankBalance: 90,
+        bankBalanceDecimal: null,
+        status: "Divergente",
+        bankAccount: {
+          bankName: "Banco Municipal",
+          agency: "0001",
+          accountNumber: "123-4",
+          accountType: "Movimento",
+          budgetUnit: { code: "02.001", name: "Saúde" },
+          resourceSource: { code: "500", name: "Ordinários" },
+        },
+      }],
+    },
+    treasuryMovement: {
+      findMany: async () => [
+        { bankAccountId: "bank-1", type: "Revenue", direction: "Entrada", valueDecimal: 200, bankAccount: { bankName: "Banco Municipal", agency: "0001", accountNumber: "123-4", budgetUnit: { code: "02.001", name: "Saúde" }, resourceSource: { code: "500", name: "Ordinários" } } },
+        { bankAccountId: "bank-1", type: "Payment", direction: "Saída", valueDecimal: 80, bankAccount: { bankName: "Banco Municipal", agency: "0001", accountNumber: "123-4", budgetUnit: { code: "02.001", name: "Saúde" }, resourceSource: { code: "500", name: "Ordinários" } } },
+      ],
+    },
+  } as never;
+
+  const reconciliation = await generateInternalReportDataset(db, "CONCILIACAO_TESOURARIA", "year-2026", 2026);
+  const balance = await generateInternalReportDataset(db, "BALANCO_FINANCEIRO", "year-2026", 2026);
+
+  assert.equal(reconciliation.metadata.status, "INTERNAL_PARTIAL");
+  assert.equal(reconciliation.sections[0].rows[0].diferenca, 10);
+  assert.equal(reconciliation.sections[1].rows[0].quantidade, 1);
+  assert.equal(balance.metadata.publicSnapshotEligible, false);
+  assert.equal(balance.sections[2].rows[0].fluxoLiquido, 120);
+  assert.match(balance.warnings.join(" "), /não constitui Balanço Financeiro oficial/);
 });
