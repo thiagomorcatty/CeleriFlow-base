@@ -8,6 +8,7 @@ export const publicFinancialReportOptions = [
   { type: "BALANCETE", label: "Balancete Contábil" },
   { type: "BALANCO_ORCAMENTARIO", label: "Balanço Orçamentário" },
   { type: "BALANCO_PATRIMONIAL", label: "Balanço Patrimonial" },
+  { type: "PCA", label: "Prestação de Contas Anual (PCA)" },
 ] as const;
 
 export type PublicFinancialReportType = (typeof publicFinancialReportOptions)[number]["type"];

@@ -529,7 +529,25 @@ export async function cancelBudgetReservation(db: PrismaClient, actor: FinanceAc
 export async function createCommitment(
   db: PrismaClient,
   actor: FinanceActor,
-  input: { number: string; date: Date; value: Prisma.Decimal | string | number; type: string; history: string; appropriationId: string; supplierId: string; reservationId: string; processId?: string; contractId?: string; obrasServiceId?: string },
+  input: {
+    number: string;
+    date: Date;
+    value: Prisma.Decimal | string | number;
+    type: string;
+    history: string;
+    appropriationId: string;
+    supplierId: string;
+    reservationId: string;
+    processId?: string;
+    contractId?: string;
+    obrasServiceId?: string;
+    covenantId?: string;
+    covenantNumber?: string;
+    publicityCampaignId?: string;
+    publicityCampaignName?: string;
+    fundedDebtId?: string;
+    fundedDebtName?: string;
+  },
 ) {
   const value = money(input.value);
   const obrasServiceId = input.obrasServiceId?.trim() || undefined;
@@ -585,7 +603,28 @@ export async function createCommitment(
     }
     const creditor = await creditorForSupplier(tx, input.supplierId);
     const commitment = await tx.commitment.create({
-      data: { number: input.number.trim(), date: input.date, valueDecimal: value, value: legacyMoney(value), type: input.type, history: input.history.trim(), appropriationId: appropriation.id, supplierId: input.supplierId, creditorId: creditor.id, processId: input.processId || undefined, contractId: input.contractId || undefined, reservationId: reservation.id, status: "Emitido", obrasServices: obrasService ? { connect: { id: obrasService.id } } : undefined },
+      data: {
+        number: input.number.trim(),
+        date: input.date,
+        valueDecimal: value,
+        value: legacyMoney(value),
+        type: input.type,
+        history: input.history.trim(),
+        appropriationId: appropriation.id,
+        supplierId: input.supplierId,
+        creditorId: creditor.id,
+        processId: input.processId || undefined,
+        contractId: input.contractId || undefined,
+        covenantId: input.covenantId || undefined,
+        covenantNumber: input.covenantNumber?.trim() || undefined,
+        publicityCampaignId: input.publicityCampaignId || undefined,
+        publicityCampaignName: input.publicityCampaignName?.trim() || undefined,
+        fundedDebtId: input.fundedDebtId || undefined,
+        fundedDebtName: input.fundedDebtName?.trim() || undefined,
+        reservationId: reservation.id,
+        status: "Emitido",
+        obrasServices: obrasService ? { connect: { id: obrasService.id } } : undefined,
+      },
     });
     await createFinancialDocument(tx, actor, {
       documentType: "NOTA_DE_EMPENHO",

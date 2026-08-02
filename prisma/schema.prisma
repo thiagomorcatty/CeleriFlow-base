@@ -27,9 +27,9 @@ model Lead {
   updatedAt      DateTime @updatedAt
 }
 
-// --- Módulo 1: Administração Geral ---
+// --- MÃ³dulo 1: AdministraÃ§Ã£o Geral ---
 
-// Cadastro único da Prefeitura/Entidade Principal
+// Cadastro Ãºnico da Prefeitura/Entidade Principal
 model Institution {
   id          String   @id @default(cuid())
   name        String
@@ -140,7 +140,7 @@ model AdministrativeUnit {
   updatedAt     DateTime    @updatedAt
 }
 
-// Cargos e Funções
+// Cargos e FunÃ§Ãµes
 model Role {
   id          String     @id @default(cuid())
   name        String
@@ -153,12 +153,12 @@ model Role {
   updatedAt   DateTime   @updatedAt
 }
 
-// Servidores Básicos (Base para RH e vinculação de responsáveis)
+// Servidores BÃ¡sicos (Base para RH e vinculaÃ§Ã£o de responsÃ¡veis)
 model Employee {
   id              String  @id @default(cuid())
   name            String
   cpf             String? @unique
-  registration    String? // Matrícula
+  registration    String? // MatrÃ­cula
   email           String?
   phone           String?
   isActive        Boolean @default(true)
@@ -276,7 +276,7 @@ model InternalDemand {
   id          String    @id @default(cuid())
   title       String
   description String?
-  status      String    @default("Aberta") // Aberta, Em andamento, Concluída, etc.
+  status      String    @default("Aberta") // Aberta, Em andamento, ConcluÃ­da, etc.
   priority    String    @default("Normal") // Baixa, Normal, Alta, Urgente
   deadline    DateTime?
 
@@ -296,7 +296,7 @@ model InternalDemand {
   updatedAt DateTime @updatedAt
 }
 
-// Calendário Institucional
+// CalendÃ¡rio Institucional
 model CalendarEvent {
   id          String   @id @default(cuid())
   title       String
@@ -308,9 +308,9 @@ model CalendarEvent {
   updatedAt   DateTime @updatedAt
 }
 
-// --- Módulo 2: Cadastros Gerais ---
+// --- MÃ³dulo 2: Cadastros Gerais ---
 
-// Pessoas Físicas
+// Pessoas FÃ­sicas
 model Person {
   id             String    @id @default(cuid())
   fullName       String
@@ -378,7 +378,7 @@ model Person {
   updatedAt DateTime @updatedAt
 }
 
-// Pessoas Jurídicas
+// Pessoas JurÃ­dicas
 model Company {
   id             String    @id @default(cuid())
   corporateName  String
@@ -499,21 +499,21 @@ model Supplier {
 // Representantes Legais
 model LegalRepresentative {
   id                 String    @id @default(cuid())
-  representationType String // Procurador, Sócio, Contador, Pai, Mãe
+  representationType String // Procurador, SÃ³cio, Contador, Pai, MÃ£e
   startDate          DateTime?
   endDate            DateTime?
   grantedPowers      String?
   status             String    @default("Ativo")
   notes              String?
 
-  // Quem está sendo representado
+  // Quem estÃ¡ sendo representado
   representedPersonId String?
   representedPerson   Person? @relation("RepresentedPerson", fields: [representedPersonId], references: [id])
 
   representedCompanyId String?
   representedCompany   Company? @relation("RepresentedCompany", fields: [representedCompanyId], references: [id])
 
-  // Quem é o representante (sempre uma pessoa física na maioria dos casos)
+  // Quem Ã© o representante (sempre uma pessoa fÃ­sica na maioria dos casos)
   representativeId String
   representative   Person @relation("RepresentativePerson", fields: [representativeId], references: [id])
 
@@ -521,7 +521,7 @@ model LegalRepresentative {
   updatedAt DateTime @updatedAt
 }
 
-// Endereços
+// EndereÃ§os
 model Address {
   id             String  @id @default(cuid())
   zipCode        String?
@@ -529,7 +529,7 @@ model Address {
   number         String?
   complement     String?
   referencePoint String?
-  addressType    String? // Residencial, Comercial, Correspondência
+  addressType    String? // Residencial, Comercial, CorrespondÃªncia
   zone           String? // Urbana, Rural
   latitude       Float?
   longitude      Float?
@@ -579,7 +579,7 @@ model Neighborhood {
 model Street {
   id      String  @id @default(cuid())
   name    String
-  type    String // Rua, Avenida, Praça
+  type    String // Rua, Avenida, PraÃ§a
   zipCode String?
   city    String
   state   String
@@ -592,15 +592,15 @@ model Street {
   updatedAt DateTime @updatedAt
 }
 
-// Imóveis
+// ImÃ³veis
 model RealEstate {
   id            String  @id @default(cuid())
   municipalInsc String? @unique
-  registration  String? // Matrícula
-  propertyType  String? // Casa, Terreno, Apartamento, Galpão
+  registration  String? // MatrÃ­cula
+  propertyType  String? // Casa, Terreno, Apartamento, GalpÃ£o
   status        String  @default("Regular")
 
-  // Endereço do imóvel (pode ser diferente do endereço do contribuinte)
+  // EndereÃ§o do imÃ³vel (pode ser diferente do endereÃ§o do contribuinte)
   streetName String?
   number     String?
   complement String?
@@ -639,7 +639,7 @@ model Document {
   documentType String // RG, CPF, CNPJ, Contrato, Comprovante
   fileUrl      String
   validUntil   DateTime?
-  status       String    @default("Válido") // Válido, Vencido, Pendente
+  status       String    @default("VÃ¡lido") // VÃ¡lido, Vencido, Pendente
   notes        String?
 
   personId String?
@@ -732,12 +732,12 @@ model DocumentSignature {
   @@index([signerUsuarioId, createdAt])
 }
 
-// --- Módulo 3: Protocolos e Processos ---
+// --- MÃ³dulo 3: Protocolos e Processos ---
 
 // Tipo de Processo
 model ProcessType {
   id                    String      @id @default(cuid())
-  name                  String // Alvará, Licença, Certidão, Ofício...
+  name                  String // AlvarÃ¡, LicenÃ§a, CertidÃ£o, OfÃ­cio...
   description           String?
   isActive              Boolean     @default(true)
   initialDepartmentId   String?
@@ -762,7 +762,7 @@ model Subject {
   description           String?
   processTypeId         String
   processType           ProcessType @relation(fields: [processTypeId], references: [id], onDelete: Cascade)
-  slaDays               Int? // Prazo padrão em dias para conclusão
+  slaDays               Int? // Prazo padrÃ£o em dias para conclusÃ£o
   isActive              Boolean     @default(true)
   initialDepartmentId   String?
   initialDepartment     Department? @relation("SubjectInitialDepartment", fields: [initialDepartmentId], references: [id])
@@ -781,7 +781,7 @@ model Subject {
 model Process {
   id             String  @id @default(cuid())
   protocolNumber String  @unique // ex: 2026/00001
-  status         String  @default("Aberto") // Aberto, Em Análise, Concluído, Arquivado
+  status         String  @default("Aberto") // Aberto, Em AnÃ¡lise, ConcluÃ­do, Arquivado
   description    String?
   priority       String  @default("Normal") // Normal, Alta, Urgente
 
@@ -791,13 +791,13 @@ model Process {
   subjectId String
   subject   Subject @relation(fields: [subjectId], references: [id])
 
-  // Interessado (Cidadão ou Empresa)
+  // Interessado (CidadÃ£o ou Empresa)
   personId  String?
   person    Person?  @relation(fields: [personId], references: [id])
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 
-  // Setor atual onde o processo está
+  // Setor atual onde o processo estÃ¡
   currentDepartmentId          String?
   currentDepartment            Department?           @relation("CurrentDepartment", fields: [currentDepartmentId], references: [id])
   currentResponsibleEmployeeId String?
@@ -827,7 +827,7 @@ model Process {
   updatedAt DateTime @updatedAt
 }
 
-// Tramitação entre setores
+// TramitaÃ§Ã£o entre setores
 model ProcessMovement {
   id        String  @id @default(cuid())
   processId String
@@ -905,7 +905,7 @@ model ProcessDispatch {
   process   Process @relation(fields: [processId], references: [id], onDelete: Cascade)
 
   content      String
-  dispatchType String @default("Despacho") // Despacho, Parecer, Decisão
+  dispatchType String @default("Despacho") // Despacho, Parecer, DecisÃ£o
 
   employeeId String
   employee   Employee @relation("DispatchEmployee", fields: [employeeId], references: [id]) // Quem despachou
@@ -960,7 +960,7 @@ model ProcessSequence {
   updatedAt  DateTime @updatedAt
 }
 
-// --- Módulo 4: GED (Gerenciamento Eletrônico de Documentos) ---
+// --- MÃ³dulo 4: GED (Gerenciamento EletrÃ´nico de Documentos) ---
 
 model Folder {
   id          String  @id @default(cuid())
@@ -980,7 +980,7 @@ model Folder {
   updatedAt DateTime @updatedAt
 }
 
-// --- Módulo 5: Atendimento e Ouvidoria ---
+// --- MÃ³dulo 5: Atendimento e Ouvidoria ---
 
 model SupportChannel {
   id          String  @id @default(cuid())
@@ -1019,7 +1019,7 @@ model Ticket {
   ticketNumber String    @unique // e.g., TKT-2026-0001
   subject      String
   description  String
-  status       String    @default("Aberto") // Aberto, Encaminhado, Aguardando Recebimento, Em Atendimento, Aguardando Informação, Resolvido, Concluído, Cancelado, Reaberto
+  status       String    @default("Aberto") // Aberto, Encaminhado, Aguardando Recebimento, Em Atendimento, Aguardando InformaÃ§Ã£o, Resolvido, ConcluÃ­do, Cancelado, Reaberto
   priority     String    @default("Normal")
   isAnonymous  Boolean   @default(false)
   dueAt        DateTime?
@@ -1069,7 +1069,7 @@ model Ticket {
 model Ombudsman {
   id             String  @id @default(cuid())
   protocolNumber String  @unique
-  type           String // Denúncia, Reclamação, Elogio, Sugestão
+  type           String // DenÃºncia, ReclamaÃ§Ã£o, Elogio, SugestÃ£o
   subject        String
   description    String
   isAnonymous    Boolean @default(false)
@@ -1117,7 +1117,7 @@ model TicketInteraction {
   ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   message    String
-  type       String  @default("Registro") // Registro, Comentário, Encaminhamento, Assunção, Resposta, Solicitação de Informação, Solução, Conclusão, Reabertura
+  type       String  @default("Registro") // Registro, ComentÃ¡rio, Encaminhamento, AssunÃ§Ã£o, Resposta, SolicitaÃ§Ã£o de InformaÃ§Ã£o, SoluÃ§Ã£o, ConclusÃ£o, Reabertura
   isInternal Boolean @default(false)
 
   employeeId String?
@@ -1274,7 +1274,7 @@ model SatisfactionSurvey {
   createdAt DateTime @default(now())
 }
 
-// --- Módulo 6: Portal e Transparência ---
+// --- MÃ³dulo 6: Portal e TransparÃªncia ---
 
 model PortalPage {
   id        String    @id @default(cuid())
@@ -1362,7 +1362,7 @@ model PublicService {
   id           String   @id @default(cuid())
   name         String
   description  String
-  target       String // Cidadão, Empresa, Servidor
+  target       String // CidadÃ£o, Empresa, Servidor
   requirements String?
   steps        String?
   deadline     String?
@@ -1378,7 +1378,7 @@ model InformationRequest {
   protocolNumber String   @unique
   subject        String
   description    String
-  status         String   @default("Recebido") // Em análise, Respondido, Prorrogado
+  status         String   @default("Recebido") // Em anÃ¡lise, Respondido, Prorrogado
   answer         String?
   requesterName  String
   requesterEmail String
@@ -1387,9 +1387,9 @@ model InformationRequest {
   updatedAt      DateTime @updatedAt
 }
 
-// --- Módulo 7: Tributação ---
+// --- MÃ³dulo 7: TributaÃ§Ã£o ---
 
-// Cadastro Econômico (Inscrição Municipal de Empresas e Autônomos)
+// Cadastro EconÃ´mico (InscriÃ§Ã£o Municipal de Empresas e AutÃ´nomos)
 model EconomicRegistration {
   id            String    @id @default(cuid())
   municipalInsc String    @unique
@@ -1409,11 +1409,11 @@ model EconomicRegistration {
   taxDeclarations TaxDeclaration[]
 }
 
-// Tabela de Parametrização de Tributos (Ex: IPTU, ISS, Taxa de Alvará)
+// Tabela de ParametrizaÃ§Ã£o de Tributos (Ex: IPTU, ISS, Taxa de AlvarÃ¡)
 model Tax {
   id       String  @id @default(cuid())
   name     String // IPTU, ITBI, ISS, Taxa de Coleta de Lixo
-  taxType  String // Imposto, Taxa, Contribuição
+  taxType  String // Imposto, Taxa, ContribuiÃ§Ã£o
   isActive Boolean @default(true)
 
   assessments       TaxAssessment[]
@@ -1425,10 +1425,10 @@ model Tax {
   updatedAt DateTime @updatedAt
 }
 
-// Lançamento Tributário (Dívida gerada para um contribuinte/imóvel/empresa)
+// LanÃ§amento TributÃ¡rio (DÃ­vida gerada para um contribuinte/imÃ³vel/empresa)
 model TaxAssessment {
   id                     String    @id @default(cuid())
-  year                   Int // Exercício (Ex: 2026)
+  year                   Int // ExercÃ­cio (Ex: 2026)
   originalValue          Float
   originalValueDecimal   Decimal?  @db.Decimal(18, 2)
   assessmentNumber       String?   @unique
@@ -1441,7 +1441,7 @@ model TaxAssessment {
   correctionValueDecimal Decimal?  @db.Decimal(18, 2)
   finalValueDecimal      Decimal?  @db.Decimal(18, 2)
   calculationSnapshot    Json?
-  status                 String    @default("Lançado") // Lançado, Emitido, Pago, Dívida Ativa, Cancelado
+  status                 String    @default("LanÃ§ado") // LanÃ§ado, Emitido, Pago, DÃ­vida Ativa, Cancelado
 
   taxId String
   tax   Tax    @relation(fields: [taxId], references: [id])
@@ -1449,7 +1449,7 @@ model TaxAssessment {
   taxpayerId String
   taxpayer   Taxpayer @relation(fields: [taxpayerId], references: [id])
 
-  // Pode estar vinculado a um Imóvel (IPTU) ou a um Cadastro Econômico (ISS/Taxas)
+  // Pode estar vinculado a um ImÃ³vel (IPTU) ou a um Cadastro EconÃ´mico (ISS/Taxas)
   realEstateId String?
   realEstate   RealEstate? @relation(fields: [realEstateId], references: [id])
 
@@ -1464,7 +1464,7 @@ model TaxAssessment {
   updatedAt DateTime @updatedAt
 }
 
-// Guia de Arrecadação (Boleto/DAM emitido)
+// Guia de ArrecadaÃ§Ã£o (Boleto/DAM emitido)
 model TaxGuide {
   id                  String    @id @default(cuid())
   barcode             String?   @unique
@@ -1513,10 +1513,10 @@ model TaxPayment {
   updatedAt DateTime @updatedAt
 }
 
-// Alvarás e Licenças
+// AlvarÃ¡s e LicenÃ§as
 model License {
   id          String    @id @default(cuid())
-  licenseType String // Alvará de Funcionamento, Licença Sanitária, etc.
+  licenseType String // AlvarÃ¡ de Funcionamento, LicenÃ§a SanitÃ¡ria, etc.
   status      String    @default("Solicitado") // Solicitado, Emitido, Vencido, Suspenso
   issueDate   DateTime?
   validUntil  DateTime?
@@ -1534,7 +1534,7 @@ model License {
   updatedAt DateTime @updatedAt
 }
 
-// Parcelamentos de Débitos
+// Parcelamentos de DÃ©bitos
 model DebtInstallment {
   id                 String   @id @default(cuid())
   totalValue         Float
@@ -1554,7 +1554,7 @@ model DebtInstallment {
   updatedAt DateTime @updatedAt
 }
 
-// Dívida Ativa e CDA
+// DÃ­vida Ativa e CDA
 model ActiveDebt {
   id                   String   @id @default(cuid())
   originDebtType       String // Ex: IPTU, ISS
@@ -1564,7 +1564,7 @@ model ActiveDebt {
   updatedValue         Float
   updatedValueDecimal  Decimal? @db.Decimal(18, 2)
   cdaNumber            String?  @unique
-  status               String   @default("Inscrita") // Inscrita, Em Cobrança, Parcelada, Protestada, Ajuizada, Paga
+  status               String   @default("Inscrita") // Inscrita, Em CobranÃ§a, Parcelada, Protestada, Ajuizada, Paga
 
   taxpayerId   String
   taxpayer     Taxpayer          @relation(fields: [taxpayerId], references: [id])
@@ -1576,7 +1576,7 @@ model ActiveDebt {
   updatedAt DateTime @updatedAt
 }
 
-// Certidões Tributárias
+// CertidÃµes TributÃ¡rias
 model TaxCertificate {
   id              String   @id @default(cuid())
   certificateType String // CND, Positiva com efeito de Negativa, Valor Venal
@@ -1594,14 +1594,14 @@ model TaxCertificate {
   updatedAt DateTime @updatedAt
 }
 
-// Autos de Infração e Fiscalização
+// Autos de InfraÃ§Ã£o e FiscalizaÃ§Ã£o
 model Infraction {
   id                  String    @id @default(cuid())
-  infractionType      String // Omissão de ISS, Falta de Alvará
+  infractionType      String // OmissÃ£o de ISS, Falta de AlvarÃ¡
   penaltyValue        Float
   penaltyValueDecimal Decimal?  @db.Decimal(18, 2)
   defenseDeadline     DateTime?
-  status              String    @default("Emitido") // Emitido, Cientificado, Em Defesa, Pago, Inscrito em Dívida Ativa
+  status              String    @default("Emitido") // Emitido, Cientificado, Em Defesa, Pago, Inscrito em DÃ­vida Ativa
 
   taxpayerId String
   taxpayer   Taxpayer @relation(fields: [taxpayerId], references: [id])
@@ -1610,7 +1610,7 @@ model Infraction {
   updatedAt DateTime @updatedAt
 }
 
-// Nota Fiscal de Serviço Eletrônica (NFS-e)
+// Nota Fiscal de ServiÃ§o EletrÃ´nica (NFS-e)
 model Invoice {
   id                  String   @id @default(cuid())
   invoiceNumber       Int      @default(autoincrement())
@@ -1623,7 +1623,7 @@ model Invoice {
   issValue            Float
   issValueDecimal     Decimal? @db.Decimal(18, 2)
   competence          String // Ex: "07/2026"
-  status              String   @default("Emitida") // Emitida, Cancelada, Substituída
+  status              String   @default("Emitida") // Emitida, Cancelada, SubstituÃ­da
 
   providerId String
   provider   Taxpayer @relation("InvoiceProvider", fields: [providerId], references: [id])
@@ -1781,12 +1781,12 @@ model TaxCertificateEvaluation {
   @@index([taxpayerId, evaluatedAt])
 }
 
-// --- Módulo 8: Financeiro e Contábil ---
+// --- MÃ³dulo 8: Financeiro e ContÃ¡bil ---
 
 model FinancialYear {
   id        String   @id @default(cuid())
   year      Int      @unique
-  status    String   @default("Preparação") // Preparação, Aberto, Em Encerramento, Encerrado
+  status    String   @default("PreparaÃ§Ã£o") // PreparaÃ§Ã£o, Aberto, Em Encerramento, Encerrado
   startDate DateTime
   endDate   DateTime
   createdAt DateTime @default(now())
@@ -1808,7 +1808,7 @@ model FinancialYear {
   retentionRules                 RetentionRule[]
 }
 
-// --- Planejamento Orçamentário: PPA, LDO, LOA, CMD, MBA, Créditos Adicionais ---
+// --- Planejamento OrÃ§amentÃ¡rio: PPA, LDO, LOA, CMD, MBA, CrÃ©ditos Adicionais ---
 
 model MultiYearPlan {
   id          String   @id @default(cuid())
@@ -1816,7 +1816,7 @@ model MultiYearPlan {
   name        String
   startYear   Int
   endYear     Int
-  status      String   @default("Elaboração") // Elaboração, Aprovado, Vigente, Encerrado
+  status      String   @default("ElaboraÃ§Ã£o") // ElaboraÃ§Ã£o, Aprovado, Vigente, Encerrado
   version     Int      @default(1)
   description String?
   createdAt   DateTime @default(now())
@@ -1847,7 +1847,7 @@ model ProgramPPA {
   id              String        @id @default(cuid())
   code            String
   name            String
-  type            String        @default("Finalístico") // Finalístico, Gestão, Serviço ao Estado
+  type            String        @default("FinalÃ­stico") // FinalÃ­stico, GestÃ£o, ServiÃ§o ao Estado
   multiYearPlanId String
   multiYearPlan   MultiYearPlan @relation(fields: [multiYearPlanId], references: [id], onDelete: Cascade)
   createdAt       DateTime      @default(now())
@@ -1885,7 +1885,7 @@ model ActionPPA {
   id        String     @id @default(cuid())
   code      String
   name      String
-  type      String     @default("Projeto") // Projeto, Atividade, Operação Especial
+  type      String     @default("Projeto") // Projeto, Atividade, OperaÃ§Ã£o Especial
   programId String
   program   ProgramPPA @relation(fields: [programId], references: [id], onDelete: Cascade)
   createdAt DateTime   @default(now())
@@ -2006,7 +2006,7 @@ model CreditRequest {
   number          String        @unique
   financialYearId String
   financialYear   FinancialYear @relation(fields: [financialYearId], references: [id])
-  type            String // Suplementar, Especial, Extraordinário, Remanejamento, Transposição, Transferência
+  type            String // Suplementar, Especial, ExtraordinÃ¡rio, Remanejamento, TransposiÃ§Ã£o, TransferÃªncia
   lawNumber       String?
   justification   String
   totalValue      Decimal       @db.Decimal(18, 2)
@@ -2027,7 +2027,7 @@ model CreditRequestItem {
   creditRequest   CreditRequest       @relation(fields: [creditRequestId], references: [id], onDelete: Cascade)
   appropriationId String
   appropriation   BudgetAppropriation @relation(fields: [appropriationId], references: [id])
-  type            String // Acréscimo, Anulação
+  type            String // AcrÃ©scimo, AnulaÃ§Ã£o
   value           Decimal             @db.Decimal(18, 2)
 }
 
@@ -2272,7 +2272,7 @@ model Commitment {
   date            DateTime            @default(now())
   value           Float
   valueDecimal    Decimal?            @db.Decimal(18, 2)
-  type            String              @default("Ordinário") // Ordinário, Estimativo, Global
+  type            String              @default("OrdinÃ¡rio") // OrdinÃ¡rio, Estimativo, Global
   history         String
   appropriationId String
   appropriation   BudgetAppropriation @relation(fields: [appropriationId], references: [id])
@@ -2284,6 +2284,15 @@ model Commitment {
   process         Process?            @relation("FinancialCommitmentProcess", fields: [processId], references: [id])
   contractId      String?
   contract        Contract?           @relation("FinancialCommitmentContract", fields: [contractId], references: [id])
+  covenantId      String?
+  covenant        Covenant?           @relation("CovenantCommitments", fields: [covenantId], references: [id])
+  publicityCampaignId String?
+  publicityCampaign PublicityCampaign? @relation("PublicityCampaignCommitments", fields: [publicityCampaignId], references: [id])
+  fundedDebtId    String?
+  fundedDebt      FundedDebt?         @relation("FundedDebtCommitments", fields: [fundedDebtId], references: [id])
+  covenantNumber  String?
+  publicityCampaignName String?
+  fundedDebtName  String?
   reservationId   String?             @unique
   reservation     BudgetReservation?  @relation(fields: [reservationId], references: [id])
   status          String              @default("Emitido") // Emitido, Liquidado, Pago, Anulado
@@ -2302,7 +2311,7 @@ model Commitment {
 model CommitmentMovement {
   id            String     @id @default(cuid())
   date          DateTime   @default(now())
-  type          String // Reforço, Anulação
+  type          String // ReforÃ§o, AnulaÃ§Ã£o
   valueDecimal  Decimal    @db.Decimal(18, 2)
   justification String
   commitmentId  String
@@ -2361,7 +2370,7 @@ model Payment {
   isExceptional          Boolean     @default(false)
   exceptionJustification String?
   netValueDecimal        Decimal?    @db.Decimal(18, 2)
-  paymentMethod          String      @default("Transferência")
+  paymentMethod          String      @default("TransferÃªncia")
   status                 String      @default("Pago") // Pago, Cancelado
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
@@ -2371,7 +2380,7 @@ model Payment {
   payableCarryForwardEvents PayableCarryForwardEvent[]
 }
 
-// Registros internos emitidos pelo sistema; não dependem de arquivo GED ou assinatura externa.
+// Registros internos emitidos pelo sistema; nÃ£o dependem de arquivo GED ou assinatura externa.
 model FinancialDocument {
   id                   String   @id @default(cuid())
   documentType         String
@@ -2419,7 +2428,7 @@ model PaymentRetention {
   @@index([retentionRuleId])
 }
 
-// Retenções são apuradas no ateste da liquidação. PaymentRetention registra apenas
+// RetenÃ§Ãµes sÃ£o apuradas no ateste da liquidaÃ§Ã£o. PaymentRetention registra apenas
 // a parcela vinculada a cada ordem de pagamento e ao posterior recolhimento.
 model SettlementRetention {
   id                     String        @id @default(cuid())
@@ -2698,7 +2707,7 @@ model AccountingEntry {
   date          DateTime               @default(now())
   value         Float
   valueDecimal  Decimal?               @db.Decimal(18, 2)
-  type          String // Débito, Crédito
+  type          String // DÃ©bito, CrÃ©dito
   history       String
   accountId     String
   account       AccountingPlan         @relation(fields: [accountId], references: [id])
@@ -2850,7 +2859,7 @@ model PayableCarryForward {
   @@index([status])
 }
 
-// Histórico interno de acompanhamento. Não cria nem altera pagamentos, tesouraria ou lançamentos contábeis.
+// HistÃ³rico interno de acompanhamento. NÃ£o cria nem altera pagamentos, tesouraria ou lanÃ§amentos contÃ¡beis.
 model PayableCarryForwardEvent {
   id                    String              @id @default(cuid())
   payableCarryForwardId String
@@ -2868,7 +2877,7 @@ model PayableCarryForwardEvent {
   @@index([actorUsuarioId])
 }
 
-// --- Módulo 9: Compras e Contratos ---
+// --- MÃ³dulo 9: Compras e Contratos ---
 
 model CatalogItem {
   id             String  @id @default(cuid())
@@ -2936,8 +2945,8 @@ model PurchaseProcess {
   id             String  @id @default(cuid())
   number         String  @unique
   object         String
-  type           String // Comum, Registro de Preços
-  modality       String? // Pregão, Concorrência, Dispensa, Inexigibilidade
+  type           String // Comum, Registro de PreÃ§os
+  modality       String? // PregÃ£o, ConcorrÃªncia, Dispensa, Inexigibilidade
   estimatedValue Float?
   status         String  @default("Em Planejamento")
 
@@ -2981,7 +2990,7 @@ model PreliminaryTechnicalStudy {
   description    String
   justification  String
   estimatedValue Float?
-  status         String @default("Em Elaboração") // Em Elaboração, Aprovado
+  status         String @default("Em ElaboraÃ§Ã£o") // Em ElaboraÃ§Ã£o, Aprovado
 
   processId String
   process   PurchaseProcess @relation(fields: [processId], references: [id])
@@ -2996,7 +3005,7 @@ model TermOfReference {
   justification  String
   scope          String
   estimatedValue Float?
-  status         String @default("Em Elaboração") // Em Elaboração, Aprovado
+  status         String @default("Em ElaboraÃ§Ã£o") // Em ElaboraÃ§Ã£o, Aprovado
 
   processId String
   process   PurchaseProcess @relation(fields: [processId], references: [id])
@@ -3009,7 +3018,7 @@ model PriceResearch {
   id             String   @id @default(cuid())
   date           DateTime @default(now())
   estimatedValue Float?
-  status         String   @default("Em Andamento") // Em Andamento, Concluída
+  status         String   @default("Em Andamento") // Em Andamento, ConcluÃ­da
 
   processId String
   process   PurchaseProcess @relation(fields: [processId], references: [id])
@@ -3040,7 +3049,7 @@ model Bidding {
   id              String    @id @default(cuid())
   number          String
   modality        String
-  status          String    @default("Em Elaboração")
+  status          String    @default("Em ElaboraÃ§Ã£o")
   publicationDate DateTime?
   sessionDate     DateTime?
 
@@ -3056,7 +3065,7 @@ model DirectContracting {
   type          String // Dispensa, Inexigibilidade
   justification String
   value         Float
-  status        String @default("Em Elaboração")
+  status        String @default("Em ElaboraÃ§Ã£o")
 
   processId String
   process   PurchaseProcess @relation(fields: [processId], references: [id])
@@ -3118,12 +3127,12 @@ model ContractAmendment {
   updatedAt DateTime @updatedAt
 }
 
-// --- Módulo 10: RH e Folha ---
+// --- MÃ³dulo 10: RH e Folha ---
 
 model Payroll {
   id         String   @id @default(cuid())
   competence String // "07/2026"
-  type       String   @default("Mensal") // Mensal, Férias, 13º, Rescisão
+  type       String   @default("Mensal") // Mensal, FÃ©rias, 13Âº, RescisÃ£o
   status     String   @default("Aberta") // Aberta, Fechada, Paga
   totalValue Float    @default(0)
   createdAt  DateTime @default(now())
@@ -3168,7 +3177,7 @@ model Vacation {
   enjoymentStart   DateTime?
   enjoymentEnd     DateTime?
   days             Int       @default(30)
-  status           String    @default("A vencer") // A vencer, Disponível, Programada, Em gozo, Concluída
+  status           String    @default("A vencer") // A vencer, DisponÃ­vel, Programada, Em gozo, ConcluÃ­da
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 }
@@ -3177,7 +3186,7 @@ model Leave {
   id         String   @id @default(cuid())
   employeeId String
   employee   Employee @relation("EmployeeLeave", fields: [employeeId], references: [id])
-  type       String // Licença médica, Maternidade, Sem vencimento
+  type       String // LicenÃ§a mÃ©dica, Maternidade, Sem vencimento
   startDate  DateTime
   endDate    DateTime
   reason     String?
@@ -3193,7 +3202,7 @@ model AttendanceRecord {
   date            DateTime
   entryTime       DateTime?
   exitTime        DateTime?
-  status          String    @default("Presente") // Presente, Falta, Atraso, Férias, Licença
+  status          String    @default("Presente") // Presente, Falta, Atraso, FÃ©rias, LicenÃ§a
   hoursWorked     Float     @default(0)
   extraHours      Float     @default(0)
   bankHours       Float     @default(0)
@@ -3211,7 +3220,7 @@ model Dependent {
   name          String
   cpf           String?
   birthDate     DateTime?
-  relationship  String // Filho, Cônjuge
+  relationship  String // Filho, CÃ´njuge
   irrfDependent Boolean   @default(false)
   familyWage    Boolean   @default(false)
   createdAt     DateTime  @default(now())
@@ -3221,7 +3230,7 @@ model Dependent {
 model BenefitConfig {
   id         String    @id @default(cuid())
   name       String
-  type       String // Vale Transporte, Vale Alimentação, Plano de Saúde, etc.
+  type       String // Vale Transporte, Vale AlimentaÃ§Ã£o, Plano de SaÃºde, etc.
   baseValue  Float     @default(0)
   supplierId String?
   supplier   Supplier? @relation("SupplierBenefitConfig", fields: [supplierId], references: [id])
@@ -3248,7 +3257,7 @@ model PersonnelAct {
   id          String   @id @default(cuid())
   employeeId  String
   employee    Employee @relation("EmployeePersonnelAct", fields: [employeeId], references: [id])
-  type        String // Nomeação, Exoneração, Férias
+  type        String // NomeaÃ§Ã£o, ExoneraÃ§Ã£o, FÃ©rias
   actNumber   String?
   date        DateTime @default(now())
   documentUrl String?
@@ -3256,14 +3265,14 @@ model PersonnelAct {
   updatedAt   DateTime @updatedAt
 }
 
-// --- Módulo 11: Patrimônio e Almoxarifado ---
+// --- MÃ³dulo 11: PatrimÃ´nio e Almoxarifado ---
 
-// Patrimônio
+// PatrimÃ´nio
 model AssetCategory {
   id        String   @id @default(cuid())
   name      String
   code      String   @unique
-  lifeSpan  Int      @default(60) // Vida útil em meses
+  lifeSpan  Int      @default(60) // Vida Ãºtil em meses
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3273,13 +3282,13 @@ model AssetCategory {
 
 model Asset {
   id                String    @id @default(cuid())
-  patrimonyNumber   String    @unique // Número do Tombamento
+  patrimonyNumber   String    @unique // NÃºmero do Tombamento
   name              String
   description       String?
   brand             String?
   model             String?
   serialNumber      String?
-  status            String    @default("Ativo") // Ativo, Em uso, Ocioso, Em manutenção, Baixado
+  status            String    @default("Ativo") // Ativo, Em uso, Ocioso, Em manutenÃ§Ã£o, Baixado
   acquisitionDate   DateTime
   acquisitionValue  Float
   currentValue      Float
@@ -3359,7 +3368,7 @@ model AssetMaintenance {
   id          String    @id @default(cuid())
   description String
   cost        Float?
-  status      String    @default("Solicitada") // Solicitada, Em manutenção, Concluída
+  status      String    @default("Solicitada") // Solicitada, Em manutenÃ§Ã£o, ConcluÃ­da
   startDate   DateTime  @default(now())
   endDate     DateTime?
 
@@ -3376,8 +3385,8 @@ model AssetMaintenance {
 model AssetWriteOff {
   id            String   @id @default(cuid())
   date          DateTime @default(now())
-  type          String   @default("Baixa") // Baixa, Alienação
-  reason        String // Inservível, Roubo, Doação
+  type          String   @default("Baixa") // Baixa, AlienaÃ§Ã£o
+  reason        String // InservÃ­vel, Roubo, DoaÃ§Ã£o
   justification String
   status        String   @default("Aprovada")
   disposalValue Float    @default(0)
@@ -3510,7 +3519,7 @@ model MaterialStock {
 
 model MaterialMovement {
   id        String   @id @default(cuid())
-  type      String // Entrada, Saída, Ajuste
+  type      String // Entrada, SaÃ­da, Ajuste
   quantity  Float
   unitValue Float?
   date      DateTime @default(now())
@@ -3644,7 +3653,7 @@ model MaterialRequestItem {
   updatedAt DateTime @updatedAt
 }
 
-// --- Módulo 12: Educação ---
+// --- MÃ³dulo 12: EducaÃ§Ã£o ---
 
 model School {
   id       String  @id @default(cuid())
@@ -3698,7 +3707,7 @@ model Student {
 
 model EducationalGuardian {
   id          String  @id @default(cuid())
-  kinship     String // Pai, Mãe, Avô, Tutor
+  kinship     String // Pai, MÃ£e, AvÃ´, Tutor
   isFinancial Boolean @default(false)
   isAcademic  Boolean @default(true)
   canPickUp   Boolean @default(true)
@@ -3731,9 +3740,9 @@ model SchoolClass {
   id       String  @id @default(cuid())
   name     String
   year     Int // 2026
-  stage    String // Ensino Fundamental, Educação Infantil
-  grade    String // 1º Ano, Creche II
-  shift    String // Manhã, Tarde, Integral, Noite
+  stage    String // Ensino Fundamental, EducaÃ§Ã£o Infantil
+  grade    String // 1Âº Ano, Creche II
+  shift    String // ManhÃ£, Tarde, Integral, Noite
   room     String?
   capacity Int     @default(30)
   status   String  @default("Aberta") // Aberta, Fechada
@@ -3786,7 +3795,7 @@ model PreEnrollment {
 model Enrollment {
   id             String   @id @default(cuid())
   year           Int
-  status         String   @default("Matriculado") // Matriculado, Transferido, Evadido, Concluído
+  status         String   @default("Matriculado") // Matriculado, Transferido, Evadido, ConcluÃ­do
   enrollmentDate DateTime @default(now())
 
   studentId String
@@ -3841,10 +3850,10 @@ model Attendance {
 
 model Grade {
   id      String  @id @default(cuid())
-  period  String // 1º Bimestre, 2º Bimestre, Final
+  period  String // 1Âº Bimestre, 2Âº Bimestre, Final
   value   Float?
-  concept String? // A, B, C ou Excelente, Bom (se não for nota numérica)
-  type    String  @default("Avaliação") // Avaliação, Recuperação
+  concept String? // A, B, C ou Excelente, Bom (se nÃ£o for nota numÃ©rica)
+  type    String  @default("AvaliaÃ§Ã£o") // AvaliaÃ§Ã£o, RecuperaÃ§Ã£o
 
   studentId String
   student   Student @relation(fields: [studentId], references: [id])
@@ -3907,7 +3916,7 @@ model SchoolCalendarEvent {
 model HealthUnit {
   id       String  @id @default(cuid())
   name     String
-  type     String // UBS, ESF, Farmácia, CAPS
+  type     String // UBS, ESF, FarmÃ¡cia, CAPS
   cnes     String? @unique
   phone    String?
   email    String?
@@ -4009,7 +4018,7 @@ model HealthAppointment {
   id        String   @id @default(cuid())
   date      DateTime
   specialty String?
-  priority  String   @default("Normal") // Normal, Prioridade, Urgência
+  priority  String   @default("Normal") // Normal, Prioridade, UrgÃªncia
   status    String   @default("Agendado") // Agendado, Aguardando, Em Atendimento, Atendido, Faltou
 
   patientId String
@@ -4039,7 +4048,7 @@ model MedicalRecord {
   height        Float?
   heartRate     Int?
 
-  // Evolução clínica
+  // EvoluÃ§Ã£o clÃ­nica
   chiefComplaint String?
   evolution      String?
   conduct        String?
@@ -4081,7 +4090,7 @@ model Medicine {
 model HealthPrescription {
   id         String    @id @default(cuid())
   date       DateTime  @default(now())
-  content    String // Detalhes da prescrição
+  content    String // Detalhes da prescriÃ§Ã£o
   validUntil DateTime?
 
   patientId String
@@ -4230,7 +4239,7 @@ model SocialUnit {
 
 model SocialFamily {
   id              String  @id @default(cuid())
-  familyCode      String? @unique // Código Familiar CadÚnico
+  familyCode      String? @unique // CÃ³digo Familiar CadÃšnico
   nis             String?
   income          Float? // Renda Familiar
   perCapitaIncome Float?
@@ -4256,7 +4265,7 @@ model SocialFamily {
 
 model SocialFamilyMember {
   id          String  @id @default(cuid())
-  kinship     String // Filho, Cônjuge, etc.
+  kinship     String // Filho, CÃ´njuge, etc.
   isDependent Boolean @default(true)
 
   familyId String
@@ -4271,7 +4280,7 @@ model SocialFamilyMember {
 
 model SocialRecord {
   id           String @id @default(cuid())
-  history      String // Evolução social, pareceres da família
+  history      String // EvoluÃ§Ã£o social, pareceres da famÃ­lia
   secrecyLevel String @default("Normal") // Normal, Restrito, CREAS
 
   familyId String
@@ -4296,7 +4305,7 @@ model SocialAttendance {
   familyId String
   family   SocialFamily @relation(fields: [familyId], references: [id])
 
-  personId String? // Opcional, caso o atendimento seja focado num indivíduo
+  personId String? // Opcional, caso o atendimento seja focado num indivÃ­duo
   person   Person? @relation(fields: [personId], references: [id])
 
   unitId String
@@ -4315,7 +4324,7 @@ model SocialVisit {
   realizedDate  DateTime?
   objective     String
   report        String?
-  status        String    @default("Agendada") // Agendada, Realizada, Não Localizado
+  status        String    @default("Agendada") // Agendada, Realizada, NÃ£o Localizado
 
   familyId String
   family   SocialFamily @relation(fields: [familyId], references: [id])
@@ -4329,7 +4338,7 @@ model SocialVisit {
 
 model SocialBenefit {
   id          String  @id @default(cuid())
-  name        String // Cesta Básica, Aluguel Social, Auxílio Funeral
+  name        String // Cesta BÃ¡sica, Aluguel Social, AuxÃ­lio Funeral
   description String?
   isRecurrent Boolean @default(false)
   isActive    Boolean @default(true)
@@ -4345,7 +4354,7 @@ model SocialBenefitConcession {
   id       String   @id @default(cuid())
   date     DateTime @default(now())
   quantity Int      @default(1)
-  value    Float? // Valor caso seja benefício financeiro
+  value    Float? // Valor caso seja benefÃ­cio financeiro
   status   String   @default("Concedido") // Concedido, Entregue, Cancelado
 
   benefitId String
@@ -4354,7 +4363,7 @@ model SocialBenefitConcession {
   familyId String
   family   SocialFamily @relation(fields: [familyId], references: [id])
 
-  personId String? // Opcional caso entregue a um indivíduo que não o responsável
+  personId String? // Opcional caso entregue a um indivÃ­duo que nÃ£o o responsÃ¡vel
   person   Person? @relation(fields: [personId], references: [id])
 
   professionalId String
@@ -4394,14 +4403,14 @@ model SocialProgramParticipation {
   updatedAt DateTime @updatedAt
 }
 
-// --- Módulo 15: Meio Ambiente ---
+// --- MÃ³dulo 15: Meio Ambiente ---
 
 model EnvEnterprise {
   id            String  @id @default(cuid())
-  name          String // Razão social ou nome do local
+  name          String // RazÃ£o social ou nome do local
   cnpjCpf       String?
-  activityType  String? // Indústria, Comércio, Posto, etc
-  potentialRisk String? // Baixo, Médio, Alto
+  activityType  String? // IndÃºstria, ComÃ©rcio, Posto, etc
+  potentialRisk String? // Baixo, MÃ©dio, Alto
   address       String?
   status        String  @default("Ativo") // Ativo, Irregular, Embargado
 
@@ -4418,10 +4427,10 @@ model EnvEnterprise {
 model EnvLicense {
   id            String    @id @default(cuid())
   licenseNumber String    @unique
-  licenseType   String // Prévia, Instalação, Operação, Simplificada
+  licenseType   String // PrÃ©via, InstalaÃ§Ã£o, OperaÃ§Ã£o, Simplificada
   issueDate     DateTime  @default(now())
   validUntil    DateTime?
-  status        String    @default("Emitida") // Em Análise, Emitida, Vencida, Suspensa
+  status        String    @default("Emitida") // Em AnÃ¡lise, Emitida, Vencida, Suspensa
 
   enterpriseId String
   enterprise   EnvEnterprise @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
@@ -4432,7 +4441,7 @@ model EnvLicense {
 
 model EnvRequest {
   id            String  @id @default(cuid())
-  requestType   String // Poda, Supressão, Autorização
+  requestType   String // Poda, SupressÃ£o, AutorizaÃ§Ã£o
   description   String
   address       String?
   requesterName String?
@@ -4444,7 +4453,7 @@ model EnvRequest {
 
 model EnvComplaint {
   id            String  @id @default(cuid())
-  complaintType String // Descarte, Queimada, Poluição Sonora, etc
+  complaintType String // Descarte, Queimada, PoluiÃ§Ã£o Sonora, etc
   description   String
   address       String?
   isAnonymous   Boolean @default(true)
@@ -4471,7 +4480,7 @@ model EnvInspection {
 
 model EnvInfraction {
   id             String @id @default(cuid())
-  infractionType String // Notificação, Auto de Infração
+  infractionType String // NotificaÃ§Ã£o, Auto de InfraÃ§Ã£o
   description    String
   fineAmount     Float?
   status         String @default("Emitido") // Emitido, Pago, Em Recurso, Cancelado
@@ -4486,10 +4495,10 @@ model EnvInfraction {
 model EnvGreenArea {
   id        String   @id @default(cuid())
   name      String
-  areaType  String // Parque, APP, Reserva, Praça, etc
-  sizeSqm   Float? // Área em metros quadrados
-  location  String? // Coordenadas ou Endereço
-  status    String   @default("Preservado") // Preservado, Em Recuperação, Degradado
+  areaType  String // Parque, APP, Reserva, PraÃ§a, etc
+  sizeSqm   Float? // Ãrea em metros quadrados
+  location  String? // Coordenadas ou EndereÃ§o
+  status    String   @default("Preservado") // Preservado, Em RecuperaÃ§Ã£o, Degradado
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -4498,7 +4507,7 @@ model EnvGreenArea {
 model EnvWaste {
   id            String   @id @default(cuid())
   generatorName String // Nome do gerador/empresa
-  wasteType     String // Orgânico, Reciclável, Perigoso, Eletrônico, Construção, etc
+  wasteType     String // OrgÃ¢nico, ReciclÃ¡vel, Perigoso, EletrÃ´nico, ConstruÃ§Ã£o, etc
   quantityKg    Float
   destination   String // Aterro, Reciclagem, Compostagem, Coprocessamento, etc
   date          DateTime @default(now())
@@ -4513,13 +4522,13 @@ model EnvWaste {
 
 model EnvEduProgram {
   id                String    @id @default(cuid())
-  title             String // Título do programa/campanha
+  title             String // TÃ­tulo do programa/campanha
   description       String
-  targetAudience    String? // Público-alvo (Escolas, População Geral, Empresas, etc)
+  targetAudience    String? // PÃºblico-alvo (Escolas, PopulaÃ§Ã£o Geral, Empresas, etc)
   startDate         DateTime
   endDate           DateTime?
-  participantsCount Int? // Número de participantes estimados ou reais
-  status            String    @default("Planejado") // Planejado, Em Execução, Concluído
+  participantsCount Int? // NÃºmero de participantes estimados ou reais
+  status            String    @default("Planejado") // Planejado, Em ExecuÃ§Ã£o, ConcluÃ­do
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 }
@@ -4527,8 +4536,8 @@ model EnvEduProgram {
 model EnvDocument {
   id      String  @id @default(cuid())
   title   String
-  docType String // Relatório, Termo de Compromisso, Parecer Técnico, etc
-  fileUrl String? // Link de simulação ou anexo
+  docType String // RelatÃ³rio, Termo de Compromisso, Parecer TÃ©cnico, etc
+  fileUrl String? // Link de simulaÃ§Ã£o ou anexo
 
   enterpriseId String?
   enterprise   EnvEnterprise? @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
@@ -4538,14 +4547,14 @@ model EnvDocument {
 }
 
 // ----------------------------------------------------------------------------
-// MÓDULO 16: ÁGUA E SANEAMENTO (Isolado em MVP)
+// MÃ“DULO 16: ÃGUA E SANEAMENTO (Isolado em MVP)
 // ----------------------------------------------------------------------------
 
 model SanConsumerUnit {
   id            String   @id @default(cuid())
   code          String   @unique
   address       String
-  category      String   @default("Residencial") // Residencial, Comercial, Industrial, Rural, Pública
+  category      String   @default("Residencial") // Residencial, Comercial, Industrial, Rural, PÃºblica
   status        String   @default("Ativa") // Ativa, Inativa, Cortada, Suspensa
   ownerName     String?
   ownerDocument String? // CPF/CNPJ
@@ -4562,7 +4571,7 @@ model SanWaterMeter {
   id           String          @id @default(cuid())
   meterNumber  String          @unique
   installation DateTime?
-  status       String          @default("Instalado") // Instalado, Em Manutenção, Retirado
+  status       String          @default("Instalado") // Instalado, Em ManutenÃ§Ã£o, Retirado
   unitId       String
   unit         SanConsumerUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
   createdAt    DateTime        @default(now())
@@ -4610,10 +4619,10 @@ model SanInvoice {
 model SanServiceOrder {
   id          String  @id @default(cuid())
   orderNumber String  @unique
-  orderType   String // Vazamento, Religação, Corte, Manutenção
+  orderType   String // Vazamento, ReligaÃ§Ã£o, Corte, ManutenÃ§Ã£o
   description String
   priority    String  @default("Normal") // Normal, Alta, Urgente
-  status      String  @default("Aberta") // Aberta, Em Andamento, Concluída, Cancelada
+  status      String  @default("Aberta") // Aberta, Em Andamento, ConcluÃ­da, Cancelada
   technician  String?
 
   unitId String?
@@ -4630,7 +4639,7 @@ model SanWaterQualityAnalysis {
   parameter       String
   result          String
   limit           String
-  compliance      String // Conforme, Não Conforme
+  compliance      String // Conforme, NÃ£o Conforme
   active          Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -4664,7 +4673,7 @@ model SanSavedReport {
 }
 
 // ----------------------------------------------------------------------------
-// MÓDULO 19: CÂMARA MUNICIPAL (Gestão Legislativa Completa)
+// MÃ“DULO 19: CÃ‚MARA MUNICIPAL (GestÃ£o Legislativa Completa)
 // ----------------------------------------------------------------------------
 
 model CamLegislatura {
@@ -4697,7 +4706,7 @@ model CamVereador {
   email           String?
   telefone        String?
   foto            String?
-  status          String  @default("Em Exercício") // Em Exercício, Licenciado, Afastado, Suplente, Inativo
+  status          String  @default("Em ExercÃ­cio") // Em ExercÃ­cio, Licenciado, Afastado, Suplente, Inativo
   active          Boolean @default(true)
 
   personId   String?
@@ -4722,10 +4731,10 @@ model CamVereador {
 model CamSessao {
   id     String   @id @default(cuid())
   numero Int      @unique
-  tipo   String   @default("Ordinária") // Ordinária, Extraordinária, Solene, Especial
+  tipo   String   @default("OrdinÃ¡ria") // OrdinÃ¡ria, ExtraordinÃ¡ria, Solene, Especial
   data   DateTime
-  local  String   @default("Plenário")
-  status String   @default("Agendada") // Agendada, Em Preparação, Aberta, Encerrada, Cancelada
+  local  String   @default("PlenÃ¡rio")
+  status String   @default("Agendada") // Agendada, Em PreparaÃ§Ã£o, Aberta, Encerrada, Cancelada
   quorum Int?
 
   legislaturaId String?
@@ -4746,10 +4755,10 @@ model CamSessao {
 model CamProposicao {
   id            String   @id @default(cuid())
   numero        String   @unique
-  tipo          String // Projeto de Lei, Requerimento, Indicação, Moção, Emenda, Decreto Legislativo
+  tipo          String // Projeto de Lei, Requerimento, IndicaÃ§Ã£o, MoÃ§Ã£o, Emenda, Decreto Legislativo
   ementa        String
   texto         String?
-  status        String   @default("Protocolada") // Protocolada, Em Análise, Em Pauta, Aprovada, Rejeitada, Arquivada, Sancionada
+  status        String   @default("Protocolada") // Protocolada, Em AnÃ¡lise, Em Pauta, Aprovada, Rejeitada, Arquivada, Sancionada
   dataProtocolo DateTime @default(now())
   urgente       Boolean  @default(false)
 
@@ -4773,7 +4782,7 @@ model CamComissao {
   id        String  @id @default(cuid())
   nome      String
   sigla     String?
-  tipo      String  @default("Permanente") // Permanente, Temporária, CPI, Especial
+  tipo      String  @default("Permanente") // Permanente, TemporÃ¡ria, CPI, Especial
   descricao String?
   status    String  @default("Ativa") // Ativa, Inativa, Encerrada
 
@@ -4803,7 +4812,7 @@ model CamComissaoMembro {
 
 model CamMesaDiretora {
   id     String @id @default(cuid())
-  cargo  String // Presidente, 1º Vice-Presidente, 2º Vice-Presidente, 1º Secretário, 2º Secretário
+  cargo  String // Presidente, 1Âº Vice-Presidente, 2Âº Vice-Presidente, 1Âº SecretÃ¡rio, 2Âº SecretÃ¡rio
   status String @default("Ativo") // Ativo, Inativo
 
   legislaturaId String
@@ -4849,7 +4858,7 @@ model CamPauta {
 
 model CamVotacao {
   id         String  @id @default(cuid())
-  modalidade String  @default("Nominal") // Nominal, Secreta, Simbólica
+  modalidade String  @default("Nominal") // Nominal, Secreta, SimbÃ³lica
   resultado  String // Aprovada, Rejeitada, Prejudicada, Empate
   votosSim   Int     @default(0)
   votosNao   Int     @default(0)
@@ -4871,7 +4880,7 @@ model CamAta {
   id            String    @id @default(cuid())
   numero        String    @unique
   conteudo      String
-  status        String    @default("Rascunho") // Rascunho, Em Revisão, Aprovada, Publicada
+  status        String    @default("Rascunho") // Rascunho, Em RevisÃ£o, Aprovada, Publicada
   dataAprovacao DateTime?
 
   sessaoId   String                    @unique
@@ -4885,7 +4894,7 @@ model CamAta {
 model CamLei {
   id             String    @id @default(cuid())
   numero         String    @unique
-  tipo           String // Lei Ordinária, Lei Complementar, Decreto Legislativo, Resolução
+  tipo           String // Lei OrdinÃ¡ria, Lei Complementar, Decreto Legislativo, ResoluÃ§Ã£o
   ementa         String
   texto          String?
   dataPublicacao DateTime?
@@ -4902,9 +4911,9 @@ model CamLei {
 
 model CamParecer {
   id        String @id @default(cuid())
-  tipo      String @default("Comissão") // Comissão, Jurídico, Técnico
+  tipo      String @default("ComissÃ£o") // ComissÃ£o, JurÃ­dico, TÃ©cnico
   conteudo  String
-  resultado String @default("Favorável") // Favorável, Contrário, Com Ressalvas
+  resultado String @default("FavorÃ¡vel") // FavorÃ¡vel, ContrÃ¡rio, Com Ressalvas
   status    String @default("Emitido") // Emitido, Arquivado
 
   proposicaoId String
@@ -4924,7 +4933,7 @@ model CamAudiencia {
   descricao String?
   data      DateTime
   local     String
-  tipo      String   @default("Pública") // Pública, Privada, Online
+  tipo      String   @default("PÃºblica") // PÃºblica, Privada, Online
   status    String   @default("Agendada") // Agendada, Realizada, Cancelada
   ata       String?
 
@@ -4952,7 +4961,7 @@ model CamPresencaSessao {
 
 model CamVoto {
   id         String      @id @default(cuid())
-  voto       String // Sim, Não, Abstenção
+  voto       String // Sim, NÃ£o, AbstenÃ§Ã£o
   votacaoId  String
   votacao    CamVotacao  @relation(fields: [votacaoId], references: [id], onDelete: Cascade)
   vereadorId String
@@ -4964,7 +4973,7 @@ model CamVoto {
 
 model CamDocumentoLegislativo {
   id           String         @id @default(cuid())
-  purpose      String         @default("Publicação")
+  purpose      String         @default("PublicaÃ§Ã£o")
   documentId   String
   document     Document       @relation("CamaraLegislativeDocument", fields: [documentId], references: [id])
   proposicaoId String?
@@ -4992,9 +5001,9 @@ model ObrasObra {
   nome          String
   descricao     String?
   local         String?
-  tipo          String // Construção, Reforma, Pavimentação, etc.
+  tipo          String // ConstruÃ§Ã£o, Reforma, PavimentaÃ§Ã£o, etc.
   valorEstimado Float?
-  status        String  @default("Em Planejamento") // Em Planejamento, Em Execução, Concluída, Paralisada
+  status        String  @default("Em Planejamento") // Em Planejamento, Em ExecuÃ§Ã£o, ConcluÃ­da, Paralisada
   active        Boolean @default(true)
 
   medicoes ObrasMedicao[]
@@ -5008,7 +5017,7 @@ model ObrasMedicao {
   numero      Int
   data        DateTime
   valorMedido Float
-  status      String   @default("Em Análise") // Em Análise, Aprovada, Paga
+  status      String   @default("Em AnÃ¡lise") // Em AnÃ¡lise, Aprovada, Paga
   active      Boolean  @default(true)
 
   obraId String
@@ -5023,10 +5032,10 @@ model ObrasMedicao {
 model ObrasServico {
   id        String  @id @default(cuid())
   protocolo String  @unique
-  tipo      String // Tapa-buraco, Iluminação, Poda, Limpeza
+  tipo      String // Tapa-buraco, IluminaÃ§Ã£o, Poda, Limpeza
   descricao String
   local     String
-  status    String  @default("Aberto") // Aberto, Em Andamento, Concluído
+  status    String  @default("Aberto") // Aberto, Em Andamento, ConcluÃ­do
   active    Boolean @default(true)
 
   scheduledFor  DateTime?
@@ -5175,7 +5184,7 @@ model CulturaAgente {
   id       String  @id @default(cuid())
   nome     String
   tipo     String // Artista Individual, Grupo, Produtor, etc.
-  segmento String // Música, Teatro, Dança, Esporte, etc.
+  segmento String // MÃºsica, Teatro, DanÃ§a, Esporte, etc.
   cpfCnpj  String? @unique
   telefone String?
   email    String?
@@ -5197,10 +5206,10 @@ model CulturaAgente {
 model CulturaEspaco {
   id         String  @id @default(cuid())
   nome       String
-  tipo       String // Centro Cultural, Quadra, Teatro, Praça
+  tipo       String // Centro Cultural, Quadra, Teatro, PraÃ§a
   endereco   String?
   capacidade Int?
-  status     String  @default("Disponível") // Disponível, Em Manutenção, Reservado
+  status     String  @default("DisponÃ­vel") // DisponÃ­vel, Em ManutenÃ§Ã£o, Reservado
   active     Boolean @default(true)
 
   assetId               String?
@@ -5221,7 +5230,7 @@ model CulturaEspaco {
 model CulturaEvento {
   id          String    @id @default(cuid())
   nome        String
-  tipo        String // Oficina, Campeonato, Festival, Apresentação
+  tipo        String // Oficina, Campeonato, Festival, ApresentaÃ§Ã£o
   data        DateTime
   local       String?
   publicoAlvo String?
@@ -5250,7 +5259,7 @@ model CulturaProjeto {
   nome            String
   descricao       String?
   categoria       String
-  status          String  @default("Em Análise")
+  status          String  @default("Em AnÃ¡lise")
   active          Boolean @default(true)
   valorSolicitado Float?
 
@@ -5382,7 +5391,7 @@ model CulturaProjetoDocumento {
   project    CulturaProjeto @relation(fields: [projectId], references: [id], onDelete: Cascade)
   documentId String
   document   Document       @relation("CulturaProjectDocument", fields: [documentId], references: [id])
-  purpose    String         @default("Prestação de contas")
+  purpose    String         @default("PrestaÃ§Ã£o de contas")
   createdAt  DateTime       @default(now())
 
   @@unique([projectId, documentId])
@@ -5413,7 +5422,7 @@ model CulturaConselhoDocumento {
 }
 
 // -----------------------------------------------------------------------------
-// MODULO 20 - SEGURANÇA PÚBLICA E MOBILIDADE
+// MODULO 20 - SEGURANÃ‡A PÃšBLICA E MOBILIDADE
 // -----------------------------------------------------------------------------
 
 model SegurancaGuarda {
@@ -5514,7 +5523,7 @@ model ConfiguracaoInstancia {
   municipio      String
   uf             String
   dominio        String?
-  status         String  @default("Ativa") // Ativa, Suspensa, Manutenção
+  status         String  @default("Ativa") // Ativa, Suspensa, ManutenÃ§Ã£o
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -5684,4 +5693,45 @@ model UsuarioUnidadeGestora {
   createdAt DateTime @default(now())
 
   @@unique([usuarioId, budgetUnitId])
+}
+
+model Covenant {
+  id                 String       @id @default(cuid())
+  number             String       @unique
+  grantor            String
+  description        String
+  totalValueDecimal  Decimal      @db.Decimal(18, 2)
+  startDate          DateTime
+  endDate            DateTime
+  status             String       @default("Ativo")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  commitments        Commitment[] @relation("CovenantCommitments")
+}
+
+model PublicityCampaign {
+  id                    String       @id @default(cuid())
+  name                  String       @unique
+  agency                String
+  contractNumber        String?
+  approvedBudgetDecimal Decimal      @db.Decimal(18, 2)
+  startDate             DateTime
+  endDate               DateTime
+  status                String       @default("Ativa")
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  commitments           Commitment[] @relation("PublicityCampaignCommitments")
+}
+
+model FundedDebt {
+  id                    String       @id @default(cuid())
+  creditorName          String
+  lawNumber             String       @unique
+  contractNumber        String?
+  principalValueDecimal Decimal      @db.Decimal(18, 2)
+  amortizationSchedule  String?
+  status                String       @default("Ativa")
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  commitments           Commitment[] @relation("FundedDebtCommitments")
 }

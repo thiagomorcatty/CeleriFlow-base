@@ -4,6 +4,8 @@ import { prisma } from "../src/lib/prisma";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { generateInternalReportDataset, reportDatasetCsv } from "../src/lib/financeiro/report-delivery";
+import { publicFinancialReportDocumentType } from "../src/lib/transparencia/portal-public";
 
 function hashPassword(password: string) {
   const salt = crypto.randomBytes(16).toString("hex");
@@ -364,7 +366,7 @@ async function main() {
     update: { status: "Homologado" },
   });
 
-  await prisma.contract.upsert({
+  const contratoPoc = await prisma.contract.upsert({
     where: { number: "CONT-2026/001" },
     create: {
       number: "CONT-2026/001",
@@ -379,6 +381,47 @@ async function main() {
       secretariat: { connect: { id: secFinancas.id } },
     },
     update: { status: "Vigente" },
+  });
+
+  const convenioPoc = await prisma.covenant.upsert({
+    where: { number: "CONV-2026/001" },
+    create: {
+      number: "CONV-2026/001",
+      grantor: "Ministério da Saúde / FNS",
+      description: "Apoio ao Programa Saúde da Família em Lagoa Seca/PB",
+      totalValueDecimal: new Prisma.Decimal(500000),
+      startDate: new Date("2026-01-01T00:00:00.000Z"),
+      endDate: new Date("2026-12-31T23:59:59.999Z"),
+      status: "Ativo",
+    },
+    update: { status: "Ativo" },
+  });
+
+  const campanhaPoc = await prisma.publicityCampaign.upsert({
+    where: { name: "Campanha Lagoa Seca Transparente 2026" },
+    create: {
+      name: "Campanha Lagoa Seca Transparente 2026",
+      agency: "Agência Pública de Comunicação S/A",
+      contractNumber: "CONT-2026/001",
+      approvedBudgetDecimal: new Prisma.Decimal(120000),
+      startDate: new Date("2026-01-01T00:00:00.000Z"),
+      endDate: new Date("2026-12-31T23:59:59.999Z"),
+      status: "Ativa",
+    },
+    update: { status: "Ativa" },
+  });
+
+  const dividaPoc = await prisma.fundedDebt.upsert({
+    where: { lawNumber: "Lei-482/2020" },
+    create: {
+      creditorName: "Caixa Econômica Federal - FINISA",
+      lawNumber: "Lei-482/2020",
+      contractNumber: "FINISA-004/2020",
+      principalValueDecimal: new Prisma.Decimal(1500000),
+      amortizationSchedule: "Mensal 120 parcelas com carência de 24 meses",
+      status: "Ativa",
+    },
+    update: { status: "Ativa" },
   });
 
   // ---------------------------------------------------------------------------
@@ -683,6 +726,49 @@ async function main() {
     create: { id: "doc-sample-jpg", title: "Imagem de Teste JPG - GED", documentType: "Vistoria", fileUrl: "/docs/sample.jpg", status: "Válido" },
     update: {},
   });
+
+  // ---------------------------------------------------------------------------
+  // 18. Publicação de Snapshots Públicos no Portal da Transparência
+  // ---------------------------------------------------------------------------
+  const exercise2026 = await prisma.financialYear.findUnique({ where: { year: 2026 } });
+  if (exercise2026) {
+    const reportTypes = ["RREO", "RGF", "BALANCETE", "BALANCO_ORCAMENTARIO", "BALANCO_PATRIMONIAL", "PCA"] as const;
+    for (const reportType of reportTypes) {
+      try {
+        const dataset = await generateInternalReportDataset(prisma, reportType, exercise2026.id, 2026);
+        const csv = reportDatasetCsv(dataset);
+        const docType = publicFinancialReportDocumentType(exercise2026.id, reportType);
+        const docId = `pub-doc-${reportType.toLowerCase()}-2026`;
+
+        const doc = await prisma.document.upsert({
+          where: { id: docId },
+          create: {
+            id: docId,
+            title: `Relatório público ${reportType} 2026`,
+            documentType: docType,
+            fileUrl: `/docs/relatorio-${reportType.toLowerCase()}-2026.csv`,
+            status: "Publicado",
+          },
+          update: { status: "Publicado" },
+        });
+
+        await prisma.documentVersion.upsert({
+          where: { id: `pub-ver-${reportType.toLowerCase()}-2026` },
+          create: {
+            id: `pub-ver-${reportType.toLowerCase()}-2026`,
+            documentId: doc.id,
+            versionNumber: 1,
+            fileUrl: doc.fileUrl,
+            hashSha256: "0000000000000000000000000000000000000000000000000000000000000000",
+            status: "FINAL",
+          },
+          update: { status: "FINAL" },
+        });
+      } catch (err) {
+        console.warn(`Snapshot do relatório ${reportType} não gerado na seed:`, err);
+      }
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Resumo Final
