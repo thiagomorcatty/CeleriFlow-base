@@ -12,24 +12,33 @@ import {
   LayoutDashboard,
   ArrowLeft,
   Menu,
-  X
-  , BookOpenCheck, ClipboardList
+  X,
+  BookOpenCheck,
+  ClipboardList,
+  Download,
+  ArrowRightLeft,
+  TrendingUp,
+  GitCompare
 } from "lucide-react";
 
 const sidebarNavItems = [
   { title: "Painel Financeiro", href: "/financeiro", icon: LayoutDashboard },
-   { title: "Orçamento e Plano", href: "/financeiro/orcamento", icon: Scale },
-   { title: "Planejamento", href: "/financeiro/orcamento/planejamento", icon: BookOpenCheck },
+  { title: "Download Extratos", href: "/financeiro/download-extratos", icon: Download },
+  { title: "Resgates e Aplicações", href: "/financeiro/resgates-aplicacoes", icon: ArrowRightLeft },
+  { title: "Rendimentos Aplicação", href: "/financeiro/rendimentos", icon: TrendingUp },
+  { title: "Receitas Constitucionais", href: "/financeiro/receitas-constitucionais", icon: Landmark },
+  { title: "Conciliação Bancária", href: "/financeiro/conciliacao-bancaria", icon: GitCompare },
+  { title: "Orçamento e Plano", href: "/financeiro/orcamento", icon: Scale },
+  { title: "Planejamento", href: "/financeiro/orcamento/planejamento", icon: BookOpenCheck },
   { title: "Cadastros Orçamentários", href: "/financeiro/orcamento/cadastros", icon: FileText },
-   { title: "Tesouraria (Contas)", href: "/financeiro/contas-bancarias", icon: Landmark },
-   { title: "Receitas", href: "/financeiro/receitas", icon: WalletCards },
-   { title: "Conciliação Bancária", href: "/financeiro/conciliacao-bancaria", icon: WalletCards },
+  { title: "Tesouraria (Contas)", href: "/financeiro/contas-bancarias", icon: Landmark },
+  { title: "Receitas", href: "/financeiro/receitas", icon: WalletCards },
   { title: "Gestão de Empenhos", href: "/financeiro/empenhos", icon: FileText },
   { title: "Liquidações", href: "/financeiro/liquidacoes", icon: Receipt },
-    { title: "Pagamentos", href: "/financeiro/pagamentos", icon: WalletCards },
-    { title: "Restos a Pagar", href: "/financeiro/restos-a-pagar", icon: ClipboardList },
-   { title: "Relatórios", href: "/financeiro/relatorios", icon: FileText },
- ];
+  { title: "Pagamentos", href: "/financeiro/pagamentos", icon: WalletCards },
+  { title: "Restos a Pagar", href: "/financeiro/restos-a-pagar", icon: ClipboardList },
+  { title: "Relatórios", href: "/financeiro/relatorios", icon: FileText },
+];
 
 export default function FinanceiroLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

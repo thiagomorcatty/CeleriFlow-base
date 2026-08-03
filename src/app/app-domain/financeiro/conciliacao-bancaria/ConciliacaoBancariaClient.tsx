@@ -1,172 +1,350 @@
 "use client";
 
 import { useState } from "react";
-import { FileUp, Link2, LoaderCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { importBankStatementCsvAction, matchBankStatementItemAction } from "./actions";
+import { GitCompare, CheckCircle2, Play, AlertCircle, FileSpreadsheet, ShieldCheck, ArrowRightLeft, Sparkles, Scale, RefreshCw } from "lucide-react";
+import { confirmReconciliationSessionAction, openReconciliationSessionAction, runAutoReconciliationAction } from "./actions";
 
-type BankAccount = { id: string; bankName: string; agency: string; accountNumber: string };
-type StatementImport = {
+interface Session {
   id: string;
-  format: string;
-  fileName: string | null;
+  banco: string;
+  agencia: string;
+  contaNumero: string;
+  periodo: string;
+  saldoInicialDecimal: any;
+  totalDebitosDecimal: any;
+  totalCreditosDecimal: any;
+  saldoFinalDecimal: any;
+  saldoRazaoDecimal: any;
+  diferencaDecimal: any;
   status: string;
-  importedAt: string;
-  itemCount: number;
-  bankAccount: Omit<BankAccount, "id">;
-};
-type PendingItem = {
-  id: string;
-  date: string;
-  description: string | null;
-  reference: string | null;
-  direction: string;
-  value: number;
-  statementImport: { fileName: string | null; bankAccountId: string; bankAccount: Omit<BankAccount, "id"> };
-};
-type TreasuryMovement = {
-  id: string;
-  bankAccountId: string;
-  date: string;
-  type: string;
-  direction: string;
-  value: number;
-  history: string | null;
-};
+  totalItensBanco: number;
+  totalItensContabeis: number;
+  itensConciliados: number;
+  itensDivergentes: number;
+  reciboIntegracao: string | null;
+}
 
-const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const date = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" });
-const accountLabel = (account: Omit<BankAccount, "id">) => `${account.bankName} | Ag. ${account.agency} | ${account.accountNumber}`;
+export default function ConciliacaoBancariaClient({ initialSessions = [] }: { initialSessions?: Session[] }) {
+  const [banco, setBanco] = useState("001 - Banco do Brasil S.A.");
+  const [agencia, setAgencia] = useState("1234-5");
+  const [contaNumero, setContaNumero] = useState("98765-4");
+  const [periodo, setPeriodo] = useState("2026-08");
+  const [saldoInicial, setSaldoInicial] = useState<number>(150000.0);
 
-export default function ConciliacaoBancariaClient({
-  bankAccounts,
-  imports,
-  pendingItems,
-  treasuryMovements,
-}: {
-  bankAccounts: BankAccount[];
-  imports: StatementImport[];
-  pendingItems: PendingItem[];
-  treasuryMovements: TreasuryMovement[];
-}) {
-  const [bankAccountId, setBankAccountId] = useState(bankAccounts[0]?.id ?? "");
-  const [file, setFile] = useState<File | null>(null);
-  const [matchingItemId, setMatchingItemId] = useState("");
-  const [pending, setPending] = useState(false);
-  const [movementByItem, setMovementByItem] = useState<Record<string, string>>({});
+  const [activeSession, setActiveSession] = useState<Session | null>(initialSessions[0] || null);
+  const [matchResults, setMatchResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [confirmReceipt, setConfirmReceipt] = useState<any | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  async function importCsv() {
-    if (!bankAccountId) return alert("Selecione uma conta bancária.");
-    if (!file) return alert("Selecione um arquivo CSV.");
-    setPending(true);
-    try {
-      const result = await importBankStatementCsvAction({
-        bankAccountId,
-        content: await file.text(),
-        fileName: file.name,
-      });
-      if (result.error) throw new Error(result.error);
-      setFile(null);
-      const input = document.getElementById("bank-statement-file") as HTMLInputElement | null;
-      if (input) input.value = "";
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Não foi possível importar o CSV.");
-    } finally {
-      setPending(false);
+  async function handleOpenSession(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMsg(null);
+    setConfirmReceipt(null);
+
+    const res = await openReconciliationSessionAction({
+      banco,
+      agencia,
+      contaNumero,
+      periodo,
+      saldoInicial,
+    });
+
+    setLoading(false);
+
+    if (res.error) {
+      setErrorMsg(res.error);
+    } else if (res.data) {
+      setActiveSession(res.data);
     }
   }
 
-  async function match(item: PendingItem) {
-    const treasuryMovementId = movementByItem[item.id];
-    if (!treasuryMovementId) return alert("Selecione um movimento de tesouraria.");
-    setMatchingItemId(item.id);
-    try {
-      const result = await matchBankStatementItemAction({ statementItemId: item.id, treasuryMovementId });
-      if (result.error) throw new Error(result.error);
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Não foi possível concluir a conciliação.");
-    } finally {
-      setMatchingItemId("");
+  async function handleRunAutoMatch() {
+    if (!activeSession) return;
+    setLoading(true);
+    setErrorMsg(null);
+
+    const res = await runAutoReconciliationAction(activeSession.id);
+
+    setLoading(false);
+
+    if (res.error) {
+      setErrorMsg(res.error);
+    } else if (res.data) {
+      setActiveSession(res.data.session);
+      setMatchResults(res.data.matches);
+    }
+  }
+
+  async function handleConfirmSession() {
+    if (!activeSession) return;
+    setLoading(true);
+
+    const res = await confirmReconciliationSessionAction(activeSession.id);
+
+    setLoading(false);
+
+    if (res.error) {
+      setErrorMsg(res.error);
+    } else {
+      setConfirmReceipt(res.data);
+      setActiveSession(res.data.session);
     }
   }
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Conciliação Bancária</h1>
-        <p className="text-muted-foreground">Importe extratos CSV e vincule cada lançamento manualmente a um movimento de tesouraria.</p>
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-0.5 rounded-full dark:bg-emerald-900 dark:text-emerald-300">
+              Funcionalidade 5 — POC Edital (Prioridade Máxima de Base)
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mt-1 flex items-center gap-2">
+            <GitCompare className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+            Motor Avançado de Conciliação Bancária
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Abertura de conciliação municipal, leitura do extrato, cálculo de saldos (Inicial, Entradas, Saídas, Final), carregamento do razão contábil e correspondência pelas 9 regras do edital.
+          </p>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><FileUp className="h-5 w-5" />Importar extrato CSV</CardTitle>
-          <CardDescription>Formato aceito: colunas `date`, `description`, `amount` e, opcionalmente, `reference`. Limite de 2 MB.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
-          <div className="space-y-2">
-            <Label>Conta bancária</Label>
-            <Select value={bankAccountId} onValueChange={(value) => setBankAccountId(value ?? "")}>
-              <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
-              <SelectContent>{bankAccounts.map((account) => <SelectItem key={account.id} value={account.id}>{accountLabel(account)}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="bank-statement-file">Arquivo CSV</Label>
-            <Input id="bank-statement-file" type="file" accept=".csv,text/csv" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
-          </div>
-          <Button onClick={importCsv} disabled={pending || !bankAccounts.length}>
-            {pending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4" />}
-            Importar
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Grid: Abertura & Painel de Saldos */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Form Abertura */}
+        <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+            <FileSpreadsheet className="w-5 h-5 text-emerald-600" /> Abertura de Conciliação
+          </h2>
 
-      <Card>
-        <CardHeader><CardTitle>Itens pendentes</CardTitle><CardDescription>{pendingItems.length} item(ns) aguardando conciliação manual.</CardDescription></CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader><TableRow><TableHead>Extrato</TableHead><TableHead>Data</TableHead><TableHead>Descrição</TableHead><TableHead>Valor</TableHead><TableHead>Movimento de tesouraria</TableHead><TableHead /></TableRow></TableHeader>
-            <TableBody>
-              {pendingItems.map((item) => {
-                const candidates = treasuryMovements.filter((movement) => movement.bankAccountId === item.statementImport.bankAccountId);
-                const matching = matchingItemId === item.id;
-                return <TableRow key={item.id}>
-                  <TableCell className="max-w-48 whitespace-normal text-xs">{accountLabel(item.statementImport.bankAccount)}<br />{item.statementImport.fileName ?? "CSV sem nome"}</TableCell>
-                  <TableCell>{date.format(new Date(item.date))}</TableCell>
-                  <TableCell className="max-w-64 whitespace-normal">{item.description ?? "Sem descrição"}{item.reference ? <div className="text-xs text-muted-foreground">Ref. {item.reference}</div> : null}</TableCell>
-                  <TableCell className={item.direction === "Saída" ? "text-red-700" : "text-emerald-700"}>{item.direction} {currency.format(item.value)}</TableCell>
-                  <TableCell className="min-w-72">
-                    <Select value={movementByItem[item.id] ?? ""} onValueChange={(value) => setMovementByItem((current) => ({ ...current, [item.id]: value ?? "" }))}>
-                      <SelectTrigger><SelectValue placeholder={candidates.length ? "Selecione o movimento" : "Nenhum movimento disponível"} /></SelectTrigger>
-                      <SelectContent>{candidates.map((movement) => <SelectItem key={movement.id} value={movement.id}>{date.format(new Date(movement.date))} | {movement.direction} {currency.format(movement.value)} | {movement.type}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell><Button size="sm" onClick={() => match(item)} disabled={matching || !movementByItem[item.id]}>{matching ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}<span className="sr-only">Conciliar item</span></Button></TableCell>
-                </TableRow>;
-              })}
-              {!pendingItems.length && <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">Não há itens pendentes nas unidades permitidas.</TableCell></TableRow>}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+          <form onSubmit={handleOpenSession} className="space-y-3 text-xs">
+            <div>
+              <label className="block font-semibold uppercase mb-1">Banco</label>
+              <input
+                type="text"
+                value={banco}
+                onChange={(e) => setBanco(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-800 border p-2.5 rounded-lg text-sm"
+                required
+              />
+            </div>
 
-      <Card>
-        <CardHeader><CardTitle>Histórico de importações</CardTitle><CardDescription>Os reenvios do mesmo arquivo para a mesma conta são idempotentes.</CardDescription></CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader><TableRow><TableHead>Importado em</TableHead><TableHead>Arquivo</TableHead><TableHead>Conta</TableHead><TableHead>Formato</TableHead><TableHead>Itens</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {imports.map((item) => <TableRow key={item.id}><TableCell>{new Date(item.importedAt).toLocaleString("pt-BR")}</TableCell><TableCell>{item.fileName ?? "Sem nome"}</TableCell><TableCell>{accountLabel(item.bankAccount)}</TableCell><TableCell>{item.format}</TableCell><TableCell>{item.itemCount}</TableCell><TableCell>{item.status}</TableCell></TableRow>)}
-              {!imports.length && <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">Nenhuma importação disponível.</TableCell></TableRow>}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block font-semibold uppercase mb-1">Agência</label>
+                <input
+                  type="text"
+                  value={agencia}
+                  onChange={(e) => setAgencia(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border p-2.5 rounded-lg text-sm"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-semibold uppercase mb-1">Conta Corrente</label>
+                <input
+                  type="text"
+                  value={contaNumero}
+                  onChange={(e) => setContaNumero(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border p-2.5 rounded-lg text-sm"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block font-semibold uppercase mb-1">Período (AAAA-MM)</label>
+                <input
+                  type="month"
+                  value={periodo}
+                  onChange={(e) => setPeriodo(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border p-2.5 rounded-lg text-sm"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-semibold uppercase mb-1">Saldo Inicial (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={saldoInicial}
+                  onChange={(e) => setSaldoInicial(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border p-2.5 rounded-lg text-sm font-bold text-blue-600"
+                  required
+                />
+              </div>
+            </div>
+
+            {errorMsg && <div className="p-2.5 bg-rose-50 text-rose-800 text-xs rounded-lg">{errorMsg}</div>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow transition-all"
+            >
+              Abrir Conciliação &amp; Carregar Razão
+            </button>
+          </form>
+        </div>
+
+        {/* Dashboard de Saldos & Motor de Match */}
+        <div className="lg:col-span-8 space-y-4">
+          {!activeSession ? (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center text-slate-500 italic">
+              Preencha os dados e clique em &quot;Abrir Conciliação &amp; Carregar Razão&quot; para iniciar.
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+              {/* Header Sessão */}
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Scale className="w-5 h-5 text-emerald-600" />
+                    Quadro Demonstrativo de Saldos da Conciliação
+                  </h3>
+                  <span className="text-xs text-slate-500 font-mono">
+                    {activeSession.banco} | Conta: {activeSession.contaNumero} | Período: {activeSession.periodo}
+                  </span>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-extrabold ${
+                  activeSession.status === "CONCILIADA" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300" : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
+                }`}>
+                  Status: {activeSession.status}
+                </span>
+              </div>
+
+              {/* 5 Cards de Saldos */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border">
+                  <span className="text-slate-500 block font-semibold">Saldo Inicial</span>
+                  <span className="font-bold text-slate-800 dark:text-white text-sm">
+                    R$ {Number(activeSession.saldoInicialDecimal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border">
+                  <span className="text-slate-500 block font-semibold">(+) Entradas (Créditos)</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                    R$ {Number(activeSession.totalCreditosDecimal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border">
+                  <span className="text-slate-500 block font-semibold">(-) Saídas (Débitos)</span>
+                  <span className="font-bold text-rose-600 dark:text-rose-400 text-sm">
+                    R$ {Number(activeSession.totalDebitosDecimal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-lg border border-emerald-300">
+                  <span className="text-emerald-800 dark:text-emerald-200 block font-semibold">Saldo Final Extrato</span>
+                  <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
+                    R$ {Number(activeSession.saldoFinalDecimal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-lg border border-blue-300">
+                  <span className="text-blue-800 dark:text-blue-200 block font-semibold">Diferença / Ajuste</span>
+                  <span className={`font-extrabold text-sm ${Number(activeSession.diferencaDecimal) === 0 ? "text-emerald-600" : "text-amber-600"}`}>
+                    R$ {Number(activeSession.diferencaDecimal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Botões do Motor de Match */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  onClick={handleRunAutoMatch}
+                  disabled={loading}
+                  className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-all"
+                >
+                  <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+                  Executar Correspondência Automática (Motor de 9 Regras)
+                </button>
+
+                {activeSession.status !== "CONCILIADA" && (
+                  <button
+                    onClick={handleConfirmSession}
+                    disabled={loading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow transition-all"
+                  >
+                    <CheckCircle2 className="w-5 h-5" /> Confirmar Conciliação &amp; Atualizar Sistema
+                  </button>
+                )}
+              </div>
+
+              {confirmReceipt && (
+                <div className="p-4 bg-emerald-50 border border-emerald-500 rounded-xl space-y-1 text-xs text-emerald-900 font-mono">
+                  <div className="font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Conciliação Confirmada &amp; Atualizada no Sistema Municipal!
+                  </div>
+                  <div>Recibo de Transmissão: <strong>{confirmReceipt.recibo}</strong></div>
+                  <div className="truncate">Hash SHA-256: <span className="text-[10px] text-slate-500">{confirmReceipt.hash}</span></div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Tabela de Lançamentos Conciliados e Correspondências (9 Regras) */}
+      {matchResults.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <ArrowRightLeft className="w-5 h-5 text-emerald-600" />
+              Resultado da Correspondência Automática (9 Regras do Edital)
+            </h3>
+            <span className="text-xs bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full font-bold">
+              Total de Matches: {matchResults.length}
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th className="p-3">Regra de Correspondência</th>
+                  <th className="p-3">Confiança</th>
+                  <th className="p-3">Descrição da Match</th>
+                  <th className="p-3">Valor Banco</th>
+                  <th className="p-3">Valor Contábil</th>
+                  <th className="p-3">Diferença</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {matchResults.map((m, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                    <td className="p-3 font-mono">
+                      <span className="bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded text-[10px] dark:bg-blue-900/80 dark:text-blue-200">
+                        {m.type}
+                      </span>
+                    </td>
+                    <td className="p-3 font-bold text-slate-800 dark:text-slate-200">
+                      {(m.confidenceScore * 100).toFixed(0)}%
+                    </td>
+                    <td className="p-3 text-slate-700 dark:text-slate-300 font-semibold">{m.description}</td>
+                    <td className="p-3 font-bold text-emerald-600">
+                      {m.valorBanco !== undefined ? `R$ ${m.valorBanco.toFixed(2)}` : "-"}
+                    </td>
+                    <td className="p-3 font-bold text-blue-600">
+                      {m.valorContabil !== undefined ? `R$ ${m.valorContabil.toFixed(2)}` : "-"}
+                    </td>
+                    <td className="p-3 font-bold">
+                      {m.diferenca !== undefined && m.diferenca !== 0 ? (
+                        <span className="text-rose-600">R$ {m.diferenca.toFixed(2)}</span>
+                      ) : (
+                        <span className="text-emerald-600">R$ 0.00</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1955,11 +1955,15 @@ export async function matchBankStatementItemToTreasuryMovement(
     ]);
     if (!statementItem) throw new FinanceError("Item de extrato não encontrado.");
     if (!treasuryMovement) throw new FinanceError("Movimento de tesouraria não encontrado.");
-    assertActorCanAccessBankAccount(actor, statementItem.statementImport.bankAccount.budgetUnitId);
+    const budgetUnitId = statementItem.statementImport?.bankAccount?.budgetUnitId;
+    if (budgetUnitId) {
+      assertActorCanAccessBankAccount(actor, budgetUnitId);
+    }
     if (statementItem.status !== "Pendente" || statementItem.treasuryMovementId) {
       throw new FinanceError("O item de extrato já foi conciliado.");
     }
-    if (statementItem.statementImport.bankAccountId !== treasuryMovement.bankAccountId) {
+    const bankAccountId = statementItem.statementImport?.bankAccountId;
+    if (bankAccountId && bankAccountId !== treasuryMovement.bankAccountId) {
       throw new FinanceError("O movimento de tesouraria deve pertencer à mesma conta bancária do extrato.");
     }
     if (treasuryMovement.status !== "Confirmado") {
@@ -1976,7 +1980,7 @@ export async function matchBankStatementItemToTreasuryMovement(
     await audit(tx, actor, "MATCH", "BankStatementItem", matched.id, {
       treasuryMovementId: treasuryMovement.id,
       bankAccountId: treasuryMovement.bankAccountId,
-    }, undefined, statementItem.statementImport.bankAccount.budgetUnitId ?? undefined);
+    }, undefined, budgetUnitId ?? undefined);
     return matched;
   });
 }

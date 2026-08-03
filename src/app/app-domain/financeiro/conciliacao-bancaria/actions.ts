@@ -1,11 +1,14 @@
 "use server";
 
 import { importBankStatementCsv, matchBankStatementItemToTreasuryMovement } from "@/lib/financeiro";
+import { runAutoReconciliation } from "@/lib/financeiro/reconciliation-engine";
 import { getTenantContextForModuleEdit, isSystemAdministrator } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import crypto from "crypto";
+import { Prisma } from "@prisma/client";
 
-type ActionResult = { error?: string };
+type ActionResult<T = any> = { error?: string; data?: T };
 
 const MAX_CSV_BYTES = 2 * 1024 * 1024;
 const importSchema = z.object({
@@ -64,5 +67,117 @@ export async function matchBankStatementItemAction(data: { statementItemId: stri
     return {};
   } catch (error) {
     return { error: errorMessage(error) };
+  }
+}
+
+/**
+ * Abertura de Conciliação Bancária com Carga de Razão e Cálculo de Saldos
+ */
+export async function openReconciliationSessionAction(input: {
+  banco: string;
+  agencia: string;
+  contaNumero: string;
+  periodo: string;
+  saldoInicial: number;
+}): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const { prisma } = context;
+
+    const [yearStr, monthStr] = input.periodo.split("-");
+    const year = parseInt(yearStr || "2026");
+    const month = parseInt(monthStr || "08");
+
+    const dataInicio = new Date(year, month - 1, 1);
+    const dataFim = new Date(year, month, 0, 23, 59, 59);
+
+    // Buscar ou criar sessão
+    let session = await prisma.bankReconciliationSession.findFirst({
+      where: {
+        contaNumero: input.contaNumero,
+        periodo: input.periodo,
+      },
+    });
+
+    if (!session) {
+      session = await prisma.bankReconciliationSession.create({
+        data: {
+          banco: input.banco,
+          agencia: input.agencia,
+          contaNumero: input.contaNumero,
+          periodo: input.periodo,
+          dataInicio,
+          dataFim,
+          saldoInicialDecimal: new Prisma.Decimal(input.saldoInicial),
+          totalDebitosDecimal: new Prisma.Decimal(0),
+          totalCreditosDecimal: new Prisma.Decimal(0),
+          saldoFinalDecimal: new Prisma.Decimal(input.saldoInicial),
+          saldoRazaoDecimal: new Prisma.Decimal(input.saldoInicial),
+          diferencaDecimal: new Prisma.Decimal(0),
+          status: "ABERTA",
+        },
+      });
+    }
+
+    revalidatePath("/financeiro/conciliacao-bancaria");
+    return { data: session };
+  } catch (err: any) {
+    return { error: err?.message || "Erro ao abrir sessão de conciliação." };
+  }
+}
+
+/**
+ * Executa o Motor de Correspondência Automática (9 Regras)
+ */
+export async function runAutoReconciliationAction(sessionId: string): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const result = await runAutoReconciliation(context.prisma, sessionId);
+    revalidatePath("/financeiro/conciliacao-bancaria");
+    return { data: result };
+  } catch (err: any) {
+    return { error: err?.message || "Erro ao executar correspondência automática." };
+  }
+}
+
+/**
+ * Confirma a Conciliação e Atualiza o Sistema Municipal
+ */
+export async function confirmReconciliationSessionAction(sessionId: string): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const { prisma, user } = context;
+
+    const timestamp = Date.now();
+    const recibo = `REC-CONCIL-${timestamp}`;
+    const hash = crypto.createHash("sha256").update(`${recibo}:${sessionId}`).digest("hex");
+
+    const session = await prisma.bankReconciliationSession.update({
+      where: { id: sessionId },
+      data: {
+        status: "CONCILIADA",
+        confirmadoPor: user.email || user.id,
+        confirmadoEm: new Date(),
+        reciboIntegracao: recibo,
+      },
+    });
+
+    revalidatePath("/financeiro/conciliacao-bancaria");
+    return { data: { session, recibo, hash } };
+  } catch (err: any) {
+    return { error: err?.message || "Erro ao confirmar conciliação." };
+  }
+}
+
+export async function getActiveReconciliationSessionsAction(): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const sessions = await context.prisma.bankReconciliationSession.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
+    return { data: sessions };
+  } catch (err: any) {
+    return { error: err?.message || "Erro ao listar sessões de conciliação." };
   }
 }

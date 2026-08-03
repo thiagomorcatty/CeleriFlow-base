@@ -2621,17 +2621,30 @@ model BankStatementImport {
 }
 
 model BankStatementItem {
-  id                 String              @id @default(cuid())
-  statementImportId  String
-  statementImport    BankStatementImport @relation(fields: [statementImportId], references: [id])
-  date               DateTime
-  description        String?
-  reference          String?
-  direction          String
-  valueDecimal       Decimal             @db.Decimal(18, 2)
-  status             String              @default("Pendente")
-  treasuryMovementId String?             @unique
-  treasuryMovement   TreasuryMovement?   @relation(fields: [treasuryMovementId], references: [id])
+  id                     String               @id @default(cuid())
+  statementImportId      String?
+  statementImport        BankStatementImport? @relation(fields: [statementImportId], references: [id])
+  date                   DateTime
+  description            String?
+  reference              String?
+  direction              String
+  valueDecimal           Decimal              @db.Decimal(18, 2)
+  status                 String               @default("Pendente")
+  treasuryMovementId     String?              @unique
+  treasuryMovement       TreasuryMovement?    @relation(fields: [treasuryMovementId], references: [id])
+
+  // Campos adicionais para Automação POC, Rendimentos e Regras
+  downloadId             String?
+  banco                  String?
+  agencia                String?
+  contaNumero            String?
+  tipoConta              String?              // "CORRENTE" | "APLICACAO"
+  codigoTransacao        String?
+  sinal                  String?              // "CREDITO" | "DEBITO"
+  saldoResultanteDecimal Decimal?             @db.Decimal(18, 2)
+  categoriaClassificada  String?              // APLICACAO, RESGATE, TRANSFERENCIA_PARA_APLICACAO, etc.
+  reciboMunicipal        String?
+  lancamentoContabilId   String?
 
   @@index([statementImportId, date])
   @@index([treasuryMovementId])
@@ -5753,3 +5766,119 @@ model FundedDebt {
   updatedAt             DateTime     @updatedAt
   commitments           Commitment[] @relation("FundedDebtCommitments")
 }
+
+// --- Automação Bancária, Motor de Classificação e Conciliação (POC) ---
+
+model AutomatedBankDownload {
+  id             String   @id @default(cuid())
+  banco          String
+  agencia        String
+  contaNumero    String
+  tipoConta      String   // "CORRENTE" | "APLICACAO"
+  periodoInicio  DateTime
+  periodoFim     DateTime
+  nomeArquivo    String
+  caminhoDestino String
+  formato        String   // "OFX" | "CSV" | "PDF"
+  hashSHA256     String
+  tamanhoBytes   Int
+  status         String   @default("CONCLUIDO") // "CONCLUIDO" | "FALHA"
+  logsExecucao   String   @db.Text
+  auditLogId     String?
+  createdAt      DateTime @default(now())
+}
+
+model ClassificationRule {
+  id               String   @id @default(cuid())
+  bancoCodigo      String?  // ex: "001", "104", "*"
+  textoProcurado   String
+  codigoTransacao  String?
+  sinalEsperado    String?  // "CREDITO", "DEBITO", "AMBOS"
+  tipoMovimento    String   // APLICACAO, RESGATE, TRANSFERENCIA_PARA_APLICACAO, TRANSFERENCIA_DA_APLICACAO, DEBITO, CREDITO, ESTORNO, RENDIMENTO, RECEITA_CONSTITUCIONAL
+  bancoContaFiltro String?
+  tipoReceita      String?  // FPM, ICMS, FUNDEB, etc.
+  naturezaReceita  String?
+  fonteRecurso     String?
+  eventoContabil   String?
+  deducaoAplicavel Boolean  @default(false)
+  prioridade       Int      @default(10)
+  exigeConfirmacao Boolean  @default(false)
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model YieldTransaction {
+  id                    String   @id @default(cuid())
+  statementItemId       String?
+  contaNumero           String
+  data                  DateTime
+  valorBrutoDecimal     Decimal  @db.Decimal(18, 2)
+  irrfDecimal           Decimal  @default(0) @db.Decimal(18, 2)
+  iofDecimal            Decimal  @default(0) @db.Decimal(18, 2)
+  correcaoDecimal       Decimal  @default(0) @db.Decimal(18, 2)
+  valorLiquidoDecimal   Decimal  @db.Decimal(18, 2)
+  saldoAcumuladoDecimal Decimal? @db.Decimal(18, 2)
+  tipoRendimento        String   // "BRUTO", "LIQUIDO", "CORRECAO", "ESTORNO"
+  reciboMunicipal       String?
+  lancamentoContabilId  String?
+  createdAt             DateTime @default(now())
+}
+
+model ExceptionQueueItem {
+  id              String    @id @default(cuid())
+  statementItemId String?
+  descricao       String
+  valorDecimal    Decimal   @db.Decimal(18, 2)
+  dataMovimento   DateTime
+  banco           String
+  contaNumero     String
+  sinal           String
+  scoreConfianca  Float     @default(0.0)
+  sugestaoTipo    String?
+  motivoExcecao   String
+  status          String    @default("PENDENTE") // "PENDENTE", "RESOLVIDO", "IGNORADO"
+  resolvidoPor    String?
+  resolvidoEm     DateTime?
+  regraGeradaId   String?
+  createdAt       DateTime  @default(now())
+}
+
+model BankReconciliationSession {
+  id                   String   @id @default(cuid())
+  banco                String
+  agencia              String
+  contaNumero          String
+  periodo              String   // YYYY-MM
+  dataInicio           DateTime
+  dataFim              DateTime
+  saldoInicialDecimal  Decimal  @db.Decimal(18, 2)
+  totalDebitosDecimal  Decimal  @db.Decimal(18, 2)
+  totalCreditosDecimal Decimal  @db.Decimal(18, 2)
+  saldoFinalDecimal    Decimal  @db.Decimal(18, 2)
+  saldoRazaoDecimal    Decimal  @db.Decimal(18, 2)
+  diferencaDecimal     Decimal  @db.Decimal(18, 2)
+  status               String   @default("ABERTA") // ABERTA, EM_ANDAMENTO, CONCILIADA, CANCELADA
+  totalItensBanco      Int      @default(0)
+  totalItensContabeis  Int      @default(0)
+  itensConciliados     Int      @default(0)
+  itensDivergentes     Int      @default(0)
+  confirmadoPor        String?
+  confirmadoEm         DateTime?
+  reciboIntegracao     String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model BankReconciliationMatch {
+  id                 String   @id @default(cuid())
+  sessionId          String
+  statementItemId    String?
+  treasuryMovementId String?
+  tipoMatch          String   // VALOR_DATA_EXATA, VALOR_D1, DOCUMENTO, HISTORICO, AGRUPADO, 1_PARA_N, DIVERGENCIA_VALOR, SEM_CORRESPONDENTE, POSSIVEL_DUPLICIDADE
+  percentualConfianca Float   @default(100.0)
+  observacao         String?
+  status             String   @default("AUTOMATICO") // AUTOMATICO, MANUAL, AJUSTADO
+  createdAt          DateTime @default(now())
+}
+

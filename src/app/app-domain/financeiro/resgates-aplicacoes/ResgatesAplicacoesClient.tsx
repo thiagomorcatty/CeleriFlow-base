@@ -1,0 +1,313 @@
+"use client";
+
+import { useState } from "react";
+import { ArrowRightLeft, CheckCircle2, Send, Zap, Calculator, ShieldCheck, Sparkles, FileText, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { classifyItemAction, transmitItemAction } from "./resgates-actions";
+
+interface StatementItem {
+  id: string;
+  banco: string | null;
+  contaNumero: string | null;
+  date: string;
+  description: string | null;
+  reference: string | null;
+  codigoTransacao: string | null;
+  sinal: string | null;
+  valueDecimal: any;
+  status: string;
+  categoriaClassificada: string | null;
+  reciboMunicipal: string | null;
+}
+
+export default function ResgatesAplicacoesClient({ initialItems = [] }: { initialItems?: StatementItem[] }) {
+  const [items, setItems] = useState<StatementItem[]>(initialItems);
+  const [selectedItem, setSelectedItem] = useState<StatementItem | null>(null);
+  const [classificationResult, setClassificationResult] = useState<any | null>(null);
+  const [transmitting, setTransmitting] = useState(false);
+  const [receipt, setReceipt] = useState<any | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  async function handleClassify(item: StatementItem) {
+    setSelectedItem(item);
+    setReceipt(null);
+    setErrorMsg(null);
+
+    const valor = typeof item.valueDecimal === "object" ? Number(item.valueDecimal) : Number(item.valueDecimal || 0);
+
+    const res = await classifyItemAction({
+      descricao: item.description || "Movimentação Bancária",
+      codigoTransacao: item.codigoTransacao || undefined,
+      sinal: (item.sinal as "CREDITO" | "DEBITO") || (valor < 0 ? "DEBITO" : "CREDITO"),
+      valor: Math.abs(valor),
+      banco: item.banco || "001 - Banco do Brasil",
+      contaNumero: item.contaNumero || "98765-4",
+    });
+
+    if (res.error) {
+      setErrorMsg(res.error);
+    } else {
+      setClassificationResult(res.data);
+    }
+  }
+
+  async function handleTransmit() {
+    if (!selectedItem || !classificationResult) return;
+    setTransmitting(true);
+    setErrorMsg(null);
+
+    const valor = typeof selectedItem.valueDecimal === "object" ? Number(selectedItem.valueDecimal) : Number(selectedItem.valueDecimal || 0);
+
+    const res = await transmitItemAction({
+      statementItemId: selectedItem.id,
+      banco: selectedItem.banco || "001 - Banco do Brasil S.A.",
+      contaNumero: selectedItem.contaNumero || "98765-4",
+      categoria: classificationResult.category,
+      valor: Math.abs(valor),
+      dataMovimento: selectedItem.date,
+      descricao: selectedItem.description || "Movimento de Tesouraria",
+    });
+
+    setTransmitting(false);
+
+    if (res.error) {
+      setErrorMsg(res.error);
+    } else {
+      setReceipt(res.data);
+      // Atualizar lista local
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === selectedItem.id
+            ? {
+                ...i,
+                status: "Conciliado",
+                reciboMunicipal: res.data.reciboId,
+                categoriaClassificada: classificationResult.category,
+              }
+            : i
+        )
+      );
+    }
+  }
+
+  return (
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-300">
+              Funcionalidade 2 — POC Edital
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mt-1 flex items-center gap-2">
+            <ArrowRightLeft className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+            Motor de Classificação de Resgates e Aplicações
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Classificação automática dos 7 tipos de lançamentos com cálculo de valores, prévia do lançamento contábil, envio ao sistema municipal e retorno do recibo com vínculo bidirecional.
+          </p>
+        </div>
+      </div>
+
+      {/* Grid: Extratos & Painel de Classificação */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Tabela de Extratos Importados */}
+        <div className="lg:col-span-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <span className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-slate-600" />
+              Lançamentos do Extrato Bancário
+            </span>
+            <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded text-slate-600 dark:text-slate-300 font-mono">
+              Total: {items.length}
+            </span>
+          </h2>
+
+          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+            {items.length === 0 ? (
+              <p className="text-sm text-slate-500 italic p-4 text-center">Nenhum lançamento bancário carregado. Faça o download do extrato na Funcionalidade 1.</p>
+            ) : (
+              items.map((item) => {
+                const valor = typeof item.valueDecimal === "object" ? Number(item.valueDecimal) : Number(item.valueDecimal || 0);
+                const isCredito = item.sinal === "CREDITO" || valor >= 0;
+                const isSelected = selectedItem?.id === item.id;
+
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleClassify(item)}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer ${
+                      isSelected
+                        ? "border-blue-500 bg-blue-50/50 dark:bg-blue-950/30 ring-2 ring-blue-500/20"
+                        : "border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/40 hover:border-slate-300 dark:hover:border-slate-700"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        {isCredito ? (
+                          <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
+                            <ArrowDownLeft className="w-4 h-4" />
+                          </div>
+                        ) : (
+                          <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400">
+                            <ArrowUpRight className="w-4 h-4" />
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
+                            {item.description || "Movimento de Extrato"}
+                          </span>
+                          <span className="text-[11px] text-slate-500 font-mono">
+                            Doc: {item.reference || item.codigoTransacao || "S/D"} | {new Date(item.date).toLocaleDateString("pt-BR")}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className={`text-sm font-bold block ${isCredito ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                          {isCredito ? "+" : "-"} R$ {Math.abs(valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </span>
+                        {item.categoriaClassificada ? (
+                          <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded dark:bg-blue-900/60 dark:text-blue-300">
+                            {item.categoriaClassificada}
+                          </span>
+                        ) : (
+                          <span className="bg-slate-200 text-slate-700 text-[10px] px-2 py-0.5 rounded dark:bg-slate-700 dark:text-slate-300">
+                            Pendente
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Motor de Classificação & Prévia Contábil */}
+        <div className="lg:col-span-6 space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+              Resultado do Motor de Classificação
+            </h2>
+
+            {!selectedItem ? (
+              <div className="p-8 text-center text-slate-500 dark:text-slate-400 italic">
+                Clique em um lançamento bancário da lista ao lado para acionar o Motor de Classificação.
+              </div>
+            ) : classificationResult ? (
+              <div className="space-y-4">
+                {/* Card Categoria Reconhecida */}
+                <div className="p-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs uppercase tracking-wider font-semibold opacity-90">Categoria Identificada</span>
+                    <span className="bg-white/20 text-white text-xs px-2.5 py-0.5 rounded-full font-semibold">
+                      Confiança: {(classificationResult.confidenceScore * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold mt-1 tracking-wide">{classificationResult.category}</h3>
+                  <p className="text-xs opacity-90 mt-1 flex items-center gap-1">
+                    <Zap className="w-3.5 h-3.5 text-amber-300" /> {classificationResult.reason}
+                  </p>
+                </div>
+
+                {/* Cálculo dos Valores */}
+                <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                    <Calculator className="w-4 h-4 text-blue-500" /> Cálculo dos Valores
+                  </h4>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <span className="text-slate-500 block">Valor Bruto</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">
+                        R$ {classificationResult.calculatedValues.valorBruto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Taxas / Encargos</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">
+                        R$ {classificationResult.calculatedValues.encargosOuTaxas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Valor Líquido</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                        R$ {classificationResult.calculatedValues.valorLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Prévia do Lançamento Contábil */}
+                <div className="bg-slate-900 text-slate-200 p-4 rounded-xl border border-slate-800 space-y-3 font-mono text-xs shadow-inner">
+                  <h4 className="text-amber-400 font-bold tracking-wider flex items-center gap-1 uppercase">
+                    <FileText className="w-4 h-4" /> Prévia do Lançamento Contábil (CeleriFlow)
+                  </h4>
+                  <div className="space-y-1.5 border-t border-slate-800 pt-2">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Conta Débito:</span>
+                      <span className="text-emerald-400 font-bold">{classificationResult.accountingPreview.debitoConta}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Conta Crédito:</span>
+                      <span className="text-emerald-400 font-bold">{classificationResult.accountingPreview.creditoConta}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Evento Contábil:</span>
+                      <span className="text-blue-300 font-bold">{classificationResult.accountingPreview.eventoContabil}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Natureza:</span>
+                      <span className="text-slate-300">{classificationResult.accountingPreview.naturezaOperacao}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {errorMsg && (
+                  <div className="p-3 bg-rose-50 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 text-xs rounded-lg">
+                    {errorMsg}
+                  </div>
+                )}
+
+                {/* Botão de Envio ao Sistema Municipal */}
+                {!receipt ? (
+                  <button
+                    onClick={handleTransmit}
+                    disabled={transmitting}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50"
+                  >
+                    {transmitting ? (
+                      "Transmitindo ao Sistema Municipal..."
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5" /> Enviar ao Sistema Municipal &amp; Gerar Recibo External
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500 rounded-xl space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-emerald-800 dark:text-emerald-200 flex items-center gap-1">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Transmitido &amp; Vinculado com Sucesso!
+                      </span>
+                      <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">
+                        {receipt.status}
+                      </span>
+                    </div>
+                    <div className="font-mono text-slate-700 dark:text-slate-300 space-y-1">
+                      <div>Recibo Municipal: <strong className="text-emerald-700 dark:text-emerald-300">{receipt.reciboId}</strong></div>
+                      <div>Número do Lançamento: <strong>{receipt.numeroLancamento}</strong></div>
+                      <div className="truncate">Hash SHA-256: <span className="text-[10px] text-slate-500">{receipt.hashIntegracao}</span></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
