@@ -1,10 +1,11 @@
-﻿import React from "react";
+import React from "react";
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { ShieldCheck, Search } from "lucide-react";
 import Link from "next/link";
 import { NewLicenseSheet } from "../components/NewLicenseSheet";
 import { QuickFilters } from "../components/QuickFilters";
 import { LicenseRowActions } from "../components/LicenseRowActions";
+import { LicenciamentoInteractiveClient } from "./LicenciamentoInteractiveClient";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,10 @@ export default async function LicenciamentoPage(props: { searchParams: Promise<{
         </div>
         <NewLicenseSheet enterprises={enterprises} />
       </div>
+
+      {/* Interactive Engine Component */}
+      <LicenciamentoInteractiveClient />
+
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 flex-wrap gap-4">
           <div className="relative w-64">

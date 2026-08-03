@@ -4,6 +4,7 @@ import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import crypto from "crypto";
+import { Prisma } from "@prisma/client";
 
 type ActionResult<T = any> = { error?: string; data?: T };
 
@@ -26,8 +27,8 @@ export async function submitCulturalProjectAction(input: z.infer<typeof projectS
     const project = await context.prisma.culturalIncentiveProject.create({
       data: {
         ...parsed.data,
-        valorSolicitado: new context.prisma.Prisma.Decimal(parsed.data.valorSolicitado),
-        valorAprovado: new context.prisma.Prisma.Decimal(parsed.data.valorSolicitado),
+        valorSolicitado: new Prisma.Decimal(parsed.data.valorSolicitado),
+        valorAprovado: new Prisma.Decimal(parsed.data.valorSolicitado),
         status: "APROVADO",
       },
     });

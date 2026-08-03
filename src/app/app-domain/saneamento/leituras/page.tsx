@@ -3,6 +3,7 @@ import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { FileText } from "lucide-react";
 import Link from "next/link";
 import { LeiturasClient } from "../components/LeiturasClient";
+import { LeiturasInteractiveClient } from "./LeiturasInteractiveClient";
 
 export default async function LeiturasPage() {
   const { prisma } = await getTenantContextForModule("SANEAMENTO");
@@ -31,6 +32,9 @@ export default async function LeiturasPage() {
         </h1>
         <p className="text-xs text-gray-400 mt-0.5">{readings.length} leitura{readings.length !== 1 ? "s" : ""} registrada{readings.length !== 1 ? "s" : ""}</p>
       </div>
+
+      {/* Interactive Engine Component */}
+      <LeiturasInteractiveClient />
 
       <LeiturasClient readings={readings} units={units} />
     </div>

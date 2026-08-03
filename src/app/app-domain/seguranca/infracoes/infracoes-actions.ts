@@ -4,6 +4,7 @@ import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import crypto from "crypto";
+import { Prisma } from "@prisma/client";
 
 type ActionResult<T = any> = { error?: string; data?: T };
 
@@ -35,7 +36,7 @@ export async function issueTrafficTicketAction(input: z.infer<typeof ticketSchem
         chassi: parsed.data.chassi,
         codigoCtb: parsed.data.codigoCtb,
         descricaoInfracao: parsed.data.descricaoInfracao,
-        valorMulta: new prisma.Prisma.Decimal(parsed.data.valorMulta),
+        valorMulta: new Prisma.Decimal(parsed.data.valorMulta),
         geolocalizacao: parsed.data.geolocalizacao,
         agenteMatricula: user.employeeId || "GM-1092",
         status: "TRANSMITIDO_SNA",

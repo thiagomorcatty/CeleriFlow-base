@@ -2,6 +2,7 @@ import SegMobCrudClient from "../components/SegMobCrudClient";
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { mapInfracao } from "../data";
 import type { SegMobPageConfig } from "../types";
+import { InfracoesInteractiveClient } from "./InfracoesInteractiveClient";
 
 const config: SegMobPageConfig = {
   title: "Autos de Infracao",
@@ -23,5 +24,10 @@ const config: SegMobPageConfig = {
 export default async function InfracoesPage() {
   const { prisma } = await getTenantContextForModule("SEGURANCA");
   const infracoes = await prisma.segurancaInfracao.findMany({ orderBy: { createdAt: "desc" } });
-  return <SegMobCrudClient items={infracoes.map(mapInfracao)} config={config} />;
+  return (
+    <div className="p-6">
+      <InfracoesInteractiveClient />
+      <SegMobCrudClient items={infracoes.map(mapInfracao)} config={config} />
+    </div>
+  );
 }
