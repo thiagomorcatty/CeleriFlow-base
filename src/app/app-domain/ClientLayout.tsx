@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { APP_VERSION } from "@/lib/version";
+import PocHeaderBanner from "@/components/layout/PocHeaderBanner";
 
 type UserInfo = {
   id: string;
@@ -65,7 +66,6 @@ export default function ClientLayout({
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/80 backdrop-blur-md px-4 sm:px-6 shadow-sm">
-        
         {/* Left: CeleriFlow Logo */}
         <div className="w-1/3 flex justify-start items-center">
           <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity py-1">
@@ -117,6 +117,8 @@ export default function ClientLayout({
           </Button>
         </div>
       </header>
+      
+      <PocHeaderBanner />
       
       <main className="flex-1 p-4 sm:px-6 sm:py-4 lg:px-8 lg:py-6 flex flex-col">
         {children}
