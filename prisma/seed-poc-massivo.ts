@@ -564,6 +564,7 @@ export async function runMassivePocSeed() {
         code: item.code,
         name: item.name,
         category: item.cat,
+        provider: "GOV_EXTERN",
         status: "ENABLED",
         configuration: { endpoint: item.endpoint, version: "2.1.0", timeoutMs: 5000 },
         mockScenario: { simulateSuccessRate: 0.95, mockResponseCode: 200 },
@@ -575,20 +576,22 @@ export async function runMassivePocSeed() {
     await prisma.integrationRun.create({
       data: {
         connectionId: conn.id,
-        trigger: "SCHEDULED_CRON",
-        status: "SUCCESS",
-        logs: `Requisição enviada com sucesso para ${item.endpoint}. 200 OK`,
-        responsePayload: JSON.stringify({ status: "OK", protocol: `PROT-${Date.now()}`, data: { status: "PROCESSADO", timestamp: new Date().toISOString() } }),
+        operation: "CRON_SYNC",
+        environment: "MOCK",
+        status: "SUCESSO",
+        message: `Requisição enviada com sucesso para ${item.endpoint}. 200 OK`,
+        payload: { status: "OK", protocol: `PROT-${Date.now()}`, data: { status: "PROCESSADO", timestamp: new Date().toISOString() } },
       },
     });
 
     await prisma.integrationRun.create({
       data: {
         connectionId: conn.id,
-        trigger: "MANUAL_REPROCESS",
-        status: "SUCCESS",
-        logs: "Reprocessamento executado pelo painel administrativo da POC.",
-        responsePayload: JSON.stringify({ status: "SUCCESS", reprocessedAt: new Date().toISOString() }),
+        operation: "REPROCESSAR_MANUAL",
+        environment: "MOCK",
+        status: "SUCESSO",
+        message: "Reprocessamento executado pelo painel administrativo da POC.",
+        payload: { status: "SUCCESS", reprocessedAt: new Date().toISOString() },
       },
     });
   }

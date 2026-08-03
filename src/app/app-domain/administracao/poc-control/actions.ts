@@ -6,9 +6,9 @@ import { getTenantContextForSystemAdministration } from "@/lib/platform/tenant-c
 export async function resetPocDatabaseAction(): Promise<{ success?: boolean; message?: string; error?: string }> {
   try {
     // Audit check
-    const { tenantId } = await getTenantContextForSystemAdministration();
+    await getTenantContextForSystemAdministration();
 
-    console.log(`[POC-RESET] Iniciando reset administrativo da base de dados POC para tenant ${tenantId}...`);
+    console.log(`[POC-RESET] Iniciando reset administrativo da base de dados POC...`);
     await runMassivePocSeed();
 
     return {
