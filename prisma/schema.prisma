@@ -5882,3 +5882,118 @@ model BankReconciliationMatch {
   createdAt          DateTime @default(now())
 }
 
+// --- Módulo 18: Assistência Social (CadÚnico & Prontuário SUAS RMA) ---
+model CadUnicoRecord {
+  id                 String   @id @default(cuid())
+  nis                String   @unique
+  cpf                String
+  nomeCompleto       String
+  rendaPerCapita     Decimal  @db.Decimal(18, 2)
+  composicaoFamiliar Int      @default(1)
+  endereco           String?
+  municipio          String
+  uf                 String
+  statusCadastral    String   @default("ATUALIZADO")
+  dataAtualizacao    DateTime @default(now())
+  createdAt          DateTime @default(now())
+}
+
+model SuasProntuarioRma {
+  id                 String   @id @default(cuid())
+  nis                String
+  nomeCidadao        String
+  unidadeAtendimento String
+  tipoAtendimento    String
+  detalhesRma        String   @db.Text
+  tecnicoResponsavel String
+  dataAtendimento    DateTime @default(now())
+  status             String   @default("FINALIZADO")
+  createdAt          DateTime @default(now())
+}
+
+// --- Módulo 19: Cultura & Fomento (Lei Aldir Blanc 2, Paulo Gustavo, PNAB) ---
+model CulturalIncentiveProject {
+  id                    String   @id @default(cuid())
+  codigoEdital          String
+  nomeEdital            String
+  tituloProjeto         String
+  proponenteNome        String
+  proponenteCpfCnpj     String
+  categoriaCultural     String
+  valorSolicitado       Decimal  @db.Decimal(18, 2)
+  valorAprovado         Decimal  @db.Decimal(18, 2)
+  status                String   @default("EM_ANALISE")
+  prestacaoContasStatus String   @default("PENDENTE")
+  reciboPrestacaoContas String?
+  createdAt             DateTime @default(now())
+}
+
+// --- Módulo 20: Meio Ambiente & Licenciamento ---
+model EnvironmentalLicense {
+  id                  String   @id @default(cuid())
+  numeroProcesso      String   @unique
+  numeroLicenca       String   @unique
+  tipoLicenca         String
+  requerenteNome      String
+  requerenteCnpjCpf   String
+  atividade           String
+  enderecoEmpreendimento String
+  validadeData        DateTime
+  status              String   @default("EMITIDA")
+  hashSHA256          String
+  qrCodeValidationUrl String
+  emissaoData         DateTime @default(now())
+  createdAt           DateTime @default(now())
+}
+
+// --- Módulo 21: Segurança & Guarda Municipal (Talão Eletrônico AIT / SNA) ---
+model TrafficInfractionTicket {
+  id                String   @id @default(cuid())
+  numeroAit         String   @unique
+  placaVeiculo      String
+  chassi            String?
+  codigoCtb         String
+  descricaoInfracao String
+  valorMulta        Decimal  @db.Decimal(18, 2)
+  geolocalizacao    String
+  agenteMatricula   String
+  status            String   @default("AUTUADO")
+  qrCodePix         String?
+  createdAt         DateTime @default(now())
+}
+
+// --- Módulo 22: Saneamento & Água (Hidrômetros & Conta Simultânea) ---
+model WaterMeterReading {
+  id               String   @id @default(cuid())
+  codigoMatricula  String
+  nomeConsumidor   String
+  endereco         String
+  numeroHidrometro String
+  leituraAnterior  Float
+  leituraAtual     Float
+  consumoM3        Float
+  valorFatura      Decimal  @db.Decimal(18, 2)
+  tipoTarifa       String   @default("RESIDENCIAL")
+  dataLeitura      DateTime @default(now())
+  statusFatura     String   @default("EMITIDA")
+  linhaDigitavel   String?
+  qrCodePix        String?
+  createdAt        DateTime @default(now())
+}
+
+// --- Módulo 23: Inteligência Tributária (DEISS, Cartórios, Malha Fina) ---
+model TaxAuditCrossCheck {
+  id                  String   @id @default(cuid())
+  cnpjCpfContribuinte String
+  razaoSocial         String
+  origemCruzamento    String
+  valorDeclarado      Decimal  @db.Decimal(18, 2)
+  valorApuradoBancos  Decimal  @db.Decimal(18, 2)
+  divergenciaImposto  Decimal  @db.Decimal(18, 2)
+  statusMalha         String   @default("MALHA_FINA")
+  numeroAutoInfracao  String?
+  dataCruzamento      DateTime @default(now())
+  createdAt           DateTime @default(now())
+}
+
+

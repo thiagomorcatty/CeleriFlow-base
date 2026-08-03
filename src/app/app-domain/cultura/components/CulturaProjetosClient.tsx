@@ -11,7 +11,13 @@ import {
   ShoppingCart,
   FileSignature,
   UserRound,
+  Sparkles,
+  Award,
+  CheckCircle2,
+  Send,
+  Coins
 } from "lucide-react";
+import { submitCulturalProjectAction, submitAccountabilityAction } from "../fomento-projetos/fomento-actions";
 
 export type CulturaProjetoListItem = {
   id: string;
@@ -93,6 +99,54 @@ export default function CulturaProjetosClient({ projetos }: { projetos: CulturaP
   const [categoria, setCategoria] = useState("todas");
   const [status, setStatus] = useState("todos");
   const buscaAdiada = useDeferredValue(busca);
+
+  // Estados Fomento Cultural (Aldir Blanc 2 / Paulo Gustavo / PNAB)
+  const [edital, setEdital] = useState("EDITAL-01/2026 - PNAB (Política Nacional Aldir Blanc)");
+  const [tituloProjeto, setTituloProjeto] = useState("");
+  const [proponenteNome, setProponenteNome] = useState("");
+  const [proponenteCpf, setProponenteCpf] = useState("");
+  const [categoriaCultural, setCategoriaCultural] = useState("Audiovisual");
+  const [valorSolicitado, setValorSolicitado] = useState<number>(25000.0);
+  const [loadingFomento, setLoadingFomento] = useState(false);
+  const [fomentoResult, setFomentoResult] = useState<any | null>(null);
+
+  async function handleSubmitCulturalProject(e: React.FormEvent) {
+    e.preventDefault();
+    setLoadingFomento(true);
+    setFomentoResult(null);
+
+    const res = await submitCulturalProjectAction({
+      codigoEdital: edital.split(" ")[0],
+      nomeEdital: edital,
+      tituloProjeto,
+      proponenteNome,
+      proponenteCpfCnpj: proponenteCpf,
+      categoriaCultural,
+      valorSolicitado,
+    });
+
+    setLoadingFomento(false);
+
+    if (res.data) {
+      setFomentoResult(res.data);
+    } else {
+      alert(res.error || "Erro ao cadastrar projeto.");
+    }
+  }
+
+  async function handleAccountability() {
+    if (!fomentoResult) return;
+    setLoadingFomento(true);
+
+    const res = await submitAccountabilityAction(fomentoResult.id, "NF-88239");
+    setLoadingFomento(false);
+
+    if (res.data) {
+      alert(`Prestação de contas homologada com sucesso! Recibo: ${res.data.recibo}`);
+      setFomentoResult({ ...fomentoResult, prestacaoContasStatus: "HOMOLOGADA", status: "CONCLUIDO" });
+    }
+  }
+
   const categorias = Array.from(new Set(projetos.map((projeto) => projeto.categoria))).sort((a, b) => a.localeCompare(b));
   const statusDisponiveis = Array.from(new Set(projetos.map((projeto) => projeto.status))).sort((a, b) => a.localeCompare(b));
   const termoBusca = buscaAdiada.trim().toLocaleLowerCase("pt-BR");

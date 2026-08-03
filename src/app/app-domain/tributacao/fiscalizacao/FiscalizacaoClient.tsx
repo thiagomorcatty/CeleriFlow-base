@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Plus, ShieldAlert, Pencil, CheckCircle2, XCircle } from "lucide-react";
+import { Search, Plus, ShieldAlert, Pencil, CheckCircle2, XCircle, BrainCircuit, Sparkles, FileSearch, Zap } from "lucide-react";
 import { createInfraction, updateInfraction, updateInfractionStatus } from "./actions";
+import { runTaxAuditAction, issueInfractionNoticeAction } from "./fiscalizacao-actions";
 
 type Infraction = {
   id: string;
@@ -31,6 +32,51 @@ export default function FiscalizacaoClient({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{infractionType?: string, penaltyValue?: number, defenseDeadline?: string}>({});
+
+  // Estados para Inteligência Tributária (DEISS / Malha Fina)
+  const [cnpjAudit, setCnpjAudit] = useState("08.992.341/0001-90");
+  const [razaoAudit, setRazaoAudit] = useState("BANCO MODELO MULTIPLO S/A");
+  const [valorDeclarado, setValorDeclarado] = useState<number>(450000.0);
+  const [valorBancos, setValorBancos] = useState<number>(1850000.0);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditResult, setAuditResult] = useState<any | null>(null);
+  const [noticeResult, setNoticeResult] = useState<any | null>(null);
+
+  async function handleRunAudit(e: React.FormEvent) {
+    e.preventDefault();
+    setAuditLoading(true);
+    setAuditResult(null);
+    setNoticeResult(null);
+
+    const res = await runTaxAuditAction({
+      cnpjCpfContribuinte: cnpjAudit,
+      razaoSocial: razaoAudit,
+      origemCruzamento: "DEISS_BANCOS",
+      valorDeclarado,
+      valorApuradoBancos: valorBancos,
+    });
+
+    setAuditLoading(false);
+
+    if (res.data) {
+      setAuditResult(res.data);
+    } else {
+      alert(res.error || "Erro ao executar cruzamento fiscal.");
+    }
+  }
+
+  async function handleIssueInfractionNotice() {
+    if (!auditResult) return;
+    setAuditLoading(true);
+
+    const res = await issueInfractionNoticeAction(auditResult.id);
+    setAuditLoading(false);
+
+    if (res.data) {
+      setNoticeResult(res.data);
+      setAuditResult({ ...auditResult, statusMalha: "AUTO_INFRACAO_EMITIDO", numeroAutoInfracao: res.data.numeroAutoInfracao });
+    }
+  }
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
@@ -91,6 +137,121 @@ export default function FiscalizacaoClient({
 
   return (
     <>
+      {/* Motor de Inteligência Tributária Card */}
+      <div className="bg-gradient-to-r from-slate-900 via-orange-950 to-slate-900 text-white rounded-xl p-5 shadow-lg space-y-4 mb-6 border border-orange-800/40">
+        <div className="flex justify-between items-start border-b border-orange-900/60 pb-3">
+          <div>
+            <span className="bg-orange-500/20 text-orange-300 border border-orange-500/30 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+              Motor de Inteligência Tributária &amp; Malha Fina ISS
+            </span>
+            <h2 className="text-xl font-bold mt-1 flex items-center gap-2">
+              <BrainCircuit className="w-6 h-6 text-orange-400" />
+              Cruzamento Fiscal Automático (DEISS Bancos / Cartórios)
+            </h2>
+          </div>
+          <span className="bg-orange-500 text-white text-xs px-3 py-1 rounded-full font-bold shadow">
+            Malha Fina Ativa
+          </span>
+        </div>
+
+        <form onSubmit={handleRunAudit} className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+          <div>
+            <label className="block text-slate-300 font-semibold mb-1">CNPJ / CPF Contribuinte</label>
+            <input
+              type="text"
+              value={cnpjAudit}
+              onChange={(e) => setCnpjAudit(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-mono"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-slate-300 font-semibold mb-1">Razão Social / Instituição</label>
+            <input
+              type="text"
+              value={razaoAudit}
+              onChange={(e) => setRazaoAudit(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-semibold"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-slate-300 font-semibold mb-1">Faturamento Declarado (R$)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={valorDeclarado}
+              onChange={(e) => setValorDeclarado(parseFloat(e.target.value) || 0)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-bold"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-slate-300 font-semibold mb-1">Apurado Banco / DEISS (R$)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={valorBancos}
+              onChange={(e) => setValorBancos(parseFloat(e.target.value) || 0)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-orange-400 font-bold"
+              required
+            />
+          </div>
+          <div className="sm:col-span-4 flex justify-end">
+            <button
+              type="submit"
+              disabled={auditLoading}
+              className="bg-orange-600 hover:bg-orange-500 text-white font-bold py-2.5 px-6 rounded-lg flex items-center gap-2 shadow text-sm transition-all"
+            >
+              <FileSearch className="w-4 h-4" /> Executar Cruzamento de Malha Fina
+            </button>
+          </div>
+        </form>
+
+        {auditResult && (
+          <div className="bg-slate-950 p-4 rounded-xl border border-orange-800/80 text-xs space-y-3">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+              <span className="font-bold text-orange-300">{auditResult.razaoSocial} ({auditResult.cnpjCpfContribuinte})</span>
+              <span className="bg-rose-950 text-rose-300 border border-rose-800 text-[10px] font-bold px-2.5 py-0.5 rounded">
+                DIVERGÊNCIA DETECTADA
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <span className="text-slate-500 block">Diferença de Faturamento</span>
+                <span className="font-bold text-white text-sm">
+                  R$ {(auditResult.valorApuradoBancos - auditResult.valorDeclarado).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Alíquota ISS (5%)</span>
+                <span className="font-bold text-amber-400">R$ {auditResult.divergenciaImposto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Status Fiscal</span>
+                <span className="font-bold text-orange-400">{auditResult.statusMalha}</span>
+              </div>
+            </div>
+
+            {auditResult.numeroAutoInfracao ? (
+              <div className="p-3 bg-emerald-950/80 border border-emerald-700 text-emerald-300 font-bold rounded flex items-center justify-between">
+                <span>Auto de Infração Emitido: <strong>{auditResult.numeroAutoInfracao}</strong></span>
+                <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded font-mono">INSCRITO EM DÍVIDA</span>
+              </div>
+            ) : (
+              <button
+                onClick={handleIssueInfractionNotice}
+                disabled={auditLoading}
+                className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 shadow text-xs transition-all"
+              >
+                <Zap className="w-4 h-4 text-amber-300" /> Lavrar Auto de Infração de ISS (Lançamento de Débito)
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">

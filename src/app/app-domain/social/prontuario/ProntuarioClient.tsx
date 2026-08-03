@@ -1,14 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Search, ClipboardList, Lock, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { FileText, Search, ClipboardList, Lock, Clock, CheckCircle2, XCircle, SearchCode, ShieldCheck, HeartHandshake, UserCheck } from "lucide-react";
 import { createAttendance, updateAttendance, toggleAttendanceStatus } from "../actions";
+import { searchCadUnicoAction, saveRmaRecordAction } from "./cadunico-actions";
 
 export default function ProntuarioClient({ atendimentosInicial, familias, persons, professionals, units }: any) {
   const [atendimentos, setAtendimentos] = useState(atendimentosInicial);
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAtendimento, setEditingAtendimento] = useState<any>(null);
+
+  // Estados para consulta CadÚnico
+  const [searchNis, setSearchNis] = useState("");
+  const [cadUnicoResult, setCadUnicoResult] = useState<any | null>(null);
+  const [cadLoading, setCadLoading] = useState(false);
+  const [rmaSuccessMsg, setRmaSuccessMsg] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     familyId: "",
@@ -19,6 +26,41 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
     description: "",
     secrecyLevel: "Normal"
   });
+
+  async function handleSearchCadUnico(e: React.FormEvent) {
+    e.preventDefault();
+    setCadLoading(true);
+    setCadUnicoResult(null);
+    setRmaSuccessMsg(null);
+
+    const res = await searchCadUnicoAction(searchNis);
+    setCadLoading(false);
+
+    if (res.data) {
+      setCadUnicoResult(res.data);
+    } else {
+      alert(res.error || "Não foi possível encontrar o registro no CadÚnico.");
+    }
+  }
+
+  async function handleRegisterRma() {
+    if (!cadUnicoResult) return;
+    setCadLoading(true);
+
+    const res = await saveRmaRecordAction({
+      nis: cadUnicoResult.nis,
+      nomeCidadao: cadUnicoResult.nomeCompleto,
+      unidadeAtendimento: "CRAS Centro - Atendimento Especializado",
+      tipoAtendimento: "Acompanhamento Familiar PAIF / Bolsa Família",
+      detalhesRma: `Consulta e validação cadastral CadÚnico efetuada. Renda per capita: R$ ${cadUnicoResult.rendaPerCapita.toFixed(2)}. Elegível Bolsa Família: ${cadUnicoResult.elegivelBolsaFamilia ? "SIM" : "NÃO"}.`,
+    });
+
+    setCadLoading(false);
+
+    if (res.data) {
+      setRmaSuccessMsg(`Atendimento registrado com sucesso no Prontuário SUAS/RMA (ID: ${res.data.id})`);
+    }
+  }
 
   const filtered = atendimentos.filter((a: any) => 
     (a.family?.familyCode || "").includes(search) || 
@@ -70,11 +112,101 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* CadÚnico & SUAS Engine Card */}
+      <div className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white rounded-xl p-5 shadow-md space-y-4">
+        <div className="flex justify-between items-start border-b border-blue-800 pb-3">
+          <div>
+            <span className="bg-blue-500/30 text-blue-200 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+              Integração Federal — CadÚnico (MDS) &amp; SUAS
+            </span>
+            <h2 className="text-xl font-bold mt-1 flex items-center gap-2">
+              <SearchCode className="w-6 h-6 text-blue-400" />
+              Consulta Unificada CadÚnico &amp; Emissão RMA
+            </h2>
+          </div>
+          <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs px-3 py-1 rounded-full font-bold">
+            Sincronizado MDS
+          </span>
+        </div>
+
+        <form onSubmit={handleSearchCadUnico} className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            placeholder="Digite o NIS ou CPF do cidadão para consulta CadÚnico..."
+            value={searchNis}
+            onChange={(e) => setSearchNis(e.target.value)}
+            className="flex-1 bg-slate-950/70 border border-blue-700/80 rounded-lg px-4 py-2.5 text-sm text-white placeholder-blue-300/60 focus:ring-2 focus:ring-blue-400 font-mono"
+            required
+          />
+          <button
+            type="submit"
+            disabled={cadLoading}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm shadow transition-all"
+          >
+            {cadLoading ? "Consultando..." : "Consultar CadÚnico"}
+          </button>
+        </form>
+
+        {cadUnicoResult && (
+          <div className="bg-slate-950/80 border border-blue-700/80 rounded-xl p-4 space-y-3 text-xs">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+              <span className="font-bold text-blue-300 text-sm">{cadUnicoResult.nomeCompleto}</span>
+              <span className="bg-emerald-600 text-white px-2 py-0.5 rounded font-mono font-bold">
+                NIS: {cadUnicoResult.nis}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-slate-300">
+              <div>
+                <span className="text-slate-500 block">CPF</span>
+                <span className="font-mono font-bold text-white">{cadUnicoResult.cpf}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Renda per Capita</span>
+                <span className="font-bold text-emerald-400">R$ {cadUnicoResult.rendaPerCapita.toFixed(2)}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Composição Familiar</span>
+                <span className="font-bold text-white">{cadUnicoResult.composicaoFamiliar} Pessoas</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Status Cadastral</span>
+                <span className="font-bold text-blue-400">{cadUnicoResult.statusCadastral}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-2 pt-2 border-t border-slate-800">
+              <div className="flex gap-2">
+                {cadUnicoResult.elegivelBolsaFamilia && (
+                  <span className="bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded">
+                    Elegível Bolsa Família
+                  </span>
+                )}
+                {cadUnicoResult.elegivelBPC && (
+                  <span className="bg-indigo-950 text-indigo-300 border border-indigo-800 text-[10px] font-bold px-2.5 py-0.5 rounded">
+                    Elegível BPC
+                  </span>
+                )}
+              </div>
+
+              <button
+                onClick={handleRegisterRma}
+                disabled={cadLoading}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-1.5 rounded flex items-center gap-1 shadow text-xs"
+              >
+                <HeartHandshake className="w-4 h-4" /> Registrar Atendimento no Prontuário RMA
+              </button>
+            </div>
+            {rmaSuccessMsg && <div className="text-emerald-400 font-bold p-2 bg-emerald-950/60 rounded border border-emerald-800">{rmaSuccessMsg}</div>}
+          </div>
+        )}
+      </div>
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
             <FileText className="w-6 h-6 text-blue-600" />
-            Prontuário EletrÚnico SUAS
+            Prontuário Eletrônico SUAS
           </h1>
           <p className="text-slate-500">Histórico de atendimentos, visitas e acompanhamentos técnicos.</p>
         </div>
