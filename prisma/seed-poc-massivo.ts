@@ -34,7 +34,7 @@ function ensureSampleFiles() {
 }
 
 export async function runMassivePocSeed() {
-  console.log("🚀 Iniciando Seed Massiva da POC CeleriFlow (Mínimo 100 dados por módulo, 200 Servidores)...");
+  console.log("🚀 Iniciando Seed Massiva da POC CeleriFlow (500 Servidores, 500 Pessoas Físicas, 200+ por módulo)...");
   ensureSampleFiles();
 
   const seedPassword = process.env.SEED_USER_PASSWORD || "SenhaSegura123!";
@@ -101,26 +101,28 @@ export async function runMassivePocSeed() {
     update: { nome: "Administrador Geral" },
   });
 
-  const perfilServidor = await prisma.configuracaoPerfil.upsert({
-    where: { id: "perfil-servidor-poc" },
-    create: { id: "perfil-servidor-poc", nome: "Servidor Operador", ativo: true, permissoes: '{"OPERACAO": true}' },
-    update: { nome: "Servidor Operador" },
-  });
-
   await prisma.usuario.upsert({
     where: { email: "adminteste@email.com" },
     create: { email: "adminteste@email.com", nome: "Admin Teste POC", senha: pwHash, perfilId: perfilAdmin.id, ativo: true },
     update: { nome: "Admin Teste POC", senha: pwHash },
   });
 
-  // 3. SEED MASSIVO: CADASTRO DE SERVIDORES (200 SERVIDORES)
-  console.log("   --> Gerando 200 Servidores no RH...");
+  // 3. SEED MASSIVO: CADASTRO DE SERVIDORES (500 SERVIDORES)
+  console.log("   --> Gerando 500 Servidores no RH...");
   const secretariasList = [secFinancas.id, secEducacao.id, secSaude.id, secSocial.id];
-  const cargosList = ["Analista de Gestão Pública", "Fiscal de Tributos", "Médico da Família", "Professor Educação Básica", "Assistente Social", "Guarda Municipal", "Agente Administrativo", "Técnico em Enfermagem"];
+  const cargosList = [
+    "Analista de Gestão Pública", "Fiscal de Tributos", "Médico da Família", 
+    "Professor Educação Básica", "Assistente Social", "Guarda Municipal", 
+    "Agente Administrativo", "Técnico em Enfermagem", "Engenheiro Civil", "Psicólogo"
+  ];
   
-  for (let i = 1; i <= 200; i++) {
-    const numStr = i.toString().padStart(3, "0");
-    const cpfSimulado = `${numStr}.${numStr}.${numStr}-${i % 99}`;
+  for (let i = 1; i <= 500; i++) {
+    const numStr = i.toString().padStart(4, "0");
+    const part1 = (100 + (i % 800)).toString().padStart(3, "0");
+    const part2 = (200 + (i % 700)).toString().padStart(3, "0");
+    const part3 = (300 + (i % 600)).toString().padStart(3, "0");
+    const digito = ((i * 7) % 89 + 10).toString();
+    const cpfSimulado = `${part1}.${part2}.${part3}-${digito}`;
     const secId = secretariasList[i % secretariasList.length];
     const cargoNome = cargosList[i % cargosList.length];
 
@@ -132,22 +134,25 @@ export async function runMassivePocSeed() {
         registration: `MAT-2026-${numStr}`,
         secretariatId: secId,
         departmentId: deptCompras.id,
-        isActive: i % 10 !== 0, // 90% ativos, 10% inativos para cenários de filtro
+        isActive: i % 12 !== 0,
       },
       update: {
         name: `Servidor Teste ${i}`,
-        isActive: i % 10 !== 0,
+        isActive: i % 12 !== 0,
       },
     });
   }
-  console.log("   ✅ 200 Servidores criados com sucesso.");
+  console.log("   ✅ 500 Servidores criados com sucesso.");
 
-  // 4. SEED MASSIVO: PESSOAS FÍSICAS (100 PESSOAS) E JURÍDICAS (100 EMPRESAS)
-  console.log("   --> Gerando 100 Pessoas Físicas e 100 Pessoas Jurídicas / Fornecedores...");
-  for (let i = 1; i <= 100; i++) {
-    const numStr = i.toString().padStart(3, "0");
-    const cpfPessoa = `100.200.${numStr}-${(i % 89) + 10}`;
-    const cnpjEmpresa = `00.${numStr}.000/0001-${(i % 89) + 10}`;
+  // 4. SEED MASSIVO: PESSOAS FÍSICAS (500 PESSOAS) E JURÍDICAS (200 EMPRESAS)
+  console.log("   --> Gerando 500 Pessoas Físicas e 200 Pessoas Jurídicas / Fornecedores...");
+  for (let i = 1; i <= 500; i++) {
+    const numStr = i.toString().padStart(4, "0");
+    const part1 = (200 + (i % 700)).toString().padStart(3, "0");
+    const part2 = (300 + (i % 600)).toString().padStart(3, "0");
+    const part3 = (400 + (i % 500)).toString().padStart(3, "0");
+    const digito = ((i * 11) % 89 + 10).toString();
+    const cpfPessoa = `${part1}.${part2}.${part3}-${digito}`;
 
     // Pessoa Física
     await prisma.person.upsert({
@@ -160,6 +165,11 @@ export async function runMassivePocSeed() {
       },
       update: { fullName: `Pessoa Teste ${i}` },
     });
+  }
+
+  for (let i = 1; i <= 200; i++) {
+    const numStr = i.toString().padStart(4, "0");
+    const cnpjEmpresa = `00.${numStr.slice(0, 3)}.000/0001-${(i % 89) + 10}`;
 
     // Pessoa Jurídica
     const empresa = await prisma.company.upsert({
@@ -188,15 +198,15 @@ export async function runMassivePocSeed() {
       update: { name: `Empresa Teste ${i} Ltda` },
     });
   }
-  console.log("   ✅ 100 Pessoas Físicas e 100 Pessoas Jurídicas / Credores criados.");
+  console.log("   ✅ 500 Pessoas Físicas e 200 Pessoas Jurídicas / Credores criados.");
 
-  // 5. SEED MASSIVO: PROCESSO LICITATÓRIO & CONTRATOS (100 CONTRATOS E LICITAÇÕES)
-  console.log("   --> Gerando 100 Licitações e Contratos...");
+  // 5. SEED MASSIVO: PROCESSO LICITATÓRIO & CONTRATOS (200 CONTRATOS E LICITAÇÕES)
+  console.log("   --> Gerando 200 Licitações e Contratos...");
   const firstSupplier = await prisma.supplier.findFirst();
   const statusesContrato = ["Vigente", "Em Análise", "Encerrado", "Aditado", "Suspenso"];
 
-  for (let i = 1; i <= 100; i++) {
-    const numStr = i.toString().padStart(3, "0");
+  for (let i = 1; i <= 200; i++) {
+    const numStr = i.toString().padStart(4, "0");
     const statusAtual = statusesContrato[i % statusesContrato.length];
 
     const proc = await prisma.purchaseProcess.upsert({
@@ -233,10 +243,10 @@ export async function runMassivePocSeed() {
       });
     }
   }
-  console.log("   ✅ 100 Licitações e 100 Contratos criados.");
+  console.log("   ✅ 200 Licitações e 200 Contratos criados.");
 
-  // 6. SEED MASSIVO: PATRIMÔNIO (100 BENS PATRIMONIAIS)
-  console.log("   --> Gerando 100 Bens Patrimoniais...");
+  // 6. SEED MASSIVO: PATRIMÔNIO (200 BENS PATRIMONIAIS)
+  console.log("   --> Gerando 200 Bens Patrimoniais...");
   const almox = await prisma.warehouse.upsert({
     where: { id: "almox-central" },
     create: { id: "almox-central", name: "Almoxarifado Central Municipal", address: "Rua Um, 10, Centro" },
@@ -249,8 +259,8 @@ export async function runMassivePocSeed() {
     update: {},
   });
 
-  for (let i = 1; i <= 100; i++) {
-    const numStr = i.toString().padStart(3, "0");
+  for (let i = 1; i <= 200; i++) {
+    const numStr = i.toString().padStart(4, "0");
     const mat = await prisma.material.upsert({
       where: { code: `PAT-MAT-${numStr}` },
       create: { code: `PAT-MAT-${numStr}`, name: `Patrimônio Equipamento Teste ${i}`, unitOfMeasure: "UN", categoryId: catMat.id },
@@ -263,13 +273,13 @@ export async function runMassivePocSeed() {
       update: { quantity: 10 + i },
     });
   }
-  console.log("   ✅ 100 Bens Patrimoniais/Materiais criados.");
+  console.log("   ✅ 200 Bens Patrimoniais/Materiais criados.");
 
-  // 7. SEED MASSIVO: EDUCAÇÃO (100 ALUNOS E MATRÍCULAS)
-  console.log("   --> Gerando 100 Alunos e Matrículas na Educação...");
+  // 7. SEED MASSIVO: EDUCAÇÃO (200 ALUNOS E MATRÍCULAS)
+  console.log("   --> Gerando 200 Alunos e Matrículas na Educação...");
   const escola = await prisma.school.upsert({
     where: { inepCode: "25000001" },
-    create: { inepCode: "25000001", name: "Escola Municipal Governador Agamenon Magalhães", capacity: 500, isActive: true },
+    create: { inepCode: "25000001", name: "Escola Municipal Governador Agamenon Magalhães", capacity: 1000, isActive: true },
     update: {},
   });
 
@@ -279,8 +289,8 @@ export async function runMassivePocSeed() {
     update: {},
   });
 
-  for (let i = 1; i <= 100; i++) {
-    const numStr = i.toString().padStart(3, "0");
+  for (let i = 1; i <= 200; i++) {
+    const numStr = i.toString().padStart(4, "0");
     const pf = await prisma.person.findFirst({ where: { id: `person-teste-${numStr}` } });
     if (pf) {
       const student = await prisma.student.upsert({
@@ -296,10 +306,10 @@ export async function runMassivePocSeed() {
       });
     }
   }
-  console.log("   ✅ 100 Alunos e Matrículas criadas.");
+  console.log("   ✅ 200 Alunos e Matrículas criadas.");
 
-  // 8. SEED MASSIVO: SAÚDE (100 PACIENTES E ATENDIMENTOS)
-  console.log("   --> Gerando 100 Pacientes e Consultas de Saúde...");
+  // 8. SEED MASSIVO: SAÚDE (200 PACIENTES E ATENDIMENTOS)
+  console.log("   --> Gerando 200 Pacientes e Consultas de Saúde...");
   const ubs = await prisma.healthUnit.upsert({
     where: { cnes: "CNES-001" },
     create: { cnes: "CNES-001", name: "Unidade Básica de Saúde Central", type: "UBS" },
@@ -316,8 +326,8 @@ export async function runMassivePocSeed() {
     });
   }
 
-  for (let i = 1; i <= 100; i++) {
-    const numStr = i.toString().padStart(3, "0");
+  for (let i = 1; i <= 200; i++) {
+    const numStr = i.toString().padStart(4, "0");
     const pf = await prisma.person.findFirst({ where: { id: `person-teste-${numStr}` } });
     if (pf) {
       const patient = await prisma.patient.upsert({
@@ -326,6 +336,7 @@ export async function runMassivePocSeed() {
         update: {},
       });
 
+      const dayStr = ((i % 28) + 1).toString().padStart(2, "0");
       if (profSaude) {
         await prisma.healthAppointment.upsert({
           where: { id: `consulta-massiva-${numStr}` },
@@ -334,7 +345,7 @@ export async function runMassivePocSeed() {
             patientId: patient.id,
             unitId: ubs.id,
             professionalId: profSaude.id,
-            date: new Date(`2026-02-${(i % 28) + 1}T10:00:00.000Z`),
+            date: new Date(`2026-02-${dayStr}T10:00:00.000Z`),
             status: i % 4 === 0 ? "Cancelado" : "Atendido",
             specialty: "Clínico Geral",
           },
@@ -343,18 +354,18 @@ export async function runMassivePocSeed() {
       }
     }
   }
-  console.log("   ✅ 100 Pacientes e Agendamentos de Saúde criados.");
+  console.log("   ✅ 200 Pacientes e Agendamentos de Saúde criados.");
 
-  // 9. SEED MASSIVO: ASSISTÊNCIA SOCIAL (100 FAMÍLIAS E ATENDIMENTOS)
-  console.log("   --> Gerando 100 Famílias no CRAS...");
+  // 9. SEED MASSIVO: ASSISTÊNCIA SOCIAL (200 FAMÍLIAS E ATENDIMENTOS)
+  console.log("   --> Gerando 200 Famílias no CRAS...");
   const cras = await prisma.socialUnit.upsert({
     where: { id: "cras-centro-01" },
     create: { id: "cras-centro-01", name: "CRAS Central de Assistência Social", type: "CRAS", isActive: true },
     update: {},
   });
 
-  for (let i = 1; i <= 100; i++) {
-    const numStr = i.toString().padStart(3, "0");
+  for (let i = 1; i <= 200; i++) {
+    const numStr = i.toString().padStart(4, "0");
     const pf = await prisma.person.findFirst({ where: { id: `person-teste-${numStr}` } });
     if (pf) {
       const fam = await prisma.socialFamily.upsert({
@@ -380,10 +391,10 @@ export async function runMassivePocSeed() {
       }
     }
   }
-  console.log("   ✅ 100 Famílias e Atendimentos Sociais criados.");
+  console.log("   ✅ 200 Famílias e Atendimentos Sociais criados.");
 
-  // 10. SEED MASSIVO: MEIO AMBIENTE (100 LICENÇAS AMBIENTAIS)
-  console.log("   --> Gerando 100 Licenças Ambientais...");
+  // 10. SEED MASSIVO: MEIO AMBIENTE (200 LICENÇAS AMBIENTAIS)
+  console.log("   --> Gerando 200 Licenças Ambientais...");
   const empEnv = await prisma.envEnterprise.upsert({
     where: { id: "emp-env-geral" },
     create: { id: "emp-env-geral", name: "Empreendimentos Diversos Município", activityType: "Comércio e Indústria", status: "Ativo" },
@@ -392,8 +403,8 @@ export async function runMassivePocSeed() {
 
   const tiposLicenca = ["Licença Prévia (LP)", "Licença de Instalação (LI)", "Licença de Operação (LO)", "Licença Simplificada (LS)"];
 
-  for (let i = 1; i <= 100; i++) {
-    const numStr = i.toString().padStart(3, "0");
+  for (let i = 1; i <= 200; i++) {
+    const numStr = i.toString().padStart(4, "0");
     await prisma.envLicense.upsert({
       where: { licenseNumber: `LIC-ENV-2026/${numStr}` },
       create: {
@@ -407,13 +418,13 @@ export async function runMassivePocSeed() {
       update: { status: i % 5 === 0 ? "Em Análise" : "Emitida" },
     });
   }
-  console.log("   ✅ 100 Licenças Ambientais criadas.");
+  console.log("   ✅ 200 Licenças Ambientais criadas.");
 
-  // 11. SEED MASSIVO: OBRAS PÚBLICAS (100 OBRAS)
-  console.log("   --> Gerando 100 Obras Públicas...");
+  // 11. SEED MASSIVO: OBRAS PÚBLICAS (200 OBRAS)
+  console.log("   --> Gerando 200 Obras Públicas...");
   const statusObras = ["Planejada", "Em Execução", "Vistoriada", "Concluída", "Paralisada"];
-  for (let i = 1; i <= 100; i++) {
-    const numStr = i.toString().padStart(3, "0");
+  for (let i = 1; i <= 200; i++) {
+    const numStr = i.toString().padStart(4, "0");
     await prisma.obrasObra.upsert({
       where: { numero: `OBRA-2026/${numStr}` },
       create: {
@@ -428,11 +439,11 @@ export async function runMassivePocSeed() {
       update: { status: statusObras[i % statusObras.length] },
     });
   }
-  console.log("   ✅ 100 Obras Públicas criadas.");
+  console.log("   ✅ 200 Obras Públicas criadas.");
 
-  // 12. SEED MASSIVO: CULTURA & TURISMO (100 PROJETOS CULTURAIS)
-  console.log("   --> Gerando 100 Projetos Culturais...");
-  const pf1 = await prisma.person.findFirst({ where: { id: "person-teste-001" } });
+  // 12. SEED MASSIVO: CULTURA & TURISMO (200 PROJETOS CULTURAIS)
+  console.log("   --> Gerando 200 Projetos Culturais...");
+  const pf1 = await prisma.person.findFirst({ where: { id: "person-teste-0001" } });
   if (pf1) {
     const agente = await prisma.culturaAgente.upsert({
       where: { id: "agente-cult-massivo" },
@@ -440,8 +451,8 @@ export async function runMassivePocSeed() {
       update: {},
     });
 
-    for (let i = 1; i <= 100; i++) {
-      const numStr = i.toString().padStart(3, "0");
+    for (let i = 1; i <= 200; i++) {
+      const numStr = i.toString().padStart(4, "0");
       await prisma.culturaProjeto.upsert({
         where: { numero: `PROJ-CULT-2026/${numStr}` },
         create: {
@@ -457,18 +468,18 @@ export async function runMassivePocSeed() {
       });
     }
   }
-  console.log("   ✅ 100 Projetos Culturais criados.");
+  console.log("   ✅ 200 Projetos Culturais criados.");
 
-  // 13. SEED MASSIVO: SEGURANÇA PÚBLICA (100 OCORRÊNCIAS)
-  console.log("   --> Gerando 100 Ocorrências da Guarda Municipal...");
+  // 13. SEED MASSIVO: SEGURANÇA PÚBLICA (200 OCORRÊNCIAS)
+  console.log("   --> Gerando 200 Ocorrências da Guarda Municipal...");
   const guarda = await prisma.segurancaGuarda.upsert({
     where: { matricula: "GCM-001" },
     create: { matricula: "GCM-001", nome: "Comandante Guarda Municipal Teste", tipo: "Guarda Municipal", status: "Ativo", isActive: true },
     update: {},
   });
 
-  for (let i = 1; i <= 100; i++) {
-    const numStr = i.toString().padStart(3, "0");
+  for (let i = 1; i <= 200; i++) {
+    const numStr = i.toString().padStart(4, "0");
     await prisma.segurancaOcorrencia.upsert({
       where: { numero: `GCM-2026/${numStr}` },
       create: {
@@ -481,12 +492,12 @@ export async function runMassivePocSeed() {
       update: {},
     });
   }
-  console.log("   ✅ 100 Ocorrências de Segurança criadas.");
+  console.log("   ✅ 200 Ocorrências de Segurança criadas.");
 
-  // 14. SEED MASSIVO: SANEAMENTO (100 UNIDADES CONSUMIDORAS & FATURAS)
-  console.log("   --> Gerando 100 Unidades Consumidoras de Saneamento...");
-  for (let i = 1; i <= 100; i++) {
-    const numStr = i.toString().padStart(3, "0");
+  // 14. SEED MASSIVO: SANEAMENTO (200 UNIDADES CONSUMIDORAS & FATURAS)
+  console.log("   --> Gerando 200 Unidades Consumidoras de Saneamento...");
+  for (let i = 1; i <= 200; i++) {
+    const numStr = i.toString().padStart(4, "0");
     const uc = await prisma.sanConsumerUnit.upsert({
       where: { code: `UC-00${numStr}` },
       create: {
@@ -513,10 +524,10 @@ export async function runMassivePocSeed() {
       update: {},
     });
   }
-  console.log("   ✅ 100 Unidades e Faturas de Saneamento criadas.");
+  console.log("   ✅ 200 Unidades e Faturas de Saneamento criadas.");
 
-  // 15. SEED MASSIVO: CÂMARA MUNICIPAL (100 PROPOSIÇÕES LEGISLATIVAS)
-  console.log("   --> Gerando 100 Proposições Legislativas na Câmara...");
+  // 15. SEED MASSIVO: CÂMARA MUNICIPAL (200 PROPOSIÇÕES LEGISLATIVAS)
+  console.log("   --> Gerando 200 Proposições Legislativas na Câmara...");
   const leg = await prisma.camLegislatura.upsert({
     where: { numero: 19 },
     create: { id: "leg-2025-2028", numero: 19, inicio: new Date("2025-01-01T00:00:00.000Z"), fim: new Date("2028-12-31T23:59:59.999Z"), status: "Ativa" },
@@ -530,8 +541,8 @@ export async function runMassivePocSeed() {
       update: {},
     });
 
-    for (let i = 1; i <= 100; i++) {
-      const numStr = i.toString().padStart(3, "0");
+    for (let i = 1; i <= 200; i++) {
+      const numStr = i.toString().padStart(4, "0");
       await prisma.camProposicao.upsert({
         where: { numero: `PL-2026/${numStr}` },
         create: {
@@ -545,7 +556,7 @@ export async function runMassivePocSeed() {
       });
     }
   }
-  console.log("   ✅ 100 Proposições Legislativas criadas.");
+  console.log("   ✅ 200 Proposições Legislativas criadas.");
 
   // 16. SEED MASSIVO: CONEXÕES E LOGS DE INTEGRAÇÃO (CONSOLE DE INTEGRAÇÕES TÉCNICAS)
   console.log("   --> Gerando Conexões e Logs para o Console Técnico de Integrações...");
@@ -572,7 +583,6 @@ export async function runMassivePocSeed() {
       update: { status: "ENABLED" },
     });
 
-    // Criar histórico de execuções (Runs) para demonstrar na tela técnica
     await prisma.integrationRun.create({
       data: {
         connectionId: conn.id,
