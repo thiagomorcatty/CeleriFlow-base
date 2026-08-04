@@ -1,7 +1,8 @@
 import Link from "next/link";
+import Image from "next/image";
 import { buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Menu, Sparkles, ShieldCheck, ArrowRight, Activity, Building2 } from "lucide-react";
+import { Menu, ShieldCheck, ArrowRight, Building2 } from "lucide-react";
 
 export function Header() {
   return (
@@ -10,22 +11,17 @@ export function Header() {
         
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary via-primary/80 to-secondary p-0.5 shadow-md shadow-primary/20 group-hover:scale-105 transition-transform">
-            <div className="h-full w-full bg-background rounded-[10px] flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-primary group-hover:rotate-12 transition-transform" />
-            </div>
-          </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-foreground via-foreground to-primary bg-clip-text text-transparent">
-                CeleriFlow
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                ERP Gov
-              </span>
-            </div>
-            <span className="text-[11px] text-muted-foreground hidden sm:inline-block">Plataforma Integrada de Gestão Pública</span>
-          </div>
+          <Image 
+            src="/favicon.png" 
+            alt="CeleriFlow ERP Governamental" 
+            width={180} 
+            height={55} 
+            className="h-10 sm:h-11 w-auto object-contain group-hover:scale-105 transition-transform" 
+            priority 
+          />
+          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 hidden sm:inline-block">
+            ERP Gov
+          </span>
         </Link>
 
         {/* Desktop Navigation */}

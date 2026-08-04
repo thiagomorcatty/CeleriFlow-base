@@ -1,6 +1,7 @@
 import Link from "next/link";
+import Image from "next/image";
 import { APP_VERSION } from "@/lib/version";
-import { Sparkles, ShieldCheck, Activity, Building2 } from "lucide-react";
+import { ShieldCheck, Activity, Building2 } from "lucide-react";
 
 export function Footer() {
   return (
@@ -10,15 +11,14 @@ export function Footer() {
           
           {/* Brand Info */}
           <div className="col-span-1 md:col-span-2">
-            <Link href="/" className="flex items-center gap-3 mb-4 group">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 p-0.5 shadow-md shadow-blue-500/20">
-                <div className="h-full w-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-blue-400" />
-                </div>
-              </div>
-              <span className="font-extrabold text-xl tracking-tight text-slate-100">
-                CeleriFlow <span className="text-blue-400 font-mono text-xs">Gov</span>
-              </span>
+            <Link href="/" className="inline-block mb-4 hover:opacity-90 transition-opacity">
+              <Image 
+                src="/favicon.png" 
+                alt="CeleriFlow ERP Governamental" 
+                width={180} 
+                height={55} 
+                className="h-10 w-auto object-contain" 
+              />
             </Link>
             <p className="max-w-sm text-xs text-slate-400 leading-relaxed">
               O ecossistema definitivo de inteligência e gestão pública municipal. SIAFIC, PNCP, Pix Dinâmico, Processo Eletrônico 100% Sem Papel e Saúde e-SUS integrados em nuvem serverless de alta velocidade.
