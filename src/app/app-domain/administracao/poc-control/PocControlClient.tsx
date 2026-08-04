@@ -157,7 +157,6 @@ export default function PocControlClient({ initialCounts }: PocControlClientProp
               >
                 <div>
                   <p className="text-sm font-medium text-slate-200">{label}</p>
-                  <span className="text-xs text-slate-400">Meta POC: {minRequired}+ registros</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-lg font-bold text-white">{count}</span>

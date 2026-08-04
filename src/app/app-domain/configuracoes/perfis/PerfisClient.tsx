@@ -1,45 +1,177 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldCheck, Plus, Search, X, Pencil } from "lucide-react";
+import { 
+  ShieldCheck, Plus, Search, X, Pencil, CheckCircle2, SlidersHorizontal, 
+  Building2, Users, FileText, ShoppingCart, FileSpreadsheet, DollarSign, 
+  Package, Receipt, Stethoscope, GraduationCap, HeartHandshake, HardHat, 
+  Trees, Shield, Droplets, Landmark, Palette, Share2, Settings, Lock, CheckSquare, Square
+} from "lucide-react";
 import { upsertPerfil, togglePerfilStatus } from "./actions";
 
 type Perfil = {
   id: string;
   nome: string;
   descricao: string | null;
+  permissoes: string | null;
   ativo: boolean;
 };
+
+// 20 CeleriFlow System Modules for Permission Matrix
+const MODULES_LIST = [
+  { code: "ADMINISTRACAO", label: "Administração Geral & Entidades", icon: Building2, color: "text-blue-500" },
+  { code: "RH", label: "Recursos Humanos & Servidores", icon: Users, color: "text-indigo-500" },
+  { code: "CADASTROS", label: "Pessoas & Cadastros Gerais", icon: FileText, color: "text-purple-500" },
+  { code: "COMPRAS", label: "Compras, Licitações & Cotações", icon: ShoppingCart, color: "text-emerald-500" },
+  { code: "CONTRATOS", label: "Gestão de Contratos Públicos", icon: FileSpreadsheet, color: "text-teal-500" },
+  { code: "FINANCEIRO", label: "Financeiro, Orçamento & Tesouraria", icon: DollarSign, color: "text-green-500" },
+  { code: "PATRIMONIO", label: "Patrimônio, Almoxarifado & Estoque", icon: Package, color: "text-amber-500" },
+  { code: "TRIBUTACAO", label: "Tributação, Arrecadação & IPTU", icon: Receipt, color: "text-orange-500" },
+  { code: "PROCESSOS", label: "Processos Administrativos & Protocolos", icon: Share2, color: "text-cyan-500" },
+  { code: "SAUDE", label: "Saúde Pública & UBSs", icon: Stethoscope, color: "text-rose-500" },
+  { code: "EDUCACAO", label: "Educação Pública & Escolas", icon: GraduationCap, color: "text-yellow-500" },
+  { code: "SOCIAL", label: "Assistência Social & CRAS", icon: HeartHandshake, color: "text-pink-500" },
+  { code: "OBRAS", label: "Obras Públicas & Vistorias", icon: HardHat, color: "text-lime-500" },
+  { code: "MEIO_AMBIENTE", label: "Meio Ambiente & Licenciamento", icon: Trees, color: "text-emerald-600" },
+  { code: "SEGURANCA", label: "Segurança Pública & Guarda Municipal", icon: Shield, color: "text-slate-500" },
+  { code: "SANEAMENTO", label: "Saneamento, Água & Esgoto", icon: Droplets, color: "text-blue-600" },
+  { code: "CAMARA", label: "Câmara Municipal & Legislação", icon: Landmark, color: "text-violet-500" },
+  { code: "CULTURA", label: "Cultura, Esporte & Turismo", icon: Palette, color: "text-fuchsia-500" },
+  { code: "TRANSPARENCIA", label: "Portal da Transparência & LAI", icon: Share2, color: "text-sky-500" },
+  { code: "CONFIGURACOES", label: "Configurações do Sistema & Integrações", icon: Settings, color: "text-slate-600" },
+];
+
+type ActionType = "read" | "create" | "update" | "delete" | "approve";
+
+const ACTIONS_LABELS: { key: ActionType; label: string }[] = [
+  { key: "read", label: "Visualizar" },
+  { key: "create", label: "Criar / Incluir" },
+  { key: "update", label: "Editar" },
+  { key: "delete", label: "Excluir" },
+  { key: "approve", label: "Aprovar / Homologar" },
+];
 
 export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<"dados" | "matriz">("matriz");
+
   const [formData, setFormData] = useState<{
     id?: string;
     nome: string;
     descricao: string;
     ativo: boolean;
-  }>({ nome: "", descricao: "", ativo: true });
+    permissionsMap: Record<string, ActionType[]>;
+  }>({
+    nome: "",
+    descricao: "",
+    ativo: true,
+    permissionsMap: {},
+  });
 
   const filtered = perfis.filter((p) =>
-    p.nome.toLowerCase().includes(searchTerm.toLowerCase())
+    p.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.descricao && p.descricao.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  function parsePermissionsJSON(jsonStr: string | null): Record<string, ActionType[]> {
+    if (!jsonStr) return {};
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (parsed.ALL) {
+        // Full access
+        const full: Record<string, ActionType[]> = {};
+        MODULES_LIST.forEach((m) => {
+          full[m.code] = ["read", "create", "update", "delete", "approve"];
+        });
+        return full;
+      }
+      return parsed;
+    } catch {
+      return {};
+    }
+  }
+
+  function serializePermissionsJSON(map: Record<string, ActionType[]>): string {
+    // Check if all are selected
+    let totalCount = 0;
+    MODULES_LIST.forEach((m) => {
+      totalCount += map[m.code]?.length || 0;
+    });
+    if (totalCount === MODULES_LIST.length * 5) {
+      return JSON.stringify({ ALL: true });
+    }
+    return JSON.stringify(map);
+  }
+
   function openNew() {
-    setFormData({ nome: "", descricao: "", ativo: true });
+    const defaultMap: Record<string, ActionType[]> = {};
+    MODULES_LIST.forEach((m) => {
+      defaultMap[m.code] = ["read"];
+    });
+    setFormData({ nome: "", descricao: "", ativo: true, permissionsMap: defaultMap });
+    setActiveTab("matriz");
     setIsModalOpen(true);
   }
 
   function openEdit(p: Perfil) {
-    setFormData({ id: p.id, nome: p.nome, descricao: p.descricao ?? "", ativo: p.ativo });
+    const map = parsePermissionsJSON(p.permissoes);
+    setFormData({ id: p.id, nome: p.nome, descricao: p.descricao ?? "", ativo: p.ativo, permissionsMap: map });
+    setActiveTab("matriz");
     setIsModalOpen(true);
   }
+
+  const toggleAction = (moduleCode: string, action: ActionType) => {
+    setFormData((prev) => {
+      const current = prev.permissionsMap[moduleCode] || [];
+      const updated = current.includes(action)
+        ? current.filter((a) => a !== action)
+        : [...current, action];
+      return {
+        ...prev,
+        permissionsMap: { ...prev.permissionsMap, [moduleCode]: updated },
+      };
+    });
+  };
+
+  const toggleAllModuleActions = (moduleCode: string) => {
+    setFormData((prev) => {
+      const current = prev.permissionsMap[moduleCode] || [];
+      const allActions: ActionType[] = ["read", "create", "update", "delete", "approve"];
+      const updated = current.length === 5 ? [] : allActions;
+      return {
+        ...prev,
+        permissionsMap: { ...prev.permissionsMap, [moduleCode]: updated },
+      };
+    });
+  };
+
+  const applyPreset = (preset: "FULL" | "READ_ONLY" | "CLEAR") => {
+    const newMap: Record<string, ActionType[]> = {};
+    MODULES_LIST.forEach((m) => {
+      if (preset === "FULL") {
+        newMap[m.code] = ["read", "create", "update", "delete", "approve"];
+      } else if (preset === "READ_ONLY") {
+        newMap[m.code] = ["read"];
+      } else {
+        newMap[m.code] = [];
+      }
+    });
+    setFormData((prev) => ({ ...prev, permissionsMap: newMap }));
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsSubmitting(true);
-    const result = await upsertPerfil(formData);
+    const jsonPerms = serializePermissionsJSON(formData.permissionsMap);
+    const result = await upsertPerfil({
+      id: formData.id,
+      nome: formData.nome,
+      descricao: formData.descricao,
+      ativo: formData.ativo,
+      permissoes: jsonPerms,
+    });
     if (result.error) {
       alert(result.error);
     } else {
@@ -53,171 +185,339 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
   }
 
   return (
-    <div className="flex-1 p-8">
+    <div className="flex-1 p-8 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300">
-            <ShieldCheck className="h-6 w-6" />
+          <div className="p-3 bg-indigo-600/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 rounded-xl border border-indigo-500/20">
+            <ShieldCheck className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Perfis de Acesso</h1>
-            <p className="text-gray-500 dark:text-gray-400">Controle de permissões e níveis de segurança</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gestão de Perfis & Permissões</h1>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300">
+                {perfis.length} Perfis Cadastrados
+              </span>
+            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Defina os níveis de acesso e matriz de permissões granulares por módulo para os usuários do sistema.
+            </p>
           </div>
         </div>
         <button
           onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium shadow-md transition-all whitespace-nowrap"
         >
           <Plus className="h-4 w-4" />
-          Novo Perfil
+          Criar Novo Perfil
         </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+      {/* Search and Table Card */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="relative w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
               placeholder="Buscar perfil..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20"
+              className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400">
+            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="px-6 py-4 font-medium">Nome do Perfil</th>
-                <th className="px-6 py-4 font-medium">Descrição</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium text-right">Ações</th>
+                <th className="px-6 py-4 font-semibold">Nome do Perfil</th>
+                <th className="px-6 py-4 font-semibold">Descrição</th>
+                <th className="px-6 py-4 font-semibold">Cobertura de Módulos</th>
+                <th className="px-6 py-4 font-semibold">Status</th>
+                <th className="px-6 py-4 font-semibold text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
                     Nenhum perfil encontrado.
                   </td>
                 </tr>
               ) : (
-                filtered.map((perfil) => (
-                  <tr key={perfil.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                      {perfil.nome}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
-                      {perfil.descricao || "-"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleToggle(perfil.id, perfil.ativo)}
-                        className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
-                          perfil.ativo
-                            ? "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400"
-                        }`}
-                      >
-                        {perfil.ativo ? "Ativo" : "Inativo"}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => openEdit(perfil)}
-                        className="inline-flex items-center gap-1.5 text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 text-sm font-medium"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        Editar
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                filtered.map((perfil) => {
+                  const permMap = parsePermissionsJSON(perfil.permissoes);
+                  const activeModulesCount = Object.keys(permMap).filter((k) => (permMap[k]?.length || 0) > 0).length;
+
+                  return (
+                    <tr key={perfil.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="px-6 py-4 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-indigo-500 shrink-0" />
+                        {perfil.nome}
+                      </td>
+                      <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
+                        {perfil.descricao || "Perfil de acesso padrão do sistema municipal."}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-500" />
+                          {activeModulesCount === 20 ? "Todos os 20 Módulos" : `${activeModulesCount} de 20 Módulos`}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleToggle(perfil.id, perfil.ativo)}
+                          className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                            perfil.ativo
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                              : "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300"
+                          }`}
+                        >
+                          {perfil.ativo ? "Ativo" : "Inativo"}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => openEdit(perfil)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950 dark:text-indigo-300 dark:hover:bg-indigo-900 text-xs font-bold transition-colors"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Configurar Permissões
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Permissions Config Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-lg">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                {formData.id ? "Editar Perfil" : "Novo Perfil"}
-              </h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-800">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-600/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 rounded-lg">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    {formData.id ? `Configurar Perfil: ${formData.nome}` : "Novo Perfil de Acesso"}
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Defina as permissões granulares por módulo para os usuários vinculados.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Nome do Perfil
-                </label>
-                <input
-                  required
-                  type="text"
-                  value={formData.nome}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-slate-500 outline-none"
-                  placeholder="Ex: Gestor de Secretaria"
-                />
+            {/* Modal Tabs Header & Quick Presets */}
+            <div className="px-6 py-3 bg-slate-50 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("matriz")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === "matriz"
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                  }`}
+                >
+                  🛡️ Matriz de Permissões (20 Módulos)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("dados")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === "dados"
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                  }`}
+                >
+                  📝 Dados do Perfil
+                </button>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Descrição
-                </label>
-                <textarea
-                  value={formData.descricao}
-                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                  rows={3}
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-slate-500 outline-none resize-none"
-                  placeholder="Descreva as responsabilidades deste perfil..."
-                />
-              </div>
+              {activeTab === "matriz" && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-semibold mr-1">Presets Rápidos:</span>
+                  <button
+                    type="button"
+                    onClick={() => applyPreset("FULL")}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:opacity-90"
+                  >
+                    ⚡ Acesso Total
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyPreset("READ_ONLY")}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-800 hover:opacity-90"
+                  >
+                    👁️ Apenas Leitura
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyPreset("CLEAR")}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:opacity-90"
+                  >
+                    🧹 Limpar Tudo
+                  </button>
+                </div>
+              )}
+            </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="ativo-check"
-                  checked={formData.ativo}
-                  onChange={(e) => setFormData({ ...formData, ativo: e.target.checked })}
-                  className="w-4 h-4 rounded border-gray-300 text-slate-700 focus:ring-slate-500"
-                />
-                <label htmlFor="ativo-check" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
-                  Perfil Ativo
-                </label>
-              </div>
+            {/* Form Content */}
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+              {activeTab === "dados" && (
+                <div className="space-y-4 max-w-xl mx-auto py-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Nome do Perfil *
+                    </label>
+                    <input
+                      required
+                      type="text"
+                      value={formData.nome}
+                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                      className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="Ex: Fiscal de Obras / Gestor de Compras"
+                    />
+                  </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Descrição & Responsabilidades
+                    </label>
+                    <textarea
+                      value={formData.descricao}
+                      onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                      rows={3}
+                      className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                      placeholder="Descreva as atribuições deste perfil no sistema público..."
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <input
+                      type="checkbox"
+                      id="ativo-check"
+                      checked={formData.ativo}
+                      onChange={(e) => setFormData({ ...formData, ativo: e.target.checked })}
+                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <label htmlFor="ativo-check" className="text-sm font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      Perfil Habilitado no Sistema
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "matriz" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-3">
+                    {MODULES_LIST.map((moduleItem) => {
+                      const IconComponent = moduleItem.icon;
+                      const activeActions = formData.permissionsMap[moduleItem.code] || [];
+                      const isAllSelected = activeActions.length === 5;
+
+                      return (
+                        <div
+                          key={moduleItem.code}
+                          className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 hover:border-indigo-500/30 transition-all space-y-3"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 ${moduleItem.color}`}>
+                                <IconComponent className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <span className="font-bold text-sm text-slate-900 dark:text-white">{moduleItem.label}</span>
+                                <span className="text-[11px] block text-slate-400 font-mono">Código: {moduleItem.code}</span>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => toggleAllModuleActions(moduleItem.code)}
+                              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                            >
+                              {isAllSelected ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+                              {isAllSelected ? "Desmarcar Módulo" : "Marcar Todas"}
+                            </button>
+                          </div>
+
+                          {/* Actions Checkboxes */}
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+                            {ACTIONS_LABELS.map((act) => {
+                              const isChecked = activeActions.includes(act.key);
+                              return (
+                                <label
+                                  key={act.key}
+                                  className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-medium cursor-pointer transition-all ${
+                                    isChecked
+                                      ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-800 text-indigo-900 dark:text-indigo-200"
+                                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => toggleAction(moduleItem.code, act.key)}
+                                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
+                                  />
+                                  <span>{act.label}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </form>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60">
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                As permissões definidas neste perfil serão aplicadas a todos os usuários vinculados.
+              </span>
+              <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="px-4 py-2 text-sm font-medium text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition-colors disabled:opacity-70 flex items-center gap-2"
+                  className="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-70 flex items-center gap-2 shadow-md"
                 >
-                  {isSubmitting && (
+                  {isSubmitting ? (
                     <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4" />
                   )}
-                  Salvar Perfil
+                  Salvar Matriz de Permissões
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
