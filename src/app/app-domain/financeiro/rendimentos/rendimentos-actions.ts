@@ -2,6 +2,7 @@
 
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { calculateInvestmentYield, transmitYieldToMunicipalSystem, YieldType } from "@/lib/financeiro/yield-engine";
+import { bankIntegrationClient } from "@/lib/financeiro/bank-integration-client";
 import { revalidatePath } from "next/cache";
 
 type ActionResult<T = any> = { error?: string; data?: T };
@@ -59,5 +60,30 @@ export async function getYieldHistoryAction(): Promise<ActionResult> {
     return { data: history };
   } catch (err: any) {
     return { error: err?.message || "Erro ao buscar histórico de rendimentos." };
+  }
+}
+
+export async function fetchExternalYieldsAction(input: {
+  banco: string;
+  agencia: string;
+  contaNumero: string;
+  periodoInicio: string;
+  periodoFim: string;
+}): Promise<ActionResult> {
+  try {
+    const yields = await bankIntegrationClient.fetchYieldReport(
+      {
+        banco: input.banco,
+        agencia: input.agencia,
+        contaNumero: input.contaNumero,
+      },
+      {
+        periodoInicio: input.periodoInicio,
+        periodoFim: input.periodoFim,
+      }
+    );
+    return { data: yields };
+  } catch (err: any) {
+    return { error: err?.message || "Erro ao consultar rendimentos no simulador bancário." };
   }
 }

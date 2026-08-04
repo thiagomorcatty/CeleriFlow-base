@@ -7,6 +7,8 @@ import crypto from "crypto";
 import path from "path";
 import { Prisma } from "@prisma/client";
 
+import { bankIntegrationClient } from "@/lib/financeiro/bank-integration-client";
+
 type ActionResult<T = any> = { error?: string; data?: T };
 
 const downloadSchema = z.object({
@@ -38,28 +40,30 @@ export async function runAutomatedBankDownloadAction(input: {
     const timestamp = Date.now();
     const destFolder = parsed.data.caminhoDestino || `\\\\SERVIDORMUN\\FINANCEIRO\\EXTRATOS\\${new Date().getFullYear()}\\${parsed.data.banco.split(" ")[0]}`;
     const fileNameCC = `EXTRATO_CC_${parsed.data.contaNumero}_${timestamp}.ofx`;
-    const fileNameAPL = `EXTRATO_APLIC_${parsed.data.contaNumero}_${timestamp}.ofx`;
 
-    // Gerar conteúdo simulado de extrato oficial baixado da instituição bancária
-    const sampleContent = `OFXHEADER:100\nDATA:OFXSGML\nVERSION:102\nSECURITY:NONE\nENCODING:USASCII\nCHARSET:1252\nCOMPRESSION:NONE\nOLDFILEUID:NONE\nNEWFILEUID:NONE\n\n<OFX>\n<SIGNONMSGSRSV1>\n<SONRS>\n<STATUS>\n<CODE>0\n<SEVERITY>INFO\n</STATUS>\n<DTSERVER>${new Date().toISOString().replace(/[-:]/g, "").slice(0, 14)}\n<LANGUAGE>POR\n<FI>\n<ORG>${parsed.data.banco}\n<FID>001\n</FI>\n</SONRS>\n</SIGNONMSGSRSV1>\n<BANKMSGSRSV1>\n<STMTTRNRS>\n<TRNUID>${timestamp}\n<STATUS><CODE>0</STATUS>\n<STMTRS>\n<CURDEF>BRL\n<BANKACCTFROM>\n<BANKID>${parsed.data.banco.slice(0, 3)}</BANKID>\n<BRANCHID>${parsed.data.agencia}</BRANCHID>\n<ACCTID>${parsed.data.contaNumero}</ACCTID>\n<ACCTTYPE>CHECKING\n</BANKACCTFROM>\n<BANKTRANLIST>\n<DTSTART>${parsed.data.periodoInicio.replace(/-/g, "")}\n<DTEND>${parsed.data.periodoFim.replace(/-/g, "")}\n<STMTTRN>\n<TRNTYPE>CREDIT\n<DTPOSTED>${timestamp}\n<TRNAMT>154850.00\n<FITID>FPM${timestamp}\n<CHECKNUM>000833\n<MEMO>FPM - FUNDO DE PARTICIPACAO DOS MUNICIPIOS\n</STMTTRN>\n</BANKTRANLIST>\n</STMTRS>\n</STMTTRNRS>\n</BANKMSGSRSV1>\n</OFX>`;
-
-    // Calcular Hash SHA-256 da evidência original baixada
-    const hashSHA256 = crypto.createHash("sha256").update(sampleContent).digest("hex");
-    const tamanhoBytes = Buffer.byteLength(sampleContent, "utf8");
+    // Conectar ao Simulador Bancário Externo via BankIntegrationClient
+    const bankData = await bankIntegrationClient.fetchBankStatement(
+      {
+        banco: parsed.data.banco,
+        agencia: parsed.data.agencia,
+        contaNumero: parsed.data.contaNumero,
+      },
+      {
+        periodoInicio: parsed.data.periodoInicio,
+        periodoFim: parsed.data.periodoFim,
+      }
+    );
 
     const fullPath = path.join(destFolder, fileNameCC);
 
     const logsExecucao = [
-      `[${new Date().toLocaleTimeString()}] Conectando ao WebService de Automação Bancária (${parsed.data.banco})...`,
-      `[${new Date().toLocaleTimeString()}] Autenticando com Certificado Digital A1 da Prefeitura Municipal...`,
-      `[${new Date().toLocaleTimeString()}] Sessão autorizada. Solicitando Extrato da Conta Corrente (${parsed.data.contaNumero})...`,
-      `[${new Date().toLocaleTimeString()}] Extrato CC baixado com sucesso (${(tamanhoBytes / 1024).toFixed(2)} KB).`,
-      `[${new Date().toLocaleTimeString()}] Solicitando Extrato da Conta de Aplicação Financeira...`,
-      `[${new Date().toLocaleTimeString()}] Extrato de Aplicação baixado com sucesso.`,
-      `[${new Date().toLocaleTimeString()}] Armazenando arquivos na pasta compartilhada: ${destFolder}`,
-      `[${new Date().toLocaleTimeString()}] Calculando integridade SHA-256: ${hashSHA256}`,
+      `[${new Date().toLocaleTimeString()}] Conectando ao WebService / Simulador Bancário (${parsed.data.banco})...`,
+      `[${new Date().toLocaleTimeString()}] Autenticação autorizada com o Simulador / API Bancária...`,
+      `[${new Date().toLocaleTimeString()}] Extrato de Conta Corrente e Aplicação recebidos (${(bankData.tamanhoBytes / 1024).toFixed(2)} KB).`,
+      `[${new Date().toLocaleTimeString()}] ${bankData.items.length} movimentações sincronizadas do ambiente simulador.`,
+      `[${new Date().toLocaleTimeString()}] Integridade SHA-256 calculada: ${bankData.hashSHA256}`,
       `[${new Date().toLocaleTimeString()}] Gravando registro inalterável de auditoria no CeleriFlow...`,
-      `[${new Date().toLocaleTimeString()}] Automação concluída com 100% de êxito.`,
+      `[${new Date().toLocaleTimeString()}] Automação de extratos concluída com sucesso.`,
     ].join("\n");
 
     // Registrar Log de Auditoria
@@ -72,7 +76,7 @@ export async function runAutomatedBankDownloadAction(input: {
         payload: {
           banco: parsed.data.banco,
           contaNumero: parsed.data.contaNumero,
-          hashSHA256,
+          hashSHA256: bankData.hashSHA256,
         },
       },
     });
@@ -88,65 +92,35 @@ export async function runAutomatedBankDownloadAction(input: {
         periodoFim: new Date(parsed.data.periodoFim),
         nomeArquivo: fileNameCC,
         caminhoDestino: fullPath,
-        formato: "OFX",
-        hashSHA256,
-        tamanhoBytes,
+        formato: bankData.formato,
+        hashSHA256: bankData.hashSHA256,
+        tamanhoBytes: bankData.tamanhoBytes,
         status: "CONCLUIDO",
         logsExecucao,
         auditLogId: audit.id,
       },
     });
 
-    // Inserir itens de extrato de teste no banco para permitir conciliação imediata nas próximas etapas
-    await prisma.bankStatementItem.createMany({
-      data: [
-        {
+    // Inserir itens de extrato obtidos da integração bancária no banco de dados
+    if (bankData.items.length > 0) {
+      await prisma.bankStatementItem.createMany({
+        data: bankData.items.map((item) => ({
           downloadId: downloadRecord.id,
           banco: parsed.data.banco,
           agencia: parsed.data.agencia,
           contaNumero: parsed.data.contaNumero,
-          tipoConta: "CORRENTE",
-          date: new Date(),
-          description: "FPM - FUNDO DE PARTICIPACAO DOS MUNICIPIOS",
-          reference: "83345",
-          codigoTransacao: "FPM-01",
-          sinal: "CREDITO",
-          direction: "CREDIT",
-          valueDecimal: new Prisma.Decimal(154850.0),
+          tipoConta: item.tipoConta,
+          date: item.date,
+          description: item.description,
+          reference: item.reference || null,
+          codigoTransacao: item.codigoTransacao || null,
+          sinal: item.sinal,
+          direction: item.sinal === "CREDITO" ? "CREDIT" : "DEBIT",
+          valueDecimal: new Prisma.Decimal(item.value),
           status: "Pendente",
-        },
-        {
-          downloadId: downloadRecord.id,
-          banco: parsed.data.banco,
-          agencia: parsed.data.agencia,
-          contaNumero: parsed.data.contaNumero,
-          tipoConta: "APLICACAO",
-          date: new Date(),
-          description: "RENDIMENTO APLIC FINANCEIRA BB FIX",
-          reference: "REND-99",
-          codigoTransacao: "REND-01",
-          sinal: "CREDITO",
-          direction: "CREDIT",
-          valueDecimal: new Prisma.Decimal(3420.5),
-          status: "Pendente",
-        },
-        {
-          downloadId: downloadRecord.id,
-          banco: parsed.data.banco,
-          agencia: parsed.data.agencia,
-          contaNumero: parsed.data.contaNumero,
-          tipoConta: "CORRENTE",
-          date: new Date(),
-          description: "RESGATE DE APLICACAO FINANCEIRA AUTOMATICO",
-          reference: "RESG-102",
-          codigoTransacao: "RESG-01",
-          sinal: "CREDITO",
-          direction: "CREDIT",
-          valueDecimal: new Prisma.Decimal(25000.0),
-          status: "Pendente",
-        },
-      ],
-    });
+        })),
+      });
+    }
 
     revalidatePath("/financeiro/download-extratos");
     return { data: downloadRecord };
