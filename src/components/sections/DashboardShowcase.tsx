@@ -13,7 +13,11 @@ import {
   Building2, 
   Zap, 
   ArrowUpRight,
-  Filter
+  Filter,
+  QrCode,
+  Activity,
+  Layers,
+  Lock
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -21,65 +25,66 @@ export function DashboardShowcase() {
   const [activeTab, setActiveTab] = useState<"geral" | "financeiro" | "protocolos">("geral");
 
   return (
-    <section className="py-24 bg-muted/40 border-y relative overflow-hidden">
-      {/* Subtle Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+    <section id="demonstracao" className="py-24 bg-slate-900 text-slate-100 border-b border-slate-800 relative overflow-hidden">
+      {/* Glow Effects */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[850px] h-[450px] bg-blue-600/10 rounded-full blur-[160px] pointer-events-none" />
 
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <Badge variant="outline" className="mb-4 px-4 py-1 border-secondary/50 text-secondary font-medium">
-            Tomada de Decisão Executiva
+          <Badge variant="outline" className="mb-4 px-4 py-1 border-blue-500/40 bg-blue-950/60 text-blue-300 font-medium">
+            <Activity className="h-3.5 w-3.5 mr-1.5 text-emerald-400" />
+            Cockpit Executivo em Tempo Real
           </Badge>
-          <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl mb-6">
-            Visão 360° da Prefeitura em Tempo Real
+          <h2 className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl text-slate-100 mb-6">
+            Visão 360° da Gestão Municipal em Tempo Real.
           </h2>
-          <p className="text-lg text-muted-foreground leading-relaxed">
-            Substitua relatórios em papel por um painel de inteligência executiva. Acompanhe a saúde orçamentária, o cumprimento de SLAs de atendimento e o status de obras em uma única tela.
+          <p className="text-slate-400 text-lg leading-relaxed">
+            Substitua relatórios em papel por um centro de comando inteligente. Acompanhe a arrecadação Pix, o cumprimento de SLAs de atendimento, empenhos e liquidações em uma única tela.
           </p>
         </div>
 
         {/* Mockup Frame Container */}
-        <div className="max-w-5xl mx-auto rounded-2xl border bg-background/95 shadow-2xl overflow-hidden backdrop-blur-md">
+        <div className="max-w-6xl mx-auto rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl overflow-hidden backdrop-blur-xl">
           
           {/* Mockup Header Bar */}
-          <div className="bg-muted/80 px-6 py-4 border-b flex flex-wrap items-center justify-between gap-4">
+          <div className="bg-slate-900 px-6 py-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
                 <span className="w-3 h-3 rounded-full bg-red-500/80 inline-block" />
                 <span className="w-3 h-3 rounded-full bg-yellow-500/80 inline-block" />
-                <span className="w-3 h-3 rounded-full bg-green-500/80 inline-block" />
+                <span className="w-3 h-3 rounded-full bg-emerald-500/80 inline-block" />
               </div>
-              <div className="h-4 w-px bg-border mx-2 hidden sm:block" />
-              <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                <Building2 className="h-3.5 w-3.5 text-primary" />
-                Prefeitura Municipal de Exemplo — Painel Executivo
+              <div className="h-4 w-px bg-slate-800 mx-2 hidden sm:block" />
+              <span className="text-xs font-semibold font-mono text-slate-300 flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-blue-400" />
+                PREFEITURA MUNICIPAL — PAINEL DE CONTROLE EXECUTIVO
               </span>
             </div>
 
             {/* Dashboard Nav Tabs */}
-            <div className="flex items-center bg-background rounded-lg p-1 border text-xs font-medium">
+            <div className="flex items-center bg-slate-950 rounded-xl p-1 border border-slate-800 text-xs font-medium">
               <button 
                 onClick={() => setActiveTab("geral")}
-                className={`px-3 py-1.5 rounded-md transition-all ${
-                  activeTab === "geral" ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:text-foreground"
+                className={`px-3.5 py-1.5 rounded-lg transition-all ${
+                  activeTab === "geral" ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-500/20" : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                Visão Geral
+                Visão Geral 360°
               </button>
               <button 
                 onClick={() => setActiveTab("financeiro")}
-                className={`px-3 py-1.5 rounded-md transition-all ${
-                  activeTab === "financeiro" ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:text-foreground"
+                className={`px-3.5 py-1.5 rounded-lg transition-all ${
+                  activeTab === "financeiro" ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-500/20" : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                Finanças & Receita
+                Finanças & Pix
               </button>
               <button 
                 onClick={() => setActiveTab("protocolos")}
-                className={`px-3 py-1.5 rounded-md transition-all ${
-                  activeTab === "protocolos" ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:text-foreground"
+                className={`px-3.5 py-1.5 rounded-lg transition-all ${
+                  activeTab === "protocolos" ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-500/20" : "text-slate-400 hover:text-slate-200"
                 }`}
               >
                 Processos & SLA
@@ -87,158 +92,150 @@ export function DashboardShowcase() {
             </div>
           </div>
 
-          {/* Mockup Dashboard Content */}
+          {/* Mockup Dashboard Body */}
           <div className="p-6 md:p-8 space-y-6">
             
             {/* Top KPI Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               
-              <div className="p-4 rounded-xl bg-card border shadow-sm flex flex-col justify-between">
-                <div className="flex items-center justify-between text-muted-foreground mb-2">
-                  <span className="text-xs font-medium">Processos Ativos</span>
-                  <FileText className="h-4 w-4 text-primary" />
+              <div className="p-5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between hover:border-blue-500/40 transition-colors">
+                <div className="flex items-center justify-between text-slate-400 mb-2">
+                  <span className="text-xs font-semibold">Processos Eletrônicos</span>
+                  <FileText className="h-4 w-4 text-blue-400" />
                 </div>
-                <div>
-                  <div className="text-2xl font-bold font-heading">1.482</div>
-                  <div className="flex items-center gap-1 text-xs text-emerald-600 font-semibold mt-1">
-                    <TrendingUp className="h-3 w-3" />
-                    <span>94.2% dentro do SLA</span>
-                  </div>
+                <div className="text-2xl font-bold font-mono text-slate-100">14.890</div>
+                <div className="mt-2 text-[11px] text-emerald-400 flex items-center gap-1 font-mono">
+                  <TrendingUp className="h-3 w-3" />
+                  <span>99,4% dentro do SLA</span>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-card border shadow-sm flex flex-col justify-between">
-                <div className="flex items-center justify-between text-muted-foreground mb-2">
-                  <span className="text-xs font-medium">Economia com Papel</span>
-                  <Zap className="h-4 w-4 text-secondary" />
+              <div className="p-5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between hover:border-emerald-500/40 transition-colors">
+                <div className="flex items-center justify-between text-slate-400 mb-2">
+                  <span className="text-xs font-semibold">Arrecadação Pix Dinâmico</span>
+                  <QrCode className="h-4 w-4 text-emerald-400" />
                 </div>
-                <div>
-                  <div className="text-2xl font-bold font-heading">R$ 142.800</div>
-                  <div className="flex items-center gap-1 text-xs text-emerald-600 font-semibold mt-1">
-                    <ArrowUpRight className="h-3 w-3" />
-                    <span>Redução de 100% no trâmite físico</span>
-                  </div>
+                <div className="text-2xl font-bold font-mono text-emerald-400">R$ 3.892.450</div>
+                <div className="mt-2 text-[11px] text-emerald-400 flex items-center gap-1 font-mono">
+                  <span>Baixa Instantânea no Banco</span>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-card border shadow-sm flex flex-col justify-between">
-                <div className="flex items-center justify-between text-muted-foreground mb-2">
-                  <span className="text-xs font-medium">Arrecadação Municipal</span>
-                  <BarChart3 className="h-4 w-4 text-primary" />
+              <div className="p-5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between hover:border-teal-500/40 transition-colors">
+                <div className="flex items-center justify-between text-slate-400 mb-2">
+                  <span className="text-xs font-semibold">Execução Orçamentária</span>
+                  <BarChart3 className="h-4 w-4 text-teal-400" />
                 </div>
-                <div>
-                  <div className="text-2xl font-bold font-heading">R$ 4.820.450</div>
-                  <div className="flex items-center gap-1 text-xs text-emerald-600 font-semibold mt-1">
-                    <TrendingUp className="h-3 w-3" />
-                    <span>+12.4% vs mês anterior</span>
-                  </div>
+                <div className="text-2xl font-bold font-mono text-slate-100">84,2%</div>
+                <div className="mt-2 text-[11px] text-teal-300 font-mono">
+                  Conformidade SIAFIC STN
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-card border shadow-sm flex flex-col justify-between">
-                <div className="flex items-center justify-between text-muted-foreground mb-2">
-                  <span className="text-xs font-medium">Atendimento Cidadão</span>
-                  <Users className="h-4 w-4 text-secondary" />
+              <div className="p-5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between hover:border-purple-500/40 transition-colors">
+                <div className="flex items-center justify-between text-slate-400 mb-2">
+                  <span className="text-xs font-semibold">Atendimentos no e-SUS</span>
+                  <Activity className="h-4 w-4 text-purple-400" />
                 </div>
-                <div>
-                  <div className="text-2xl font-bold font-heading">98.5%</div>
-                  <div className="flex items-center gap-1 text-xs text-emerald-600 font-semibold mt-1">
-                    <CheckCircle2 className="h-3 w-3" />
-                    <span>Índice de Satisfação Ouvidoria</span>
-                  </div>
+                <div className="text-2xl font-bold font-mono text-slate-100">42.150</div>
+                <div className="mt-2 text-[11px] text-purple-300 font-mono">
+                  Prontuários Sincronizados
                 </div>
               </div>
 
             </div>
 
-            {/* Dashboard Middle Section: Visual Activity Rows */}
+            {/* Dashboard Graphical Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
-              {/* Main Chart/List Mockup */}
-              <div className="lg:col-span-2 p-5 rounded-xl bg-card border shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-primary" />
-                    <h4 className="font-heading font-semibold text-sm">Tramitações Recentes em Tempo Real</h4>
+              {/* Main Chart Graphic Simulation */}
+              <div className="lg:col-span-2 p-6 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h4 className="font-bold text-slate-100 text-base">Evolução Mensal de Arrecadação & Despesas</h4>
+                    <p className="text-xs text-slate-400">Comparativo em tempo real via Tesouraria CeleriFlow</p>
                   </div>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Filter className="h-3 w-3" /> Atualizado há 1 min
+                  <span className="text-xs font-mono text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded border border-emerald-800">
+                    Sincronizado via Webhook
                   </span>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border text-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                      <div>
-                        <div className="font-semibold text-foreground">Solicitação de Licença Ambiental #4092</div>
-                        <div className="text-muted-foreground">Secretaria de Meio Ambiente → Análise Deferida</div>
+                {/* Simulated Visual Graph Bar Chart */}
+                <div className="h-48 flex items-end justify-between gap-3 pt-6 px-2 border-b border-slate-800 pb-2">
+                  {[
+                    { mes: "Jan", val1: 65, val2: 45 },
+                    { mes: "Fev", val1: 78, val2: 52 },
+                    { mes: "Mar", val1: 85, val2: 60 },
+                    { mes: "Abr", val1: 72, val2: 58 },
+                    { mes: "Mai", val1: 90, val2: 64 },
+                    { mes: "Jun", val1: 95, val2: 70 },
+                  ].map((bar, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                      <div className="w-full flex items-end justify-center gap-1.5 h-full">
+                        <div 
+                          style={{ height: `${bar.val1}%` }} 
+                          className="w-1/2 bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-md hover:brightness-125 transition-all"
+                        />
+                        <div 
+                          style={{ height: `${bar.val2}%` }} 
+                          className="w-1/2 bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t-md hover:brightness-125 transition-all"
+                        />
                       </div>
+                      <span className="text-[11px] font-mono text-slate-400">{bar.mes}</span>
                     </div>
-                    <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                      Concluído
-                    </Badge>
-                  </div>
+                  ))}
+                </div>
 
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border text-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                      <div>
-                        <div className="font-semibold text-foreground">Empenho de Compras de Insumos Hospitalares #1280</div>
-                        <div className="text-muted-foreground">Secretaria de Saúde → Liquidação Registrada</div>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-600 border-blue-500/20">
-                      Em Tramitação
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border text-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                      <div>
-                        <div className="font-semibold text-foreground">Revisão do Aliquota ISSQN Autônomos #882</div>
-                        <div className="text-muted-foreground">Setor de Tributos → Aguardando Despacho</div>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/20">
-                      Prazo 24h
-                    </Badge>
+                <div className="flex items-center justify-between text-xs text-slate-400 pt-4">
+                  <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded bg-blue-500 inline-block" /> Receita Prevista vs Arrecadada
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded bg-emerald-500 inline-block" /> Liquidações Efetivadas
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* Sidebar Summary Mockup */}
-              <div className="p-5 rounded-xl bg-primary text-primary-foreground flex flex-col justify-between">
+              {/* Live Simulated Event Feed */}
+              <div className="p-6 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <ShieldCheck className="h-5 w-5 text-secondary" />
-                    <h4 className="font-heading font-bold text-base">Rastreabilidade & Conformidade</h4>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-bold text-slate-100 text-sm">Feed de Eventos em Tempo Real</h4>
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                   </div>
-                  <p className="text-xs text-primary-foreground/80 leading-relaxed mb-4">
-                    Todas as assinaturas, despachos e conciliações financeiras possuem log imutável de auditoria com validade jurídica garantida.
-                  </p>
-                  
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-secondary shrink-0" />
-                      <span>Integração entre 100% das secretarias</span>
+
+                  <div className="space-y-3 text-xs">
+                    <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80">
+                      <div className="flex justify-between font-mono text-[11px] text-slate-400 mb-1">
+                        <span className="text-emerald-400 font-semibold">TRIBUTAÇÃO</span>
+                        <span>Agora mesmo</span>
+                      </div>
+                      <p className="text-slate-200 font-medium">Guia IPTU nº 84.912 paga via Pix Dinâmico (R$ 1.250,00)</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-secondary shrink-0" />
-                      <span>Notificações automáticas de prazos</span>
+
+                    <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80">
+                      <div className="flex justify-between font-mono text-[11px] text-slate-400 mb-1">
+                        <span className="text-blue-400 font-semibold">PROCESSO ELETRÔNICO</span>
+                        <span>Há 3 minutos</span>
+                      </div>
+                      <p className="text-slate-200 font-medium">Portaria nº 402/2026 assinada digitalmente com Gov.br</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-secondary shrink-0" />
-                      <span>Portal da Transparência conectado</span>
+
+                    <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80">
+                      <div className="flex justify-between font-mono text-[11px] text-slate-400 mb-1">
+                        <span className="text-teal-400 font-semibold">PNCP COMPRAS</span>
+                        <span>Há 12 minutos</span>
+                      </div>
+                      <p className="text-slate-200 font-medium">Pregão nº 08/2026 homologado e publicado no PNCP</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-primary-foreground/20 text-xs text-primary-foreground/70 flex items-center justify-between">
-                  <span>CeleriFlow ERP v2.6</span>
-                  <span className="flex items-center gap-1 font-semibold text-secondary">
-                    Status Online <ChevronRight className="h-3 w-3" />
+                <div className="pt-4 border-t border-slate-800 text-center">
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    Auditoria Inalterável em Registro Append-Only
                   </span>
                 </div>
               </div>
@@ -246,7 +243,6 @@ export function DashboardShowcase() {
             </div>
 
           </div>
-
         </div>
 
       </div>

@@ -1,58 +1,116 @@
 import Link from "next/link";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Menu, Sparkles, ShieldCheck, ArrowRight, Activity, Building2 } from "lucide-react";
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 transition-all">
       <div className="container flex h-16 items-center justify-between mx-auto px-4 md:px-6">
-        <Link href="/" className="flex items-center gap-2">
-          {/* Usar logo aqui */}
-          <span className="font-bold text-xl text-primary">CeleriFlow</span>
+        
+        {/* Brand Logo */}
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary via-primary/80 to-secondary p-0.5 shadow-md shadow-primary/20 group-hover:scale-105 transition-transform">
+            <div className="h-full w-full bg-background rounded-[10px] flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-primary group-hover:rotate-12 transition-transform" />
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-1.5">
+              <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-foreground via-foreground to-primary bg-clip-text text-transparent">
+                CeleriFlow
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                ERP Gov
+              </span>
+            </div>
+            <span className="text-[11px] text-muted-foreground hidden sm:inline-block">Plataforma Integrada de Gestão Pública</span>
+          </div>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex gap-6 items-center">
-          <Link href="#modulos" className="text-sm font-medium hover:text-primary transition-colors">
-            Módulos
+        <nav className="hidden md:flex gap-8 items-center text-sm font-medium">
+          <Link href="#modulos" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+            Módulos (24+)
           </Link>
-          <Link href="#seguranca" className="text-sm font-medium hover:text-primary transition-colors">
+          <Link href="#demonstracao" className="text-muted-foreground hover:text-foreground transition-colors">
+            Painel Executivo
+          </Link>
+          <Link href="#regulatório" className="text-muted-foreground hover:text-foreground transition-colors">
+            Conformidade & IA
+          </Link>
+          <Link href="#calculadora" className="text-muted-foreground hover:text-foreground transition-colors">
+            Impacto & ROI
+          </Link>
+          <Link href="#seguranca" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+            <ShieldCheck className="h-4 w-4 text-emerald-500" />
             Segurança
-          </Link>
-          <Link href="#faq" className="text-sm font-medium hover:text-primary transition-colors">
-            FAQ
-          </Link>
-          <Link href="#contato" className={buttonVariants()}>
-            Solicitar Demonstração
           </Link>
         </nav>
 
+        {/* Action Buttons */}
+        <div className="hidden md:flex items-center gap-3">
+          <Link 
+            href="/app-domain" 
+            className={buttonVariants({ variant: "outline", size: "sm", className: "h-9 border-primary/30 hover:border-primary/60 font-semibold" })}
+          >
+            Acessar Sistema
+          </Link>
+          <Link 
+            href="#contato" 
+            className={buttonVariants({ size: "sm", className: "h-9 bg-gradient-to-r from-primary to-secondary hover:opacity-90 shadow-md shadow-primary/20 font-semibold" })}
+          >
+            Agendar Demo
+            <ArrowRight className="ml-1.5 h-4 w-4" />
+          </Link>
+        </div>
+
         {/* Mobile Navigation */}
-        <div className="md:hidden">
+        <div className="md:hidden flex items-center gap-2">
+          <Link 
+            href="/app-domain" 
+            className={buttonVariants({ variant: "outline", size: "sm", className: "text-xs h-8 px-2.5" })}
+          >
+            Entrar
+          </Link>
           <Sheet>
-            <SheetTrigger className={buttonVariants({ variant: "ghost", size: "icon" })} aria-label="Abrir menu">
-              <Menu className="h-6 w-6" />
+            <SheetTrigger className={buttonVariants({ variant: "ghost", size: "icon", className: "h-9 w-9" })} aria-label="Abrir menu">
+              <Menu className="h-5 w-5" />
             </SheetTrigger>
-            <SheetContent side="right">
-              <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
-              <div className="flex flex-col gap-4 mt-6">
-                <Link href="#modulos" className="text-sm font-medium p-2 hover:bg-muted rounded-md">
-                  Módulos
+            <SheetContent side="right" className="w-[300px] sm:w-[350px]">
+              <SheetTitle className="text-left font-bold text-lg flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                CeleriFlow ERP
+              </SheetTitle>
+              <div className="flex flex-col gap-3 mt-6">
+                <Link href="#modulos" className="text-sm font-medium p-2.5 hover:bg-muted rounded-lg transition-colors">
+                  Módulos e Recursos (24+)
                 </Link>
-                <Link href="#seguranca" className="text-sm font-medium p-2 hover:bg-muted rounded-md">
-                  Segurança
+                <Link href="#demonstracao" className="text-sm font-medium p-2.5 hover:bg-muted rounded-lg transition-colors">
+                  Painel Executivo 360°
                 </Link>
-                <Link href="#faq" className="text-sm font-medium p-2 hover:bg-muted rounded-md">
-                  FAQ
+                <Link href="#regulatorio" className="text-sm font-medium p-2.5 hover:bg-muted rounded-lg transition-colors">
+                  SIAFIC, PNCP & Pix
                 </Link>
-                <Link href="#contato" className={buttonVariants({ className: "mt-4" })}>
-                  Solicitar Demonstração
+                <Link href="#calculadora" className="text-sm font-medium p-2.5 hover:bg-muted rounded-lg transition-colors">
+                  Calculadora de ROI Municipal
                 </Link>
+                <Link href="#seguranca" className="text-sm font-medium p-2.5 hover:bg-muted rounded-lg transition-colors">
+                  Segurança & LGPD
+                </Link>
+                <div className="pt-4 border-t flex flex-col gap-2">
+                  <Link href="/app-domain" className={buttonVariants({ variant: "outline", className: "w-full justify-center" })}>
+                    Acessar Plataforma
+                  </Link>
+                  <Link href="#contato" className={buttonVariants({ className: "w-full justify-center bg-primary" })}>
+                    Solicitar Demonstração
+                  </Link>
+                </div>
               </div>
             </SheetContent>
           </Sheet>
         </div>
+
       </div>
     </header>
   );

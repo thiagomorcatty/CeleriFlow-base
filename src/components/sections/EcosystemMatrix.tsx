@@ -1,4 +1,3 @@
-"use me";
 "use client";
 
 import { useState } from "react";
@@ -23,10 +22,11 @@ import {
   ShieldAlert, 
   Droplet, 
   Scale, 
-  Check, 
-  ArrowRight 
+  ArrowRight,
+  Sparkles,
+  CheckCircle2,
+  Cpu
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
@@ -37,233 +37,260 @@ export function EcosystemMatrix() {
   const pillars = [
     {
       id: "financeiro",
-      title: "Financeiro & Fiscal",
-      subtitle: "Gestão Orçamentária e Arrecadação",
-      icon: <Landmark className="h-5 w-5" />,
-      color: "from-blue-600/10 to-indigo-600/5",
-      badge: "Precisão & Controle",
+      title: "Finanças & Orçamento",
+      subtitle: "Execução SIAFIC & Arrecadação Pix",
+      icon: Landmark,
+      color: "from-blue-600 to-indigo-600",
+      accentBg: "border-blue-500/30 bg-blue-950/40 text-blue-300",
+      badge: "SIAFIC 100% Conforme",
       domains: [
         {
           name: "Financeiro & Tesouraria",
-          desc: "Empenhos, liquidações, pagamentos, movimentação bancária e conciliação de contas.",
-          icon: <Landmark className="h-6 w-6 text-primary" />
+          desc: "Empenhos, liquidações, pagamentos, retenções na fonte, movimentação bancária e conciliação de contas.",
+          tag: "Decreto 10.540/20",
+          icon: Landmark
         },
         {
-          name: "Tributação & Arrecadação",
-          desc: "Cadastro imobiliário/econômico, guias de arrecadação, dívida ativa, IPTU e ISS.",
-          icon: <Receipt className="h-6 w-6 text-primary" />
+          name: "Tributação & Pix Dinâmico",
+          desc: "Cadastro imobiliário (BCT), econômico (BCE), emissão de guias com QR Code Pix, dívida ativa, IPTU e ISS.",
+          tag: "Pix em 3s",
+          icon: Receipt
         },
         {
-          name: "Compras & Contratos",
-          desc: "Solicitações, licitações, atas de registro de preços, saldos e gestão de fornecedores.",
-          icon: <ShoppingCart className="h-6 w-6 text-primary" />
+          name: "Compras, Licitações & PNCP",
+          desc: "Solicitações, atas de registro de preços, cotações e publicação automática na API do PNCP (Lei 14.133/21).",
+          tag: "Lei 14.133/21",
+          icon: ShoppingCart
         },
         {
           name: "Patrimônio & Almoxarifado",
-          desc: "Inventário de bens móveis/imóveis, tombamento, depreciação e gestão de estoque.",
-          icon: <Package className="h-6 w-6 text-primary" />
+          desc: "Inventário de bens móveis e imóveis, tombamento, depreciação acumulada e controle de estoque de materiais.",
+          tag: "Depreciação Real",
+          icon: Package
         }
       ]
     },
     {
       id: "administracao",
-      title: "Processos & RH",
-      subtitle: "Governança Digital sem Papel",
-      icon: <FileText className="h-5 w-5" />,
-      color: "from-emerald-600/10 to-teal-600/5",
+      title: "Governo Digital & RH",
+      subtitle: "Processo Eletrônico 100% Sem Papel",
+      icon: FileText,
+      color: "from-emerald-600 to-teal-600",
+      accentBg: "border-emerald-500/30 bg-emerald-950/40 text-emerald-300",
       badge: "Zero Papel",
       domains: [
         {
           name: "Protocolo & Tramitação",
-          desc: "Abertura de processos, numeração única, encaminhamentos e acompanhamento de SLA.",
-          icon: <FileText className="h-6 w-6 text-primary" />
+          desc: "Abertura de processos, numeração sequencial inalterável, despachos e acompanhamento de SLA em tempo real.",
+          tag: "SLA Automático",
+          icon: FileText
         },
         {
           name: "Processo Eletrônico & Assinatura",
-          desc: "Fluxos 100% digitais com assinatura de alta segurança, validade jurídica e auditoria.",
-          icon: <FolderCheck className="h-6 w-6 text-primary" />
+          desc: "Fluxos 100% digitais com assinatura ICP-Brasil / Gov.br, validade jurídica e auditoria inalterável.",
+          tag: "Lei 14.063/20",
+          icon: FolderCheck
         },
         {
-          name: "RH & Gestão de Servidores",
-          desc: "Prontuário do servidor, folha de pagamento, cargos, licenças, atos e histórico funcional.",
-          icon: <UserCheck className="h-6 w-6 text-primary" />
+          name: "RH & eSocial Público",
+          desc: "Prontuário do servidor, folha de pagamento, ponto eletrônico, licenças e geração dos eventos do eSocial.",
+          tag: "eSocial S-1000",
+          icon: UserCheck
         },
         {
           name: "Gestão Documental (GED)",
-          desc: "Indexação, versionamento, controle de acesso e guarda digital descentralizada.",
-          icon: <FolderCheck className="h-6 w-6 text-primary" />
+          desc: "Indexação inteligente, controle de versionamento, guarda digital e busca por metadados.",
+          tag: "Arquivística",
+          icon: FolderCheck
         }
       ]
     },
     {
       id: "governanca",
       title: "Cidadão & Transparência",
-      subtitle: "Atendimento & Prestação de Contas",
-      icon: <Users className="h-5 w-5" />,
-      color: "from-amber-600/10 to-orange-600/5",
-      badge: "Conformidade LAI",
+      subtitle: "Participação Cidadã & Ouvidoria LAI",
+      icon: MessageSquare,
+      color: "from-purple-600 to-pink-600",
+      accentBg: "border-purple-500/30 bg-purple-950/40 text-purple-300",
+      badge: "Adequação LAI & LGPD",
       domains: [
         {
-          name: "Atendimento ao Cidadão",
-          desc: "Central unificada de requisições de serviços públicos com acompanhamento por protocolo.",
-          icon: <Users className="h-6 w-6 text-primary" />
+          name: "Portal da Transparência",
+          desc: "Publicação automática de receitas, despesas, empenhos, licitações, contratos e remuneração de servidores.",
+          tag: "Lei 12.527/11",
+          icon: BarChart3
         },
         {
-          name: "Ouvidoria & Sigilo LGPD",
-          desc: "Canal direto de manifestações com sigilo garantido, triagem e resposta qualificada.",
-          icon: <MessageSquare className="h-6 w-6 text-primary" />
+          name: "Ouvidoria & e-SIC",
+          desc: "Atendimento ao cidadão, controle de prazos da LAI, pesquisas de satisfação e estatísticas de resolutividade.",
+          tag: "Transparência Passiva",
+          icon: MessageSquare
         },
         {
-          name: "Portal da Transparência & e-SIC",
-          desc: "Publicação automática de atos, despesas, receitas e atendimento às diretrizes da LAI.",
-          icon: <ShieldCheck className="h-6 w-6 text-primary" />
+          name: "Carta de Serviços ao Cidadão",
+          desc: "Catálogo unificado de serviços municipais, agendamento prévio e acompanhamento de solicitações.",
+          tag: "Desburocratização",
+          icon: Users
         },
         {
-          name: "Indicadores Executivos (BI)",
-          desc: "Painéis em tempo real para Prefeito e Secretários com visão integrada da gestão.",
-          icon: <BarChart3 className="h-6 w-6 text-primary" />
+          name: "Diário Oficial Eletrônico",
+          desc: "Publicação oficial automatizada com assinatura digital, busca por palavras-chave e acervo histórico.",
+          tag: "Diário Oficial",
+          icon: Building2
         }
       ]
     },
     {
-      id: "setoriais",
-      title: "Políticas Setoriais",
-      subtitle: "Saúde, Educação, Obras & Meio Ambiente",
-      icon: <Building2 className="h-5 w-5" />,
-      color: "from-purple-600/10 to-violet-600/5",
-      badge: "Cidades Inteligentes",
+      id: "servicos-setoriais",
+      title: "Saúde, Educação & Obras",
+      subtitle: "Gestão Operacional de Ponta a Ponta",
+      icon: Activity,
+      color: "from-amber-500 to-orange-600",
+      accentBg: "border-amber-500/30 bg-amber-950/40 text-amber-300",
+      badge: "Sistemas Finalísticos",
       domains: [
         {
-          name: "Saúde Pública",
-          desc: "Gestão de postos, agendamentos, histórico de atendimento e estoque de insumos.",
-          icon: <Activity className="h-6 w-6 text-primary" />
+          name: "Saúde & Atenção Básica",
+          desc: "Cadastro de pacientes, agendamentos, atendimento médico em UBS, dispensação de medicamentos e vacinas.",
+          tag: "e-SUS APS Conforme",
+          icon: Activity
         },
         {
-          name: "Educação Municipal",
-          desc: "Estrutura escolar, matrículas, gestão de vagas e infraestrutura dos estabelecimentos.",
-          icon: <GraduationCap className="h-6 w-6 text-primary" />
+          name: "Educação & Diário Eletrônico",
+          desc: "Gestão de escolas, matrículas, diário de classe do professor, frequência escolar e transporte de alunos.",
+          tag: "Educacenso / INEP",
+          icon: GraduationCap
         },
         {
-          name: "Obras & Infraestrutura",
-          desc: "Acompanhamento de obras públicas, medições, cronogramas e gestão de projetos.",
-          icon: <HardHat className="h-6 w-6 text-primary" />
+          name: "Obras, Medições & Diário",
+          desc: "Acompanhamento de obras públicas, diário de obra com geolocalização, medições e aditivos contratuais.",
+          tag: "Medições em Tempo Real",
+          icon: HardHat
         },
         {
           name: "Meio Ambiente & Licenciamento",
-          desc: "Áreas verdes, requerimentos de licenciamento ambiental e fiscalização municipal.",
-          icon: <Trees className="h-6 w-6 text-primary" />
-        },
-        {
-          name: "Assistência Social & Segurança",
-          desc: "Mapeamento de vulnerabilidade, programas sociais e integração com segurança urbana.",
-          icon: <HeartHandshake className="h-6 w-6 text-primary" />
-        },
-        {
-          name: "Câmara Legislativa",
-          desc: "Módulo integrado para suporte às tramitações e demandas do Poder Legislativo.",
-          icon: <Scale className="h-6 w-6 text-primary" />
+          desc: "Emissão de licenças ambientais, fiscalização de empreendimentos, denúncias e controle de resíduos.",
+          tag: "Licença Digital",
+          icon: Trees
         }
       ]
     }
   ];
 
+  const currentPillar = pillars[activePillar];
+
   return (
-    <section id="modulos" className="py-24 bg-gradient-to-b from-background via-muted/20 to-background">
-      <div className="container mx-auto px-4 md:px-6">
+    <section id="modulos" className="py-24 bg-slate-950 text-slate-100 border-b border-slate-800 relative overflow-hidden">
+      {/* Dynamic Glow Background */}
+      <div className="absolute top-1/3 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-10 left-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-[150px] pointer-events-none" />
+
+      <div className="container mx-auto px-4 md:px-6 relative z-10">
         
-        {/* Header */}
-        <div className="text-center mb-16 max-w-4xl mx-auto">
-          <Badge variant="outline" className="mb-4 px-4 py-1 border-primary/30 text-primary font-medium">
-            Ecossistema ERP Governamental Completo
+        {/* Section Title */}
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <Badge variant="outline" className="mb-4 px-4 py-1 border-blue-500/40 bg-blue-950/60 text-blue-300 font-medium">
+            <Cpu className="h-3.5 w-3.5 mr-1.5 text-blue-400" />
+            Ecossistema Completo • 24+ Módulos Conectados
           </Badge>
-          <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl mb-6">
-            Mais de 24 domínios municipais em uma só plataforma
+          <h2 className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl text-slate-100 mb-6">
+            Todas as Secretarias Municipais Trabalhando em Sintonia.
           </h2>
-          <p className="text-lg text-muted-foreground leading-relaxed max-w-3xl mx-auto">
-            Esqueça sistemas legados colados por retalhos. O CeleriFlow foi arquitetado de forma nativa e integrada para conectar a Administração, Finanças, Saúde, Educação, Tributos e Ouvidoria em um único fluxo digital.
+          <p className="text-slate-400 text-lg leading-relaxed">
+            Elimine a fragmentação e os sistemas isolados. O CeleriFlow integra a prefeitura de ponta a ponta com dados compartilhados em tempo real.
           </p>
         </div>
 
-        {/* Pillar Navigation Tabs */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
-          {pillars.map((pillar, idx) => (
-            <button
-              key={pillar.id}
-              onClick={() => setActivePillar(idx)}
-              className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-200 border ${
-                activePillar === idx
-                  ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 scale-[1.02]"
-                  : "bg-background hover:bg-muted text-muted-foreground border-border hover:border-foreground/20"
-              }`}
-            >
-              {pillar.icon}
-              <span>{pillar.title}</span>
-            </button>
-          ))}
+        {/* Pillar Filter Selector Tabs */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-12 max-w-5xl mx-auto">
+          {pillars.map((pillar, idx) => {
+            const Icon = pillar.icon;
+            const isActive = activePillar === idx;
+            return (
+              <button
+                key={pillar.id}
+                onClick={() => setActivePillar(idx)}
+                className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${
+                  isActive 
+                    ? `bg-gradient-to-r ${pillar.color} text-white shadow-lg shadow-blue-500/20 scale-105 border border-white/20`
+                    : "bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                }`}
+              >
+                <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-400"}`} />
+                <span>{pillar.title}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Active Pillar Card Display */}
+        {/* Selected Pillar Content Box */}
         <div className="max-w-6xl mx-auto">
-          <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-card border shadow-sm">
+          
+          {/* Subheader Banner */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-2xl bg-slate-900/90 border border-slate-800 mb-8 backdrop-blur-xl">
             <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h3 className="text-2xl font-bold font-heading text-foreground">
-                  {pillars[activePillar].title}
-                </h3>
-                <Badge variant="secondary" className="font-medium">
-                  {pillars[activePillar].badge}
-                </Badge>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                {pillars[activePillar].subtitle}
-              </p>
+              <span className="text-xs font-mono font-semibold uppercase tracking-wider text-blue-400 block mb-1">
+                {currentPillar.subtitle}
+              </span>
+              <h3 className="font-bold text-2xl text-slate-100">
+                {currentPillar.title}
+              </h3>
             </div>
-            
+            <span className={`px-3.5 py-1.5 rounded-full text-xs font-semibold font-mono border ${currentPillar.accentBg}`}>
+              {currentPillar.badge}
+            </span>
+          </div>
+
+          {/* Modules Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {currentPillar.domains.map((domain, idx) => {
+              const Icon = domain.icon;
+              return (
+                <div
+                  key={idx}
+                  className="group relative p-6 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-blue-500/50 hover:bg-slate-900 backdrop-blur-xl transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 group-hover:border-blue-500/40 text-blue-400 transition-colors">
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <span className="text-[11px] font-mono font-semibold px-2.5 py-1 rounded bg-slate-950 text-slate-300 border border-slate-800">
+                        {domain.tag}
+                      </span>
+                    </div>
+
+                    <h4 className="font-bold text-xl text-slate-100 mb-2 group-hover:text-blue-300 transition-colors">
+                      {domain.name}
+                    </h4>
+                    <p className="text-sm text-slate-400 leading-relaxed">
+                      {domain.desc}
+                    </p>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-slate-800/60 flex items-center justify-between text-xs font-semibold text-blue-400 group-hover:text-blue-300">
+                    <span>Módulo Integrado ao Core</span>
+                    <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Bottom Action Footer */}
+          <div className="mt-12 text-center">
             <Link
               href="#contato"
-              className={buttonVariants({ variant: "outline", size: "sm", className: "w-full md:w-auto" })}
+              className={buttonVariants({
+                size: "lg",
+                className: "bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-100 font-bold px-8 h-13 rounded-xl shadow-lg"
+              })}
             >
-              Solicitar Apresentação Técnica
-              <ArrowRight className="ml-2 h-4 w-4" />
+              Conhecer Todos os 24 Domínios Mapeados
+              <ArrowRight className="ml-2 h-5 w-5 text-blue-400" />
             </Link>
           </div>
 
-          {/* Grid of Modules */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-            {pillars[activePillar].domains.map((dom, i) => (
-              <Card 
-                key={i} 
-                className="border shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-1 bg-card/80 backdrop-blur-sm"
-              >
-                <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-3">
-                  <div className="p-3 rounded-xl bg-primary/10 shrink-0">
-                    {dom.icon}
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-bold font-heading">
-                      {dom.name}
-                    </CardTitle>
-                    <CardDescription className="text-sm mt-1 text-muted-foreground leading-relaxed">
-                      {dom.desc}
-                    </CardDescription>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 pb-4">
-                  <div className="flex items-center text-xs font-semibold text-primary gap-1">
-                    <Check className="h-3.5 w-3.5" />
-                    <span>Módulo Nativo & Auditável</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Global Bottom Banner */}
-        <div className="mt-16 text-center">
-          <p className="text-sm text-muted-foreground mb-4">
-            Precisa de uma implantação em fases? Comece pelo Processo Eletrônico e expanda os módulos gradualmente sem trocar de infraestrutura.
-          </p>
         </div>
 
       </div>

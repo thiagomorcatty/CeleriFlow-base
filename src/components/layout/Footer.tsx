@@ -1,71 +1,113 @@
 import Link from "next/link";
 import { APP_VERSION } from "@/lib/version";
+import { Sparkles, ShieldCheck, Activity, Building2 } from "lucide-react";
 
 export function Footer() {
   return (
-    <footer className="border-t bg-muted/40 text-muted-foreground">
-      <div className="container mx-auto px-4 md:px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer className="border-t border-slate-800 bg-slate-950 text-slate-400 text-sm">
+      <div className="container mx-auto px-4 md:px-6 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+          
+          {/* Brand Info */}
           <div className="col-span-1 md:col-span-2">
-            <Link href="/" className="inline-block mb-4">
-              <span className="font-bold text-xl text-primary">CeleriFlow</span>
+            <Link href="/" className="flex items-center gap-3 mb-4 group">
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 p-0.5 shadow-md shadow-blue-500/20">
+                <div className="h-full w-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-blue-400" />
+                </div>
+              </div>
+              <span className="font-extrabold text-xl tracking-tight text-slate-100">
+                CeleriFlow <span className="text-blue-400 font-mono text-xs">Gov</span>
+              </span>
             </Link>
-            <p className="max-w-xs text-sm">
-              Processos ágeis, decisões seguras e dados confiáveis para a administração pública municipal.
+            <p className="max-w-sm text-xs text-slate-400 leading-relaxed">
+              O ecossistema definitivo de inteligência e gestão pública municipal. SIAFIC, PNCP, Pix Dinâmico, Processo Eletrônico 100% Sem Papel e Saúde e-SUS integrados em nuvem serverless de alta velocidade.
             </p>
+            <div className="mt-4 inline-flex items-center gap-2 text-xs font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-3 py-1 rounded-full">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              Sistemas SIAFIC & PNCP 100% Operacionais
+            </div>
           </div>
           
+          {/* Navigation Links */}
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Produto</h3>
-            <ul className="space-y-2 text-sm">
+            <h3 className="font-bold text-slate-200 mb-4 text-xs uppercase tracking-wider font-mono">Plataforma</h3>
+            <ul className="space-y-2.5 text-xs">
               <li>
-                <Link href="#modulos" className="hover:text-primary transition-colors">
-                  Módulos
+                <Link href="#modulos" className="hover:text-blue-400 transition-colors">
+                  Módulos e Recursos (24+)
                 </Link>
               </li>
               <li>
-                <Link href="#seguranca" className="hover:text-primary transition-colors">
-                  Segurança
+                <Link href="#demonstracao" className="hover:text-blue-400 transition-colors">
+                  Cockpit Executivo 360°
                 </Link>
               </li>
               <li>
-                <Link href="#faq" className="hover:text-primary transition-colors">
-                  Perguntas Frequentes
+                <Link href="#regulatorio" className="hover:text-blue-400 transition-colors">
+                  Conformidade SIAFIC & PNCP
                 </Link>
+              </li>
+              <li>
+                <Link href="#calculadora" className="hover:text-blue-400 transition-colors">
+                  Calculadora de Impacto
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-bold text-slate-200 mb-4 text-xs uppercase tracking-wider font-mono">Regulatório</h3>
+            <ul className="space-y-2.5 text-xs">
+              <li>
+                <span className="text-slate-400">Decreto nº 10.540/20 (SIAFIC)</span>
+              </li>
+              <li>
+                <span className="text-slate-400">Lei nº 14.133/21 (PNCP)</span>
+              </li>
+              <li>
+                <span className="text-slate-400">Lei nº 14.063/20 (Assinaturas)</span>
+              </li>
+              <li>
+                <span className="text-slate-400">Lei nº 13.709/18 (LGPD)</span>
               </li>
             </ul>
           </div>
           
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Legal</h3>
-            <ul className="space-y-2 text-sm">
+            <h3 className="font-bold text-slate-200 mb-4 text-xs uppercase tracking-wider font-mono">Acesso & Suporte</h3>
+            <ul className="space-y-2.5 text-xs">
               <li>
-                <Link href="/privacidade" className="hover:text-primary transition-colors">
-                  Política de Privacidade
+                <Link href="/app-domain" className="hover:text-blue-400 transition-colors font-semibold text-blue-400">
+                  Portal do Servidor →
                 </Link>
               </li>
               <li>
-                <Link href="/termos" className="hover:text-primary transition-colors">
-                  Termos de Uso
+                <Link href="/portal-transparencia" className="hover:text-blue-400 transition-colors">
+                  Portal da Transparência
+                </Link>
+              </li>
+              <li>
+                <Link href="#contato" className="hover:text-blue-400 transition-colors">
+                  Solicitar Suporte Técnico
                 </Link>
               </li>
             </ul>
           </div>
+
         </div>
         
-        <div className="mt-12 pt-8 border-t flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
+        <div className="mt-12 pt-8 border-t border-slate-800/80 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 font-mono">
           <p>
-            &copy; {new Date().getFullYear()} CeleriFlow. Todos os direitos reservados.
+            &copy; {new Date().getFullYear()} CeleriFlow ERP Governamental. Todos os direitos reservados.
           </p>
-          <div className="flex items-center gap-3">
-            <span className="font-mono bg-background px-2 py-0.5 rounded border border-border/60 text-[11px]">
-              {APP_VERSION}
-            </span>
-            <span>
-              Uma solução <span className="font-semibold text-foreground">Robonuvem</span> para administração pública.
-            </span>
+          <div className="flex items-center gap-4">
+            <span>Versão {APP_VERSION}</span>
+            <span>•</span>
+            <span className="text-slate-400">Arquitetura Serverless High-Availability</span>
           </div>
         </div>
+
       </div>
     </footer>
   );
