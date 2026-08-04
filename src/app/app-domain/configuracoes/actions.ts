@@ -64,6 +64,8 @@ export async function toggleModulo(id: string, ativo: boolean) {
   });
   revalidatePath("/configuracoes/modulos");
   revalidatePath("/configuracoes");
+  revalidatePath("/dashboard");
+  revalidatePath("/");
 }
 
 export async function createModulo(data: {
@@ -76,12 +78,57 @@ export async function createModulo(data: {
     data: {
       nome: data.nome,
       codigo: data.codigo,
-      ativo: data.ativo || false,
-      dataAtivacao: data.ativo ? new Date() : null,
+      ativo: data.ativo ?? true,
+      dataAtivacao: data.ativo ? new Date() : new Date(),
     },
   });
   revalidatePath("/configuracoes/modulos");
   revalidatePath("/configuracoes");
+  revalidatePath("/dashboard");
+  revalidatePath("/");
+}
+
+export async function ensureDefaultModulos() {
+  const prisma = await getTenantPrisma();
+  const existing = await prisma.configuracaoModulo.findMany({ select: { codigo: true } });
+  const existingCodes = new Set(existing.map((m) => m.codigo.toUpperCase()));
+
+  const defaultModules = [
+    { codigo: "ADMINISTRACAO", nome: "Administração Geral & Entidades" },
+    { codigo: "CADASTROS", nome: "Pessoas & Cadastros Gerais" },
+    { codigo: "PROCESSOS", nome: "Processos Administrativos & Protocolos" },
+    { codigo: "DOCUMENTOS", nome: "Documentos / GED & Certidões" },
+    { codigo: "ATENDIMENTO", nome: "Atendimento ao Cidadão & Ouvidoria" },
+    { codigo: "TRANSPARENCIA", nome: "Portal da Transparência & LAI" },
+    { codigo: "TRIBUTACAO", nome: "Tributação, Arrecadação & IPTU" },
+    { codigo: "FINANCEIRO", nome: "Financeiro, Orçamento & Tesouraria" },
+    { codigo: "COMPRAS", nome: "Compras, Licitações & Cotações" },
+    { codigo: "RH", nome: "Recursos Humanos & Servidores" },
+    { codigo: "PATRIMONIO", nome: "Patrimônio, Almoxarifado & Estoque" },
+    { codigo: "EDUCACAO", nome: "Educação Pública & Escolas" },
+    { codigo: "SAUDE", nome: "Saúde Pública & UBSs" },
+    { codigo: "SOCIAL", nome: "Assistência Social & CRAS" },
+    { codigo: "MEIO_AMBIENTE", nome: "Meio Ambiente & Licenciamento" },
+    { codigo: "SANEAMENTO", nome: "Saneamento, Água & Esgoto" },
+    { codigo: "OBRAS", nome: "Obras Públicas & Vistorias" },
+    { codigo: "CULTURA", nome: "Cultura, Esporte & Turismo" },
+    { codigo: "CAMARA", nome: "Câmara Municipal & Legislação" },
+    { codigo: "SEGURANCA", nome: "Segurança Pública & Guarda Municipal" },
+    { codigo: "CONFIGURACOES", nome: "Configurações do Sistema & Integrações" },
+  ];
+
+  for (const mod of defaultModules) {
+    if (!existingCodes.has(mod.codigo)) {
+      await prisma.configuracaoModulo.create({
+        data: {
+          codigo: mod.codigo,
+          nome: mod.nome,
+          ativo: true,
+          dataAtivacao: new Date(),
+        },
+      });
+    }
+  }
 }
 
 // --- Perfis de Acesso ---
