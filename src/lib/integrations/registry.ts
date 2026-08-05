@@ -1,4 +1,4 @@
-export type IntegrationEnvironment = "MOCK" | "HOMOLOGACAO" | "PRODUCAO";
+export type IntegrationEnvironment = "MOCK" | "SANDBOX" | "HOMOLOGACAO" | "PRODUCAO";
 
 export type IntegrationDefinition = {
   code: string;

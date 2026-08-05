@@ -2,6 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 import { getIntegrationDefinition, runMockIntegration, type IntegrationEnvironment } from "@/lib/integrations/registry";
+import { bankIntegrationClient } from "@/lib/financeiro/bank-integration-client";
 import { getTenantContextForSystemAdministration } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -10,7 +11,7 @@ type ActionResult = { error?: string; data?: { id: string; message: string } };
 
 const connectionSchema = z.object({
   code: z.string().min(1),
-  environment: z.enum(["MOCK", "HOMOLOGACAO", "PRODUCAO"]),
+  environment: z.enum(["MOCK", "SANDBOX", "HOMOLOGACAO", "PRODUCAO"]),
   baseUrl: z.string().trim().max(500).optional(),
   credentialReference: z.string().trim().max(250).optional(),
   configurationJson: z.string().max(20_000).optional(),
@@ -112,7 +113,14 @@ export async function testIntegrationConnection(connectionId: string): Promise<A
     const environment = connection.environment as IntegrationEnvironment;
     const result = environment === "MOCK"
       ? runMockIntegration(connection.code, "TESTE_DE_CONEXAO")
-      : {
+      : environment === "SANDBOX" && connection.code === "BANCO_API"
+        ? await bankIntegrationClient.checkSandboxHealth().then(() => ({
+            status: "SUCESSO",
+            message: "Banco simulado externo disponível para a POC.",
+            externalId: undefined,
+            payload: { simulated: false, environment: "SANDBOX", code: connection.code, operation: "TESTE_DE_CONEXAO" },
+          }))
+        : {
           status: "PENDENTE",
           message: "O adaptador real ainda deve ser homologado com o fornecedor e a referência de credencial configurada.",
           externalId: undefined,

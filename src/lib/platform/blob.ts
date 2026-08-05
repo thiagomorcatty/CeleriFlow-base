@@ -98,6 +98,15 @@ export async function uploadGeneratedReport(filename: string, csv: string) {
   });
 }
 
+// Bank statements are preserved exactly as received for audit and reconciliation evidence.
+export async function archiveBankStatement(filename: string, content: string, contentType: string) {
+  return put(`${getBlobDocumentPrefix()}extratos/${crypto.randomUUID()}-${safeFilename(filename)}`, content, {
+    access: "private",
+    contentType,
+    token: getBlobToken(),
+  });
+}
+
 export async function getFile(url: string) {
   try {
     const file = await get(url, { access: "private", token: getBlobToken() });

@@ -18,12 +18,14 @@ import {
   Download,
   ArrowRightLeft,
   TrendingUp,
-  GitCompare
+  GitCompare,
+  Activity
 } from "lucide-react";
 
 const sidebarNavItems = [
   { title: "Painel Financeiro", href: "/financeiro", icon: LayoutDashboard },
   { title: "Download Extratos", href: "/financeiro/download-extratos", icon: Download },
+  { title: "Automações Financeiras", href: "/financeiro/automacoes", icon: Activity },
   { title: "Resgates e Aplicações", href: "/financeiro/resgates-aplicacoes", icon: ArrowRightLeft },
   { title: "Rendimentos Aplicação", href: "/financeiro/rendimentos", icon: TrendingUp },
   { title: "Receitas Constitucionais", href: "/financeiro/receitas-constitucionais", icon: Landmark },

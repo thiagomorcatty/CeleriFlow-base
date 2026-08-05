@@ -20,6 +20,13 @@ const matchSchema = z.object({
   statementItemId: z.string().trim().min(1, "Selecione um item de extrato."),
   treasuryMovementId: z.string().trim().min(1, "Selecione um movimento de tesouraria."),
 });
+const reconciliationSessionSchema = z.object({
+  banco: z.string().trim().min(1, "Informe o banco."),
+  agencia: z.string().trim().min(1, "Informe a agência."),
+  contaNumero: z.string().trim().min(1, "Informe o número da conta."),
+  periodo: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Informe o período no formato AAAA-MM."),
+  saldoInicial: z.number().finite("Informe um saldo inicial válido."),
+});
 
 function actorFor(context: Awaited<ReturnType<typeof getTenantContextForModuleEdit>>) {
   return {
@@ -80,11 +87,14 @@ export async function openReconciliationSessionAction(input: {
   periodo: string;
   saldoInicial: number;
 }): Promise<ActionResult> {
+  const parsed = reconciliationSessionSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados de conciliação inválidos." };
+
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const { prisma } = context;
 
-    const [yearStr, monthStr] = input.periodo.split("-");
+    const [yearStr, monthStr] = parsed.data.periodo.split("-");
     const year = parseInt(yearStr || "2026");
     const month = parseInt(monthStr || "08");
 
@@ -94,25 +104,27 @@ export async function openReconciliationSessionAction(input: {
     // Buscar ou criar sessão
     let session = await prisma.bankReconciliationSession.findFirst({
       where: {
-        contaNumero: input.contaNumero,
-        periodo: input.periodo,
+        banco: parsed.data.banco,
+        agencia: parsed.data.agencia,
+        contaNumero: parsed.data.contaNumero,
+        periodo: parsed.data.periodo,
       },
     });
 
     if (!session) {
       session = await prisma.bankReconciliationSession.create({
         data: {
-          banco: input.banco,
-          agencia: input.agencia,
-          contaNumero: input.contaNumero,
-          periodo: input.periodo,
+          banco: parsed.data.banco,
+          agencia: parsed.data.agencia,
+          contaNumero: parsed.data.contaNumero,
+          periodo: parsed.data.periodo,
           dataInicio,
           dataFim,
-          saldoInicialDecimal: new Prisma.Decimal(input.saldoInicial),
+          saldoInicialDecimal: new Prisma.Decimal(parsed.data.saldoInicial),
           totalDebitosDecimal: new Prisma.Decimal(0),
           totalCreditosDecimal: new Prisma.Decimal(0),
-          saldoFinalDecimal: new Prisma.Decimal(input.saldoInicial),
-          saldoRazaoDecimal: new Prisma.Decimal(input.saldoInicial),
+          saldoFinalDecimal: new Prisma.Decimal(parsed.data.saldoInicial),
+          saldoRazaoDecimal: new Prisma.Decimal(parsed.data.saldoInicial),
           diferencaDecimal: new Prisma.Decimal(0),
           status: "ABERTA",
         },

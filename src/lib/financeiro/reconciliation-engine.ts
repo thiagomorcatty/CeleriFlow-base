@@ -62,10 +62,23 @@ export async function runAutoReconciliation(
     },
   });
 
-  // Obter lançamentos do Razão / Tesouraria
+  const bankAccount = await prisma.bankAccount.findFirst({
+    where: {
+      bankName: session.banco,
+      agency: session.agencia,
+      accountNumber: session.contaNumero,
+    },
+    select: { id: true },
+  });
+
+  if (!bankAccount) {
+    throw new Error("A conta bancária da sessão não está cadastrada na tesouraria.");
+  }
+
+  // The treasury ledger references the internal account id, not its displayed number.
   const treasuryMovements = await prisma.treasuryMovement.findMany({
     where: {
-      bankAccountId: session.contaNumero,
+      bankAccountId: bankAccount.id,
       date: { gte: session.dataInicio, lte: session.dataFim },
     },
   });

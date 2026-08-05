@@ -29,7 +29,6 @@ export default function DownloadExtratosClient({ initialHistory = [] }: { initia
   const [contaNumero, setContaNumero] = useState("98765-4");
   const [periodoInicio, setPeriodoInicio] = useState("2026-08-01");
   const [periodoFim, setPeriodoFim] = useState("2026-08-31");
-  const [caminhoDestino, setCaminhoDestino] = useState("\\\\SERVIDORMUN\\FINANCEIRO\\EXTRATOS\\2026\\BB_001");
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -48,7 +47,6 @@ export default function DownloadExtratosClient({ initialHistory = [] }: { initia
       contaNumero,
       periodoInicio,
       periodoFim,
-      caminhoDestino,
     });
 
     setLoading(false);
@@ -76,7 +74,7 @@ export default function DownloadExtratosClient({ initialHistory = [] }: { initia
             Automação de Download de Extratos Bancários
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Acesso automatizado às plataformas bancárias, download de extratos da Conta Corrente e Aplicação com arquivamento em pasta compartilhada e registro inalterável de auditoria.
+            Acesso automatizado ao banco simulado externo, com arquivamento privado do extrato original e registro de auditoria.
           </p>
         </div>
       </div>
@@ -159,22 +157,6 @@ export default function DownloadExtratosClient({ initialHistory = [] }: { initia
                   required
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1">
-                <HardDrive className="w-3.5 h-3.5 text-slate-500" /> Pasta de Destino (Local ou Rede UNC)
-              </label>
-              <input
-                type="text"
-                value={caminhoDestino}
-                onChange={(e) => setCaminhoDestino(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2.5 text-xs font-mono focus:ring-2 focus:ring-emerald-500"
-                placeholder="\\\\SERVIDORMUN\\FINANCEIRO\\EXTRATOS..."
-              />
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">
-                Permite pastas locais ou servidores de arquivos compartilhados em rede.
-              </span>
             </div>
 
             {errorMessage && (
@@ -283,7 +265,7 @@ export default function DownloadExtratosClient({ initialHistory = [] }: { initia
 
                 <div className="md:col-span-2 bg-white dark:bg-slate-900 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800/60">
                   <span className="text-slate-500 dark:text-slate-400 block font-semibold flex items-center gap-1">
-                    <HardDrive className="w-4 h-4 text-blue-600" /> Localização / Pasta de Destino (Rede UNC)
+                    <HardDrive className="w-4 h-4 text-blue-600" /> Arquivo arquivado (Blob privado da instância)
                   </span>
                   <span className="font-mono text-slate-800 dark:text-slate-200 font-bold text-xs break-all">
                     {currentResult.caminhoDestino}

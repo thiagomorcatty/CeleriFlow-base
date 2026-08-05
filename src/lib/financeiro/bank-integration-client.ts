@@ -55,11 +55,40 @@ export interface ExternalRevenueDTO {
   naturezaReceita: string;
 }
 
+type JsonRecord = Record<string, unknown>;
+
+export class BankIntegrationError extends Error {}
+
+function asRecord(value: unknown): JsonRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : null;
+}
+
+function stringValue(record: JsonRecord, ...keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value;
+    if (typeof value === "number") return String(value);
+  }
+  return undefined;
+}
+
+function numberValue(record: JsonRecord, ...keys: string[]) {
+  const value = stringValue(record, ...keys);
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function dateValue(record: JsonRecord, ...keys: string[]) {
+  const value = stringValue(record, ...keys);
+  const date = value ? new Date(value) : new Date();
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+}
+
 export class BankIntegrationClient {
-  private baseUrl: string;
+  private baseUrl?: string;
 
   constructor() {
-    this.baseUrl = process.env.SIMULADOR_BANCO_URL || "https://api-simulador.celeriflow.local";
+    this.baseUrl = process.env.BANK_SANDBOX_BASE_URL?.replace(/\/+$/, "");
   }
 
   /**
@@ -69,23 +98,8 @@ export class BankIntegrationClient {
     config: BankAccountConfig,
     range: DateRange
   ): Promise<BankStatementResponse> {
-    try {
-      if (process.env.SIMULADOR_BANCO_URL) {
-        const res = await fetch(`${this.baseUrl}/api/v1/extratos`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ config, range }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          return this.processJsonResponse(data);
-        }
-      }
-    } catch (err) {
-      console.warn("[BankIntegrationClient] Simulador indisponível, utilizando gerador nativo resiliente.", err);
-    }
-
-    return this.generateSimulatedBankStatement(config, range);
+    if (!this.baseUrl) return this.generateSimulatedBankStatement(config, range);
+    return this.fetchSandboxStatement(config, range);
   }
 
   /**
@@ -113,19 +127,28 @@ export class BankIntegrationClient {
     config: BankAccountConfig,
     periodo: DateRange
   ): Promise<InvestmentYieldDTO[]> {
-    try {
-      if (process.env.SIMULADOR_BANCO_URL) {
-        const res = await fetch(`${this.baseUrl}/api/v1/rendimentos`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ config, periodo }),
+    if (this.baseUrl) {
+      const transactions = await this.fetchSandboxTransactions(config, periodo);
+      return transactions
+        .filter((transaction) => stringValue(transaction, "transaction_type", "transactionType")?.toUpperCase() === "YIELD")
+        .map((transaction) => {
+          const valorBruto = Math.abs(numberValue(transaction, "amount", "valor_bruto", "valorBruto"));
+          const irrf = Math.abs(numberValue(transaction, "irrf"));
+          const iof = Math.abs(numberValue(transaction, "iof"));
+          const correcaoMonetaria = numberValue(transaction, "correcao_monetaria", "correcaoMonetaria");
+          return {
+            contaNumero: config.contaNumero,
+            data: dateValue(transaction, "transaction_date", "posting_date", "date"),
+            valorBruto,
+            irrf,
+            iof,
+            correcaoMonetaria,
+            valorLiquido: numberValue(transaction, "net_amount", "valor_liquido", "valorLiquido") || valorBruto - irrf - iof + correcaoMonetaria,
+            saldoAcumulado: numberValue(transaction, "balance_after", "saldo_acumulado", "saldoAcumulado"),
+            tipo: "BRUTO",
+            documentoRef: stringValue(transaction, "document_number", "external_id", "id"),
+          };
         });
-        if (res.ok) {
-          return await res.json();
-        }
-      }
-    } catch (err) {
-      console.warn("[BankIntegrationClient] Erro ao obter rendimentos externos, gerando dados de simulação.", err);
     }
 
     return [
@@ -151,19 +174,24 @@ export class BankIntegrationClient {
     config: BankAccountConfig,
     periodo: DateRange
   ): Promise<ExternalRevenueDTO[]> {
-    try {
-      if (process.env.SIMULADOR_BANCO_URL) {
-        const res = await fetch(`${this.baseUrl}/api/v1/receitas-externas`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ config, periodo }),
-        });
-        if (res.ok) {
-          return await res.json();
-        }
-      }
-    } catch (err) {
-      console.warn("[BankIntegrationClient] Simulador externo indisponível para receitas, usando catálogo de repasses.", err);
+    if (this.baseUrl) {
+      const revenueTypes = new Set<ExternalRevenueDTO["siglaReceita"]>(["FPM", "FEP", "ITR", "ICS", "IPM", "RPM", "FUNDEB", "ICMS", "ADO25", "IPVA"]);
+      const transactions = await this.fetchSandboxTransactions(config, periodo);
+      return transactions.flatMap((transaction) => {
+        const sourceType = stringValue(transaction, "transaction_type", "transactionType")?.toUpperCase();
+        const siglaReceita = sourceType === "ADO_LC_176_2020" ? "ADO25" : sourceType;
+        if (!siglaReceita || !revenueTypes.has(siglaReceita as ExternalRevenueDTO["siglaReceita"])) return [];
+        return [{
+          siglaReceita: siglaReceita as ExternalRevenueDTO["siglaReceita"],
+          nomeReceita: stringValue(transaction, "description", "nome_receita", "nomeReceita") || siglaReceita,
+          valor: Math.abs(numberValue(transaction, "amount", "valor")),
+          dataCredito: dateValue(transaction, "transaction_date", "posting_date", "date"),
+          bancoDestino: config.banco,
+          contaDestino: config.contaNumero,
+          autenticacaoBancaria: stringValue(transaction, "external_id", "id", "document_number") || "SEM_IDENTIFICADOR",
+          naturezaReceita: stringValue(transaction, "revenue_nature", "natureza_receita", "naturezaReceita") || "Não informada pelo banco",
+        }];
+      });
     }
 
     return [
@@ -240,6 +268,129 @@ export class BankIntegrationClient {
     ];
   }
 
+  async checkSandboxHealth() {
+    if (!this.baseUrl) throw new BankIntegrationError("BANK_SANDBOX_BASE_URL não está configurada.");
+    const response = await this.request("/health", { method: "GET" }, false);
+    const payload: unknown = await response.json();
+    const health = asRecord(payload);
+    if (health?.status !== "UP") throw new BankIntegrationError("O banco simulado não informou status UP.");
+    return health;
+  }
+
+  private async fetchSandboxStatement(config: BankAccountConfig, range: DateRange): Promise<BankStatementResponse> {
+    const accountId = await this.resolveSandboxAccountId(config);
+    const generation = await this.request(`/accounts/${encodeURIComponent(accountId)}/statements`, {
+      method: "POST",
+      headers: { "Idempotency-Key": crypto.createHash("sha256").update(`${accountId}:${range.periodoInicio}:${range.periodoFim}`).digest("hex") },
+      body: JSON.stringify({ start: range.periodoInicio, end: range.periodoFim }),
+    });
+    const generated: unknown = await generation.json();
+    const generatedRecord = asRecord(generated);
+    if (generatedRecord && (typeof generatedRecord.rawContent === "string" || Array.isArray(generatedRecord.items))) {
+      return this.processJsonResponse(generated);
+    }
+
+    const statementId = generatedRecord && stringValue(generatedRecord, "id", "statement_id", "statementId");
+    if (!statementId) throw new BankIntegrationError("O banco simulado não retornou o identificador do extrato gerado.");
+
+    const format = (process.env.BANK_SANDBOX_STATEMENT_FORMAT || "ofx").toLowerCase();
+    const download = await this.request(`/statements/${encodeURIComponent(statementId)}/download?format=${encodeURIComponent(format)}`, { method: "GET" });
+    const rawContent = await download.text();
+    if (!rawContent) throw new BankIntegrationError("O banco simulado retornou um extrato vazio.");
+
+    if (format === "json") {
+      try {
+        return this.processJsonResponse(JSON.parse(rawContent) as unknown);
+      } catch {
+        throw new BankIntegrationError("O extrato JSON retornado pelo banco simulado é inválido.");
+      }
+    }
+
+    if (format !== "ofx") throw new BankIntegrationError(`O formato ${format.toUpperCase()} não é processável pela automação.`);
+    return this.processOfxResponse(rawContent, config);
+  }
+
+  private async fetchSandboxTransactions(config: BankAccountConfig, range: DateRange): Promise<JsonRecord[]> {
+    const accountId = await this.resolveSandboxAccountId(config);
+    const response = await this.request(`/accounts/${encodeURIComponent(accountId)}/transactions?start=${encodeURIComponent(range.periodoInicio)}&end=${encodeURIComponent(range.periodoFim)}`, { method: "GET" });
+    const payload: unknown = await response.json();
+    const payloadRecord = asRecord(payload);
+    const values = Array.isArray(payload) ? payload : payloadRecord?.transactions;
+    if (!Array.isArray(values)) throw new BankIntegrationError("O banco simulado retornou movimentações em formato inválido.");
+    return values.flatMap((value) => {
+      const transaction = asRecord(value);
+      return transaction ? [transaction] : [];
+    });
+  }
+
+  private async resolveSandboxAccountId(config: BankAccountConfig) {
+    const response = await this.request("/accounts", { method: "GET" });
+    const payload: unknown = await response.json();
+    const payloadRecord = asRecord(payload);
+    const values = Array.isArray(payload) ? payload : payloadRecord?.accounts;
+    if (!Array.isArray(values)) throw new BankIntegrationError("O banco simulado retornou contas em formato inválido.");
+
+    const account = values.map(asRecord).find((item): item is JsonRecord => Boolean(item) &&
+      stringValue(item!, "account_number", "accountNumber", "number") === config.contaNumero &&
+      stringValue(item!, "branch_number", "agency", "agencia") === config.agencia,
+    );
+    const accountId = account && stringValue(account, "id", "account_id", "accountId");
+    if (!accountId) throw new BankIntegrationError("A conta informada não foi encontrada no banco simulado.");
+    return accountId;
+  }
+
+  private async request(pathname: string, init: RequestInit, authenticated = true) {
+    const headers = new Headers(init.headers);
+    headers.set("Accept", "application/json, text/plain;q=0.9");
+    if (init.body) headers.set("Content-Type", "application/json");
+    if (authenticated) headers.set("Authorization", `Bearer ${await this.getAccessToken()}`);
+    return this.requestRaw(pathname, { ...init, headers });
+  }
+
+  private async getAccessToken() {
+    const clientId = process.env.BANK_SANDBOX_CLIENT_ID;
+    const clientSecret = process.env.BANK_SANDBOX_CLIENT_SECRET;
+    if (!clientId || !clientSecret) throw new BankIntegrationError("As credenciais do banco simulado não estão configuradas.");
+    const response = await this.requestRaw("/auth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, grant_type: "client_credentials" }),
+    });
+    const payload: unknown = await response.json();
+    const token = asRecord(payload) && stringValue(asRecord(payload)!, "access_token");
+    if (!token) throw new BankIntegrationError("O banco simulado não retornou um token de acesso válido.");
+    return token;
+  }
+
+  private async requestRaw(pathname: string, init: RequestInit) {
+    if (!this.baseUrl) throw new BankIntegrationError("BANK_SANDBOX_BASE_URL não está configurada.");
+    const timeout = Number(process.env.BANK_SANDBOX_TIMEOUT_MS || "15000");
+    const retryLimit = Math.max(0, Number(process.env.BANK_SANDBOX_RETRY_LIMIT || "2"));
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt <= retryLimit; attempt += 1) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), Number.isFinite(timeout) ? timeout : 15000);
+      try {
+        const response = await fetch(`${this.baseUrl}${pathname}`, { ...init, signal: controller.signal, cache: "no-store" });
+        if (response.ok) return response;
+        const message = (await response.text()).slice(0, 500);
+        if (response.status < 500 || attempt === retryLimit) {
+          throw new BankIntegrationError(`Banco simulado respondeu ${response.status}${message ? `: ${message}` : "."}`);
+        }
+        lastError = new BankIntegrationError(`Banco simulado respondeu ${response.status}.`);
+      } catch (error) {
+        lastError = error;
+        if (error instanceof BankIntegrationError || attempt === retryLimit) break;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    const message = lastError instanceof Error ? lastError.message : "Falha desconhecida ao conectar ao banco simulado.";
+    throw new BankIntegrationError(`Falha na integração com o banco simulado: ${message}`);
+  }
+
   /**
    * Processa arquivo de Extrato / Conciliação no formato CNAB 240 ou 400
    */
@@ -297,18 +448,66 @@ export class BankIntegrationClient {
     };
   }
 
-  private processJsonResponse(data: any): BankStatementResponse {
-    const rawContent = JSON.stringify(data);
+  private processOfxResponse(rawContent: string, config: BankAccountConfig): BankStatementResponse {
+    const items = rawContent.split(/<STMTTRN>/i).slice(1).flatMap((block) => {
+      const valueMatch = block.match(/<TRNAMT>([^<\s]+)/i);
+      if (!valueMatch) return [];
+      const value = Number(valueMatch[1]);
+      if (!Number.isFinite(value)) return [];
+      const dateToken = block.match(/<DTPOSTED>(\d{8})/i)?.[1];
+      const date = dateToken
+        ? new Date(`${dateToken.slice(0, 4)}-${dateToken.slice(4, 6)}-${dateToken.slice(6, 8)}T12:00:00`)
+        : new Date();
+      const description = block.match(/<MEMO>([^<\r\n]+)/i)?.[1]?.trim() || "Movimentação bancária";
+      const reference = block.match(/<FITID>([^<\r\n]+)/i)?.[1]?.trim();
+      const transactionType = block.match(/<TRNTYPE>([^<\r\n]+)/i)?.[1]?.trim().toUpperCase();
+      return [{
+        date,
+        description,
+        reference,
+        codigoTransacao: reference,
+        sinal: value < 0 || transactionType === "DEBIT" ? "DEBITO" as const : "CREDITO" as const,
+        value: Math.abs(value),
+        tipoConta: config.tipoConta === "APLICACAO" || /APLIC|RESG|REND/i.test(description) ? "APLICACAO" as const : "CORRENTE" as const,
+        documento: block.match(/<CHECKNUM>([^<\r\n]+)/i)?.[1]?.trim(),
+      }];
+    });
+
+    return {
+      rawContent,
+      formato: "OFX",
+      hashSHA256: crypto.createHash("sha256").update(rawContent).digest("hex"),
+      tamanhoBytes: Buffer.byteLength(rawContent, "utf8"),
+      items,
+    };
+  }
+
+  private processJsonResponse(data: unknown): BankStatementResponse {
+    const payload = asRecord(data);
+    const rawContent = typeof payload?.rawContent === "string" ? payload.rawContent : JSON.stringify(data);
     const hashSHA256 = crypto.createHash("sha256").update(rawContent).digest("hex");
+    const values = Array.isArray(data) ? data : payload?.items;
     return {
       rawContent,
       formato: "JSON",
       hashSHA256,
       tamanhoBytes: Buffer.byteLength(rawContent, "utf8"),
-      items: (data.items || []).map((item: any) => ({
-        ...item,
-        date: new Date(item.date),
-      })),
+      items: Array.isArray(values) ? values.flatMap((value) => {
+        const item = asRecord(value);
+        if (!item) return [];
+        const amount = numberValue(item, "value", "amount", "valor");
+        const direction = stringValue(item, "sinal", "direction")?.toUpperCase();
+        return [{
+          date: dateValue(item, "date", "transaction_date", "posting_date"),
+          description: stringValue(item, "description", "historico") || "Movimentação bancária",
+          reference: stringValue(item, "reference", "external_id", "documento"),
+          codigoTransacao: stringValue(item, "codigoTransacao", "codigo_transacao", "external_id"),
+          sinal: direction === "DEBIT" || direction === "DEBITO" || amount < 0 ? "DEBITO" as const : "CREDITO" as const,
+          value: Math.abs(amount),
+          tipoConta: stringValue(item, "tipoConta", "tipo_conta", "account_type")?.toUpperCase() === "APLICACAO" ? "APLICACAO" as const : "CORRENTE" as const,
+          documento: stringValue(item, "documento", "document_number"),
+        }];
+      }) : [],
     };
   }
 
