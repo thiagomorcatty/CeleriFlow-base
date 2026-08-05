@@ -5,7 +5,6 @@ import {
   cancelBudgetReservation,
   createExpenseRequest,
   approveExpenseRequest,
-  createBudgetMovement,
   createBudgetReservation,
   setFinancialYearStatus,
 } from "@/lib/financeiro";
@@ -80,18 +79,6 @@ export async function deleteMasterData(type: MasterDataType, id: string): Promis
     return {};
   } catch (error) {
     return failure(error, "Não foi possível excluir o cadastro. Ele pode estar em uso por lançamentos financeiros.");
-  }
-}
-
-export async function createBudgetMovementAction(data: { date: Date; type: string; value: number; justification: string; appropriationId: string }): Promise<ActionResult> {
-  try {
-    const context = await getTenantContextForModuleEdit("FINANCEIRO");
-    await assertAppropriationAccess(context, data.appropriationId);
-    await createBudgetMovement(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, data);
-    revalidatePath("/financeiro/orcamento");
-    return {};
-  } catch (error) {
-    return failure(error, "Não foi possível registrar o movimento orçamentário.");
   }
 }
 

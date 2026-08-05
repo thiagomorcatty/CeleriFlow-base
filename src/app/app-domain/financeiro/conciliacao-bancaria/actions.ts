@@ -113,7 +113,12 @@ export async function openReconciliationSessionAction(input: {
       where: { bankAccountId: bankAccount.id, date: { lte: dataFim } },
       select: { direction: true, valueDecimal: true },
     });
-    const saldoRazao = ledgerMovements.reduce((total, movement) => total + (movement.direction === "DEBIT" ? -Math.abs(Number(movement.valueDecimal)) : Math.abs(Number(movement.valueDecimal))), 0);
+    const saldoRazao = ledgerMovements.reduce((total, movement) => {
+      const value = Math.abs(Number(movement.valueDecimal));
+      if (["Entrada", "CREDIT"].includes(movement.direction)) return total + value;
+      if (["Saída", "DEBIT"].includes(movement.direction)) return total - value;
+      throw new Error(`Direção de tesouraria inválida: ${movement.direction}.`);
+    }, 0);
 
     // Buscar ou criar sessão
     let session = await prisma.bankReconciliationSession.findFirst({

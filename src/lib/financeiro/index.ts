@@ -476,6 +476,9 @@ export async function createBudgetMovement(
   actor: FinanceActor,
   input: BudgetMovementInput,
 ) {
+  if (input.type !== "Dotação Inicial") {
+    throw new FinanceError("Alterações orçamentárias devem ser executadas exclusivamente por uma solicitação de crédito aprovada.");
+  }
   return db.$transaction((tx) => createBudgetMovementInTransaction(tx, actor, input));
 }
 
@@ -724,6 +727,15 @@ export async function cancelCommitment(db: PrismaClient, actor: FinanceActor, co
     if (commitment.settlements.length || commitment.payments.length) throw new FinanceError("Empenhos com liquidações ou pagamentos ativos não podem ser anulados integralmente.");
     const effectiveValue = commitmentValue(commitment.valueDecimal, commitment.movements);
     await tx.commitmentMovement.create({ data: { date: new Date(), type: "Anulação", valueDecimal: effectiveValue, justification: "Anulação integral do empenho", commitmentId } });
+    await reverseAccountingForSource(tx, actor, {
+      financialYearId: year.id,
+      date: new Date(),
+      sourceType: "COMMITMENT",
+      sourceId: commitment.id,
+      eventType: "EMPENHO_ANULADO",
+      history: `Anulação do empenho ${commitment.number}`,
+      idempotencyKey: `FINANCEIRO:COMMITMENT:${commitment.id}:EMPENHO_ANULADO`,
+    });
     const canceled = await tx.commitment.update({ where: { id: commitmentId }, data: { status: "Anulado" } });
     await refreshCommittedMirror(tx, commitment.appropriationId);
     await audit(tx, actor, "CANCEL", "Commitment", commitmentId, { previousStatus: commitment.status, value: jsonMoney(effectiveValue) }, year.id);
@@ -934,6 +946,15 @@ export async function cancelSettlement(db: PrismaClient, actor: FinanceActor, se
     const year = await assertFinancialYearOpen(tx, settlement.commitment.appropriation.financialYearId, new Date());
     if (settlement.status !== ACTIVE_SETTLEMENT_STATUS) throw new FinanceError("Somente liquidações ativas podem ser canceladas.");
     if ((await activePaymentTotal(tx, { settlementId })).greaterThan(0)) throw new FinanceError("Não é possível cancelar uma liquidação com pagamentos ativos.");
+    await reverseAccountingForSource(tx, actor, {
+      financialYearId: year.id,
+      date: new Date(),
+      sourceType: "SETTLEMENT",
+      sourceId: settlement.id,
+      eventType: "LIQUIDACAO_CANCELADA",
+      history: `Cancelamento da liquidação ${settlement.id}`,
+      idempotencyKey: `FINANCEIRO:SETTLEMENT:${settlement.id}:LIQUIDACAO_CANCELADA`,
+    });
     const canceled = await tx.settlement.update({ where: { id: settlementId }, data: { status: "Cancelado" } });
     await refreshCommitmentExecutionStatus(tx, settlement.commitmentId);
     await audit(tx, actor, "CANCEL", "Settlement", settlementId, { previousStatus: settlement.status }, year.id);
@@ -2013,6 +2034,7 @@ type AccountingPostingInput = {
   sourceId?: string;
   eventType?: string;
   idempotencyKey?: string;
+  reversalOfId?: string;
 };
 
 type AccountingEventInput = {
@@ -2075,6 +2097,7 @@ export async function postAccountingTransactionInTransaction(
       sourceId: input.sourceId?.trim() || undefined,
       eventType: input.eventType?.trim() || "MANUAL_POSTING",
       idempotencyKey: input.idempotencyKey?.trim() || undefined,
+      reversalOfId: input.reversalOfId,
       authorUsuarioId: actor.usuarioId,
       authorEmployeeId: actor.employeeId,
       postedAt: new Date(),
@@ -2088,6 +2111,36 @@ export async function postAccountingTransactionInTransaction(
   });
   await audit(tx, actor, "POST", "AccountingTransaction", transaction.id, { debit: jsonMoney(totals.debit), credit: jsonMoney(totals.credit), lineCount: input.lines.length, eventType: transaction.eventType }, input.financialYearId);
   return transaction;
+}
+
+async function reverseAccountingForSource(
+  tx: Prisma.TransactionClient,
+  actor: FinanceActor,
+  input: { financialYearId: string; date: Date; sourceType: string; sourceId: string; eventType: string; history: string; idempotencyKey: string },
+) {
+  const original = await tx.accountingTransaction.findFirst({
+    where: { financialYearId: input.financialYearId, sourceType: input.sourceType, sourceId: input.sourceId, status: "POSTADO" },
+    include: { entries: true, reversedBy: { select: { id: true } } },
+    orderBy: { postedAt: "asc" },
+  });
+  if (!original) throw new FinanceError("A anulação exige a postagem contábil original do fato financeiro.");
+  if (original.reversedBy) return original.reversedBy;
+  return postAccountingTransactionInTransaction(tx, actor, {
+    financialYearId: input.financialYearId,
+    date: input.date,
+    history: input.history,
+    lines: original.entries.map((entry) => ({
+      accountId: entry.accountId,
+      type: entry.type === "Débito" ? "Crédito" : "Débito",
+      value: requiredDecimal(entry.valueDecimal, "AccountingEntry.valueDecimal"),
+    })),
+    sourceModule: "FINANCEIRO",
+    sourceType: `${input.sourceType}_REVERSAL`,
+    sourceId: input.sourceId,
+    eventType: input.eventType,
+    idempotencyKey: input.idempotencyKey,
+    reversalOfId: original.id,
+  });
 }
 
 export async function postAccountingEvent(
@@ -2621,6 +2674,13 @@ export async function generateBankReconciliationReport(
 ) {
   const account = await db.bankAccount.findUnique({ where: { id: input.bankAccountId } });
   if (!account) throw new FinanceError("Conta bancária não encontrada.");
+  const latestReconciliation = await db.bankReconciliation.findFirst({
+    where: { bankAccountId: account.id, status: "Conciliado", periodEnd: { lte: input.referenceDate } },
+    orderBy: { periodEnd: "desc" },
+  });
+  if (!latestReconciliation) {
+    throw new FinanceError("Não há conciliação confirmada para informar o saldo do extrato nesta referência.");
+  }
 
   const accountName = `${account.bankName} (${account.accountType})`;
 
@@ -2659,8 +2719,9 @@ export async function generateBankReconciliationReport(
     .filter((m) => m.direction === "SAIDA" || m.direction === "Saída")
     .reduce((sum, m) => sum + Number(m.valueDecimal), 0);
 
-  const saldoExtrato = 100000; // Valor de referência do extrato bancário
-  const saldoRazao = saldoExtrato + totalTreasuryPendingEntries - totalTreasuryPendingExits + totalStatementPendingEntries - totalStatementPendingExits;
+  const saldoExtrato = Number(latestReconciliation.bankBalanceDecimal ?? latestReconciliation.bankBalance);
+  const saldoRazao = Number(latestReconciliation.systemBalanceDecimal ?? latestReconciliation.systemBalance)
+    + totalTreasuryPendingEntries - totalTreasuryPendingExits + totalStatementPendingEntries - totalStatementPendingExits;
 
   return {
     bankAccountId: account.id,

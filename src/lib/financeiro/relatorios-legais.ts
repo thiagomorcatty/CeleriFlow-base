@@ -425,13 +425,18 @@ export async function generateBalancoPatrimonial(db: Db, filter: ReportFilter) {
 
 // --- Balanço Financeiro (MCASP / Anexo 13 da Lei 4.320/64) ---
 export async function generateBalancoFinanceiro(db: Db, filter: ReportFilter) {
-  const [rreo, bankAccounts, withholdings] = await Promise.all([
+  const [rreo, financialYear, treasuryMovements, withholdings] = await Promise.all([
     generateRREO(db, filter),
-    db.bankAccount.findMany({
+    db.financialYear.findUnique({ where: { id: filter.financialYearId }, select: { startDate: true, endDate: true } }),
+    db.treasuryMovement.findMany({
       where: {
-        isActive: true,
-        ...(filter.budgetUnitId ? { budgetUnitId: filter.budgetUnitId } : {}),
+        status: "Confirmado",
+        bankAccount: {
+          isActive: true,
+          ...(filter.budgetUnitId ? { budgetUnitId: filter.budgetUnitId } : {}),
+        },
       },
+      select: { date: true, direction: true, valueDecimal: true },
     }),
     db.withholdingPayable.findMany({
       where: filter.budgetUnitId
@@ -449,6 +454,7 @@ export async function generateBalancoFinanceiro(db: Db, filter: ReportFilter) {
         : {},
     }),
   ]);
+  if (!financialYear) throw new Error("Exercício financeiro não encontrado para o Balanço Financeiro.");
 
   const receitaOrcamentariaRealizada = rreo.revenueSummary.reduce((s, r) => s + r.realizedValue, 0);
   const despesaOrcamentariaPaga = rreo.expenseSummary.reduce((s, e) => s + e.paidValue, 0);
@@ -461,8 +467,17 @@ export async function generateBalancoFinanceiro(db: Db, filter: ReportFilter) {
     .filter((w) => w.status === "Recolhida")
     .reduce((s, w) => s + Number(w.valueDecimal), 0);
 
-  const saldoInicialCaixaBancos = bankAccounts.reduce((s, b) => s + Number(b.currentBalanceDecimal ?? b.currentBalance), 0);
-  const saldoAtualCaixaBancos = bankAccounts.reduce((s, b) => s + Number(b.currentBalanceDecimal ?? b.currentBalance), 0);
+  const signedTreasuryValue = (direction: string, value: number) => {
+    if (["Entrada", "CREDIT"].includes(direction)) return Math.abs(value);
+    if (["Saída", "DEBIT"].includes(direction)) return -Math.abs(value);
+    throw new Error(`Direção de tesouraria inválida no Balanço Financeiro: ${direction}.`);
+  };
+  const saldoInicialCaixaBancos = treasuryMovements
+    .filter((movement) => movement.date < financialYear.startDate)
+    .reduce((total, movement) => total + signedTreasuryValue(movement.direction, Number(movement.valueDecimal)), 0);
+  const saldoAtualCaixaBancos = treasuryMovements
+    .filter((movement) => movement.date <= financialYear.endDate)
+    .reduce((total, movement) => total + signedTreasuryValue(movement.direction, Number(movement.valueDecimal)), 0);
 
   const totalIngressos = receitaOrcamentariaRealizada + receitasExtraorcamentarias + saldoInicialCaixaBancos;
   const totalDispendios = despesaOrcamentariaPaga + despesasExtraorcamentarias + saldoAtualCaixaBancos;

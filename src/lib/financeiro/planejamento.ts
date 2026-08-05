@@ -789,6 +789,9 @@ export async function executeCreditRequest(
     });
     if (!credit) throw new FinanceError("Solicitação de crédito adicional não encontrada.");
     if (credit.status !== "Aprovado") throw new FinanceError("A solicitação de crédito deve estar Aprovada para ser efetivada.");
+    if (credit.requestedById === actor.usuarioId || credit.approvedById === actor.usuarioId) {
+      throw new FinanceError("Segregação de Funções: solicitante e aprovador não podem efetivar o crédito.");
+    }
     await assertFinancialYearOpen(tx, credit.financialYearId, new Date());
 
     const increaseMovementType: Record<CreditType, string> = {
@@ -965,4 +968,3 @@ export async function generateCmdMbaExecutionReport(db: PrismaClient, financialY
     mbaAcompanhamento,
   };
 }
-
