@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { TrendingUp, Calculator, ShieldCheck, CheckCircle2, FileText, Percent, Coins, RotateCcw, Send } from "lucide-react";
 import { calculateYieldAction, transmitYieldAction } from "./rendimentos-actions";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 
 interface YieldRecord {
   id: string;
@@ -150,11 +151,9 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   Rendimento Bruto (R$)
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
+                <MoneyInput
                   value={valorBruto}
-                  onChange={(e) => setValorBruto(parseFloat(e.target.value) || 0)}
+                  onChange={setValorBruto}
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2.5 text-sm font-bold text-emerald-600 focus:ring-2 focus:ring-emerald-500"
                   required
                 />
@@ -163,11 +162,9 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   Imposto de Renda (IRRF R$)
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
+                <MoneyInput
                   value={irrf}
-                  onChange={(e) => setIrrf(parseFloat(e.target.value) || 0)}
+                  onChange={setIrrf}
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2.5 text-sm font-bold text-rose-600 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
@@ -178,11 +175,9 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   IOF Retido (R$)
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
+                <MoneyInput
                   value={iof}
-                  onChange={(e) => setIof(parseFloat(e.target.value) || 0)}
+                  onChange={setIof}
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
@@ -190,11 +185,9 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   Correção Monetária (R$)
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
+                <MoneyInput
                   value={correcaoMonetaria}
-                  onChange={(e) => setCorrecaoMonetaria(parseFloat(e.target.value) || 0)}
+                  onChange={setCorrecaoMonetaria}
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
@@ -204,11 +197,9 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                 Saldo Acumulado Anterior (R$)
               </label>
-              <input
-                type="number"
-                step="0.01"
+              <MoneyInput
                 value={saldoAnteriorAcumulado}
-                onChange={(e) => setSaldoAnteriorAcumulado(parseFloat(e.target.value) || 0)}
+                onChange={setSaldoAnteriorAcumulado}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
               />
             </div>

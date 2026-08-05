@@ -6,17 +6,46 @@ function displayDate(value: Date) {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(value);
 }
 
+type DownloadSummary = {
+  id: string;
+  banco: string;
+  agencia: string;
+  contaNumero: string;
+  hashSHA256: string;
+  status: string;
+  createdAt: Date;
+};
+
+type RunSummary = {
+  id: string;
+  operation: string;
+  environment: string;
+  status: string;
+  message: string;
+  createdAt: Date;
+  connection: { name: string; code: string };
+};
+
 export default async function AutomacoesFinanceirasPage() {
-  const { prisma } = await getTenantContextForModule("FINANCEIRO");
-  const [downloads, runs] = await Promise.all([
-    prisma.automatedBankDownload.findMany({ orderBy: { createdAt: "desc" }, take: 15 }),
-    prisma.integrationRun.findMany({
-      where: { connection: { category: "BANCARIA" } },
-      include: { connection: { select: { name: true, code: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 15,
-    }),
-  ]);
+  let downloads: DownloadSummary[] = [];
+  let runs: RunSummary[] = [];
+  let loadError: string | null = null;
+
+  try {
+    const { prisma } = await getTenantContextForModule("FINANCEIRO");
+    [downloads, runs] = await Promise.all([
+      prisma.automatedBankDownload.findMany({ orderBy: { createdAt: "desc" }, take: 15 }),
+      prisma.integrationRun.findMany({
+        where: { connection: { category: "BANCARIA" } },
+        include: { connection: { select: { name: true, code: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 15,
+      }),
+    ]);
+  } catch (error) {
+    console.error("Erro ao carregar automações financeiras:", error);
+    loadError = "Não foi possível carregar o histórico agora. Tente novamente em instantes.";
+  }
   const failures = runs.filter((run) => run.status === "FALHA").length;
 
   return (
@@ -26,6 +55,8 @@ export default async function AutomacoesFinanceirasPage() {
         <h1 className="mt-1 text-2xl font-bold text-slate-900">Central de Automações Financeiras</h1>
         <p className="mt-1 text-sm text-slate-600">Histórico operacional, falhas e evidências do banco simulado externo.</p>
       </header>
+
+      {loadError && <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{loadError}</p>}
 
       <section className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><Archive className="h-5 w-5 text-emerald-600" /><p className="mt-3 text-2xl font-bold">{downloads.length}</p><p className="text-sm text-slate-600">Extratos arquivados</p></div>

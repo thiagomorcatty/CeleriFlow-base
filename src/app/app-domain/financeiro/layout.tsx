@@ -22,25 +22,56 @@ import {
   Activity
 } from "lucide-react";
 
-const sidebarNavItems = [
-  { title: "Painel Financeiro", href: "/financeiro", icon: LayoutDashboard },
-  { title: "Download Extratos", href: "/financeiro/download-extratos", icon: Download },
-  { title: "Automações Financeiras", href: "/financeiro/automacoes", icon: Activity },
-  { title: "Resgates e Aplicações", href: "/financeiro/resgates-aplicacoes", icon: ArrowRightLeft },
-  { title: "Rendimentos Aplicação", href: "/financeiro/rendimentos", icon: TrendingUp },
-  { title: "Receitas Constitucionais", href: "/financeiro/receitas-constitucionais", icon: Landmark },
-  { title: "Conciliação Bancária", href: "/financeiro/conciliacao-bancaria", icon: GitCompare },
-  { title: "Orçamento e Plano", href: "/financeiro/orcamento", icon: Scale },
-  { title: "Planejamento", href: "/financeiro/orcamento/planejamento", icon: BookOpenCheck },
-  { title: "Cadastros Orçamentários", href: "/financeiro/orcamento/cadastros", icon: FileText },
-  { title: "Tesouraria (Contas)", href: "/financeiro/contas-bancarias", icon: Landmark },
-  { title: "Receitas", href: "/financeiro/receitas", icon: WalletCards },
-  { title: "Gestão de Empenhos", href: "/financeiro/empenhos", icon: FileText },
-  { title: "Liquidações", href: "/financeiro/liquidacoes", icon: Receipt },
-  { title: "Pagamentos", href: "/financeiro/pagamentos", icon: WalletCards },
-  { title: "Restos a Pagar", href: "/financeiro/restos-a-pagar", icon: ClipboardList },
-  { title: "Relatórios", href: "/financeiro/relatorios", icon: FileText },
+const sidebarNavGroups = [
+  {
+    title: "Visão Geral",
+    items: [{ title: "Painel Financeiro", href: "/financeiro", icon: LayoutDashboard }],
+  },
+  {
+    title: "Planejamento e Orçamento",
+    items: [
+      { title: "Planejamento Orçamentário", href: "/financeiro/orcamento/planejamento", icon: BookOpenCheck },
+      { title: "Cadastros Orçamentários", href: "/financeiro/orcamento/cadastros", icon: FileText },
+      { title: "Dotações e Reservas", href: "/financeiro/orcamento", icon: Scale },
+    ],
+  },
+  {
+    title: "Execução da Despesa",
+    items: [
+      { title: "Empenhos", href: "/financeiro/empenhos", icon: FileText },
+      { title: "Liquidações", href: "/financeiro/liquidacoes", icon: Receipt },
+      { title: "Pagamentos", href: "/financeiro/pagamentos", icon: WalletCards },
+      { title: "Restos a Pagar", href: "/financeiro/restos-a-pagar", icon: ClipboardList },
+    ],
+  },
+  {
+    title: "Receitas",
+    items: [
+      { title: "Lançamentos de Receita", href: "/financeiro/receitas", icon: WalletCards },
+      { title: "Regras Constitucionais", href: "/financeiro/receitas-constitucionais", icon: Landmark },
+    ],
+  },
+  {
+    title: "Tesouraria e Bancos",
+    items: [
+      { title: "Contas e Transferências", href: "/financeiro/contas-bancarias", icon: Landmark },
+      { title: "Extratos Bancários", href: "/financeiro/download-extratos", icon: Download },
+      { title: "Monitoramento de Automações", href: "/financeiro/automacoes", icon: Activity },
+      { title: "Resgates e Aplicações", href: "/financeiro/resgates-aplicacoes", icon: ArrowRightLeft },
+      { title: "Rendimentos de Aplicações", href: "/financeiro/rendimentos", icon: TrendingUp },
+      { title: "Conciliação Bancária", href: "/financeiro/conciliacao-bancaria", icon: GitCompare },
+    ],
+  },
+  {
+    title: "Contabilidade e Saídas",
+    items: [
+      { title: "Contabilidade e Fechamento", href: "/financeiro/contabilidade", icon: Scale },
+      { title: "Relatórios Financeiros", href: "/financeiro/relatorios", icon: FileText },
+    ],
+  },
 ];
+
+const sidebarNavItems = sidebarNavGroups.flatMap((group) => group.items);
 
 export default function FinanceiroLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -90,31 +121,37 @@ export default function FinanceiroLayout({ children }: { children: React.ReactNo
           )}
         </div>
         
-        <nav className="flex flex-col gap-1.5 flex-1">
-          {sidebarNavItems.map((item) => {
-            const isActive = item.href === "/financeiro"
-              ? pathname === "/financeiro"
-              : pathname === item.href || (
-                pathname.startsWith(`${item.href}/`) &&
-                !sidebarNavItems.some((child) => child.href !== item.href && child.href.startsWith(`${item.href}/`) && pathname.startsWith(child.href))
-              );
+        <nav className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
+          {sidebarNavGroups.map((group) => (
+            <section key={group.title} className="space-y-1.5">
+              {!isDesktopCollapsed && <h3 className="px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">{group.title}</h3>}
+              {group.items.map((item) => {
+                const isActive = item.href === "/financeiro"
+                  ? pathname === "/financeiro"
+                  : pathname === item.href || (
+                    pathname.startsWith(`${item.href}/`) &&
+                    !sidebarNavItems.some((child) => child.href !== item.href && child.href.startsWith(`${item.href}/`) && pathname.startsWith(child.href))
+                  );
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsSidebarOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 outline-none ${
-                  isActive
-                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-600/50"
-                }`}
-              >
-                <item.icon className={`shrink-0 h-[18px] w-[18px] ${isActive ? "text-white" : "text-slate-400"}`} strokeWidth={isActive ? 2.5 : 2} />
-                {!isDesktopCollapsed && <span>{item.title}</span>}
-              </Link>
-            );
-          })}
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsSidebarOpen(false)}
+                    title={isDesktopCollapsed ? item.title : undefined}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 outline-none ${
+                      isActive
+                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-600/50"
+                    }`}
+                  >
+                    <item.icon className={`shrink-0 h-[18px] w-[18px] ${isActive ? "text-white" : "text-slate-400"}`} strokeWidth={isActive ? 2.5 : 2} />
+                    {!isDesktopCollapsed && <span>{item.title}</span>}
+                  </Link>
+                );
+              })}
+            </section>
+          ))}
         </nav>
 
         {/* Bottom Menu items */}

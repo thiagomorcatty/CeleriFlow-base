@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { GitCompare, CheckCircle2, Play, AlertCircle, FileSpreadsheet, ShieldCheck, ArrowRightLeft, Sparkles, Scale, RefreshCw } from "lucide-react";
 import { confirmReconciliationSessionAction, openReconciliationSessionAction, runAutoReconciliationAction } from "./actions";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 
 interface Session {
   id: string;
@@ -169,11 +170,9 @@ export default function ConciliacaoBancariaClient({ initialSessions = [] }: { in
               </div>
               <div>
                 <label className="block font-semibold uppercase mb-1">Saldo Inicial (R$)</label>
-                <input
-                  type="number"
-                  step="0.01"
+                <MoneyInput
                   value={saldoInicial}
-                  onChange={(e) => setSaldoInicial(parseFloat(e.target.value) || 0)}
+                  onChange={setSaldoInicial}
                   className="w-full bg-slate-50 dark:bg-slate-800 border p-2.5 rounded-lg text-sm font-bold text-blue-600"
                   required
                 />

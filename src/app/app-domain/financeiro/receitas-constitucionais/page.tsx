@@ -1,8 +1,7 @@
 import ReceitasConstitucionaisClient from "./ReceitasConstitucionaisClient";
-import { getConstitutionalRulesAction, getExceptionQueueAction, seedConstitutionalRulesAction } from "./regras-receitas-actions";
+import { getConstitutionalRulesAction, getExceptionQueueAction } from "./regras-receitas-actions";
 
 export default async function ReceitasConstitucionaisPage() {
-  await seedConstitutionalRulesAction();
   const rulesRes = await getConstitutionalRulesAction();
   const exceptionsRes = await getExceptionQueueAction();
 

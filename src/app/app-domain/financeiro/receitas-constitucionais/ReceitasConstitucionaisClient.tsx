@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Landmark, Plus, AlertTriangle, CheckCircle2, ShieldCheck, Filter, ArrowUpRight, Zap, RefreshCw, ListFilter } from "lucide-react";
 import { createRuleAction, resolveExceptionAction, seedConstitutionalRulesAction } from "./regras-receitas-actions";
 
@@ -42,6 +43,7 @@ export default function ReceitasConstitucionaisClient({
   const [activeTab, setActiveTab] = useState<"regras" | "nova" | "excecoes">("regras");
   const [rules, setRules] = useState<Rule[]>(initialRules);
   const [exceptions, setExceptions] = useState<ExceptionItem[]>(initialExceptions);
+  const router = useRouter();
 
   // Form para nova regra
   const [textoProcurado, setTextoProcurado] = useState("");
@@ -59,12 +61,25 @@ export default function ReceitasConstitucionaisClient({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (rules.length === 0) {
-      seedConstitutionalRulesAction().then(() => {
-        window.location.reload();
-      });
+    setRules(initialRules);
+    setExceptions(initialExceptions);
+  }, [initialExceptions, initialRules]);
+
+  async function handleSeedRules() {
+    setLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    const result = await seedConstitutionalRulesAction();
+    setLoading(false);
+
+    if (result.error) {
+      setErrorMsg(result.error);
+      return;
     }
-  }, [rules.length]);
+
+    setSuccessMsg("Regras padrão criadas. Atualizando a tabela...");
+    router.refresh();
+  }
 
   async function handleCreateRule(e: React.FormEvent) {
     e.preventDefault();
@@ -221,6 +236,22 @@ export default function ReceitasConstitucionaisClient({
                     </td>
                   </tr>
                 ))}
+                {rules.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="p-8 text-center text-slate-500">
+                      <p>Nenhuma regra padrão foi carregada nesta instância.</p>
+                      <button
+                        type="button"
+                        onClick={handleSeedRules}
+                        disabled={loading}
+                        className="mt-3 inline-flex items-center gap-2 rounded-lg bg-purple-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+                      >
+                        <RefreshCw className={loading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+                        {loading ? "Criando regras..." : "Criar regras padrão da POC"}
+                      </button>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
