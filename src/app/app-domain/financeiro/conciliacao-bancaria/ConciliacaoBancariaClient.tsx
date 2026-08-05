@@ -169,7 +169,7 @@ export default function ConciliacaoBancariaClient({ initialSessions = [] }: { in
                 />
               </div>
               <div>
-                <label className="block font-semibold uppercase mb-1">Saldo Inicial (R$)</label>
+                  <label className="block font-semibold uppercase mb-1">Saldo Inicial do Extrato (R$)</label>
                 <MoneyInput
                   value={saldoInicial}
                   onChange={setSaldoInicial}
@@ -218,7 +218,7 @@ export default function ConciliacaoBancariaClient({ initialSessions = [] }: { in
               </div>
 
               {/* 5 Cards de Saldos */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-xs">
                 <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border">
                   <span className="text-slate-500 block font-semibold">Saldo Inicial</span>
                   <span className="font-bold text-slate-800 dark:text-white text-sm">
@@ -241,6 +241,12 @@ export default function ConciliacaoBancariaClient({ initialSessions = [] }: { in
                   <span className="text-emerald-800 dark:text-emerald-200 block font-semibold">Saldo Final Extrato</span>
                   <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
                     R$ {Number(activeSession.saldoFinalDecimal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-lg border border-blue-300">
+                  <span className="text-blue-800 dark:text-blue-200 block font-semibold">Saldo do Razão</span>
+                  <span className="font-extrabold text-blue-600 dark:text-blue-400 text-sm">
+                    R$ {Number(activeSession.saldoRazaoDecimal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-lg border border-blue-300">

@@ -13,6 +13,7 @@
     "seed:poc": "npx tsx prisma/seed-poc-massivo.ts",
     "seed:poc-base": "npx tsx prisma/seed-poc-completo.ts",
     "seed:poc-bank-sandbox": "npx tsx scripts/provision-bank-sandbox-poc.ts",
+    "provision:poc-evaluators": "npx tsx scripts/provision-poc-evaluators.ts",
     "seed:firebase": "npx tsx scripts/seed-firebase-users.ts",
     "provision:citizens": "npx tsx scripts/provision-citizen-test-users.ts",
     "seed:all": "npm run seed:poc && npm run seed:firebase",

@@ -101,6 +101,20 @@ export async function openReconciliationSessionAction(input: {
     const dataInicio = new Date(year, month - 1, 1);
     const dataFim = new Date(year, month, 0, 23, 59, 59);
 
+    const bankAccount = await prisma.bankAccount.findFirst({
+      where: { bankName: parsed.data.banco, agency: parsed.data.agencia, accountNumber: parsed.data.contaNumero, isActive: true },
+      select: { id: true, budgetUnitId: true },
+    });
+    if (!bankAccount) throw new Error("A conta bancária da conciliação não está cadastrada ou ativa.");
+    if (!isSystemAdministrator(context.user) && (!bankAccount.budgetUnitId || !context.user.allowedBudgetUnitIds.includes(bankAccount.budgetUnitId))) {
+      throw new Error("Sem permissão para conciliar esta Unidade Gestora.");
+    }
+    const ledgerMovements = await prisma.treasuryMovement.findMany({
+      where: { bankAccountId: bankAccount.id, date: { lte: dataFim } },
+      select: { direction: true, valueDecimal: true },
+    });
+    const saldoRazao = ledgerMovements.reduce((total, movement) => total + (movement.direction === "DEBIT" ? -Math.abs(Number(movement.valueDecimal)) : Math.abs(Number(movement.valueDecimal))), 0);
+
     // Buscar ou criar sessão
     let session = await prisma.bankReconciliationSession.findFirst({
       where: {
@@ -124,10 +138,15 @@ export async function openReconciliationSessionAction(input: {
           totalDebitosDecimal: new Prisma.Decimal(0),
           totalCreditosDecimal: new Prisma.Decimal(0),
           saldoFinalDecimal: new Prisma.Decimal(parsed.data.saldoInicial),
-          saldoRazaoDecimal: new Prisma.Decimal(parsed.data.saldoInicial),
+          saldoRazaoDecimal: new Prisma.Decimal(saldoRazao),
           diferencaDecimal: new Prisma.Decimal(0),
           status: "ABERTA",
         },
+      });
+    } else {
+      session = await prisma.bankReconciliationSession.update({
+        where: { id: session.id },
+        data: { saldoRazaoDecimal: new Prisma.Decimal(saldoRazao) },
       });
     }
 

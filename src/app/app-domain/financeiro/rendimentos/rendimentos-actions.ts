@@ -71,6 +71,7 @@ export async function fetchExternalYieldsAction(input: {
   periodoFim: string;
 }): Promise<ActionResult> {
   try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const yields = await bankIntegrationClient.fetchYieldReport(
       {
         banco: input.banco,
@@ -82,7 +83,19 @@ export async function fetchExternalYieldsAction(input: {
         periodoFim: input.periodoFim,
       }
     );
-    return { data: yields };
+    const references = yields.map((item) => item.documentoRef).filter((reference): reference is string => Boolean(reference));
+    const statementItems = await context.prisma.bankStatementItem.findMany({
+      where: { banco: input.banco, agencia: input.agencia, contaNumero: input.contaNumero, codigoTransacao: { in: references } },
+      select: { id: true, codigoTransacao: true, treasuryMovementId: true },
+    });
+    const itemsByReference = new Map(statementItems.map((item) => [item.codigoTransacao, item]));
+    return {
+      data: yields.map((item) => ({
+        ...item,
+        statementItemId: item.documentoRef ? itemsByReference.get(item.documentoRef)?.id : undefined,
+        alreadyProcessed: Boolean(item.documentoRef && itemsByReference.get(item.documentoRef)?.treasuryMovementId),
+      })),
+    };
   } catch (err: any) {
     return { error: err?.message || "Erro ao consultar rendimentos no simulador bancário." };
   }

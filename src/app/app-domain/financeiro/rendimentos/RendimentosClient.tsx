@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { TrendingUp, Calculator, ShieldCheck, CheckCircle2, FileText, Percent, Coins, RotateCcw, Send } from "lucide-react";
-import { calculateYieldAction, transmitYieldAction } from "./rendimentos-actions";
+import { calculateYieldAction, fetchExternalYieldsAction, transmitYieldAction } from "./rendimentos-actions";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 
 interface YieldRecord {
@@ -28,6 +28,10 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
   const [correcaoMonetaria, setCorrecaoMonetaria] = useState<number>(0.0);
   const [saldoAnteriorAcumulado, setSaldoAnteriorAcumulado] = useState<number>(145800.0);
   const [isEstorno, setIsEstorno] = useState<boolean>(false);
+  const [periodoInicio, setPeriodoInicio] = useState("2025-08-01");
+  const [periodoFim, setPeriodoFim] = useState("2025-08-31");
+  const [externalYields, setExternalYields] = useState<any[]>([]);
+  const [selectedYield, setSelectedYield] = useState<any | null>(null);
 
   const [calculation, setCalculation] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
@@ -61,14 +65,38 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
     }
   }
 
+  async function handleFetchYields() {
+    setLoading(true);
+    setErrorMsg(null);
+    const res = await fetchExternalYieldsAction({ banco: "001 - Banco Virtual Robonuvem", agencia: "0001", contaNumero, periodoInicio, periodoFim });
+    setLoading(false);
+    if (res.error) return setErrorMsg(res.error);
+    setExternalYields(res.data || []);
+    if (!res.data?.length) setErrorMsg("Nenhum rendimento foi encontrado no extrato para o período informado.");
+  }
+
+  async function handleSelectYield(yieldItem: any) {
+    if (!yieldItem.statementItemId) return setErrorMsg("Baixe o extrato da aplicação antes de processar este rendimento.");
+    if (yieldItem.alreadyProcessed) return setErrorMsg("Este rendimento já foi processado.");
+    setSelectedYield(yieldItem);
+    setValorBruto(yieldItem.valorBruto);
+    setIrrf(yieldItem.irrf);
+    setIof(yieldItem.iof);
+    setCorrecaoMonetaria(yieldItem.correcaoMonetaria);
+    const res = await calculateYieldAction({ ...yieldItem, saldoAnteriorAcumulado });
+    if (res.error) setErrorMsg(res.error);
+    else setCalculation(res.data);
+  }
+
   async function handleTransmit() {
     if (!calculation) return;
     setTransmitting(true);
     setErrorMsg(null);
 
     const res = await transmitYieldAction({
+      statementItemId: selectedYield?.statementItemId,
       contaNumero,
-      data: new Date().toISOString(),
+      data: selectedYield?.data || new Date().toISOString(),
       valorBruto: calculation.valorBruto,
       irrf: calculation.irrf,
       iof: calculation.iof,
@@ -145,6 +173,30 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
                 required
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Início do período</label>
+                <input type="date" value={periodoInicio} onChange={(e) => setPeriodoInicio(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2.5 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Fim do período</label>
+                <input type="date" value={periodoFim} onChange={(e) => setPeriodoFim(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2.5 text-sm" />
+              </div>
+            </div>
+            <button type="button" onClick={handleFetchYields} disabled={loading} className="w-full border border-emerald-600 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-bold py-2.5 px-4 rounded-lg transition-all">
+              Consultar rendimentos no extrato de aplicação
+            </button>
+            {externalYields.length > 0 && (
+              <div className="space-y-2 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">Rendimentos identificados no extrato</p>
+                {externalYields.map((yieldItem) => (
+                  <button key={yieldItem.documentoRef || yieldItem.data} type="button" onClick={() => handleSelectYield(yieldItem)} disabled={yieldItem.alreadyProcessed} className="w-full rounded border border-slate-200 dark:border-slate-700 p-2 text-left text-xs hover:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50">
+                    {new Date(yieldItem.data).toLocaleDateString("pt-BR")} - R$ {Number(yieldItem.valorLiquido).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}{yieldItem.alreadyProcessed ? " (processado)" : ""}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div>

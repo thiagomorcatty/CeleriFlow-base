@@ -32,7 +32,7 @@ export async function seedConstitutionalRulesAction(): Promise<ActionResult> {
       where: { tipoMovimento: "RECEITA_CONSTITUCIONAL" },
     });
 
-    if (count === 0) {
+    {
       const defaultRules = [
         {
           textoProcurado: "FPM",
@@ -161,9 +161,12 @@ export async function seedConstitutionalRulesAction(): Promise<ActionResult> {
         },
       ];
 
-      await prisma.classificationRule.createMany({
-        data: defaultRules,
-      });
+      for (const rule of defaultRules) {
+        const exists = await prisma.classificationRule.findFirst({
+          where: { textoProcurado: rule.textoProcurado, tipoMovimento: "RECEITA_CONSTITUCIONAL" },
+        });
+        if (!exists) await prisma.classificationRule.create({ data: rule });
+      }
 
       // Inserir itens de teste na Fila de Exceções para demonstração na POC
       const existingExceptions = await prisma.exceptionQueueItem.count();
@@ -198,6 +201,45 @@ export async function seedConstitutionalRulesAction(): Promise<ActionResult> {
         });
       }
     }
+
+    const missingRules = [
+      {
+        textoProcurado: "IPI_EXPORTACAO",
+        tipoReceita: "IPI Exportação",
+        naturezaReceita: "1.7.2.8.01.3.1.00.00 - Cota-Parte do IPI Exportação",
+        fonteRecurso: "15000000 - Recursos Não Vinculados de Impostos",
+        eventoContabil: "10.01.11 - Arrecadação de IPI Exportação",
+        deducaoAplicavel: true,
+        prioridade: 12,
+        exigeConfirmacao: false,
+      },
+      {
+        textoProcurado: "ROYALTIES",
+        tipoReceita: "Royalties do Petróleo",
+        naturezaReceita: "1.7.1.8.02.2.1.00.00 - Royalties do Petróleo",
+        fonteRecurso: "15000000 - Recursos Não Vinculados de Impostos",
+        eventoContabil: "10.01.12 - Arrecadação de Royalties",
+        deducaoAplicavel: false,
+        prioridade: 13,
+        exigeConfirmacao: false,
+      },
+    ];
+    for (const rule of missingRules) {
+      const exists = await prisma.classificationRule.findFirst({ where: { textoProcurado: rule.textoProcurado, tipoMovimento: "RECEITA_CONSTITUCIONAL" } });
+      if (!exists) await prisma.classificationRule.create({ data: { ...rule, tipoMovimento: "RECEITA_CONSTITUCIONAL" } });
+    }
+    const natures = [
+      ["1.7.1.8.01.2.1", "Cota-Parte do Fundo de Participação dos Municípios - FPM"],
+      ["1.7.2.8.01.1.1", "Cota-Parte do ICMS"],
+      ["1.7.1.8.06.1.1", "Transferências do FUNDEB"],
+      ["1.7.2.8.01.2.1", "Cota-Parte do IPVA"],
+      ["1.7.1.8.01.5.1", "Cota-Parte do ITR"],
+      ["1.7.1.8.02.1.1", "Fundo Especial do Petróleo"],
+      ["1.7.1.8.01.9.1", "Compensação Financeira ADO 25 / LC 176"],
+      ["1.7.2.8.01.3.1", "Cota-Parte do IPI Exportação"],
+      ["1.7.1.8.02.2.1", "Royalties do Petróleo"],
+    ] as const;
+    for (const [code, name] of natures) await prisma.revenueNature.upsert({ where: { code }, create: { code, name }, update: { name } });
 
     revalidatePath("/financeiro/receitas-constitucionais");
     return { data: { count } };
@@ -329,7 +371,7 @@ export async function processConstitutionalRevenueAction(statementItemId: string
       const rule = rules.find((candidate) => description.includes(candidate.textoProcurado.toUpperCase()));
       if (!rule?.naturezaReceita || !rule.fonteRecurso) throw new Error("Não há regra constitucional completa para este lançamento.");
 
-      const natureCode = rule.naturezaReceita.match(/^\d[\d.]+/)?.[0];
+      const natureCode = rule.naturezaReceita.match(/^\d[\d.]+/)?.[0]?.replace(/(?:\.00)+$/, "");
       const sourceCode = rule.fonteRecurso.match(/^\d+/)?.[0];
       if (!natureCode || !sourceCode) throw new Error("A regra constitucional possui natureza ou fonte inválida.");
       const [nature, source] = await Promise.all([
@@ -337,7 +379,7 @@ export async function processConstitutionalRevenueAction(statementItemId: string
         tx.resourceSource.findUnique({ where: { code: sourceCode }, select: { id: true } }),
       ]);
       if (!nature || !source) throw new Error("Cadastre a natureza e a fonte informadas na regra antes de processar a receita.");
-      if (source.id !== account.resourceSourceId) throw new Error("A fonte de recurso da regra não corresponde à fonte vinculada à conta bancária.");
+      // A conta registra o crédito bancário; a regra define a fonte legal da receita.
 
       const actor: FinanceActor = {
         usuarioId: context.user.id,
