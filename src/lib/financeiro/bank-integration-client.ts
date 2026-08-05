@@ -282,7 +282,7 @@ export class BankIntegrationClient {
     const generation = await this.request(`/accounts/${encodeURIComponent(accountId)}/statements`, {
       method: "POST",
       headers: { "Idempotency-Key": crypto.createHash("sha256").update(`${accountId}:${range.periodoInicio}:${range.periodoFim}`).digest("hex") },
-      body: JSON.stringify({ start: range.periodoInicio, end: range.periodoFim }),
+      body: JSON.stringify({ start_date: range.periodoInicio, end_date: range.periodoFim }),
     });
     const generated: unknown = await generation.json();
     const generatedRecord = asRecord(generated);
@@ -332,7 +332,7 @@ export class BankIntegrationClient {
 
     const account = values.map(asRecord).find((item): item is JsonRecord => Boolean(item) &&
       stringValue(item!, "account_number", "accountNumber", "number") === config.contaNumero &&
-      stringValue(item!, "branch_number", "agency", "agencia") === config.agencia,
+      stringValue(item!, "branch_number", "branch", "agency", "agencia") === config.agencia,
     );
     const accountId = account && stringValue(account, "id", "account_id", "accountId");
     if (!accountId) throw new BankIntegrationError("A conta informada não foi encontrada no banco simulado.");
@@ -354,7 +354,7 @@ export class BankIntegrationClient {
     const response = await this.requestRaw("/auth/token", {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, grant_type: "client_credentials" }),
+      body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
     });
     const payload: unknown = await response.json();
     const token = asRecord(payload) && stringValue(asRecord(payload)!, "access_token");

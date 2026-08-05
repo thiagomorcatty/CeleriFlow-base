@@ -24,11 +24,11 @@ interface DownloadRecord {
 }
 
 export default function DownloadExtratosClient({ initialHistory = [] }: { initialHistory?: DownloadRecord[] }) {
-  const [banco, setBanco] = useState("001 - Banco do Brasil S.A.");
-  const [agencia, setAgencia] = useState("1234-5");
-  const [contaNumero, setContaNumero] = useState("98765-4");
-  const [periodoInicio, setPeriodoInicio] = useState("2026-08-01");
-  const [periodoFim, setPeriodoFim] = useState("2026-08-31");
+  const [banco, setBanco] = useState("001 - Banco Virtual Robonuvem");
+  const [agencia, setAgencia] = useState("0001");
+  const [contaNumero, setContaNumero] = useState("20001-1");
+  const [periodoInicio, setPeriodoInicio] = useState("2025-08-01");
+  const [periodoFim, setPeriodoFim] = useState("2025-08-31");
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -97,6 +97,7 @@ export default function DownloadExtratosClient({ initialHistory = [] }: { initia
                 onChange={(e) => setBanco(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
               >
+                <option value="001 - Banco Virtual Robonuvem">001 - Banco Virtual Robonuvem</option>
                 <option value="001 - Banco do Brasil S.A.">001 - Banco do Brasil S.A.</option>
                 <option value="104 - Caixa Econômica Federal">104 - Caixa Econômica Federal</option>
                 <option value="033 - Banco Santander Brasil">033 - Banco Santander Brasil</option>

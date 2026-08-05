@@ -34,7 +34,7 @@ Tempo de expiração do token em segundos: 3600
 Client ID técnico da integração: celeriflow-poc
 ```
 
-Diferença do contrato de exemplo: o campo `grant_type` não é necessário nem processado pela API.
+Compatibilidade confirmada: o CeleriFlow envia somente `client_id` e `client_secret`; o campo `grant_type` não é necessário.
 
 O adaptador atual do CeleriFlow espera este contrato. Informe qualquer diferença:
 
@@ -121,7 +121,7 @@ Campo do número da conta: account_number
 Campo da agência: branch
 ```
 
-Diferença do contrato de exemplo: `GET /accounts` retorna diretamente um array de contas, e não um objeto com a propriedade `accounts`. O campo da agência chama-se `branch`.
+Compatibilidade confirmada: o CeleriFlow aceita a lista diretamente na raiz da resposta e reconhece o campo `branch` para a agência.
 
 ## 5. Extratos
 
@@ -135,7 +135,7 @@ Formatos disponíveis: ofx, csv
 Formato a usar na POC: OFX
 ```
 
-Diferenças do contrato de exemplo: a API usa `start_date` e `end_date`, retorna `statement_id` e não implementa `Idempotency-Key` no endpoint de extratos. O CeleriFlow deve manter sua própria prevenção de reprocessamento pelos `external_id` das movimentações.
+Compatibilidade confirmada: o CeleriFlow envia `start_date` e `end_date`, reconhece `statement_id` e impede reprocessamento de movimentações pelos `external_id` recebidos no extrato.
 
 Contrato esperado:
 

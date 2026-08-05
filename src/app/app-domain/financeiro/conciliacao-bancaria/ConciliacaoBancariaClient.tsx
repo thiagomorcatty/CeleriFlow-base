@@ -25,10 +25,10 @@ interface Session {
 }
 
 export default function ConciliacaoBancariaClient({ initialSessions = [] }: { initialSessions?: Session[] }) {
-  const [banco, setBanco] = useState("001 - Banco do Brasil S.A.");
-  const [agencia, setAgencia] = useState("1234-5");
-  const [contaNumero, setContaNumero] = useState("98765-4");
-  const [periodo, setPeriodo] = useState("2026-08");
+  const [banco, setBanco] = useState("001 - Banco Virtual Robonuvem");
+  const [agencia, setAgencia] = useState("0001");
+  const [contaNumero, setContaNumero] = useState("20001-1");
+  const [periodo, setPeriodo] = useState("2025-08");
   const [saldoInicial, setSaldoInicial] = useState<number>(150000.0);
 
   const [activeSession, setActiveSession] = useState<Session | null>(initialSessions[0] || null);

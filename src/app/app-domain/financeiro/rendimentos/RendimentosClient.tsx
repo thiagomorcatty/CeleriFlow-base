@@ -20,7 +20,7 @@ interface YieldRecord {
 }
 
 export default function RendimentosClient({ initialHistory = [] }: { initialHistory?: YieldRecord[] }) {
-  const [contaNumero, setContaNumero] = useState("98765-4 (Conta Aplicação BB)");
+  const [contaNumero, setContaNumero] = useState("90001-4");
   const [valorBruto, setValorBruto] = useState<number>(3420.5);
   const [irrf, setIrrf] = useState<number>(513.07);
   const [iof, setIof] = useState<number>(0.0);
