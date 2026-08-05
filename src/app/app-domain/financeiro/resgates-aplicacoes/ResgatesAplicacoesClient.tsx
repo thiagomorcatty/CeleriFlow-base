@@ -94,11 +94,6 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-300">
-              Funcionalidade 2 — POC Edital
-            </span>
-          </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white mt-1 flex items-center gap-2">
             <ArrowRightLeft className="w-7 h-7 text-blue-600 dark:text-blue-400" />
             Motor de Classificação de Resgates e Aplicações

@@ -134,11 +134,6 @@ export default function ReceitasConstitucionaisClient({
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded-full dark:bg-purple-900 dark:text-purple-300">
-              Funcionalidade 4 — POC Edital
-            </span>
-          </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white mt-1 flex items-center gap-2">
             <Landmark className="w-7 h-7 text-purple-600 dark:text-purple-400" />
             Receitas Constitucionais e Legais
@@ -395,7 +390,7 @@ export default function ReceitasConstitucionaisClient({
             <div>
               <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
-                Fila de Exceções para Trata de Variações (POC Edital)
+                Fila de Exceções e Variações
               </h2>
               <p className="text-xs text-slate-500">
                 Movimentações bancárias que não coincidiram 100% com as regras padrão. Permite homologação rápida e aprendizado do sistema.

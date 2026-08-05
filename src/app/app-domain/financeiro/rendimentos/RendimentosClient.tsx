@@ -137,11 +137,6 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-0.5 rounded-full dark:bg-emerald-900 dark:text-emerald-300">
-              Funcionalidade 3 — POC Edital
-            </span>
-          </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white mt-1 flex items-center gap-2">
             <TrendingUp className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
             Gestão de Rendimentos de Aplicação Financeira
