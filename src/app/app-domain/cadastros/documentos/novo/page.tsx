@@ -1,7 +1,7 @@
 import { File, Save, ArrowLeft, Building, User, Info, Upload } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModule, getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 
 export default async function NovoDocumentoPage() {
   const { prisma } = await getTenantContextForModule("CADASTROS");
@@ -15,7 +15,7 @@ export default async function NovoDocumentoPage() {
 
   async function createDocument(formData: FormData) {
     "use server";
-    const { prisma } = await getTenantContextForModule("CADASTROS");
+    const { prisma } = await getTenantContextForModuleEdit("CADASTROS");
     
     const title = formData.get("title") as string;
     const documentType = formData.get("documentType") as string;

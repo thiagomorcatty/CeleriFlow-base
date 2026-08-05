@@ -1,13 +1,13 @@
 "use server";
 
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 
 async function getTenantPrisma() {
-  return (await getTenantContextForModule("SANEAMENTO")).prisma;
+  return (await getTenantContextForModuleEdit("SANEAMENTO")).prisma;
 }
 
 type ActionResult = { error?: string };

@@ -1,11 +1,11 @@
 "use server";
 
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 async function getTenantPrisma() {
-  return (await getTenantContextForModule("EDUCACAO")).prisma;
+  return (await getTenantContextForModuleEdit("EDUCACAO")).prisma;
 }
 
 export async function createSchoolMeal(formData: FormData) {

@@ -1,7 +1,7 @@
 import { Truck, Save, ArrowLeft, User, List, Building } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModule, getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 
 export default async function NovoFornecedorPage() {
   const { prisma } = await getTenantContextForModule("CADASTROS");
@@ -15,7 +15,7 @@ export default async function NovoFornecedorPage() {
 
   async function createSupplier(formData: FormData) {
     "use server";
-    const { prisma } = await getTenantContextForModule("CADASTROS");
+    const { prisma } = await getTenantContextForModuleEdit("CADASTROS");
     
     const supplierType = formData.get("supplierType") as string;
     const personId = formData.get("personId") as string;

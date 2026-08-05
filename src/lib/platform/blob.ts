@@ -1,4 +1,5 @@
 import { get, put } from "@vercel/blob";
+import { getCeleriFlowInstanceId } from "@/lib/platform/instance";
 
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 
@@ -14,8 +15,12 @@ function safeFilename(filename: string) {
   return sanitized.slice(0, 120) || "arquivo";
 }
 
-function isDocumentPath(pathname: string) {
-  return pathname.startsWith("documents/") || pathname.startsWith("process-documents/");
+export function getBlobDocumentPrefix() {
+  return `instances/${getCeleriFlowInstanceId()}/documents/`;
+}
+
+export function isInstanceDocumentPath(pathname: string) {
+  return pathname.startsWith(getBlobDocumentPrefix());
 }
 
 // Tipos de arquivo aceitos para upload na plataforma
@@ -65,7 +70,7 @@ export function validateUpload(file: File) {
 export async function uploadFile(file: File) {
   validateUpload(file);
 
-  return put(`documents/${crypto.randomUUID()}-${safeFilename(file.name)}`, file, {
+  return put(`${getBlobDocumentPrefix()}${crypto.randomUUID()}-${safeFilename(file.name)}`, file, {
     access: "private",
     token: getBlobToken(),
   });
@@ -78,7 +83,7 @@ export async function uploadProcessFile(file: File) {
     throw new Error("Envie apenas arquivos PDF, JPG ou PNG.");
   }
 
-  return put(`documents/processos/${crypto.randomUUID()}-${safeFilename(file.name)}`, file, {
+  return put(`${getBlobDocumentPrefix()}processos/${crypto.randomUUID()}-${safeFilename(file.name)}`, file, {
     access: "private",
     token: getBlobToken(),
   });
@@ -86,7 +91,7 @@ export async function uploadProcessFile(file: File) {
 
 // Generated public reports are stored as the exact CSV that was issued internally.
 export async function uploadGeneratedReport(filename: string, csv: string) {
-  return put(`documents/relatorios/${crypto.randomUUID()}-${safeFilename(filename)}`, csv, {
+  return put(`${getBlobDocumentPrefix()}relatorios/${crypto.randomUUID()}-${safeFilename(filename)}`, csv, {
     access: "private",
     contentType: "text/csv; charset=utf-8",
     token: getBlobToken(),
@@ -96,7 +101,7 @@ export async function uploadGeneratedReport(filename: string, csv: string) {
 export async function getFile(url: string) {
   try {
     const file = await get(url, { access: "private", token: getBlobToken() });
-    return file && isDocumentPath(file.blob.pathname) ? file : null;
+    return file && isInstanceDocumentPath(file.blob.pathname) ? file : null;
   } catch {
     return null;
   }

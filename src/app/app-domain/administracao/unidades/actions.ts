@@ -1,5 +1,5 @@
 "use server";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -13,7 +13,7 @@ export async function createUnit(formData: FormData) {
   if (!name || !type || !secretariatId) return { error: "Nome, Tipo e Secretaria são obrigatórios" };
 
   try {
-    const { prisma } = await getTenantContextForModule("ADMINISTRACAO");
+    const { prisma } = await getTenantContextForModuleEdit("ADMINISTRACAO");
     await prisma.administrativeUnit.create({
       data: { name, type, secretariatId, address, managerName }
     });

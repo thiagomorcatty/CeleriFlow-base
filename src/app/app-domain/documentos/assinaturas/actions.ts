@@ -1,6 +1,6 @@
 "use server";
 
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { getIdTokenPrincipal } from "@/lib/platform/session";
 import { registerInternalDocumentSignature } from "@/lib/signatures/internal-signature";
 import { revalidatePath } from "next/cache";
@@ -9,7 +9,7 @@ import { headers } from "next/headers";
 export async function signDocumentInternally(id: string, reauthenticationToken: string): Promise<{ error: string | null }> {
   try {
     if (!reauthenticationToken) throw new Error("Confirme sua senha para assinar o documento.");
-    const context = await getTenantContextForModule("DOCUMENTOS");
+    const context = await getTenantContextForModuleEdit("DOCUMENTOS");
     const reauthenticatedUser = await getIdTokenPrincipal(reauthenticationToken);
     if (!reauthenticatedUser) throw new Error("Nao foi possivel validar a confirmacao de senha.");
     if (reauthenticatedUser.firebaseUid !== context.user.firebaseUid) {

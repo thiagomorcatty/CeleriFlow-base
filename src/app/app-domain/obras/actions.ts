@@ -2,12 +2,12 @@
 
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { getTenantContextForModule, getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { applyStockMovement, StockServiceError } from "@/lib/patrimonio/stock-service";
 import { revalidatePath } from "next/cache";
 
 async function getTenantPrisma() {
-  return (await getTenantContextForModule("OBRAS")).prisma;
+  return (await getTenantContextForModuleEdit("OBRAS")).prisma;
 }
 
 type ActionResult = { error?: string };

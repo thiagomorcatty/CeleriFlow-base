@@ -1,11 +1,11 @@
 "use server";
 
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { nextYearlyCode } from "@/lib/sequence";
 
 async function getTenantPrisma() {
-  return (await getTenantContextForModule("COMPRAS")).prisma;
+  return (await getTenantContextForModuleEdit("COMPRAS")).prisma;
 }
 
 export async function deletePurchaseRequest(id: string) {

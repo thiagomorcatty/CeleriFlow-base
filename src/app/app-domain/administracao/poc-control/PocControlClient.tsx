@@ -15,14 +15,15 @@ export default function PocControlClient({ initialCounts }: PocControlClientProp
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const handleReset = async () => {
-    if (!confirm("⚠️ ATENÇÃO: Esta ação irá repovoar e restaurar a base de dados da POC com dados genéricos (100+ por módulo, 200 servidores). Deseja continuar?")) {
+    const confirmation = prompt('Digite "RESETAR POC" para confirmar a restauração destrutiva desta instância.');
+    if (confirmation === null) {
       return;
     }
 
     setLoading(true);
     setMessage(null);
 
-    const res = await resetPocDatabaseAction();
+    const res = await resetPocDatabaseAction(confirmation);
     if (res.error) {
       setMessage({ type: "error", text: res.error });
     } else if (res.message) {

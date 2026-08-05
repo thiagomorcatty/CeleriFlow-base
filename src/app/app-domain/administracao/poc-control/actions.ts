@@ -2,23 +2,33 @@
 
 import { runMassivePocSeed } from "../../../../../prisma/seed-poc-massivo";
 import { getTenantContextForSystemAdministration } from "@/lib/platform/tenant-context";
+import { getCeleriFlowInstanceId } from "@/lib/platform/instance";
+import { isPocModeEnabled } from "@/lib/poc/poc-config";
 
-export async function resetPocDatabaseAction(): Promise<{ success?: boolean; message?: string; error?: string }> {
+const POC_RESET_CONFIRMATION = "RESETAR POC";
+
+export async function resetPocDatabaseAction(confirmation: string): Promise<{ success?: boolean; message?: string; error?: string }> {
   try {
-    // Audit check
     await getTenantContextForSystemAdministration();
+    if (!isPocModeEnabled() || process.env.CELERIFLOW_POC_RESET_ENABLED !== "true") {
+      throw new Error("O reset esta desabilitado para esta instancia.");
+    }
+    if (confirmation !== POC_RESET_CONFIRMATION) {
+      throw new Error(`Digite \"${POC_RESET_CONFIRMATION}\" para confirmar o reset.`);
+    }
+    const instanceId = getCeleriFlowInstanceId();
 
-    console.log(`[POC-RESET] Iniciando reset administrativo da base de dados POC...`);
+    console.log(`[POC-RESET] Iniciando reset da instancia ${instanceId}.`);
     await runMassivePocSeed();
 
     return {
       success: true,
-      message: "Base de dados restaurada com sucesso! Todos os 20 módulos foram repovoados com dados genéricos (100+ por módulo, 200 servidores).",
+      message: `Base da instancia ${instanceId} restaurada com sucesso.`,
     };
-  } catch (err: any) {
+  } catch (err) {
     console.error("[POC-RESET-ERROR]", err);
     return {
-      error: err?.message || "Falha ao restaurar a base de dados da POC.",
+      error: err instanceof Error ? err.message : "Falha ao restaurar a base de dados da POC.",
     };
   }
 }
@@ -83,7 +93,7 @@ export async function getPocDataMetricsAction(): Promise<{
         "Faturas de Saneamento": faturasSaneamento,
       },
     };
-  } catch (err: any) {
-    return { error: err?.message || "Falha ao carregar métricas da POC." };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Falha ao carregar métricas da POC." };
   }
 }

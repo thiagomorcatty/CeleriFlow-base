@@ -1,11 +1,11 @@
 ﻿"use server";
 
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { uploadFile } from "@/lib/platform/blob";
 
 async function getTenantPrisma() {
-  return (await getTenantContextForModule("MEIO_AMBIENTE")).prisma;
+  return (await getTenantContextForModuleEdit("MEIO_AMBIENTE")).prisma;
 }
 
 // ─── EnvEnterprise ───────────────────────────────────────────────────────────

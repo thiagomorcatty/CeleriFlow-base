@@ -1,10 +1,10 @@
 "use server";
 
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
 async function getTenantPrisma() {
-  return (await getTenantContextForModule("DOCUMENTOS")).prisma;
+  return (await getTenantContextForModuleEdit("DOCUMENTOS")).prisma;
 }
 
 export async function updateModelo(

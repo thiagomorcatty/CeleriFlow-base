@@ -1,13 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { z } from "zod";
 import { nextYearlyCode } from "@/lib/sequence";
 import type { SegMobFormData, SegMobKind } from "./types";
 
 async function getTenantPrisma() {
-  return (await getTenantContextForModule("SEGURANCA")).prisma;
+  return (await getTenantContextForModuleEdit("SEGURANCA")).prisma;
 }
 
 const kindSchema = z.enum(["guarda", "ocorrencia", "infracao", "registro"]);

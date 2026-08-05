@@ -1,10 +1,10 @@
 "use server";
 
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
 async function getTenantPrisma() {
-  return (await getTenantContextForModule("SOCIAL")).prisma;
+  return (await getTenantContextForModuleEdit("SOCIAL")).prisma;
 }
 
 export async function createSocialUnit(data: { name: string; type: string; phone?: string; email?: string; addressId?: string; realEstateId?: string; managerId?: string }) {

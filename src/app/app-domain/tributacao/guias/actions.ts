@@ -1,11 +1,11 @@
 "use server";
 
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { cancelTaxGuide, confirmTaxPayment } from "@/lib/tributacao";
 import { revalidatePath } from "next/cache";
 
 async function getTenantPrisma() {
-  return getTenantContextForModule("TRIBUTACAO");
+  return getTenantContextForModuleEdit("TRIBUTACAO");
 }
 
 export async function payGuide(guideId: string, amount: number) {

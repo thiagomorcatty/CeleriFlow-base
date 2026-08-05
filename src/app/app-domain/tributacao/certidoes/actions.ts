@@ -1,11 +1,11 @@
 "use server";
 
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 
 async function getTenantPrisma() {
-  return (await getTenantContextForModule("TRIBUTACAO")).prisma;
+  return (await getTenantContextForModuleEdit("TRIBUTACAO")).prisma;
 }
 
 export async function createCertificate(data: {

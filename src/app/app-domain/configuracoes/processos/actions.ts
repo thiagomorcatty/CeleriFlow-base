@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 
 async function getConfigurationPrisma() {
-  const context = await getTenantContextForModule("CONFIGURACOES");
+  const context = await getTenantContextForModuleEdit("CONFIGURACOES");
   if (!context.user.role.toLowerCase().includes("administrador")) {
     throw new Error("Somente administradores podem parametrizar processos.");
   }

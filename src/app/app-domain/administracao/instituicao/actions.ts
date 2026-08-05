@@ -1,11 +1,11 @@
 "use server";
 
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
 export async function saveInstitution(formData: FormData) {
   try {
-    const { prisma } = await getTenantContextForModule("ADMINISTRACAO");
+    const { prisma } = await getTenantContextForModuleEdit("ADMINISTRACAO");
     let logoUrl: string | null = null;
     const logoFile = formData.get("logoFile") as File | null;
 
