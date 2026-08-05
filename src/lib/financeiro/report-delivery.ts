@@ -253,7 +253,7 @@ export async function generateInternalReportDataset(
     case "LOA": {
       const laws = await db.annualBudgetLaw.findMany({ where: { financialYearId }, include: { revenueForecasts: true, expenseFixations: true }, orderBy: { publicationDate: "asc" } });
       return { title: "LOA", year, warnings: [internalReportWarning, partialReportWarning], metadata: reportMetadata(reportType, year, { status: "INTERNAL_PARTIAL", scope: "Orçamento anual" }), sections: [
-        { title: "Leis orçamentárias", rows: laws.map((law) => ({ numeroLei: law.lawNumber, publicacao: isoDate(law.publicationDate), situacao: law.status, receitaTotal: Number(law.totalRevenue), despesaTotal: Number(law.totalExpense) })) },
+        { title: "Leis orçamentárias", rows: laws.map((law) => ({ numeroLei: law.lawNumber, publicacao: law.publicationDate ? isoDate(law.publicationDate) : "PENDENTE", situacao: law.status, receitaTotal: Number(law.totalRevenue), despesaTotal: Number(law.totalExpense) })) },
         { title: "Previsão de receitas", rows: laws.flatMap((law) => law.revenueForecasts.map((forecast) => ({ numeroLei: law.lawNumber, codigo: forecast.code, descricao: forecast.name, valorPrevisto: Number(forecast.estimatedValue) }))) },
         { title: "Fixação de despesas", rows: laws.flatMap((law) => law.expenseFixations.map((fixation) => ({ numeroLei: law.lawNumber, codigo: fixation.code, descricao: fixation.name, valorFixado: Number(fixation.fixedValue) }))) },
       ] };
