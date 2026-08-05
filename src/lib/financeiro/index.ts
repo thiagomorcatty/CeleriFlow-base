@@ -1473,8 +1473,8 @@ async function financialYearForPosting(tx: Db, date: Date) {
 }
 
 function signedValue(direction: string, value: Prisma.Decimal) {
-  if (direction === "Entrada") return value;
-  if (direction === "Saída") return value.negated();
+  if (direction === "Entrada" || direction === "CREDIT") return value;
+  if (direction === "Saída" || direction === "DEBIT") return value.negated();
   throw new FinanceError("Direção de tesouraria inválida.");
 }
 
