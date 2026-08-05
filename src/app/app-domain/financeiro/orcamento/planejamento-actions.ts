@@ -17,6 +17,10 @@ import {
   createCreditRequest,
   approveCreditRequest,
   executeCreditRequest,
+  submitCreditRequest,
+  sanctionCreditRequest,
+  publishCreditRequest,
+  transitionPlanningLegalWorkflow,
 } from "@/lib/financeiro/planejamento";
 import { getTenantContextForModuleEdit, isSystemAdministrator, type AppContext } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
@@ -44,6 +48,10 @@ const creditRequestSchema = z.object({
   financialYearId: z.string().min(1),
   type: z.enum(["Suplementar", "Especial", "Extraordinário", "Remanejamento", "Transposição", "Transferência"]),
   lawNumber: z.string().trim().min(1).optional(),
+  legalActNumber: z.string().trim().min(1),
+  legalActDate: z.string().min(1),
+  legalDocumentId: z.string().min(1),
+  fundingSourceId: z.string().min(1),
   justification: z.string().trim().min(1),
   items: z.array(z.object({
     appropriationId: z.string().min(1),
@@ -97,7 +105,7 @@ const goalSchema = z.object({
 
 const guidelineSchema = z.object({
   financialYearId: z.string().min(1),
-  multiYearPlanId: z.string().min(1).optional(),
+  multiYearPlanId: z.string().min(1),
   priorities: z.array(z.object({
     description: z.string().trim().min(1),
     targetValue: z.number().finite().positive().optional(),
@@ -113,7 +121,7 @@ const annualBudgetLawSchema = z.object({
   lawNumber: z.string().trim().min(1),
   publicationDate: z.string().min(1),
   financialYearId: z.string().min(1),
-  budgetGuidelineId: z.string().min(1).optional(),
+  budgetGuidelineId: z.string().min(1),
   totalRevenue: z.number().finite().positive(),
   totalExpense: z.number().finite().positive(),
   revenueForecasts: z.array(z.object({
@@ -133,6 +141,21 @@ const planningAmendmentSchema = z.object({
   entityId: z.string().min(1),
   reason: z.string().trim().min(1),
   amendedSnapshot: z.record(z.string(), z.unknown()),
+});
+
+const planningTransitionSchema = z.object({
+  entityType: z.enum(["PPA", "LDO", "LOA"]),
+  entityId: z.string().min(1),
+  stage: z.enum(["SUBMITTED", "APPROVED", "SANCTIONED", "PUBLISHED"]),
+  legalEvidence: z.object({
+    legalActNumber: z.string().trim().min(1),
+    legalActDate: z.string().min(1),
+    legalDocumentId: z.string().min(1),
+  }).optional(),
+  publication: z.object({
+    publicationDate: z.string().min(1),
+    publicationReference: z.string().trim().min(1),
+  }).optional(),
 });
 
 export async function actionCreateMultiYearPlan(input: {
@@ -236,7 +259,7 @@ export async function actionAddGoalPPA(input: {
 
 export async function actionCreateBudgetGuideline(input: {
   financialYearId: string;
-  multiYearPlanId?: string;
+  multiYearPlanId: string;
   priorities?: { description: string; targetValue?: number }[];
   risks?: { description: string; estimatedImpact: number; mitigation: string }[];
 }): Promise<ActionResult<{ id: string }>> {
@@ -255,7 +278,7 @@ export async function actionCreateAnnualBudgetLaw(input: {
   lawNumber: string;
   publicationDate: string;
   financialYearId: string;
-  budgetGuidelineId?: string;
+  budgetGuidelineId: string;
   totalRevenue: number;
   totalExpense: number;
   revenueForecasts?: { code: string; name: string; estimatedValue: number }[];
@@ -273,6 +296,28 @@ export async function actionCreateAnnualBudgetLaw(input: {
     return { data: { id: loa.id } };
   } catch (error) {
     return { error: errorMessage(error, "Não foi possível cadastrar a LOA.") };
+  }
+}
+
+export async function actionTransitionPlanningLegalWorkflow(input: {
+  entityType: "PPA" | "LDO" | "LOA";
+  entityId: string;
+  stage: "SUBMITTED" | "APPROVED" | "SANCTIONED" | "PUBLISHED";
+  legalEvidence?: { legalActNumber: string; legalActDate: string; legalDocumentId: string };
+  publication?: { publicationDate: string; publicationReference: string };
+}): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const parsedInput = planningTransitionSchema.parse(input);
+    await transitionPlanningLegalWorkflow(context.prisma, financeActor(context), {
+      ...parsedInput,
+      legalEvidence: parsedInput.legalEvidence && { ...parsedInput.legalEvidence, legalActDate: new Date(parsedInput.legalEvidence.legalActDate) },
+      publication: parsedInput.publication && { ...parsedInput.publication, publicationDate: new Date(parsedInput.publication.publicationDate) },
+    });
+    revalidatePath("/financeiro/orcamento/planejamento");
+    return {};
+  } catch (error) {
+    return { error: errorMessage(error, "Não foi possível alterar a etapa legal do planejamento.") };
   }
 }
 
@@ -352,16 +397,32 @@ export async function actionCreateCreditRequest(input: {
   financialYearId: string;
   type: "Suplementar" | "Especial" | "Extraordinário" | "Remanejamento" | "Transposição" | "Transferência";
   lawNumber?: string;
+  legalActNumber: string;
+  legalActDate: string;
+  legalDocumentId: string;
+  fundingSourceId: string;
   justification: string;
   items: { appropriationId: string; type: "Acréscimo" | "Anulação"; value: number }[];
 }): Promise<ActionResult<{ id: string }>> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
-    const credit = await createCreditRequest(context.prisma, financeActor(context), creditRequestSchema.parse(input));
+    const parsedInput = creditRequestSchema.parse(input);
+    const credit = await createCreditRequest(context.prisma, financeActor(context), { ...parsedInput, legalActDate: new Date(parsedInput.legalActDate) });
     revalidatePath("/financeiro/orcamento");
     return { data: { id: credit.id } };
   } catch (error) {
     return { error: errorMessage(error, "Não foi possível criar a solicitação de crédito.") };
+  }
+}
+
+export async function actionSubmitCreditRequest(creditRequestId: string): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    await submitCreditRequest(context.prisma, financeActor(context), z.string().min(1).parse(creditRequestId));
+    revalidatePath("/financeiro/orcamento");
+    return {};
+  } catch (error) {
+    return { error: errorMessage(error, "Não foi possível submeter a solicitação de crédito.") };
   }
 }
 
@@ -384,5 +445,35 @@ export async function actionExecuteCreditRequest(creditRequestId: string): Promi
     return {};
   } catch (error) {
     return { error: errorMessage(error, "Não foi possível efetivar o crédito adicional.") };
+  }
+}
+
+export async function actionSanctionCreditRequest(creditRequestId: string): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    await sanctionCreditRequest(context.prisma, financeActor(context), z.string().min(1).parse(creditRequestId));
+    revalidatePath("/financeiro/orcamento");
+    return {};
+  } catch (error) {
+    return { error: errorMessage(error, "Não foi possível sancionar a solicitação de crédito.") };
+  }
+}
+
+export async function actionPublishCreditRequest(input: {
+  creditRequestId: string;
+  publicationDate: string;
+  publicationReference: string;
+}): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const parsedInput = z.object({ creditRequestId: z.string().min(1), publicationDate: z.string().min(1), publicationReference: z.string().trim().min(1) }).parse(input);
+    await publishCreditRequest(context.prisma, financeActor(context), parsedInput.creditRequestId, {
+      publicationDate: new Date(parsedInput.publicationDate),
+      publicationReference: parsedInput.publicationReference,
+    });
+    revalidatePath("/financeiro/orcamento");
+    return {};
+  } catch (error) {
+    return { error: errorMessage(error, "Não foi possível publicar a solicitação de crédito.") };
   }
 }

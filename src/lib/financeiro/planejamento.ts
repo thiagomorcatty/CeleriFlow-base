@@ -9,6 +9,52 @@ const creditItemTypes = ["Acréscimo", "Anulação"] as const;
 type CreditType = (typeof creditTypes)[number];
 type CreditItemType = (typeof creditItemTypes)[number];
 type PlanningEntityType = "PPA" | "LDO" | "LOA";
+type LegalWorkflowStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "SANCTIONED" | "PUBLISHED";
+type LegalEvidenceInput = { legalActNumber: string; legalActDate: Date; legalDocumentId: string };
+type PublicationInput = { publicationDate: Date; publicationReference: string };
+
+function assertWorkflowStatus(status: string, expected: LegalWorkflowStatus, label: string) {
+  if (status !== expected) throw new FinanceError(`${label} deve estar em ${expected} para esta etapa.`);
+}
+
+function assertActorIsDistinct(actor: FinanceActor, priorActorIds: (string | null | undefined)[]) {
+  if (priorActorIds.includes(actor.usuarioId)) {
+    throw new FinanceError("Segregação de funções: o ator desta etapa deve ser diferente dos atores anteriores.");
+  }
+}
+
+function assertPlanningEditable(status: string, label: string) {
+  if (status === "SANCTIONED" || status === "PUBLISHED") {
+    throw new FinanceError(`${label} não pode ser alterado após a sanção.`);
+  }
+}
+
+function validateDate(value: Date, field: string) {
+  if (Number.isNaN(value.getTime())) throw new FinanceError(`${field} inválida.`);
+  return value;
+}
+
+async function assertValidFinalDocument(tx: Db, documentId: string) {
+  if (!documentId) throw new FinanceError("Documento GED comprobatório é obrigatório.");
+  const document = await tx.document.findUnique({
+    where: { id: documentId },
+    include: { versions: { where: { status: { in: ["FINAL", "SIGNED"] } }, select: { id: true } } },
+  });
+  if (!document || document.status !== "Válido" || (document.validUntil && document.validUntil < new Date()) || !document.versions.length) {
+    throw new FinanceError("O documento GED comprobatório deve estar válido e possuir versão finalizada.");
+  }
+}
+
+async function validateLegalEvidence(tx: Db, input: LegalEvidenceInput) {
+  requireText(input.legalActNumber, "Número do ato legal");
+  validateDate(input.legalActDate, "Data do ato legal");
+  await assertValidFinalDocument(tx, input.legalDocumentId);
+}
+
+function validatePublication(input: PublicationInput) {
+  validateDate(input.publicationDate, "Data de publicação");
+  requireText(input.publicationReference, "Referência da publicação");
+}
 
 async function assertFinancialYearPlanningEligible(tx: Db, financialYearId: string) {
   const financialYear = await tx.financialYear.findUnique({ where: { id: financialYearId } });
@@ -129,7 +175,7 @@ async function planningSnapshot(tx: Db, entityType: PlanningEntityType, entityId
   });
   if (!law) throw new FinanceError("LOA não encontrada para registrar a alteração.");
   return {
-    lawNumber: law.lawNumber, publicationDate: law.publicationDate.toISOString(), financialYear: law.financialYear.year, status: law.status,
+    lawNumber: law.lawNumber, publicationDate: law.publicationDate?.toISOString() ?? null, financialYear: law.financialYear.year, status: law.status,
     totalRevenue: law.totalRevenue.toFixed(2), totalExpense: law.totalExpense.toFixed(2),
     revenueForecasts: law.revenueForecasts.map((forecast) => ({ code: forecast.code, name: forecast.name, estimatedValue: forecast.estimatedValue.toFixed(2) })),
     expenseFixations: law.expenseFixations.map((fixation) => ({ code: fixation.code, name: fixation.name, fixedValue: fixation.fixedValue.toFixed(2) })),
@@ -146,6 +192,13 @@ export async function createPlanningAmendment(
   const reason = requireText(input.reason, "Justificativa da alteração");
   if (!input.entityId) throw new FinanceError("Selecione o registro de planejamento a alterar.");
   return db.$transaction(async (tx) => {
+    const entity = input.entityType === "PPA"
+      ? await tx.multiYearPlan.findUnique({ where: { id: input.entityId }, select: { status: true } })
+      : input.entityType === "LDO"
+        ? await tx.budgetGuideline.findUnique({ where: { id: input.entityId }, select: { status: true } })
+        : await tx.annualBudgetLaw.findUnique({ where: { id: input.entityId }, select: { status: true } });
+    if (!entity) throw new FinanceError("Registro de planejamento não encontrado.");
+    assertPlanningEditable(entity.status, input.entityType);
     // Serializes version allocation even before a record exists for this entity.
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`PlanningAmendment:${input.entityType}:${input.entityId}`}))`;
     const originalSnapshot = await planningSnapshot(tx, input.entityType, input.entityId);
@@ -223,6 +276,8 @@ export async function createMultiYearPlan(
         startYear: input.startYear,
         endYear: input.endYear,
         description: input.description?.trim(),
+        status: "DRAFT",
+        draftedById: actor.usuarioId,
       },
     });
 
@@ -246,6 +301,7 @@ export async function addProgramPPA(
   return db.$transaction(async (tx) => {
     const plan = await tx.multiYearPlan.findUnique({ where: { id: input.multiYearPlanId } });
     if (!plan) throw new FinanceError("Plano Plurianual não encontrado.");
+    assertPlanningEditable(plan.status, "PPA");
 
     const program = await tx.programPPA.create({
       data: {
@@ -269,8 +325,9 @@ export async function addActionPPA(
   requireText(input.code, "Codigo da acao");
   requireText(input.name, "Nome da acao");
   return db.$transaction(async (tx) => {
-    const program = await tx.programPPA.findUnique({ where: { id: input.programId } });
+    const program = await tx.programPPA.findUnique({ where: { id: input.programId }, include: { multiYearPlan: { select: { status: true } } } });
     if (!program) throw new FinanceError("Programa do PPA nao encontrado.");
+    assertPlanningEditable(program.multiYearPlan.status, "PPA");
     const action = await tx.actionPPA.create({
       data: { programId: program.id, code: input.code.trim(), name: input.name.trim(), type: input.type?.trim() || "Projeto" },
     });
@@ -287,8 +344,9 @@ export async function addObjectivePPA(
   const code = requireText(input.code, "Código do objetivo");
   const description = requireText(input.description, "Descrição do objetivo");
   return db.$transaction(async (tx) => {
-    const program = await tx.programPPA.findUnique({ where: { id: input.programId }, select: { id: true } });
+    const program = await tx.programPPA.findUnique({ where: { id: input.programId }, include: { multiYearPlan: { select: { status: true } } } });
     if (!program) throw new FinanceError("Programa do PPA não encontrado.");
+    assertPlanningEditable(program.multiYearPlan.status, "PPA");
     const objective = await tx.objectivePPA.create({
       data: { programId: program.id, code, description },
     });
@@ -307,8 +365,9 @@ export async function addIndicatorPPA(
   const baselineValue = requireNonNegativeNumber(input.baselineValue, "Valor de referência");
   const targetValue = requireNonNegativeNumber(input.targetValue, "Valor da meta");
   return db.$transaction(async (tx) => {
-    const objective = await tx.objectivePPA.findUnique({ where: { id: input.objectiveId }, select: { id: true } });
+    const objective = await tx.objectivePPA.findUnique({ where: { id: input.objectiveId }, include: { program: { include: { multiYearPlan: { select: { status: true } } } } } });
     if (!objective) throw new FinanceError("Objetivo do PPA não encontrado.");
+    assertPlanningEditable(objective.program.multiYearPlan.status, "PPA");
     const indicator = await tx.indicatorPPA.create({
       data: { objectiveId: objective.id, name, unit, baselineValue, targetValue },
     });
@@ -334,10 +393,11 @@ export async function addGoalPPA(
   return db.$transaction(async (tx) => {
     const action = await tx.actionPPA.findUnique({
       where: { id: input.actionId },
-      include: { program: { include: { multiYearPlan: { select: { startYear: true, endYear: true } } } } },
+        include: { program: { include: { multiYearPlan: { select: { startYear: true, endYear: true, status: true } } } } },
     });
     if (!action) throw new FinanceError("Ação do PPA não encontrada.");
     const plan = action.program.multiYearPlan;
+    assertPlanningEditable(plan.status, "PPA");
     if (input.year < plan.startYear || input.year > plan.endYear) {
       throw new FinanceError("O ano da meta deve estar dentro da vigência do PPA.");
     }
@@ -361,19 +421,17 @@ export async function createBudgetGuideline(
   actor: FinanceActor,
   input: {
     financialYearId: string;
-    multiYearPlanId?: string;
+    multiYearPlanId: string;
     priorities?: { description: string; targetValue?: number }[];
     risks?: { description: string; estimatedImpact: number; mitigation: string }[];
   },
 ) {
   return db.$transaction(async (tx) => {
     const financialYear = await assertFinancialYearPlanningEligible(tx, input.financialYearId);
-    if (input.multiYearPlanId) {
-      const plan = await tx.multiYearPlan.findUnique({ where: { id: input.multiYearPlanId } });
-      if (!plan) throw new FinanceError("Plano Plurianual não encontrado.");
-      if (financialYear.year < plan.startYear || financialYear.year > plan.endYear) {
-        throw new FinanceError("O exercício da LDO deve estar dentro da vigência do PPA selecionado.");
-      }
+    const plan = await tx.multiYearPlan.findUnique({ where: { id: input.multiYearPlanId } });
+    if (!plan) throw new FinanceError("Plano Plurianual não encontrado.");
+    if (financialYear.year < plan.startYear || financialYear.year > plan.endYear) {
+      throw new FinanceError("O exercício da LDO deve estar dentro da vigência do PPA selecionado.");
     }
     const priorities = input.priorities ?? [];
     const risks = input.risks ?? [];
@@ -387,6 +445,8 @@ export async function createBudgetGuideline(
         data: {
           financialYearId: input.financialYearId,
           multiYearPlanId: input.multiYearPlanId,
+          status: "DRAFT",
+          draftedById: actor.usuarioId,
         priorities: {
           create: priorities.map((p) => ({
             description: p.description.trim(),
@@ -418,7 +478,7 @@ export async function createAnnualBudgetLaw(
     lawNumber: string;
     publicationDate: Date;
     financialYearId: string;
-    budgetGuidelineId?: string;
+    budgetGuidelineId: string;
     totalRevenue: number;
     totalExpense: number;
     revenueForecasts?: { code: string; name: string; estimatedValue: number }[];
@@ -458,12 +518,10 @@ export async function createAnnualBudgetLaw(
 
   return db.$transaction(async (tx) => {
     await assertFinancialYearPlanningEligible(tx, input.financialYearId);
-    if (input.budgetGuidelineId) {
-      const guideline = await tx.budgetGuideline.findUnique({ where: { id: input.budgetGuidelineId } });
-      if (!guideline) throw new FinanceError("Lei de Diretrizes Orçamentárias não encontrada.");
-      if (guideline.financialYearId !== input.financialYearId) {
-        throw new FinanceError("A LDO selecionada deve pertencer ao mesmo exercício financeiro da LOA.");
-      }
+    const guideline = await tx.budgetGuideline.findUnique({ where: { id: input.budgetGuidelineId } });
+    if (!guideline) throw new FinanceError("Lei de Diretrizes Orçamentárias não encontrada.");
+    if (guideline.financialYearId !== input.financialYearId) {
+      throw new FinanceError("A LDO selecionada deve pertencer ao mesmo exercício financeiro da LOA.");
     }
 
     const loa = await tx.annualBudgetLaw.create({
@@ -472,6 +530,8 @@ export async function createAnnualBudgetLaw(
         publicationDate: input.publicationDate,
         financialYearId: input.financialYearId,
         budgetGuidelineId: input.budgetGuidelineId,
+        status: "DRAFT",
+        draftedById: actor.usuarioId,
         totalRevenue: revenue,
         totalExpense: expense,
         revenueForecasts: {
@@ -495,6 +555,96 @@ export async function createAnnualBudgetLaw(
     await audit(tx, actor, "CREATE", "AnnualBudgetLaw", loa.id, { lawNumber: loa.lawNumber }, input.financialYearId);
     return loa;
   });
+}
+
+export async function transitionPlanningLegalWorkflow(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: { entityType: PlanningEntityType; entityId: string; stage: Exclude<LegalWorkflowStatus, "DRAFT">; legalEvidence?: LegalEvidenceInput; publication?: PublicationInput },
+) {
+  return db.$transaction(async (tx) => {
+    const record = input.entityType === "PPA"
+      ? await tx.multiYearPlan.findUnique({ where: { id: input.entityId }, select: { id: true, status: true, draftedById: true, submittedById: true, approvedById: true, sanctionedById: true } })
+      : input.entityType === "LDO"
+        ? await tx.budgetGuideline.findUnique({ where: { id: input.entityId }, select: { id: true, status: true, draftedById: true, submittedById: true, approvedById: true, sanctionedById: true, financialYearId: true } })
+        : await tx.annualBudgetLaw.findUnique({ where: { id: input.entityId }, select: { id: true, status: true, draftedById: true, submittedById: true, approvedById: true, sanctionedById: true, financialYearId: true } });
+    if (!record) throw new FinanceError(`${input.entityType} não encontrado.`);
+
+    const expected: Record<Exclude<LegalWorkflowStatus, "DRAFT">, LegalWorkflowStatus> = {
+      SUBMITTED: "DRAFT",
+      APPROVED: "SUBMITTED",
+      SANCTIONED: "APPROVED",
+      PUBLISHED: "SANCTIONED",
+    };
+    assertWorkflowStatus(record.status, expected[input.stage], input.entityType);
+    assertActorIsDistinct(actor, [record.draftedById, record.submittedById, record.approvedById, record.sanctionedById]);
+
+    const now = new Date();
+    if (input.stage === "SANCTIONED") {
+      if (!input.legalEvidence) throw new FinanceError("A sanção exige os dados do ato legal e documento GED.");
+      await validateLegalEvidence(tx, input.legalEvidence);
+    }
+    if (input.stage === "PUBLISHED") {
+      if (!input.publication) throw new FinanceError("A publicação exige data e referência oficial.");
+      validatePublication(input.publication);
+    }
+
+    const data = input.stage === "SUBMITTED"
+      ? { status: "SUBMITTED", submittedById: actor.usuarioId, submittedAt: now }
+      : input.stage === "APPROVED"
+        ? { status: "APPROVED", approvedById: actor.usuarioId, approvedAt: now }
+        : input.stage === "SANCTIONED"
+          ? { status: "SANCTIONED", sanctionedById: actor.usuarioId, sanctionedAt: now, legalActNumber: input.legalEvidence!.legalActNumber.trim(), legalActDate: input.legalEvidence!.legalActDate, legalDocumentId: input.legalEvidence!.legalDocumentId }
+          : { status: "PUBLISHED", publishedById: actor.usuarioId, publishedAt: now, publicationDate: input.publication!.publicationDate, publicationReference: input.publication!.publicationReference.trim() };
+
+    const updated = input.entityType === "PPA"
+      ? await tx.multiYearPlan.update({ where: { id: record.id }, data })
+      : input.entityType === "LDO"
+        ? await tx.budgetGuideline.update({ where: { id: record.id }, data })
+        : await tx.annualBudgetLaw.update({ where: { id: record.id }, data });
+    const financialYearId = "financialYearId" in record && typeof record.financialYearId === "string" ? record.financialYearId : undefined;
+    await audit(tx, actor, input.stage, input.entityType, record.id, { stage: input.stage }, financialYearId);
+    return updated;
+  });
+}
+
+export async function submitMultiYearPlan(db: PrismaClient, actor: FinanceActor, id: string) {
+  return transitionPlanningLegalWorkflow(db, actor, { entityType: "PPA", entityId: id, stage: "SUBMITTED" });
+}
+export async function approveMultiYearPlan(db: PrismaClient, actor: FinanceActor, id: string) {
+  return transitionPlanningLegalWorkflow(db, actor, { entityType: "PPA", entityId: id, stage: "APPROVED" });
+}
+export async function sanctionMultiYearPlan(db: PrismaClient, actor: FinanceActor, id: string, legalEvidence: LegalEvidenceInput) {
+  return transitionPlanningLegalWorkflow(db, actor, { entityType: "PPA", entityId: id, stage: "SANCTIONED", legalEvidence });
+}
+export async function publishMultiYearPlan(db: PrismaClient, actor: FinanceActor, id: string, publication: PublicationInput) {
+  return transitionPlanningLegalWorkflow(db, actor, { entityType: "PPA", entityId: id, stage: "PUBLISHED", publication });
+}
+
+export async function submitBudgetGuideline(db: PrismaClient, actor: FinanceActor, id: string) {
+  return transitionPlanningLegalWorkflow(db, actor, { entityType: "LDO", entityId: id, stage: "SUBMITTED" });
+}
+export async function approveBudgetGuideline(db: PrismaClient, actor: FinanceActor, id: string) {
+  return transitionPlanningLegalWorkflow(db, actor, { entityType: "LDO", entityId: id, stage: "APPROVED" });
+}
+export async function sanctionBudgetGuideline(db: PrismaClient, actor: FinanceActor, id: string, legalEvidence: LegalEvidenceInput) {
+  return transitionPlanningLegalWorkflow(db, actor, { entityType: "LDO", entityId: id, stage: "SANCTIONED", legalEvidence });
+}
+export async function publishBudgetGuideline(db: PrismaClient, actor: FinanceActor, id: string, publication: PublicationInput) {
+  return transitionPlanningLegalWorkflow(db, actor, { entityType: "LDO", entityId: id, stage: "PUBLISHED", publication });
+}
+
+export async function submitAnnualBudgetLaw(db: PrismaClient, actor: FinanceActor, id: string) {
+  return transitionPlanningLegalWorkflow(db, actor, { entityType: "LOA", entityId: id, stage: "SUBMITTED" });
+}
+export async function approveAnnualBudgetLaw(db: PrismaClient, actor: FinanceActor, id: string) {
+  return transitionPlanningLegalWorkflow(db, actor, { entityType: "LOA", entityId: id, stage: "APPROVED" });
+}
+export async function sanctionAnnualBudgetLaw(db: PrismaClient, actor: FinanceActor, id: string, legalEvidence: LegalEvidenceInput) {
+  return transitionPlanningLegalWorkflow(db, actor, { entityType: "LOA", entityId: id, stage: "SANCTIONED", legalEvidence });
+}
+export async function publishAnnualBudgetLaw(db: PrismaClient, actor: FinanceActor, id: string, publication: PublicationInput) {
+  return transitionPlanningLegalWorkflow(db, actor, { entityType: "LOA", entityId: id, stage: "PUBLISHED", publication });
 }
 
 export async function createBudgetAppropriationFromFixation(
@@ -525,9 +675,10 @@ export async function createBudgetAppropriationFromFixation(
     await tx.$queryRaw`SELECT id FROM "AnnualBudgetExpenseFixation" WHERE id = ${input.annualBudgetExpenseFixationId} FOR UPDATE`;
     const fixation = await tx.annualBudgetExpenseFixation.findUnique({
       where: { id: input.annualBudgetExpenseFixationId },
-      include: { annualBudgetLaw: { include: { budgetGuideline: { select: { multiYearPlanId: true } } } } },
+        include: { annualBudgetLaw: { include: { budgetGuideline: { select: { multiYearPlanId: true } } } } },
     });
     if (!fixation) throw new FinanceError("Fixacao de despesa da LOA nao encontrada.");
+    assertPlanningEditable(fixation.annualBudgetLaw.status, "LOA");
 
     await assertFinancialYearPlanningEligible(tx, fixation.annualBudgetLaw.financialYearId);
     if (!fixation.annualBudgetLaw.budgetGuideline?.multiYearPlanId) {
@@ -607,10 +758,11 @@ export async function saveMonthlyDisbursementSchedule(
 
   return db.$transaction(async (tx) => {
     const [law, budgetUnit] = await Promise.all([
-      tx.annualBudgetLaw.findUnique({ where: { id: input.annualBudgetLawId }, select: { id: true, financialYearId: true } }),
+      tx.annualBudgetLaw.findUnique({ where: { id: input.annualBudgetLawId }, select: { id: true, financialYearId: true, status: true } }),
       tx.budgetUnit.findUnique({ where: { id: input.budgetUnitId }, select: { id: true } }),
     ]);
     if (!law) throw new FinanceError("LOA nao encontrada.");
+    assertPlanningEditable(law.status, "LOA");
     if (!budgetUnit) throw new FinanceError("Unidade orcamentaria nao encontrada.");
     await assertFinancialYearPlanningEligible(tx, law.financialYearId);
     const schedule = await tx.monthlyDisbursementSchedule.upsert({
@@ -635,8 +787,9 @@ export async function saveBimonthlyRevenueTarget(
   const targetValue = requireNonNegativeMoney(input.targetValue, "Meta bimestral de arrecadacao");
 
   return db.$transaction(async (tx) => {
-    const law = await tx.annualBudgetLaw.findUnique({ where: { id: input.annualBudgetLawId }, select: { id: true, financialYearId: true } });
+    const law = await tx.annualBudgetLaw.findUnique({ where: { id: input.annualBudgetLawId }, select: { id: true, financialYearId: true, status: true } });
     if (!law) throw new FinanceError("LOA nao encontrada.");
+    assertPlanningEditable(law.status, "LOA");
     await assertFinancialYearPlanningEligible(tx, law.financialYearId);
     const target = await tx.bimonthlyRevenueTarget.upsert({
       where: { annualBudgetLawId_bimonth: { annualBudgetLawId: law.id, bimonth: input.bimonth } },
@@ -658,12 +811,19 @@ export async function createCreditRequest(
     financialYearId: string;
     type: CreditType;
     lawNumber?: string;
+    legalActNumber: string;
+    legalActDate: Date;
+    legalDocumentId: string;
+    fundingSourceId: string;
     justification: string;
     items: { appropriationId: string; type: CreditItemType; value: number }[];
   },
 ) {
   const number = requireText(input.number, "Número do crédito");
   const justification = requireText(input.justification, "Justificativa do crédito");
+  const legalActNumber = requireText(input.legalActNumber, "Número do ato legal");
+  validateDate(input.legalActDate, "Data do ato legal");
+  if (!input.fundingSourceId) throw new FinanceError("Fonte de recursos do crédito é obrigatória.");
   if (!creditTypes.includes(input.type)) throw new FinanceError("Tipo de crédito adicional inválido.");
   if (input.items.length === 0) {
     throw new FinanceError("Informe ao menos um item de acréscimo ou anulação na solicitação de crédito.");
@@ -694,6 +854,9 @@ export async function createCreditRequest(
 
   return db.$transaction(async (tx) => {
     await assertFinancialYearOpen(tx, input.financialYearId, new Date());
+    await validateLegalEvidence(tx, { legalActNumber, legalActDate: input.legalActDate, legalDocumentId: input.legalDocumentId });
+    const fundingSource = await tx.resourceSource.findUnique({ where: { id: input.fundingSourceId }, select: { id: true } });
+    if (!fundingSource) throw new FinanceError("Fonte de recursos do crédito não encontrada.");
 
     const appropriations = await tx.budgetAppropriation.findMany({
       where: { id: { in: input.items.map((item) => item.appropriationId) } },
@@ -718,8 +881,13 @@ export async function createCreditRequest(
         financialYearId: input.financialYearId,
         type: input.type,
         lawNumber: input.lawNumber?.trim(),
+        legalActNumber,
+        legalActDate: input.legalActDate,
+        legalDocumentId: input.legalDocumentId,
+        fundingSourceId: fundingSource.id,
         justification,
         totalValue: acrescimo,
+        status: "DRAFT",
         requestedById: actor.usuarioId,
         items: {
           create: input.items.map((item) => ({
@@ -749,7 +917,7 @@ export async function approveCreditRequest(
       include: { items: { include: { appropriation: { select: { financialYearId: true, budgetUnitId: true } } } } },
     });
     if (!credit) throw new FinanceError("Solicitação de crédito adicional não encontrada.");
-    if (credit.status !== "Solicitado") throw new FinanceError(`A solicitação de crédito já está em status ${credit.status}.`);
+    if (credit.status !== "SUBMITTED") throw new FinanceError(`A solicitação de crédito deve estar em SUBMITTED, e está em ${credit.status}.`);
     await assertFinancialYearOpen(tx, credit.financialYearId, new Date());
     for (const item of credit.items) {
       if (item.appropriation.financialYearId !== credit.financialYearId) {
@@ -759,13 +927,11 @@ export async function approveCreditRequest(
     }
 
     // Regra de Segregação: O solicitante NÃO pode aprovar a própria solicitação.
-    if (credit.requestedById === actor.usuarioId) {
-      throw new FinanceError("Segregação de Funções: O usuário solicitante não pode aprovar a própria solicitação de crédito.");
-    }
+    assertActorIsDistinct(actor, [credit.requestedById, credit.submittedById]);
 
     const approved = await tx.creditRequest.updateMany({
-      where: { id: creditRequestId, status: "Solicitado" },
-      data: { status: "Aprovado", approvedById: actor.usuarioId },
+      where: { id: creditRequestId, status: "SUBMITTED" },
+      data: { status: "APPROVED", approvedById: actor.usuarioId, approvedAt: new Date() },
     });
     if (approved.count !== 1) throw new FinanceError("A solicitação foi alterada por outro usuário. Atualize a página e tente novamente.");
 
@@ -773,6 +939,69 @@ export async function approveCreditRequest(
 
     await audit(tx, actor, "APPROVE", "CreditRequest", credit.id, { approvedBy: actor.usuarioId }, credit.financialYearId);
     return updated;
+  });
+}
+
+export async function submitCreditRequest(db: PrismaClient, actor: FinanceActor, creditRequestId: string) {
+  return db.$transaction(async (tx) => {
+    await lockCreditRequest(tx, creditRequestId);
+    const credit = await tx.creditRequest.findUnique({ where: { id: creditRequestId } });
+    if (!credit) throw new FinanceError("Solicitação de crédito adicional não encontrada.");
+    assertWorkflowStatus(credit.status, "DRAFT", "Solicitação de crédito");
+    assertActorIsDistinct(actor, [credit.requestedById]);
+    await assertFinancialYearOpen(tx, credit.financialYearId, new Date());
+    if (!credit.fundingSourceId || !credit.legalActNumber || !credit.legalActDate || !credit.legalDocumentId) {
+      throw new FinanceError("O crédito exige ato legal, documento GED e fonte de recursos antes da submissão.");
+    }
+    await validateLegalEvidence(tx, { legalActNumber: credit.legalActNumber, legalActDate: credit.legalActDate, legalDocumentId: credit.legalDocumentId });
+    const submitted = await tx.creditRequest.update({
+      where: { id: credit.id },
+      data: { status: "SUBMITTED", submittedById: actor.usuarioId, submittedAt: new Date() },
+    });
+    await audit(tx, actor, "SUBMIT", "CreditRequest", credit.id, {}, credit.financialYearId);
+    return submitted;
+  });
+}
+
+export async function sanctionCreditRequest(db: PrismaClient, actor: FinanceActor, creditRequestId: string) {
+  return db.$transaction(async (tx) => {
+    await lockCreditRequest(tx, creditRequestId);
+    const credit = await tx.creditRequest.findUnique({ where: { id: creditRequestId } });
+    if (!credit) throw new FinanceError("Solicitação de crédito adicional não encontrada.");
+    assertWorkflowStatus(credit.status, "APPROVED", "Solicitação de crédito");
+    assertActorIsDistinct(actor, [credit.requestedById, credit.submittedById, credit.approvedById]);
+    if (!credit.legalActNumber || !credit.legalActDate || !credit.legalDocumentId) {
+      throw new FinanceError("A sanção exige ato legal e documento GED.");
+    }
+    await validateLegalEvidence(tx, { legalActNumber: credit.legalActNumber, legalActDate: credit.legalActDate, legalDocumentId: credit.legalDocumentId });
+    const sanctioned = await tx.creditRequest.update({
+      where: { id: credit.id },
+      data: { status: "SANCTIONED", sanctionedById: actor.usuarioId, sanctionedAt: new Date() },
+    });
+    await audit(tx, actor, "SANCTION", "CreditRequest", credit.id, {}, credit.financialYearId);
+    return sanctioned;
+  });
+}
+
+export async function publishCreditRequest(
+  db: PrismaClient,
+  actor: FinanceActor,
+  creditRequestId: string,
+  publication: PublicationInput,
+) {
+  validatePublication(publication);
+  return db.$transaction(async (tx) => {
+    await lockCreditRequest(tx, creditRequestId);
+    const credit = await tx.creditRequest.findUnique({ where: { id: creditRequestId } });
+    if (!credit) throw new FinanceError("Solicitação de crédito adicional não encontrada.");
+    assertWorkflowStatus(credit.status, "SANCTIONED", "Solicitação de crédito");
+    assertActorIsDistinct(actor, [credit.requestedById, credit.submittedById, credit.approvedById, credit.sanctionedById]);
+    const published = await tx.creditRequest.update({
+      where: { id: credit.id },
+      data: { status: "PUBLISHED", publishedById: actor.usuarioId, publishedAt: new Date(), publicationDate: publication.publicationDate, publicationReference: publication.publicationReference.trim() },
+    });
+    await audit(tx, actor, "PUBLISH", "CreditRequest", credit.id, { publicationReference: published.publicationReference! }, credit.financialYearId);
+    return published;
   });
 }
 
@@ -788,10 +1017,9 @@ export async function executeCreditRequest(
       include: { items: { include: { appropriation: { select: { financialYearId: true, budgetUnitId: true } } } } },
     });
     if (!credit) throw new FinanceError("Solicitação de crédito adicional não encontrada.");
-    if (credit.status !== "Aprovado") throw new FinanceError("A solicitação de crédito deve estar Aprovada para ser efetivada.");
-    if (credit.requestedById === actor.usuarioId || credit.approvedById === actor.usuarioId) {
-      throw new FinanceError("Segregação de Funções: solicitante e aprovador não podem efetivar o crédito.");
-    }
+    if (credit.status !== "PUBLISHED" || !credit.publicationDate) throw new FinanceError("A solicitação de crédito deve estar publicada para ser efetivada.");
+    if (credit.executedAt) throw new FinanceError("A solicitação de crédito já foi efetivada.");
+    assertActorIsDistinct(actor, [credit.requestedById, credit.submittedById, credit.approvedById, credit.sanctionedById, credit.publishedById]);
     await assertFinancialYearOpen(tx, credit.financialYearId, new Date());
 
     const increaseMovementType: Record<CreditType, string> = {
@@ -824,8 +1052,8 @@ export async function executeCreditRequest(
     }
 
     const execution = await tx.creditRequest.updateMany({
-      where: { id: creditRequestId, status: "Aprovado" },
-      data: { status: "Efetivado" },
+      where: { id: creditRequestId, status: "PUBLISHED", executedAt: null },
+      data: { executedById: actor.usuarioId, executedAt: new Date() },
     });
     if (execution.count !== 1) throw new FinanceError("A solicitação foi alterada por outro usuário. Atualize a página e tente novamente.");
 
@@ -846,7 +1074,7 @@ export async function generateBudgetChangesComparison(db: PrismaClient, financia
       include: { expenseFixations: true, revenueForecasts: true },
     }),
     db.creditRequest.findMany({
-      where: { financialYearId, status: "Efetivado" },
+        where: { financialYearId, status: "PUBLISHED", executedAt: { not: null } },
       include: { items: true },
     }),
     db.budgetAppropriation.findMany({

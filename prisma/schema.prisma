@@ -651,24 +651,28 @@ model Document {
   folderId String?
   folder   Folder? @relation("DocumentFolder", fields: [folderId], references: [id])
 
-  obrasServiceLinks       ObrasServicoDocumento[]
-  culturaEventLinks       CulturaEventoDocumento[]      @relation("CulturaEventDocument")
-  culturaProjectLinks     CulturaProjetoDocumento[]     @relation("CulturaProjectDocument")
-  culturaReservationLinks CulturaReservaDocumento[]     @relation("CulturaReservationDocument")
-  culturaCouncilLinks     CulturaConselhoDocumento[]    @relation("CulturaCouncilDocument")
-  camaraLegislativeLinks  CamDocumentoLegislativo[]     @relation("CamaraLegislativeDocument")
-  segurancaRegistros      SegurancaMobilidadeRegistro[] @relation("SegurancaRegistroDocument")
-  settlementDocuments     Settlement[]                  @relation("SettlementDocument")
-  withholdingReceipts     WithholdingPayable[]          @relation("WithholdingReceiptDocument")
-  taxGuideDocuments       TaxGuide[]                    @relation("TaxGuideDocument")
-  taxPaymentProofs        TaxPayment[]                  @relation("TaxPaymentProofDocument")
-  taxServiceRequests      TaxServiceRequest[]
-  taxCaseLinks            TaxCaseLink[]
-  processDocuments        ProcessDocument[]
-  ticketLinks             TicketDocument[]
-  ombudsmanLinks          OmbudsmanDocument[]
-  versions                DocumentVersion[]
-  signatures              DocumentSignature[]
+  obrasServiceLinks            ObrasServicoDocumento[]
+  culturaEventLinks            CulturaEventoDocumento[]      @relation("CulturaEventDocument")
+  culturaProjectLinks          CulturaProjetoDocumento[]     @relation("CulturaProjectDocument")
+  culturaReservationLinks      CulturaReservaDocumento[]     @relation("CulturaReservationDocument")
+  culturaCouncilLinks          CulturaConselhoDocumento[]    @relation("CulturaCouncilDocument")
+  camaraLegislativeLinks       CamDocumentoLegislativo[]     @relation("CamaraLegislativeDocument")
+  segurancaRegistros           SegurancaMobilidadeRegistro[] @relation("SegurancaRegistroDocument")
+  settlementDocuments          Settlement[]                  @relation("SettlementDocument")
+  withholdingReceipts          WithholdingPayable[]          @relation("WithholdingReceiptDocument")
+  taxGuideDocuments            TaxGuide[]                    @relation("TaxGuideDocument")
+  taxPaymentProofs             TaxPayment[]                  @relation("TaxPaymentProofDocument")
+  taxServiceRequests           TaxServiceRequest[]
+  taxCaseLinks                 TaxCaseLink[]
+  processDocuments             ProcessDocument[]
+  ticketLinks                  TicketDocument[]
+  ombudsmanLinks               OmbudsmanDocument[]
+  multiYearPlanLegalEvidence   MultiYearPlan[]               @relation("MultiYearPlanLegalEvidence")
+  budgetGuidelineLegalEvidence BudgetGuideline[]             @relation("BudgetGuidelineLegalEvidence")
+  annualBudgetLawLegalEvidence AnnualBudgetLaw[]             @relation("AnnualBudgetLawLegalEvidence")
+  creditRequestLegalEvidence   CreditRequest[]               @relation("CreditRequestLegalEvidence")
+  versions                     DocumentVersion[]
+  signatures                   DocumentSignature[]
 
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -1811,16 +1815,36 @@ model FinancialYear {
 // --- Planejamento OrÃ§amentÃ¡rio: PPA, LDO, LOA, CMD, MBA, CrÃ©ditos Adicionais ---
 
 model MultiYearPlan {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  name        String
-  startYear   Int
-  endYear     Int
-  status      String   @default("ElaboraÃ§Ã£o") // ElaboraÃ§Ã£o, Aprovado, Vigente, Encerrado
-  version     Int      @default(1)
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                   String    @id @default(cuid())
+  code                 String    @unique
+  name                 String
+  startYear            Int
+  endYear              Int
+  draftedById          String?
+  draftedBy            Usuario?  @relation("MultiYearPlanDraftedBy", fields: [draftedById], references: [id], onDelete: SetNull)
+  submittedById        String?
+  submittedBy          Usuario?  @relation("MultiYearPlanSubmittedBy", fields: [submittedById], references: [id], onDelete: SetNull)
+  submittedAt          DateTime?
+  approvedById         String?
+  approvedBy           Usuario?  @relation("MultiYearPlanApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt           DateTime?
+  sanctionedById       String?
+  sanctionedBy         Usuario?  @relation("MultiYearPlanSanctionedBy", fields: [sanctionedById], references: [id], onDelete: SetNull)
+  sanctionedAt         DateTime?
+  publishedById        String?
+  publishedBy          Usuario?  @relation("MultiYearPlanPublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
+  publishedAt          DateTime?
+  legalActNumber       String?
+  legalActDate         DateTime?
+  legalDocumentId      String?
+  legalDocument        Document? @relation("MultiYearPlanLegalEvidence", fields: [legalDocumentId], references: [id], onDelete: Restrict)
+  publicationDate      DateTime?
+  publicationReference String?
+  status               String    @default("ElaboraÃ§Ã£o") // ElaboraÃ§Ã£o, Aprovado, Vigente, Encerrado
+  version              Int       @default(1)
+  description          String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   programs         ProgramPPA[]
   budgetGuidelines BudgetGuideline[]
@@ -1905,14 +1929,34 @@ model GoalPPA {
 }
 
 model BudgetGuideline {
-  id              String         @id @default(cuid())
-  financialYearId String
-  financialYear   FinancialYear  @relation(fields: [financialYearId], references: [id])
-  multiYearPlanId String?
-  multiYearPlan   MultiYearPlan? @relation(fields: [multiYearPlanId], references: [id], onDelete: Restrict)
-  status          String         @default("Vigente")
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id                   String         @id @default(cuid())
+  financialYearId      String
+  financialYear        FinancialYear  @relation(fields: [financialYearId], references: [id])
+  multiYearPlanId      String?
+  multiYearPlan        MultiYearPlan? @relation(fields: [multiYearPlanId], references: [id], onDelete: Restrict)
+  draftedById          String?
+  draftedBy            Usuario?       @relation("BudgetGuidelineDraftedBy", fields: [draftedById], references: [id], onDelete: SetNull)
+  submittedById        String?
+  submittedBy          Usuario?       @relation("BudgetGuidelineSubmittedBy", fields: [submittedById], references: [id], onDelete: SetNull)
+  submittedAt          DateTime?
+  approvedById         String?
+  approvedBy           Usuario?       @relation("BudgetGuidelineApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt           DateTime?
+  sanctionedById       String?
+  sanctionedBy         Usuario?       @relation("BudgetGuidelineSanctionedBy", fields: [sanctionedById], references: [id], onDelete: SetNull)
+  sanctionedAt         DateTime?
+  publishedById        String?
+  publishedBy          Usuario?       @relation("BudgetGuidelinePublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
+  publishedAt          DateTime?
+  legalActNumber       String?
+  legalActDate         DateTime?
+  legalDocumentId      String?
+  legalDocument        Document?      @relation("BudgetGuidelineLegalEvidence", fields: [legalDocumentId], references: [id], onDelete: Restrict)
+  publicationDate      DateTime?
+  publicationReference String?
+  status               String         @default("Vigente")
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   priorities       BudgetGuidelinePriority[]
   risks            BudgetGuidelineRisk[]
@@ -1939,18 +1983,37 @@ model BudgetGuidelineRisk {
 }
 
 model AnnualBudgetLaw {
-  id                String           @id @default(cuid())
-  lawNumber         String
-  publicationDate   DateTime
-  financialYearId   String
-  financialYear     FinancialYear    @relation(fields: [financialYearId], references: [id])
-  budgetGuidelineId String?
-  budgetGuideline   BudgetGuideline? @relation(fields: [budgetGuidelineId], references: [id], onDelete: Restrict)
-  status            String           @default("Sancionada")
-  totalRevenue      Decimal          @db.Decimal(18, 2)
-  totalExpense      Decimal          @db.Decimal(18, 2)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  id                   String           @id @default(cuid())
+  lawNumber            String
+  publicationDate      DateTime?
+  financialYearId      String
+  financialYear        FinancialYear    @relation(fields: [financialYearId], references: [id])
+  budgetGuidelineId    String?
+  budgetGuideline      BudgetGuideline? @relation(fields: [budgetGuidelineId], references: [id], onDelete: Restrict)
+  draftedById          String?
+  draftedBy            Usuario?         @relation("AnnualBudgetLawDraftedBy", fields: [draftedById], references: [id], onDelete: SetNull)
+  submittedById        String?
+  submittedBy          Usuario?         @relation("AnnualBudgetLawSubmittedBy", fields: [submittedById], references: [id], onDelete: SetNull)
+  submittedAt          DateTime?
+  approvedById         String?
+  approvedBy           Usuario?         @relation("AnnualBudgetLawApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt           DateTime?
+  sanctionedById       String?
+  sanctionedBy         Usuario?         @relation("AnnualBudgetLawSanctionedBy", fields: [sanctionedById], references: [id], onDelete: SetNull)
+  sanctionedAt         DateTime?
+  publishedById        String?
+  publishedBy          Usuario?         @relation("AnnualBudgetLawPublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
+  publishedAt          DateTime?
+  legalActNumber       String?
+  legalActDate         DateTime?
+  legalDocumentId      String?
+  legalDocument        Document?        @relation("AnnualBudgetLawLegalEvidence", fields: [legalDocumentId], references: [id], onDelete: Restrict)
+  publicationReference String?
+  status               String           @default("Sancionada")
+  totalRevenue         Decimal          @db.Decimal(18, 2)
+  totalExpense         Decimal          @db.Decimal(18, 2)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
   revenueForecasts AnnualBudgetRevenueForecast[]
   expenseFixations AnnualBudgetExpenseFixation[]
@@ -2002,21 +2065,42 @@ model BimonthlyRevenueTarget {
 }
 
 model CreditRequest {
-  id              String        @id @default(cuid())
-  number          String        @unique
-  financialYearId String
-  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id])
-  type            String // Suplementar, Especial, ExtraordinÃ¡rio, Remanejamento, TransposiÃ§Ã£o, TransferÃªncia
-  lawNumber       String?
-  justification   String
-  totalValue      Decimal       @db.Decimal(18, 2)
-  status          String        @default("Solicitado") // Solicitado, Aprovado, Rejeitado, Efetivado
-  requestedById   String
-  requestedBy     Usuario       @relation("CreditRequestRequestedBy", fields: [requestedById], references: [id])
-  approvedById    String?
-  approvedBy      Usuario?      @relation("CreditRequestApprovedBy", fields: [approvedById], references: [id])
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                   String          @id @default(cuid())
+  number               String          @unique
+  financialYearId      String
+  financialYear        FinancialYear   @relation(fields: [financialYearId], references: [id])
+  legalActNumber       String?
+  legalActDate         DateTime?
+  legalDocumentId      String?
+  legalDocument        Document?       @relation("CreditRequestLegalEvidence", fields: [legalDocumentId], references: [id], onDelete: Restrict)
+  fundingSourceId      String?
+  fundingSource        ResourceSource? @relation("CreditRequestFundingSource", fields: [fundingSourceId], references: [id], onDelete: Restrict)
+  publicationDate      DateTime?
+  publicationReference String?
+  type                 String // Suplementar, Especial, ExtraordinÃ¡rio, Remanejamento, TransposiÃ§Ã£o, TransferÃªncia
+  lawNumber            String?
+  justification        String
+  totalValue           Decimal         @db.Decimal(18, 2)
+  status               String          @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, SANCTIONED, PUBLISHED
+  requestedById        String
+  requestedBy          Usuario         @relation("CreditRequestRequestedBy", fields: [requestedById], references: [id])
+  submittedById        String?
+  submittedBy          Usuario?        @relation("CreditRequestSubmittedBy", fields: [submittedById], references: [id], onDelete: SetNull)
+  submittedAt          DateTime?
+  approvedById         String?
+  approvedBy           Usuario?        @relation("CreditRequestApprovedBy", fields: [approvedById], references: [id])
+  approvedAt           DateTime?
+  sanctionedById       String?
+  sanctionedBy         Usuario?        @relation("CreditRequestSanctionedBy", fields: [sanctionedById], references: [id], onDelete: SetNull)
+  sanctionedAt         DateTime?
+  publishedById        String?
+  publishedBy          Usuario?        @relation("CreditRequestPublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
+  publishedAt          DateTime?
+  executedById         String?
+  executedBy           Usuario?        @relation("CreditRequestExecutedBy", fields: [executedById], references: [id], onDelete: SetNull)
+  executedAt           DateTime?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
   items CreditRequestItem[]
 }
@@ -2057,6 +2141,7 @@ model ResourceSource {
   revenues                   Revenue[]
   revenueRedistributionsFrom RevenueResourceRedistribution[] @relation("RevenueRedistributionSource")
   revenueRedistributionsTo   RevenueResourceRedistribution[] @relation("RevenueRedistributionDestination")
+  creditRequestsFunding      CreditRequest[]                 @relation("CreditRequestFundingSource")
   taxFinancialMappings       TaxFinancialMapping[]
 }
 
@@ -2267,37 +2352,37 @@ model Creditor {
 }
 
 model Commitment {
-  id              String              @id @default(cuid())
-  number          String              @unique
-  date            DateTime            @default(now())
-  value           Float
-  valueDecimal    Decimal?            @db.Decimal(18, 2)
-  type            String              @default("OrdinÃ¡rio") // OrdinÃ¡rio, Estimativo, Global
-  history         String
-  appropriationId String
-  appropriation   BudgetAppropriation @relation(fields: [appropriationId], references: [id])
-  supplierId      String
-  supplier        Supplier            @relation("SupplierCommitments", fields: [supplierId], references: [id])
-  creditorId      String?
-  creditor        Creditor?           @relation(fields: [creditorId], references: [id])
-  processId       String?
-  process         Process?            @relation("FinancialCommitmentProcess", fields: [processId], references: [id])
-  contractId      String?
-  contract        Contract?           @relation("FinancialCommitmentContract", fields: [contractId], references: [id])
-  covenantId      String?
-  covenant        Covenant?           @relation("CovenantCommitments", fields: [covenantId], references: [id])
-  publicityCampaignId String?
-  publicityCampaign PublicityCampaign? @relation("PublicityCampaignCommitments", fields: [publicityCampaignId], references: [id])
-  fundedDebtId    String?
-  fundedDebt      FundedDebt?         @relation("FundedDebtCommitments", fields: [fundedDebtId], references: [id])
-  covenantNumber  String?
+  id                    String              @id @default(cuid())
+  number                String              @unique
+  date                  DateTime            @default(now())
+  value                 Float
+  valueDecimal          Decimal?            @db.Decimal(18, 2)
+  type                  String              @default("OrdinÃ¡rio") // OrdinÃ¡rio, Estimativo, Global
+  history               String
+  appropriationId       String
+  appropriation         BudgetAppropriation @relation(fields: [appropriationId], references: [id])
+  supplierId            String
+  supplier              Supplier            @relation("SupplierCommitments", fields: [supplierId], references: [id])
+  creditorId            String?
+  creditor              Creditor?           @relation(fields: [creditorId], references: [id])
+  processId             String?
+  process               Process?            @relation("FinancialCommitmentProcess", fields: [processId], references: [id])
+  contractId            String?
+  contract              Contract?           @relation("FinancialCommitmentContract", fields: [contractId], references: [id])
+  covenantId            String?
+  covenant              Covenant?           @relation("CovenantCommitments", fields: [covenantId], references: [id])
+  publicityCampaignId   String?
+  publicityCampaign     PublicityCampaign?  @relation("PublicityCampaignCommitments", fields: [publicityCampaignId], references: [id])
+  fundedDebtId          String?
+  fundedDebt            FundedDebt?         @relation("FundedDebtCommitments", fields: [fundedDebtId], references: [id])
+  covenantNumber        String?
   publicityCampaignName String?
-  fundedDebtName  String?
-  reservationId   String?             @unique
-  reservation     BudgetReservation?  @relation(fields: [reservationId], references: [id])
-  status          String              @default("Emitido") // Emitido, Liquidado, Pago, Anulado
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  fundedDebtName        String?
+  reservationId         String?             @unique
+  reservation           BudgetReservation?  @relation(fields: [reservationId], references: [id])
+  status                String              @default("Emitido") // Emitido, Liquidado, Pago, Anulado
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
 
   settlements          Settlement[]
   payments             Payment[]
@@ -2621,36 +2706,36 @@ model BankStatementImport {
 }
 
 model BankStatementItem {
-  id                     String               @id @default(cuid())
-  statementImportId      String?
-  statementImport        BankStatementImport? @relation(fields: [statementImportId], references: [id])
-  date                   DateTime
-  description            String?
-  reference              String?
-  direction              String
-  valueDecimal           Decimal              @db.Decimal(18, 2)
-  status                 String               @default("Pendente")
-  treasuryMovementId     String?              @unique
-  treasuryMovement       TreasuryMovement?    @relation(fields: [treasuryMovementId], references: [id])
+  id                 String               @id @default(cuid())
+  statementImportId  String?
+  statementImport    BankStatementImport? @relation(fields: [statementImportId], references: [id])
+  date               DateTime
+  description        String?
+  reference          String?
+  direction          String
+  valueDecimal       Decimal              @db.Decimal(18, 2)
+  status             String               @default("Pendente")
+  treasuryMovementId String?              @unique
+  treasuryMovement   TreasuryMovement?    @relation(fields: [treasuryMovementId], references: [id])
 
   // Campos adicionais para Automação POC, Rendimentos e Regras
   downloadId             String?
   banco                  String?
   agencia                String?
   contaNumero            String?
-  tipoConta              String?              // "CORRENTE" | "APLICACAO"
+  tipoConta              String? // "CORRENTE" | "APLICACAO"
   codigoTransacao        String?
-  sinal                  String?              // "CREDITO" | "DEBITO"
-  saldoResultanteDecimal Decimal?             @db.Decimal(18, 2)
-  categoriaClassificada  String?              // APLICACAO, RESGATE, TRANSFERENCIA_PARA_APLICACAO, etc.
+  sinal                  String? // "CREDITO" | "DEBITO"
+  saldoResultanteDecimal Decimal? @db.Decimal(18, 2)
+  categoriaClassificada  String? // APLICACAO, RESGATE, TRANSFERENCIA_PARA_APLICACAO, etc.
   reciboMunicipal        String?
   lancamentoContabilId   String?
 
+  @@unique([banco, agencia, contaNumero, codigoTransacao])
   @@index([statementImportId, date])
   @@index([treasuryMovementId])
   @@index([downloadId])
   @@index([contaNumero, date])
-  @@unique([banco, agencia, contaNumero, codigoTransacao])
 }
 
 model TaxFinancialMapping {
@@ -3399,15 +3484,15 @@ model AssetMaintenance {
 }
 
 model AssetWriteOff {
-  id            String   @id @default(cuid())
-  date          DateTime @default(now())
-  type          String   @default("Baixa") // Baixa, AlienaÃ§Ã£o
-  reason        String // InservÃ­vel, Roubo, DoaÃ§Ã£o
-  justification String
-  status        String   @default("Aprovada")
-  disposalValue Float    @default(0)
-  bookValue     Float
-  gainLoss      Float
+  id                      String                 @id @default(cuid())
+  date                    DateTime               @default(now())
+  type                    String                 @default("Baixa") // Baixa, AlienaÃ§Ã£o
+  reason                  String // InservÃ­vel, Roubo, DoaÃ§Ã£o
+  justification           String
+  status                  String                 @default("Aprovada")
+  disposalValue           Float                  @default(0)
+  bookValue               Float
+  gainLoss                Float
   accountingTransactionId String?                @unique
   accountingTransaction   AccountingTransaction? @relation("AssetWriteOffAccountingTransaction", fields: [accountingTransactionId], references: [id])
 
@@ -3422,7 +3507,7 @@ model AssetWriteOff {
 
 model AssetValueAdjustment {
   id              String   @id @default(cuid())
-  type            String   // REVALUATION, IMPAIRMENT, SUBSEQUENT_COST
+  type            String // REVALUATION, IMPAIRMENT, SUBSEQUENT_COST
   date            DateTime
   openingValue    Float
   adjustmentValue Float
@@ -5641,8 +5726,27 @@ model Usuario {
   requestedMonthlyCloseEvents  MonthlyAccountingCloseEvent[] @relation("MonthlyCloseEventRequestedBy")
   authorizedMonthlyCloseEvents MonthlyAccountingCloseEvent[] @relation("MonthlyCloseEventAuthorizedBy")
   payableCarryForwardEvents    PayableCarryForwardEvent[]    @relation("PayableCarryForwardEventActor")
+  multiYearPlansDrafted        MultiYearPlan[]               @relation("MultiYearPlanDraftedBy")
+  multiYearPlansSubmitted      MultiYearPlan[]               @relation("MultiYearPlanSubmittedBy")
+  multiYearPlansApproved       MultiYearPlan[]               @relation("MultiYearPlanApprovedBy")
+  multiYearPlansSanctioned     MultiYearPlan[]               @relation("MultiYearPlanSanctionedBy")
+  multiYearPlansPublished      MultiYearPlan[]               @relation("MultiYearPlanPublishedBy")
+  budgetGuidelinesDrafted      BudgetGuideline[]             @relation("BudgetGuidelineDraftedBy")
+  budgetGuidelinesSubmitted    BudgetGuideline[]             @relation("BudgetGuidelineSubmittedBy")
+  budgetGuidelinesApproved     BudgetGuideline[]             @relation("BudgetGuidelineApprovedBy")
+  budgetGuidelinesSanctioned   BudgetGuideline[]             @relation("BudgetGuidelineSanctionedBy")
+  budgetGuidelinesPublished    BudgetGuideline[]             @relation("BudgetGuidelinePublishedBy")
+  annualBudgetLawsDrafted      AnnualBudgetLaw[]             @relation("AnnualBudgetLawDraftedBy")
+  annualBudgetLawsSubmitted    AnnualBudgetLaw[]             @relation("AnnualBudgetLawSubmittedBy")
+  annualBudgetLawsApproved     AnnualBudgetLaw[]             @relation("AnnualBudgetLawApprovedBy")
+  annualBudgetLawsSanctioned   AnnualBudgetLaw[]             @relation("AnnualBudgetLawSanctionedBy")
+  annualBudgetLawsPublished    AnnualBudgetLaw[]             @relation("AnnualBudgetLawPublishedBy")
   creditRequestsRequested      CreditRequest[]               @relation("CreditRequestRequestedBy")
+  creditRequestsSubmitted      CreditRequest[]               @relation("CreditRequestSubmittedBy")
   creditRequestsApproved       CreditRequest[]               @relation("CreditRequestApprovedBy")
+  creditRequestsSanctioned     CreditRequest[]               @relation("CreditRequestSanctionedBy")
+  creditRequestsPublished      CreditRequest[]               @relation("CreditRequestPublishedBy")
+  creditRequestsExecuted       CreditRequest[]               @relation("CreditRequestExecutedBy")
   expenseRequests              Expense[]                     @relation("ExpenseRequestedBy")
   expenseApprovals             Expense[]                     @relation("ExpenseApprovedBy")
   auditEvents                  AuditEvent[]                  @relation("AuditEventActor")
@@ -5730,17 +5834,17 @@ model UsuarioUnidadeGestora {
 }
 
 model Covenant {
-  id                 String       @id @default(cuid())
-  number             String       @unique
-  grantor            String
-  description        String
-  totalValueDecimal  Decimal      @db.Decimal(18, 2)
-  startDate          DateTime
-  endDate            DateTime
-  status             String       @default("Ativo")
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  commitments        Commitment[] @relation("CovenantCommitments")
+  id                String       @id @default(cuid())
+  number            String       @unique
+  grantor           String
+  description       String
+  totalValueDecimal Decimal      @db.Decimal(18, 2)
+  startDate         DateTime
+  endDate           DateTime
+  status            String       @default("Ativo")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  commitments       Commitment[] @relation("CovenantCommitments")
 }
 
 model PublicityCampaign {
@@ -5777,12 +5881,12 @@ model AutomatedBankDownload {
   banco          String
   agencia        String
   contaNumero    String
-  tipoConta      String   // "CORRENTE" | "APLICACAO"
+  tipoConta      String // "CORRENTE" | "APLICACAO"
   periodoInicio  DateTime
   periodoFim     DateTime
   nomeArquivo    String
   caminhoDestino String
-  formato        String   // "OFX" | "CSV" | "PDF"
+  formato        String // "OFX" | "CSV" | "PDF"
   hashSHA256     String
   tamanhoBytes   Int
   status         String   @default("CONCLUIDO") // "CONCLUIDO" | "FALHA"
@@ -5796,13 +5900,13 @@ model AutomatedBankDownload {
 
 model ClassificationRule {
   id               String   @id @default(cuid())
-  bancoCodigo      String?  // ex: "001", "104", "*"
+  bancoCodigo      String? // ex: "001", "104", "*"
   textoProcurado   String
   codigoTransacao  String?
-  sinalEsperado    String?  // "CREDITO", "DEBITO", "AMBOS"
-  tipoMovimento    String   // APLICACAO, RESGATE, TRANSFERENCIA_PARA_APLICACAO, TRANSFERENCIA_DA_APLICACAO, DEBITO, CREDITO, ESTORNO, RENDIMENTO, RECEITA_CONSTITUCIONAL
+  sinalEsperado    String? // "CREDITO", "DEBITO", "AMBOS"
+  tipoMovimento    String // APLICACAO, RESGATE, TRANSFERENCIA_PARA_APLICACAO, TRANSFERENCIA_DA_APLICACAO, DEBITO, CREDITO, ESTORNO, RENDIMENTO, RECEITA_CONSTITUCIONAL
   bancoContaFiltro String?
-  tipoReceita      String?  // FPM, ICMS, FUNDEB, etc.
+  tipoReceita      String? // FPM, ICMS, FUNDEB, etc.
   naturezaReceita  String?
   fonteRecurso     String?
   eventoContabil   String?
@@ -5827,7 +5931,7 @@ model YieldTransaction {
   correcaoDecimal       Decimal  @default(0) @db.Decimal(18, 2)
   valorLiquidoDecimal   Decimal  @db.Decimal(18, 2)
   saldoAcumuladoDecimal Decimal? @db.Decimal(18, 2)
-  tipoRendimento        String   // "BRUTO", "LIQUIDO", "CORRECAO", "ESTORNO"
+  tipoRendimento        String // "BRUTO", "LIQUIDO", "CORRECAO", "ESTORNO"
   reciboMunicipal       String?
   lancamentoContabilId  String?
   idempotencyKey        String?  @unique
@@ -5858,43 +5962,43 @@ model ExceptionQueueItem {
 }
 
 model BankReconciliationSession {
-  id                   String   @id @default(cuid())
+  id                   String    @id @default(cuid())
   banco                String
   agencia              String
   contaNumero          String
-  periodo              String   // YYYY-MM
+  periodo              String // YYYY-MM
   dataInicio           DateTime
   dataFim              DateTime
-  saldoInicialDecimal  Decimal  @db.Decimal(18, 2)
-  totalDebitosDecimal  Decimal  @db.Decimal(18, 2)
-  totalCreditosDecimal Decimal  @db.Decimal(18, 2)
-  saldoFinalDecimal    Decimal  @db.Decimal(18, 2)
-  saldoRazaoDecimal    Decimal  @db.Decimal(18, 2)
-  diferencaDecimal     Decimal  @db.Decimal(18, 2)
-  status               String   @default("ABERTA") // ABERTA, EM_ANDAMENTO, CONCILIADA, CANCELADA
-  totalItensBanco      Int      @default(0)
-  totalItensContabeis  Int      @default(0)
-  itensConciliados     Int      @default(0)
-  itensDivergentes     Int      @default(0)
+  saldoInicialDecimal  Decimal   @db.Decimal(18, 2)
+  totalDebitosDecimal  Decimal   @db.Decimal(18, 2)
+  totalCreditosDecimal Decimal   @db.Decimal(18, 2)
+  saldoFinalDecimal    Decimal   @db.Decimal(18, 2)
+  saldoRazaoDecimal    Decimal   @db.Decimal(18, 2)
+  diferencaDecimal     Decimal   @db.Decimal(18, 2)
+  status               String    @default("ABERTA") // ABERTA, EM_ANDAMENTO, CONCILIADA, CANCELADA
+  totalItensBanco      Int       @default(0)
+  totalItensContabeis  Int       @default(0)
+  itensConciliados     Int       @default(0)
+  itensDivergentes     Int       @default(0)
   confirmadoPor        String?
   confirmadoEm         DateTime?
   reciboIntegracao     String?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   @@unique([banco, agencia, contaNumero, periodo])
 }
 
 model BankReconciliationMatch {
-  id                 String   @id @default(cuid())
-  sessionId          String
-  statementItemId    String?
-  treasuryMovementId String?
-  tipoMatch          String   // VALOR_DATA_EXATA, VALOR_D1, DOCUMENTO, HISTORICO, AGRUPADO, 1_PARA_N, DIVERGENCIA_VALOR, SEM_CORRESPONDENTE, POSSIVEL_DUPLICIDADE
-  percentualConfianca Float   @default(100.0)
-  observacao         String?
-  status             String   @default("AUTOMATICO") // AUTOMATICO, MANUAL, AJUSTADO
-  createdAt          DateTime @default(now())
+  id                  String   @id @default(cuid())
+  sessionId           String
+  statementItemId     String?
+  treasuryMovementId  String?
+  tipoMatch           String // VALOR_DATA_EXATA, VALOR_D1, DOCUMENTO, HISTORICO, AGRUPADO, 1_PARA_N, DIVERGENCIA_VALOR, SEM_CORRESPONDENTE, POSSIVEL_DUPLICIDADE
+  percentualConfianca Float    @default(100.0)
+  observacao          String?
+  status              String   @default("AUTOMATICO") // AUTOMATICO, MANUAL, AJUSTADO
+  createdAt           DateTime @default(now())
 
   @@index([sessionId])
 }
@@ -5947,20 +6051,20 @@ model CulturalIncentiveProject {
 
 // --- Módulo 20: Meio Ambiente & Licenciamento ---
 model EnvironmentalLicense {
-  id                  String   @id @default(cuid())
-  numeroProcesso      String   @unique
-  numeroLicenca       String   @unique
-  tipoLicenca         String
-  requerenteNome      String
-  requerenteCnpjCpf   String
-  atividade           String
+  id                     String   @id @default(cuid())
+  numeroProcesso         String   @unique
+  numeroLicenca          String   @unique
+  tipoLicenca            String
+  requerenteNome         String
+  requerenteCnpjCpf      String
+  atividade              String
   enderecoEmpreendimento String
-  validadeData        DateTime
-  status              String   @default("EMITIDA")
-  hashSHA256          String
-  qrCodeValidationUrl String
-  emissaoData         DateTime @default(now())
-  createdAt           DateTime @default(now())
+  validadeData           DateTime
+  status                 String   @default("EMITIDA")
+  hashSHA256             String
+  qrCodeValidationUrl    String
+  emissaoData            DateTime @default(now())
+  createdAt              DateTime @default(now())
 }
 
 // --- Módulo 21: Segurança & Guarda Municipal (Talão Eletrônico AIT / SNA) ---
@@ -6012,5 +6116,3 @@ model TaxAuditCrossCheck {
   dataCruzamento      DateTime @default(now())
   createdAt           DateTime @default(now())
 }
-
-

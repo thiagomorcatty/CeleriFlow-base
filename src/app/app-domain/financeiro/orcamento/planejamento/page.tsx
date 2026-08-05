@@ -91,7 +91,7 @@ export default async function PlanejamentoPage() {
          laws: guideline.annualBudgetLaws.map((law) => ({
           id: law.id,
           lawNumber: law.lawNumber,
-           publicationDate: law.publicationDate.toISOString(),
+            publicationDate: law.publicationDate?.toISOString() ?? "",
            totalRevenue: Number(law.totalRevenue),
            totalExpense: Number(law.totalExpense),
            revenueForecasts: law.revenueForecasts.map((forecast) => ({ id: forecast.id, code: forecast.code, name: forecast.name, estimatedValue: Number(forecast.estimatedValue) })),

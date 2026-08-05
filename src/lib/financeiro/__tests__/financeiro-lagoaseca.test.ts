@@ -25,7 +25,7 @@ import {
   generateBalancoOrcamentario,
   generateBalancoPatrimonial,
 } from "../relatorios-legais";
-import { addActionPPA, addGoalPPA, addIndicatorPPA, addObjectivePPA, addProgramPPA, createAnnualBudgetLaw, createBudgetAppropriationFromFixation, createBudgetGuideline, createMultiYearPlan, createPlanningAmendment, getAnnualBudgetScheduleCompletion, saveBimonthlyRevenueTarget, saveMonthlyDisbursementSchedule } from "../planejamento";
+import { addActionPPA, addGoalPPA, addIndicatorPPA, addObjectivePPA, addProgramPPA, createAnnualBudgetLaw, createBudgetAppropriationFromFixation, createBudgetGuideline, createMultiYearPlan, createPlanningAmendment, getAnnualBudgetScheduleCompletion, saveBimonthlyRevenueTarget, saveMonthlyDisbursementSchedule, transitionPlanningLegalWorkflow } from "../planejamento";
 
 describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Estritas", () => {
   const pocAccountingEvents = [
@@ -554,14 +554,14 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
 
     const rreo = await generateRREO(prisma, filter);
     assert.ok(rreo.expenseSummary);
-    assert.ok(rreo.revenueSummary.length >= 2, "Receitas previstas na LOA devem constar no RREO");
+    assert.ok(Array.isArray(rreo.revenueSummary), "O RREO deve expor o resumo de receitas publicadas");
 
     const rgf = await generateRGF(prisma, filter);
     assert.ok(rgf.receitaCorrenteLiquida >= 0);
     assert.ok(["REGULAR", "ALERTA", "EXCEDIDO"].includes(rgf.situacao));
 
     const balancoOrc = await generateBalancoOrcamentario(prisma, filter);
-    assert.equal(balancoOrc.totais.totalReceitaPrevista, 15000000, "Receita prevista deve ser R$ 15 milhões conforme LOA");
+    assert.equal(balancoOrc.totais.totalReceitaPrevista, 0, "LOAs legadas em DRAFT não podem compor o balanço orçamentário");
 
     const balancoPat = await generateBalancoPatrimonial(prisma, filter);
     assert.ok(balancoPat.totais);
@@ -814,6 +814,86 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
     } finally {
       if (transferId) await prisma.treasuryTransfer.delete({ where: { id: transferId } });
       await prisma.treasuryMovement.deleteMany({ where: { idempotencyKey: { in: [`${idempotencyKey}:OUT`, `${idempotencyKey}:IN`] } } });
+    }
+  });
+
+  test("8. Deve exigir etapas legais, atores distintos, GED final e bloquear alterações após a sanção", async () => {
+    const suffix = Date.now().toString();
+    const users = await prisma.usuario.findMany({ where: { ativo: true }, select: { id: true, employeeId: true }, take: 5 });
+    assert.ok(users.length >= 5, "A seed POC deve fornecer cinco atores distintos para o fluxo legal");
+    const actors = users.map((user) => ({ usuarioId: user.id, employeeId: user.employeeId, allowedBudgetUnitIds: undefined }));
+    let planId = "";
+    let guidelineId = "";
+    let loaId = "";
+    let financialYearId = "";
+    let documentId = "";
+
+    try {
+      const document = await prisma.document.create({
+        data: { title: `Ato legal ${suffix}`, documentType: "Lei Municipal", fileUrl: `https://example.test/legal-${suffix}.pdf`, status: "Válido" },
+      });
+      documentId = document.id;
+      await prisma.documentVersion.create({
+        data: { documentId, versionNumber: 1, fileUrl: document.fileUrl, hashSha256: `legal-${suffix}`, status: "FINAL" },
+      });
+      const financialYear = await prisma.financialYear.create({
+        data: { year: 2400 + Number(suffix.slice(-2)), status: "Preparação", startDate: new Date("2400-01-01T00:00:00.000Z"), endDate: new Date("2400-12-31T23:59:59.999Z") },
+      });
+      financialYearId = financialYear.id;
+      const plan = await createMultiYearPlan(prisma, actors[0], { code: `PPA-LEGAL-${suffix}`, name: "PPA legal", startYear: financialYear.year, endYear: financialYear.year + 3 });
+      planId = plan.id;
+      await transitionPlanningLegalWorkflow(prisma, actors[1], { entityType: "PPA", entityId: plan.id, stage: "SUBMITTED" });
+      await assert.rejects(
+        () => transitionPlanningLegalWorkflow(prisma, actors[1], { entityType: "PPA", entityId: plan.id, stage: "APPROVED" }),
+        /Segregação de funções/i,
+      );
+      await transitionPlanningLegalWorkflow(prisma, actors[2], { entityType: "PPA", entityId: plan.id, stage: "APPROVED" });
+      await transitionPlanningLegalWorkflow(prisma, actors[3], {
+        entityType: "PPA", entityId: plan.id, stage: "SANCTIONED",
+        legalEvidence: { legalActNumber: `Lei ${suffix}`, legalActDate: new Date("2400-01-01T00:00:00.000Z"), legalDocumentId: documentId },
+      });
+      await assert.rejects(
+        () => addProgramPPA(prisma, actors[0], { multiYearPlanId: plan.id, code: "BLOQUEADO", name: "Não pode incluir" }),
+        /não pode ser alterado após a sanção/i,
+      );
+      await transitionPlanningLegalWorkflow(prisma, actors[4], {
+        entityType: "PPA", entityId: plan.id, stage: "PUBLISHED",
+        publication: { publicationDate: new Date("2400-01-02T00:00:00.000Z"), publicationReference: `DOM ${suffix}` },
+      });
+
+      const guideline = await createBudgetGuideline(prisma, actors[0], { financialYearId, multiYearPlanId: plan.id });
+      guidelineId = guideline.id;
+      for (const [index, stage] of (["SUBMITTED", "APPROVED", "SANCTIONED", "PUBLISHED"] as const).entries()) {
+        await transitionPlanningLegalWorkflow(prisma, actors[index + 1], {
+          entityType: "LDO", entityId: guideline.id, stage,
+          ...(stage === "SANCTIONED" ? { legalEvidence: { legalActNumber: `Lei LDO ${suffix}`, legalActDate: new Date("2400-01-01T00:00:00.000Z"), legalDocumentId: documentId } } : {}),
+          ...(stage === "PUBLISHED" ? { publication: { publicationDate: new Date("2400-01-02T00:00:00.000Z"), publicationReference: `DOM LDO ${suffix}` } } : {}),
+        });
+      }
+      const loa = await createAnnualBudgetLaw(prisma, actors[0], {
+        lawNumber: `LOA-LEGAL-${suffix}`, publicationDate: new Date("2400-01-02T00:00:00.000Z"), financialYearId, budgetGuidelineId: guideline.id,
+        totalRevenue: 10, totalExpense: 10,
+        revenueForecasts: [{ code: "1", name: "Receita", estimatedValue: 10 }],
+        expenseFixations: [{ code: "3", name: "Despesa", fixedValue: 10 }],
+      });
+      loaId = loa.id;
+      for (const [index, stage] of (["SUBMITTED", "APPROVED", "SANCTIONED", "PUBLISHED"] as const).entries()) {
+        await transitionPlanningLegalWorkflow(prisma, actors[index + 1], {
+          entityType: "LOA", entityId: loa.id, stage,
+          ...(stage === "SANCTIONED" ? { legalEvidence: { legalActNumber: `Lei LOA ${suffix}`, legalActDate: new Date("2400-01-01T00:00:00.000Z"), legalDocumentId: documentId } } : {}),
+          ...(stage === "PUBLISHED" ? { publication: { publicationDate: new Date("2400-01-02T00:00:00.000Z"), publicationReference: `DOM LOA ${suffix}` } } : {}),
+        });
+      }
+      assert.equal((await prisma.annualBudgetLaw.findUniqueOrThrow({ where: { id: loa.id } })).status, "PUBLISHED");
+    } finally {
+      if (loaId) await prisma.annualBudgetLaw.delete({ where: { id: loaId } });
+      if (guidelineId) await prisma.budgetGuideline.delete({ where: { id: guidelineId } });
+      if (planId) await prisma.multiYearPlan.delete({ where: { id: planId } });
+      if (financialYearId) await prisma.financialYear.delete({ where: { id: financialYearId } });
+      if (documentId) {
+        await prisma.documentVersion.deleteMany({ where: { documentId } });
+        await prisma.document.delete({ where: { id: documentId } });
+      }
     }
   });
 });

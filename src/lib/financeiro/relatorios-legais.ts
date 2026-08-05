@@ -190,7 +190,7 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
       where: {
         annualBudgetLaw: {
           financialYearId: filter.financialYearId,
-          status: "Vigente",
+          status: "PUBLISHED",
         },
       },
     }),
@@ -198,7 +198,7 @@ export async function generateRREO(db: Db, filter: ReportFilter) {
       where: {
         annualBudgetLaw: {
           financialYearId: filter.financialYearId,
-          status: "Vigente",
+          status: "PUBLISHED",
         },
       },
     }),

@@ -21,19 +21,28 @@ type CreditItem = {
   type: "Acréscimo" | "Anulação";
   value: number;
 };
+type ResourceSourceOption = { id: string; code: string; name: string };
+type LegalDocumentOption = { id: string; title: string };
 
 export function CreditRequestDialog({
   financialYearId,
   appropriations,
+  resourceSources,
+  legalDocuments,
 }: {
   financialYearId: string;
   appropriations: AppropriationOption[];
+  resourceSources: ResourceSourceOption[];
+  legalDocuments: LegalDocumentOption[];
 }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [number, setNumber] = useState("");
   const [type, setType] = useState<"Suplementar" | "Especial" | "Extraordinário" | "Remanejamento" | "Transposição" | "Transferência">("Suplementar");
   const [lawNumber, setLawNumber] = useState("");
+  const [legalActDate, setLegalActDate] = useState("");
+  const [legalDocumentId, setLegalDocumentId] = useState("");
+  const [fundingSourceId, setFundingSourceId] = useState("");
   const [justification, setJustification] = useState("");
   const [items, setItems] = useState<CreditItem[]>([
     { appropriationId: "", type: "Acréscimo", value: 0 },
@@ -62,6 +71,10 @@ export function CreditRequestDialog({
       financialYearId,
       type,
       lawNumber: lawNumber || undefined,
+      legalActNumber: lawNumber,
+      legalActDate,
+      legalDocumentId,
+      fundingSourceId,
       justification,
       items: items.filter((item) => item.appropriationId && item.value > 0),
     });
@@ -121,13 +134,18 @@ export function CreditRequestDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Lei / Decreto Autorizador (opcional)</Label>
+            <Label>Lei / Decreto Autorizador</Label>
             <Input
               placeholder="Ex: Lei Municipal N.º 1.420/2026"
               value={lawNumber}
               onChange={(e) => setLawNumber(e.target.value)}
             />
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2"><Label>Data do Ato Legal</Label><Input required type="date" value={legalActDate} onChange={(e) => setLegalActDate(e.target.value)} /></div>
+            <div className="space-y-2"><Label>Fonte de Recursos</Label><Select value={fundingSourceId} onValueChange={(value) => setFundingSourceId(value ?? "")}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{resourceSources.map((source) => <SelectItem key={source.id} value={source.id}>{source.code} - {source.name}</SelectItem>)}</SelectContent></Select></div>
+          </div>
+          <div className="space-y-2"><Label>Documento GED Final</Label><Select value={legalDocumentId} onValueChange={(value) => setLegalDocumentId(value ?? "")}><SelectTrigger><SelectValue placeholder="Selecione o ato finalizado" /></SelectTrigger><SelectContent>{legalDocuments.map((document) => <SelectItem key={document.id} value={document.id}>{document.title}</SelectItem>)}</SelectContent></Select></div>
 
           <div className="space-y-2">
             <Label>Justificativa Legal / Técnica</Label>

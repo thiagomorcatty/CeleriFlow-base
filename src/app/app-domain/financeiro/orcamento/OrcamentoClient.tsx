@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { approveExpenseRequestAction, cancelBudgetReservationAction, createBudgetReservationAction, createExpenseRequestAction, setFinancialYearStatusAction } from "./actions";
 
 import { CreditRequestDialog } from "./CreditRequestDialog";
-import { actionApproveCreditRequest, actionExecuteCreditRequest } from "./planejamento-actions";
+import { actionApproveCreditRequest, actionExecuteCreditRequest, actionSubmitCreditRequest } from "./planejamento-actions";
 
 type Appropriation = {
   id: string;
@@ -60,6 +60,8 @@ export default function OrcamentoClient({
   creditRequests = [],
   expenses = [],
   suppliers = [],
+  resourceSources = [],
+  legalDocuments = [],
   canEdit,
 }: {
   appropriations: Appropriation[];
@@ -68,6 +70,8 @@ export default function OrcamentoClient({
   creditRequests?: CreditRequest[];
   expenses?: ExpenseRequest[];
   suppliers?: SupplierOption[];
+  resourceSources?: { id: string; code: string; name: string }[];
+  legalDocuments?: { id: string; title: string }[];
   canEdit: boolean;
 }) {
   const [reservation, setReservation] = useState({ number: "", appropriationId: "", expenseId: "", value: 0, justification: "" });
@@ -112,6 +116,13 @@ export default function OrcamentoClient({
     if (result.error) alert(result.error);
   };
 
+  const handleSubmitCredit = async (id: string) => {
+    setPending(true);
+    const result = await actionSubmitCreditRequest(id);
+    setPending(false);
+    if (result.error) alert(result.error);
+  };
+
   const handleExecuteCredit = async (id: string) => {
     setPending(true);
     const result = await actionExecuteCreditRequest(id);
@@ -133,6 +144,8 @@ export default function OrcamentoClient({
             <CreditRequestDialog
               financialYearId={activeYear.id}
               appropriations={appropriations}
+              resourceSources={resourceSources}
+              legalDocuments={legalDocuments}
             />
           )}
           <Link href="/financeiro/orcamento/cadastros" className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm hover:bg-accent">Cadastros Orçamentários</Link>
@@ -242,9 +255,9 @@ export default function OrcamentoClient({
                     <TableCell>
                       <Badge
                         className={
-                          credit.status === "Efetivado"
+                          credit.status === "PUBLISHED"
                             ? "bg-emerald-500 hover:bg-emerald-600"
-                            : credit.status === "Aprovado"
+                            : credit.status === "APPROVED"
                             ? "bg-blue-500 hover:bg-blue-600"
                             : "bg-amber-500 hover:bg-amber-600"
                         }
@@ -253,7 +266,10 @@ export default function OrcamentoClient({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right space-x-2">
-                       {canEdit && credit.status === "Solicitado" && (
+                        {canEdit && credit.status === "DRAFT" && (
+                         <Button variant="outline" size="sm" disabled={pending} onClick={() => handleSubmitCredit(credit.id)}>Submeter</Button>
+                       )}
+                        {canEdit && credit.status === "SUBMITTED" && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -263,7 +279,7 @@ export default function OrcamentoClient({
                           Aprovar
                         </Button>
                       )}
-                       {canEdit && credit.status === "Aprovado" && (
+                        {canEdit && credit.status === "PUBLISHED" && (
                         <Button
                           variant="default"
                           size="sm"
