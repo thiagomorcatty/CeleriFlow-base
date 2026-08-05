@@ -159,23 +159,66 @@ export async function confirmReconciliationSessionAction(sessionId: string): Pro
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const { prisma, user } = context;
+    const result = await prisma.$transaction(async (tx) => {
+      const session = await tx.bankReconciliationSession.findUnique({ where: { id: sessionId } });
+      if (!session) throw new Error("Sessão de conciliação não encontrada.");
+      if (session.status === "CONCILIADA") {
+        const recibo = session.reciboIntegracao || `REC-CONCIL-${session.id}`;
+        return { session, recibo };
+      }
+      if (session.status !== "EM_ANDAMENTO") throw new Error("Execute a correspondência automática antes de confirmar a conciliação.");
+      if (Number(session.diferencaDecimal) !== 0 || session.itensDivergentes > 0 || session.totalItensBanco === 0 || session.itensConciliados !== session.totalItensBanco) {
+        throw new Error("A conciliação possui divergências ou lançamentos pendentes e não pode ser confirmada.");
+      }
 
-    const timestamp = Date.now();
-    const recibo = `REC-CONCIL-${timestamp}`;
-    const hash = crypto.createHash("sha256").update(`${recibo}:${sessionId}`).digest("hex");
+      const [account, matches] = await Promise.all([
+        tx.bankAccount.findFirst({ where: { bankName: session.banco, agency: session.agencia, accountNumber: session.contaNumero, isActive: true }, select: { id: true } }),
+        tx.bankReconciliationMatch.findMany({ where: { sessionId: session.id }, orderBy: { id: "asc" } }),
+      ]);
+      if (!account) throw new Error("A conta bancária da conciliação não está cadastrada ou ativa.");
+      if (matches.length !== session.totalItensBanco || matches.some((match) => !match.statementItemId || !match.treasuryMovementId)) {
+        throw new Error("A conciliação contém correspondências incompletas e não pode ser confirmada.");
+      }
 
-    const session = await prisma.bankReconciliationSession.update({
-      where: { id: sessionId },
-      data: {
-        status: "CONCILIADA",
-        confirmadoPor: user.email || user.id,
-        confirmadoEm: new Date(),
-        reciboIntegracao: recibo,
-      },
+      for (const match of matches) {
+        await tx.bankStatementItem.update({
+          where: { id: match.statementItemId! },
+          data: { treasuryMovementId: match.treasuryMovementId!, status: "Conciliado" },
+        });
+      }
+      await tx.bankReconciliation.create({
+        data: {
+          periodStart: session.dataInicio,
+          periodEnd: session.dataFim,
+          bankAccountId: account.id,
+          systemBalance: Number(session.saldoRazaoDecimal),
+          systemBalanceDecimal: session.saldoRazaoDecimal,
+          bankBalance: Number(session.saldoFinalDecimal),
+          bankBalanceDecimal: session.saldoFinalDecimal,
+          status: "Conciliado",
+        },
+      });
+
+      const recibo = `REC-CONCIL-${session.id}`;
+      const updatedSession = await tx.bankReconciliationSession.update({
+        where: { id: session.id },
+        data: { status: "CONCILIADA", confirmadoPor: user.email || user.id, confirmadoEm: new Date(), reciboIntegracao: recibo },
+      });
+      await tx.financialAuditLog.create({
+        data: {
+          action: "CONCILIACAO_BANCARIA_CONFIRMADA",
+          entityType: "BankReconciliationSession",
+          entityId: session.id,
+          authorUsuarioId: user.id,
+          payload: { bankAccountId: account.id, matches: matches.length, saldoFinal: Number(session.saldoFinalDecimal), saldoRazao: Number(session.saldoRazaoDecimal) },
+        },
+      });
+      return { session: updatedSession, recibo };
     });
+    const hash = crypto.createHash("sha256").update(`${result.recibo}:${sessionId}`).digest("hex");
 
     revalidatePath("/financeiro/conciliacao-bancaria");
-    return { data: { session, recibo, hash } };
+    return { data: { session: result.session, recibo: result.recibo, hash } };
   } catch (err: any) {
     return { error: err?.message || "Erro ao confirmar conciliação." };
   }

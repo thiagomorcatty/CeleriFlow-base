@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import crypto from "crypto";
+import { recordConfirmedRevenue, type FinanceActor } from "./index";
 
 export type YieldType = "BRUTO" | "LIQUIDO" | "CORRECAO" | "ESTORNO" | "ACUMULADO";
 
@@ -87,67 +88,89 @@ export async function transmitYieldToMunicipalSystem(
     usuarioId: string;
   }
 ): Promise<YieldTransmissionResult> {
-  const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
-  const numeroLancamento = `LANC-REND-${new Date().getFullYear()}-${random}`;
-  const reciboId = `REC-REND-${timestamp}`;
+  const actor: FinanceActor = { usuarioId: data.usuarioId, employeeId: null };
+  const result = await prisma.$transaction(async (tx) => {
+    const account = await tx.bankAccount.findFirst({
+      where: { accountNumber: data.contaNumero, isActive: true },
+      select: { id: true, resourceSourceId: true },
+    });
+    if (!account?.resourceSourceId) throw new Error("A conta de aplicação deve estar ativa e vinculada a uma fonte de recurso.");
 
-  const payload = `${reciboId}:${numeroLancamento}:${data.contaNumero}:${data.valorLiquido.toFixed(2)}`;
-  const hashTransmissao = crypto.createHash("sha256").update(payload).digest("hex");
+    const nature = await tx.revenueNature.findFirst({
+      where: { code: { startsWith: "1.3.2.1" } },
+      select: { id: true },
+      orderBy: { code: "asc" },
+    });
+    if (!nature) throw new Error("Cadastre uma natureza de receita para rendimentos de aplicação antes da transmissão.");
 
-  // Registrar Log de Auditoria Financeira do Rendimento
-  const audit = await prisma.financialAuditLog.create({
-    data: {
-      action: "RENDIMENTO_APLICACAO_TRANSMITIDO",
-      entityType: "YieldTransaction",
-      entityId: reciboId,
-      authorUsuarioId: data.usuarioId,
-      payload: {
-        contaNumero: data.contaNumero,
-        valorBruto: data.valorBruto,
-        valorLiquido: data.valorLiquido,
-        hashTransmissao,
-      },
-    },
-  });
+    const statement = data.statementItemId
+      ? await tx.bankStatementItem.findUnique({ where: { id: data.statementItemId }, select: { id: true, treasuryMovementId: true, codigoTransacao: true } })
+      : null;
+    if (statement?.treasuryMovementId) throw new Error("Este rendimento já foi transmitido ao sistema municipal.");
 
-  // Salvar registro de transação de rendimento
-  const yieldRecord = await prisma.yieldTransaction.create({
-    data: {
-      statementItemId: data.statementItemId,
-      contaNumero: data.contaNumero,
-      data: data.data,
-      valorBrutoDecimal: new Prisma.Decimal(data.valorBruto),
-      irrfDecimal: new Prisma.Decimal(data.irrf),
-      iofDecimal: new Prisma.Decimal(data.iof),
-      correcaoDecimal: new Prisma.Decimal(data.correcaoMonetaria),
-      valorLiquidoDecimal: new Prisma.Decimal(data.valorLiquido),
-      saldoAcumuladoDecimal: new Prisma.Decimal(data.saldoAcumulado),
-      tipoRendimento: data.tipo,
-      reciboMunicipal: reciboId,
-      lancamentoContabilId: audit.id,
-    },
-  });
-
-  // Atualizar o item do extrato
-  if (data.statementItemId) {
-    await prisma.bankStatementItem.update({
-      where: { id: data.statementItemId },
+    const idempotencyKey = statement?.codigoTransacao
+      ? `BANK:YIELD:${account.id}:${statement.codigoTransacao}`
+      : `BANK:YIELD:${account.id}:${data.data.toISOString().slice(0, 10)}:${data.valorLiquido.toFixed(2)}:${data.tipo}`;
+    const existing = await tx.yieldTransaction.findUnique({ where: { idempotencyKey } });
+    const yieldRecord = existing ?? await tx.yieldTransaction.create({
       data: {
-        status: "Conciliado",
-        reciboMunicipal: reciboId,
-        lancamentoContabilId: audit.id,
-        categoriaClassificada: "RENDIMENTO",
+        statementItemId: data.statementItemId,
+        contaNumero: data.contaNumero,
+        data: data.data,
+        valorBrutoDecimal: new Prisma.Decimal(data.valorBruto),
+        irrfDecimal: new Prisma.Decimal(data.irrf),
+        iofDecimal: new Prisma.Decimal(data.iof),
+        correcaoDecimal: new Prisma.Decimal(data.correcaoMonetaria),
+        valorLiquidoDecimal: new Prisma.Decimal(data.valorLiquido),
+        saldoAcumuladoDecimal: new Prisma.Decimal(data.saldoAcumulado),
+        tipoRendimento: data.tipo,
+        idempotencyKey,
       },
     });
-  }
+
+    const revenue = await recordConfirmedRevenue(tx, actor, {
+      date: data.data,
+      value: Math.abs(data.valorLiquido),
+      revenueNatureId: nature.id,
+      resourceSourceId: account.resourceSourceId,
+      bankAccountId: account.id,
+      history: "Rendimento de aplicação financeira",
+      sourceModule: "FINANCEIRO",
+      sourceType: "BANK_YIELD",
+      sourceId: yieldRecord.id,
+      eventType: "RENDIMENTO_APLICACAO",
+      idempotencyKey: `${idempotencyKey}:REVENUE`,
+    });
+    const treasuryMovement = revenue.treasuryMovement;
+    if (!treasuryMovement) throw new Error("A receita de rendimento não possui movimento de tesouraria vinculado.");
+    const reciboId = `REC-REND-${treasuryMovement.id}`;
+    const numeroLancamento = `LANC-REND-${treasuryMovement.id.slice(-8).toUpperCase()}`;
+    const hashTransmissao = crypto.createHash("sha256").update(`${yieldRecord.id}:${treasuryMovement.id}`).digest("hex");
+    const audit = await tx.financialAuditLog.create({
+      data: {
+        action: "RENDIMENTO_APLICACAO_TRANSMITIDO",
+        entityType: "YieldTransaction",
+        entityId: yieldRecord.id,
+        authorUsuarioId: data.usuarioId,
+        payload: { reciboId, numeroLancamento, valorBruto: data.valorBruto, valorLiquido: data.valorLiquido, hashTransmissao, treasuryMovementId: treasuryMovement.id },
+      },
+    });
+    await tx.yieldTransaction.update({ where: { id: yieldRecord.id }, data: { reciboMunicipal: reciboId, lancamentoContabilId: audit.id } });
+    if (statement) {
+      await tx.bankStatementItem.update({
+        where: { id: statement.id },
+        data: { treasuryMovementId: treasuryMovement.id, status: "Processado", reciboMunicipal: reciboId, lancamentoContabilId: audit.id, categoriaClassificada: "RENDIMENTO" },
+      });
+    }
+    return { yieldRecord, reciboId, numeroLancamento, hashTransmissao };
+  });
 
   return {
-    reciboId,
-    numeroLancamento,
-    hashTransmissao,
+    reciboId: result.reciboId,
+    numeroLancamento: result.numeroLancamento,
+    hashTransmissao: result.hashTransmissao,
     status: "SUCESSO",
-    mensagem: "Rendimento de aplicação homologado e contabilizado no Sistema Municipal com sucesso.",
-    yieldTransactionId: yieldRecord.id,
+    mensagem: "Rendimento registrado como receita e movimento de tesouraria municipal.",
+    yieldTransactionId: result.yieldRecord.id,
   };
 }

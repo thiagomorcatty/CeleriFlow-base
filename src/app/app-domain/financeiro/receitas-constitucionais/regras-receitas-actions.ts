@@ -1,9 +1,10 @@
 "use server";
 
-import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
+import { getTenantContextForModuleEdit, isSystemAdministrator } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { recordConfirmedRevenue, type FinanceActor } from "@/lib/financeiro";
 
 type ActionResult<T = any> = { error?: string; data?: T };
 
@@ -294,5 +295,95 @@ export async function resolveExceptionAction(exceptionId: string, ruleText?: str
     return { data: { success: true } };
   } catch (err: any) {
     return { error: err?.message || "Erro ao resolver exceção." };
+  }
+}
+
+export async function processConstitutionalRevenueAction(statementItemId: string): Promise<ActionResult> {
+  try {
+    const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const result = await context.prisma.$transaction(async (tx) => {
+      const item = await tx.bankStatementItem.findUnique({ where: { id: statementItemId } });
+      if (!item) throw new Error("Lançamento bancário não encontrado.");
+      if (item.treasuryMovementId) return { treasuryMovementId: item.treasuryMovementId, alreadyProcessed: true };
+      if (item.sinal !== "CREDITO") throw new Error("Apenas créditos bancários podem ser tratados como receitas constitucionais.");
+
+      const account = await tx.bankAccount.findFirst({
+        where: {
+          bankName: item.banco || undefined,
+          agency: item.agencia || undefined,
+          accountNumber: item.contaNumero || undefined,
+          isActive: true,
+        },
+        select: { id: true, budgetUnitId: true, resourceSourceId: true },
+      });
+      if (!account?.resourceSourceId) throw new Error("A conta de recebimento deve estar ativa e vinculada a uma fonte de recurso.");
+      if (!isSystemAdministrator(context.user) && (!account.budgetUnitId || !context.user.allowedBudgetUnitIds.includes(account.budgetUnitId))) {
+        throw new Error("Sem permissão para processar receita desta Unidade Gestora.");
+      }
+
+      const rules = await tx.classificationRule.findMany({
+        where: { ativo: true, tipoMovimento: "RECEITA_CONSTITUCIONAL" },
+        orderBy: { prioridade: "asc" },
+      });
+      const description = (item.description || "").toUpperCase();
+      const rule = rules.find((candidate) => description.includes(candidate.textoProcurado.toUpperCase()));
+      if (!rule?.naturezaReceita || !rule.fonteRecurso) throw new Error("Não há regra constitucional completa para este lançamento.");
+
+      const natureCode = rule.naturezaReceita.match(/^\d[\d.]+/)?.[0];
+      const sourceCode = rule.fonteRecurso.match(/^\d+/)?.[0];
+      if (!natureCode || !sourceCode) throw new Error("A regra constitucional possui natureza ou fonte inválida.");
+      const [nature, source] = await Promise.all([
+        tx.revenueNature.findUnique({ where: { code: natureCode }, select: { id: true } }),
+        tx.resourceSource.findUnique({ where: { code: sourceCode }, select: { id: true } }),
+      ]);
+      if (!nature || !source) throw new Error("Cadastre a natureza e a fonte informadas na regra antes de processar a receita.");
+      if (source.id !== account.resourceSourceId) throw new Error("A fonte de recurso da regra não corresponde à fonte vinculada à conta bancária.");
+
+      const actor: FinanceActor = {
+        usuarioId: context.user.id,
+        employeeId: context.user.employeeId,
+        allowedBudgetUnitIds: isSystemAdministrator(context.user) ? undefined : context.user.allowedBudgetUnitIds,
+      };
+      const idempotencyKey = `BANK:CONSTITUTIONAL:${account.id}:${item.codigoTransacao || item.id}`;
+      const revenue = await recordConfirmedRevenue(tx, actor, {
+        date: item.date,
+        value: item.valueDecimal,
+        revenueNatureId: nature.id,
+        resourceSourceId: source.id,
+        bankAccountId: account.id,
+        history: item.description || rule.textoProcurado,
+        sourceModule: "FINANCEIRO",
+        sourceType: "BANK_CONSTITUTIONAL",
+        sourceId: item.id,
+        eventType: rule.eventoContabil || "RECEITA_CONSTITUCIONAL",
+        idempotencyKey,
+      });
+      if (!revenue.treasuryMovement) throw new Error("A receita constitucional não gerou movimento de tesouraria.");
+      await tx.bankStatementItem.update({
+        where: { id: item.id },
+        data: {
+          treasuryMovementId: revenue.treasuryMovement.id,
+          status: "Processado",
+          categoriaClassificada: "RECEITA_CONSTITUCIONAL",
+          reciboMunicipal: `REC-REC-${revenue.id}`,
+        },
+      });
+      await tx.financialAuditLog.create({
+        data: {
+          action: "RECEITA_CONSTITUCIONAL_PROCESSADA",
+          entityType: "Revenue",
+          entityId: revenue.id,
+          authorUsuarioId: context.user.id,
+          budgetUnitId: account.budgetUnitId,
+          payload: { statementItemId: item.id, ruleId: rule.id, treasuryMovementId: revenue.treasuryMovement.id, deducaoAplicavel: rule.deducaoAplicavel },
+        },
+      });
+      return { treasuryMovementId: revenue.treasuryMovement.id, revenueId: revenue.id, alreadyProcessed: false };
+    });
+    revalidatePath("/financeiro/receitas-constitucionais");
+    revalidatePath("/financeiro/receitas");
+    return { data: result };
+  } catch (err: any) {
+    return { error: err?.message || "Não foi possível processar a receita constitucional." };
   }
 }

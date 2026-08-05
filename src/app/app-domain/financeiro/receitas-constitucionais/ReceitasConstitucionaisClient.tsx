@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Landmark, Plus, AlertTriangle, CheckCircle2, ShieldCheck, Filter, ArrowUpRight, Zap, RefreshCw, ListFilter } from "lucide-react";
-import { createRuleAction, resolveExceptionAction, seedConstitutionalRulesAction } from "./regras-receitas-actions";
+import { createRuleAction, processConstitutionalRevenueAction, resolveExceptionAction, seedConstitutionalRulesAction } from "./regras-receitas-actions";
 
 interface Rule {
   id: string;
@@ -21,6 +21,7 @@ interface Rule {
 
 interface ExceptionItem {
   id: string;
+  statementItemId: string | null;
   descricao: string;
   valorDecimal: any;
   dataMovimento: string;
@@ -113,14 +114,18 @@ export default function ReceitasConstitucionaisClient({
 
   async function handleResolveException(item: ExceptionItem) {
     setLoading(true);
-    const res = await resolveExceptionAction(item.id, item.descricao);
+    const res = item.statementItemId
+      ? await processConstitutionalRevenueAction(item.statementItemId)
+      : await resolveExceptionAction(item.id, item.descricao);
     setLoading(false);
 
     if (res.error) {
       alert(res.error);
     } else {
       setExceptions((prev) => prev.filter((ex) => ex.id !== item.id));
-      alert(`Exceção resolvida! A descrição "${item.descricao}" foi adicionada às regras de classificação.`);
+      alert(item.statementItemId
+        ? `Receita constitucional processada e registrada no sistema municipal.`
+        : `Exceção resolvida! A descrição "${item.descricao}" foi adicionada às regras de classificação.`);
     }
   }
 
@@ -444,7 +449,7 @@ export default function ReceitasConstitucionaisClient({
                       disabled={loading}
                       className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1 transition-all shadow"
                     >
-                      <Zap className="w-4 h-4 text-amber-300" /> Aprovar Lançamento &amp; Gerar Regra em 1-Clique
+                      <Zap className="w-4 h-4 text-amber-300" /> {item.statementItemId ? "Processar Receita Constitucional" : "Aprovar Lançamento & Gerar Regra"}
                     </button>
                   </div>
                 );

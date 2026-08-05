@@ -2648,6 +2648,9 @@ model BankStatementItem {
 
   @@index([statementImportId, date])
   @@index([treasuryMovementId])
+  @@index([downloadId])
+  @@index([contaNumero, date])
+  @@unique([banco, agencia, contaNumero, codigoTransacao])
 }
 
 model TaxFinancialMapping {
@@ -5786,6 +5789,9 @@ model AutomatedBankDownload {
   logsExecucao   String   @db.Text
   auditLogId     String?
   createdAt      DateTime @default(now())
+
+  @@unique([banco, agencia, contaNumero, hashSHA256])
+  @@index([banco, agencia, contaNumero, createdAt])
 }
 
 model ClassificationRule {
@@ -5806,6 +5812,8 @@ model ClassificationRule {
   ativo            Boolean  @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  @@index([ativo, prioridade])
 }
 
 model YieldTransaction {
@@ -5822,7 +5830,10 @@ model YieldTransaction {
   tipoRendimento        String   // "BRUTO", "LIQUIDO", "CORRECAO", "ESTORNO"
   reciboMunicipal       String?
   lancamentoContabilId  String?
+  idempotencyKey        String?  @unique
   createdAt             DateTime @default(now())
+
+  @@index([contaNumero, data])
 }
 
 model ExceptionQueueItem {
@@ -5842,6 +5853,8 @@ model ExceptionQueueItem {
   resolvidoEm     DateTime?
   regraGeradaId   String?
   createdAt       DateTime  @default(now())
+
+  @@index([status, createdAt])
 }
 
 model BankReconciliationSession {
@@ -5868,6 +5881,8 @@ model BankReconciliationSession {
   reciboIntegracao     String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
+
+  @@unique([banco, agencia, contaNumero, periodo])
 }
 
 model BankReconciliationMatch {
@@ -5880,6 +5895,8 @@ model BankReconciliationMatch {
   observacao         String?
   status             String   @default("AUTOMATICO") // AUTOMATICO, MANUAL, AJUSTADO
   createdAt          DateTime @default(now())
+
+  @@index([sessionId])
 }
 
 // --- Módulo 18: Assistência Social (CadÚnico & Prontuário SUAS RMA) ---

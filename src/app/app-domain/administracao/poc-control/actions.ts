@@ -1,6 +1,5 @@
 "use server";
 
-import { runMassivePocSeed } from "../../../../../prisma/seed-poc-massivo";
 import { getTenantContextForSystemAdministration } from "@/lib/platform/tenant-context";
 import { getCeleriFlowInstanceId } from "@/lib/platform/instance";
 import { isPocModeEnabled } from "@/lib/poc/poc-config";
@@ -9,7 +8,7 @@ const POC_RESET_CONFIRMATION = "RESETAR POC";
 
 export async function resetPocDatabaseAction(confirmation: string): Promise<{ success?: boolean; message?: string; error?: string }> {
   try {
-    await getTenantContextForSystemAdministration();
+    const context = await getTenantContextForSystemAdministration();
     if (!isPocModeEnabled() || process.env.CELERIFLOW_POC_RESET_ENABLED !== "true") {
       throw new Error("O reset esta desabilitado para esta instancia.");
     }
@@ -18,12 +17,12 @@ export async function resetPocDatabaseAction(confirmation: string): Promise<{ su
     }
     const instanceId = getCeleriFlowInstanceId();
 
-    console.log(`[POC-RESET] Iniciando reset da instancia ${instanceId}.`);
-    await runMassivePocSeed();
+    console.log(`[POC-RESET] Iniciando reset financeiro da instancia ${instanceId}.`);
+    await resetPocFinancialData(context.prisma);
 
     return {
       success: true,
-      message: `Base da instancia ${instanceId} restaurada com sucesso.`,
+      message: `Dados financeiros locais da instancia ${instanceId} restaurados. Restaure o banco virtual separadamente pelo perfil SANDBOX_ADMIN.`,
     };
   } catch (err) {
     console.error("[POC-RESET-ERROR]", err);
@@ -31,6 +30,36 @@ export async function resetPocDatabaseAction(confirmation: string): Promise<{ su
       error: err instanceof Error ? err.message : "Falha ao restaurar a base de dados da POC.",
     };
   }
+}
+
+async function resetPocFinancialData(prisma: Awaited<ReturnType<typeof getTenantContextForSystemAdministration>>["prisma"]) {
+  const pocBank = "001 - Banco Virtual Robonuvem";
+  await prisma.$transaction(async (tx) => {
+    const accounts = await tx.bankAccount.findMany({ where: { bankName: pocBank }, select: { id: true } });
+    const accountIds = accounts.map((account) => account.id);
+    const revenues = await tx.revenue.findMany({ where: { sourceType: { in: ["BANK_YIELD", "BANK_CONSTITUTIONAL"] } }, select: { id: true } });
+    const revenueIds = revenues.map((revenue) => revenue.id);
+
+    await tx.bankReconciliationMatch.deleteMany();
+    await tx.bankReconciliationSession.deleteMany();
+    await tx.yieldTransaction.deleteMany();
+    await tx.exceptionQueueItem.deleteMany();
+    await tx.bankStatementItem.deleteMany({ where: { banco: pocBank } });
+    await tx.bankReconciliation.deleteMany({ where: { bankAccountId: { in: accountIds } } });
+    await tx.treasuryMovement.deleteMany({
+      where: {
+        OR: [
+          { sourceModule: "POC_BANCO_VIRTUAL" },
+          { sourceType: { in: ["BANK_STATEMENT", "BANK_YIELD", "BANK_CONSTITUTIONAL"] } },
+          ...(revenueIds.length ? [{ revenueId: { in: revenueIds } }] : []),
+        ],
+      },
+    });
+    if (revenueIds.length) await tx.revenue.deleteMany({ where: { id: { in: revenueIds } } });
+    await tx.automatedBankDownload.deleteMany({ where: { banco: pocBank } });
+    const connection = await tx.integrationConnection.findUnique({ where: { code: "BANCO_API" }, select: { id: true } });
+    if (connection) await tx.integrationRun.deleteMany({ where: { connectionId: connection.id } });
+  });
 }
 
 export async function getPocDataMetricsAction(): Promise<{

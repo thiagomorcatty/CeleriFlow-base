@@ -15,7 +15,7 @@ export default function PocControlClient({ initialCounts }: PocControlClientProp
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const handleReset = async () => {
-    const confirmation = prompt('Digite "RESETAR POC" para confirmar a restauração destrutiva desta instância.');
+    const confirmation = prompt('Digite "RESETAR POC" para limpar os dados financeiros locais desta instância.');
     if (confirmation === null) {
       return;
     }
@@ -64,7 +64,7 @@ export default function PocControlClient({ initialCounts }: PocControlClientProp
                 </span>
               </div>
               <p className="text-sm text-slate-300 mt-1 max-w-2xl">
-                Gerencie o ambiente de demonstração, verifique a volumetria de dados simulados em todos os 20 módulos do CeleriFlow e restaure a base de dados com 1 clique.
+                Gerencie o ambiente de demonstração, verifique a volumetria de dados simulados e limpe os registros financeiros locais da POC. O banco virtual externo possui reset administrativo próprio.
               </p>
             </div>
           </div>

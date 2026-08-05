@@ -301,7 +301,7 @@ export async function runAutoReconciliation(
       totalItensContabeis: treasuryMovements.length,
       itensConciliados,
       itensDivergentes,
-      status: itensDivergentes === 0 ? "CONCILIADA" : "EM_ANDAMENTO",
+        status: "EM_ANDAMENTO",
     },
   });
 

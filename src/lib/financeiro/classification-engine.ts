@@ -195,50 +195,101 @@ export async function sendMovementToMunicipalSystem(
     usuarioId: string;
   }
 ): Promise<MunicipalIntegrationReceipt> {
-  const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
-  const numeroLancamento = `LANC-MUN-${new Date().getFullYear()}-${random}`;
-  const reciboId = `REC-MUNI-${timestamp}`;
+  if (!data.statementItemId) {
+    throw new Error("A transmissão exige um lançamento de extrato bancário identificado.");
+  }
 
-  const payload = `${reciboId}:${numeroLancamento}:${data.banco}:${data.contaNumero}:${data.valor.toFixed(2)}`;
-  const hashIntegracao = crypto.createHash("sha256").update(payload).digest("hex");
+  const result = await prisma.$transaction(async (tx) => {
+    const item = await tx.bankStatementItem.findUnique({ where: { id: data.statementItemId } });
+    if (!item) throw new Error("Lançamento bancário não encontrado.");
+    if (item.treasuryMovementId) {
+      const existing = await tx.treasuryMovement.findUnique({ where: { id: item.treasuryMovementId } });
+      if (!existing) throw new Error("O lançamento bancário possui um vínculo financeiro inválido.");
+      return { movement: existing, auditId: item.lancamentoContabilId };
+    }
 
-  // Registrar Log de Auditoria Financeira do Lançamento Municipal
-  const audit = await prisma.financialAuditLog.create({
-    data: {
-      action: "LANCAMENTO_MUNICIPAL_CLASSIFICADO",
-      entityType: "BankStatementItem",
-      entityId: data.statementItemId || reciboId,
-      authorUsuarioId: data.usuarioId,
-      payload: {
-        reciboId,
-        numeroLancamento,
-        categoria: data.categoria,
-        valor: data.valor,
-        hashIntegracao,
+    const account = await tx.bankAccount.findFirst({
+      where: {
+        bankName: item.banco || data.banco,
+        agency: item.agencia || undefined,
+        accountNumber: item.contaNumero || data.contaNumero,
+        isActive: true,
       },
-    },
-  });
+      select: { id: true },
+    });
+    if (!account) throw new Error("A conta bancária do extrato não está cadastrada ou ativa na tesouraria.");
 
-  // Atualizar item de extrato se houver
-  if (data.statementItemId) {
-    await prisma.bankStatementItem.update({
-      where: { id: data.statementItemId },
+    const year = await tx.financialYear.findUnique({ where: { year: item.date.getUTCFullYear() }, select: { id: true } });
+    if (!year) throw new Error("Não existe exercício financeiro aberto para a data do lançamento.");
+
+    const idempotencyKey = `BANK:STATEMENT:${item.id}:${data.categoria}`;
+    const movement = await tx.treasuryMovement.upsert({
+      where: { idempotencyKey },
+      create: {
+        date: item.date,
+        type: movementType(data.categoria),
+        direction: movementDirection(data.categoria, item.sinal),
+        valueDecimal: new Prisma.Decimal(data.valor),
+        history: data.descricao.trim(),
+        bankAccountId: account.id,
+        financialYearId: year.id,
+        sourceModule: "FINANCEIRO",
+        sourceType: "BANK_STATEMENT",
+        sourceId: item.id,
+        eventType: data.categoria,
+        idempotencyKey,
+      },
+      update: {},
+    });
+
+    const reciboId = `REC-MUNI-${movement.id}`;
+    const numeroLancamento = `LANC-MUN-${movement.id.slice(-8).toUpperCase()}`;
+    const hashIntegracao = crypto.createHash("sha256").update(`${movement.id}:${item.id}:${data.categoria}`).digest("hex");
+    const audit = await tx.financialAuditLog.create({
       data: {
-        status: "Conciliado",
+        action: "LANCAMENTO_MUNICIPAL_CLASSIFICADO",
+        entityType: "TreasuryMovement",
+        entityId: movement.id,
+        authorUsuarioId: data.usuarioId,
+        payload: { reciboId, numeroLancamento, categoria: data.categoria, valor: data.valor, hashIntegracao, statementItemId: item.id },
+      },
+    });
+
+    await tx.bankStatementItem.update({
+      where: { id: item.id },
+      data: {
+        treasuryMovementId: movement.id,
+        status: "Processado",
         reciboMunicipal: reciboId,
         lancamentoContabilId: audit.id,
         categoriaClassificada: data.categoria,
       },
     });
-  }
+    return { movement, auditId: audit.id };
+  });
 
+  const reciboId = `REC-MUNI-${result.movement.id}`;
+  const numeroLancamento = `LANC-MUN-${result.movement.id.slice(-8).toUpperCase()}`;
+  const hashIntegracao = crypto.createHash("sha256").update(`${result.movement.id}:${data.statementItemId}:${data.categoria}`).digest("hex");
   return {
     reciboId,
     numeroLancamento,
-    dataProcessamento: new Date().toISOString(),
+    dataProcessamento: result.movement.createdAt.toISOString(),
     hashIntegracao,
     status: "PROCESSADO",
-    mensagem: "Lançamento transmitido e homologado pelo Sistema Municipal de Contabilidade com sucesso.",
+    mensagem: "Lançamento registrado na tesouraria municipal com vínculo ao extrato bancário.",
   };
+}
+
+function movementType(category: ClassificationType) {
+  if (category === "APLICACAO" || category === "TRANSFERENCIA_PARA_APLICACAO") return "InvestmentApplication";
+  if (category === "RESGATE" || category === "TRANSFERENCIA_DA_APLICACAO") return "InvestmentRedemption";
+  if (category === "ESTORNO") return "BankReversal";
+  return category === "DEBITO" ? "BankDebit" : "BankCredit";
+}
+
+function movementDirection(category: ClassificationType, signal: string | null) {
+  if (category === "APLICACAO" || category === "TRANSFERENCIA_PARA_APLICACAO" || category === "DEBITO") return "Saída";
+  if (category === "RESGATE" || category === "TRANSFERENCIA_DA_APLICACAO" || category === "CREDITO") return "Entrada";
+  return signal === "DEBITO" ? "Saída" : "Entrada";
 }
