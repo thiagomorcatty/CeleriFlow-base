@@ -4,6 +4,7 @@ import { useState } from "react";
 import { GitCompare, CheckCircle2, Play, AlertCircle, FileSpreadsheet, ShieldCheck, ArrowRightLeft, Sparkles, Scale, RefreshCw } from "lucide-react";
 import { confirmReconciliationSessionAction, openReconciliationSessionAction, runAutoReconciliationAction } from "./actions";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import { pocVirtualBank } from "@/lib/poc/poc-config";
 
 interface Session {
   id: string;
@@ -26,8 +27,8 @@ interface Session {
 }
 
 export default function ConciliacaoBancariaClient({ initialSessions = [] }: { initialSessions?: Session[] }) {
-  const [banco, setBanco] = useState("001 - Banco Virtual Robonuvem");
-  const [agencia, setAgencia] = useState("0001");
+  const [banco] = useState(pocVirtualBank.name);
+  const [agencia, setAgencia] = useState<string>(pocVirtualBank.agency);
   const [contaNumero, setContaNumero] = useState("20001-1");
   const [periodo, setPeriodo] = useState("2025-08");
   const [saldoInicial, setSaldoInicial] = useState<number>(150000.0);
@@ -123,7 +124,7 @@ export default function ConciliacaoBancariaClient({ initialSessions = [] }: { in
               <input
                 type="text"
                 value={banco}
-                onChange={(e) => setBanco(e.target.value)}
+                readOnly
                 className="w-full bg-slate-50 dark:bg-slate-800 border p-2.5 rounded-lg text-sm"
                 required
               />
@@ -269,7 +270,7 @@ export default function ConciliacaoBancariaClient({ initialSessions = [] }: { in
                     disabled={loading}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow transition-all"
                   >
-                    <CheckCircle2 className="w-5 h-5" /> Confirmar Conciliação &amp; Atualizar Sistema
+                    <CheckCircle2 className="w-5 h-5" /> Confirmar Conciliação no CeleriFlow
                   </button>
                 )}
               </div>
@@ -277,7 +278,7 @@ export default function ConciliacaoBancariaClient({ initialSessions = [] }: { in
               {confirmReceipt && (
                 <div className="p-4 bg-emerald-50 border border-emerald-500 rounded-xl space-y-1 text-xs text-emerald-900 font-mono">
                   <div className="font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Conciliação Confirmada &amp; Atualizada no Sistema Municipal!
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Conciliação confirmada e registrada no CeleriFlow!
                   </div>
                   <div>Recibo de Transmissão: <strong>{confirmReceipt.recibo}</strong></div>
                   <div className="truncate">Hash SHA-256: <span className="text-[10px] text-slate-500">{confirmReceipt.hash}</span></div>

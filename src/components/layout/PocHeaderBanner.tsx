@@ -16,7 +16,7 @@ export default function PocHeaderBanner() {
         </span>
         <span className="hidden md:inline text-slate-400">|</span>
         <span className="hidden md:inline text-slate-400">
-          Base padronizada com dados de teste (20 módulos preenchidos)
+          Lançamentos reais no CeleriFlow e integração exclusiva com o Banco Virtual Robonuvem
         </span>
       </div>
 

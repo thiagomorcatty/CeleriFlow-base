@@ -747,20 +747,14 @@ O banco simulado estará pronto quando:
 
 ## 17. Observação sobre o sistema de gestão pública simulado
 
-O banco simulado fornece os dados bancários. Entretanto, quatro rotinas da POC também exigem demonstrar registros no sistema de gestão pública:
+O Banco Virtual Robonuvem fornece os dados bancários simulados. Entretanto, quatro rotinas da POC também exigem demonstrar registros reais no CeleriFlow:
 
 - aplicações e resgates;
 - rendimentos;
 - receitas legais e constitucionais;
 - conciliação bancária.
 
-Por isso, recomenda-se que o mesmo repositório possua também uma API separada de **ERP municipal simulado**, ou que seja criado um segundo serviço de sandbox.
-
-O ambiente deve ser apresentado como:
-
-> “Sistema externo de testes que representa o sistema de gestão pública municipal para fins exclusivos de demonstração da integração.”
-
-Não deve ser identificado como EloWeb oficial e não deve utilizar dados reais do Município.
+Os lançamentos devem ser persistidos na instância do CeleriFlow, com os respectivos registros de receita, tesouraria, contabilidade, conciliação e auditoria. O banco externo continua sendo o único ambiente simulado, não sendo identificado como banco oficial ou utilizando credenciais bancárias reais do Município.
 
 ---
 

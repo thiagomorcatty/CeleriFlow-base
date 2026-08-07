@@ -180,7 +180,7 @@ function buildResult(category: ClassificationType, valor: number, reason: string
 }
 
 /**
- * Envia o movimento classificado ao sistema municipal e gera o recibo com número de lançamento
+ * Persiste o movimento classificado no CeleriFlow e gera o recibo com número de lançamento.
  */
 export async function sendMovementToMunicipalSystem(
   prisma: PrismaClient,

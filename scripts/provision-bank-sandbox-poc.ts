@@ -1,10 +1,17 @@
-import "dotenv/config";
-
+import dotenv from "dotenv";
 import { Prisma } from "@prisma/client";
-import { prisma } from "../src/lib/prisma";
 
-const bankName = "001 - Banco Virtual Robonuvem";
-const agency = "0001";
+dotenv.config();
+const localBankEnvironment = dotenv.config({ path: ".env.local", processEnv: {} }).parsed ?? {};
+for (const [key, value] of Object.entries(localBankEnvironment)) {
+  if (key.startsWith("BANK_SANDBOX_") || key === "SIMULADOR_WEBHOOK_SECRET") {
+    process.env[key] = value;
+  }
+}
+import { pocVirtualBank } from "../src/lib/poc/poc-config";
+
+const bankName = pocVirtualBank.name;
+const agency = pocVirtualBank.agency;
 
 type SandboxAccount = {
   id: string;
@@ -19,8 +26,12 @@ const sandboxAccounts: SandboxAccount[] = [
   { id: "poc-robonuvem-investment-90001", accountNumber: "90001-4", accountType: "Aplicação", balance: "557800.00" },
 ];
 
-async function ensureFinancialYear(year: number) {
-  return prisma.financialYear.upsert({
+async function main() {
+  const [{ prisma }, { bankIntegrationClient }] = await Promise.all([
+    import("../src/lib/prisma"),
+    import("../src/lib/financeiro/bank-integration-client"),
+  ]);
+  const ensureFinancialYear = async (year: number) => prisma.financialYear.upsert({
     where: { year },
     create: {
       year,
@@ -30,9 +41,15 @@ async function ensureFinancialYear(year: number) {
     },
     update: { status: "Aberto" },
   });
-}
+  await bankIntegrationClient.checkSandboxHealth();
+  const integrationCheck = await bankIntegrationClient.fetchBankStatement(
+    { banco: bankName, agencia: agency, contaNumero: "20001-1" },
+    { periodoInicio: "2025-08-01", periodoFim: "2025-08-31" },
+  );
+  if (integrationCheck.items.length === 0) {
+    throw new Error("O Banco Virtual Robonuvem não retornou movimentações para a validação da POC.");
+  }
 
-async function main() {
   const [budgetUnit, resourceSource, year2025, year2026] = await Promise.all([
     prisma.budgetUnit.findFirst({ orderBy: { code: "asc" }, select: { id: true } }),
     prisma.resourceSource.findFirst({ orderBy: { code: "asc" }, select: { id: true } }),
@@ -41,6 +58,11 @@ async function main() {
   ]);
 
   const accounts = new Map<string, { id: string }>();
+  // Historical sandbox accounts remain preserved for referential integrity, but are not usable or displayed in this POC.
+  await prisma.bankAccount.updateMany({
+    where: { bankName: { not: bankName } },
+    data: { isActive: false },
+  });
   for (const definition of sandboxAccounts) {
     const data = {
       bankName,
@@ -70,8 +92,8 @@ async function main() {
       category: "BANCARIA",
       provider: "Robonuvem - ambiente externo de testes",
       environment: "SANDBOX",
-      status: "CONFIGURANDO",
-      baseUrl: "https://banco-virtual-robonuvem.vercel.app/api/bank",
+      status: "ATIVA",
+      baseUrl: pocVirtualBank.baseUrl,
       credentialReference: "env:BANK_SANDBOX_CLIENT_SECRET",
       configuration: { clientIdEnvironment: "BANK_SANDBOX_CLIENT_ID", statementFormat: "ofx" },
     },
@@ -80,8 +102,8 @@ async function main() {
       category: "BANCARIA",
       provider: "Robonuvem - ambiente externo de testes",
       environment: "SANDBOX",
-      status: "CONFIGURANDO",
-      baseUrl: "https://banco-virtual-robonuvem.vercel.app/api/bank",
+      status: "ATIVA",
+      baseUrl: pocVirtualBank.baseUrl,
       credentialReference: "env:BANK_SANDBOX_CLIENT_SECRET",
       configuration: { clientIdEnvironment: "BANK_SANDBOX_CLIENT_ID", statementFormat: "ofx" },
     },
@@ -129,6 +151,13 @@ async function main() {
     });
   }
 
+  const activeForeignAccounts = await prisma.bankAccount.count({
+    where: { isActive: true, bankName: { not: bankName } },
+  });
+  if (activeForeignAccounts > 0) {
+    throw new Error(`${activeForeignAccounts} conta(s) de outro banco ainda estão ativas na POC.`);
+  }
+
   console.log("Banco Virtual Robonuvem provisionado: 3 contas, 8 lançamentos e conexão BANCO_API em SANDBOX.");
 }
 
@@ -137,4 +166,7 @@ main()
     console.error(error);
     process.exitCode = 1;
   })
-  .finally(async () => prisma.$disconnect());
+  .finally(async () => {
+    const { prisma } = await import("../src/lib/prisma");
+    await prisma.$disconnect();
+  });

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { recordConfirmedRevenue, type FinanceActor } from "@/lib/financeiro";
+import { isPocVirtualBank, pocVirtualBank } from "@/lib/poc/poc-config";
 
 type ActionResult<T = any> = { error?: string; data?: T };
 
@@ -177,7 +178,7 @@ export async function seedConstitutionalRulesAction(): Promise<ActionResult> {
               descricao: "STN TR COMPENSA-MUN LC 176 ADO-2020 V1",
               valorDecimal: new Prisma.Decimal(42500.0),
               dataMovimento: new Date(),
-              banco: "001 - Banco do Brasil",
+              banco: pocVirtualBank.name,
               contaNumero: "98765-4",
               sinal: "CREDITO",
               scoreConfianca: 0.65,
@@ -189,7 +190,7 @@ export async function seedConstitutionalRulesAction(): Promise<ActionResult> {
               descricao: "COT PARTE ROYALTIES ANP D-2026/08",
               valorDecimal: new Prisma.Decimal(89400.0),
               dataMovimento: new Date(),
-              banco: "104 - Caixa Econômica",
+              banco: pocVirtualBank.name,
               contaNumero: "12345-6",
               sinal: "CREDITO",
               scoreConfianca: 0.58,
@@ -265,7 +266,7 @@ export async function getExceptionQueueAction(): Promise<ActionResult> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const items = await context.prisma.exceptionQueueItem.findMany({
-      where: { status: "PENDENTE" },
+      where: { status: "PENDENTE", banco: pocVirtualBank.name },
       orderBy: { createdAt: "desc" },
     });
     return { data: items };
@@ -346,6 +347,7 @@ export async function processConstitutionalRevenueAction(statementItemId: string
     const result = await context.prisma.$transaction(async (tx) => {
       const item = await tx.bankStatementItem.findUnique({ where: { id: statementItemId } });
       if (!item) throw new Error("Lançamento bancário não encontrado.");
+      if (!isPocVirtualBank(item.banco)) throw new Error("O lançamento não pertence ao Banco Virtual Robonuvem.");
       if (item.treasuryMovementId) return { treasuryMovementId: item.treasuryMovementId, alreadyProcessed: true };
       if (item.sinal !== "CREDITO") throw new Error("Apenas créditos bancários podem ser tratados como receitas constitucionais.");
 

@@ -70,7 +70,7 @@ export function calculateInvestmentYield(data: {
 }
 
 /**
- * Transmite o rendimento apurado para o Sistema Municipal
+ * Registra o rendimento apurado no CeleriFlow.
  */
 export async function transmitYieldToMunicipalSystem(
   prisma: PrismaClient,
@@ -106,7 +106,7 @@ export async function transmitYieldToMunicipalSystem(
     const statement = data.statementItemId
       ? await tx.bankStatementItem.findUnique({ where: { id: data.statementItemId }, select: { id: true, treasuryMovementId: true, codigoTransacao: true } })
       : null;
-    if (statement?.treasuryMovementId) throw new Error("Este rendimento já foi transmitido ao sistema municipal.");
+    if (statement?.treasuryMovementId) throw new Error("Este rendimento já foi registrado no CeleriFlow.");
 
     const idempotencyKey = statement?.codigoTransacao
       ? `BANK:YIELD:${account.id}:${statement.codigoTransacao}`
@@ -170,7 +170,7 @@ export async function transmitYieldToMunicipalSystem(
     numeroLancamento: result.numeroLancamento,
     hashTransmissao: result.hashTransmissao,
     status: "SUCESSO",
-    mensagem: "Rendimento registrado como receita e movimento de tesouraria municipal.",
+    mensagem: "Rendimento registrado como receita e movimento de tesouraria no CeleriFlow.",
     yieldTransactionId: result.yieldRecord.id,
   };
 }

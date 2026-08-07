@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { isPocVirtualBank, pocVirtualBank } from "@/lib/poc/poc-config";
 
 export interface BankAccountConfig {
   banco: string;
@@ -88,7 +89,7 @@ export class BankIntegrationClient {
   private baseUrl?: string;
 
   constructor() {
-    this.baseUrl = process.env.BANK_SANDBOX_BASE_URL?.replace(/\/+$/, "");
+    this.baseUrl = (process.env.BANK_SANDBOX_BASE_URL || pocVirtualBank.baseUrl).replace(/\/+$/, "");
   }
 
   /**
@@ -98,7 +99,9 @@ export class BankIntegrationClient {
     config: BankAccountConfig,
     range: DateRange
   ): Promise<BankStatementResponse> {
-    if (!this.baseUrl) return this.generateSimulatedBankStatement(config, range);
+    if (!isPocVirtualBank(config.banco)) {
+      throw new BankIntegrationError("A POC aceita somente o Banco Virtual Robonuvem.");
+    }
     return this.fetchSandboxStatement(config, range);
   }
 
@@ -127,6 +130,9 @@ export class BankIntegrationClient {
     config: BankAccountConfig,
     periodo: DateRange
   ): Promise<InvestmentYieldDTO[]> {
+    if (!isPocVirtualBank(config.banco)) {
+      throw new BankIntegrationError("A POC aceita somente o Banco Virtual Robonuvem.");
+    }
     if (this.baseUrl) {
       const transactions = await this.fetchSandboxTransactions(config, periodo);
       return transactions
@@ -151,20 +157,7 @@ export class BankIntegrationClient {
         });
     }
 
-    return [
-      {
-        contaNumero: config.contaNumero,
-        data: new Date(),
-        valorBruto: 4850.75,
-        irrf: 0.0,
-        iof: 0.0,
-        correcaoMonetaria: 120.4,
-        valorLiquido: 4971.15,
-        saldoAcumulado: 345000.0,
-        tipo: "BRUTO",
-        documentoRef: `REND-APLIC-${config.contaNumero}`,
-      },
-    ];
+    throw new BankIntegrationError("O Banco Virtual Robonuvem não está configurado para consulta de rendimentos.");
   }
 
   /**
@@ -174,6 +167,9 @@ export class BankIntegrationClient {
     config: BankAccountConfig,
     periodo: DateRange
   ): Promise<ExternalRevenueDTO[]> {
+    if (!isPocVirtualBank(config.banco)) {
+      throw new BankIntegrationError("A POC aceita somente o Banco Virtual Robonuvem.");
+    }
     if (this.baseUrl) {
       const revenueTypes = new Set<ExternalRevenueDTO["siglaReceita"]>(["FPM", "FEP", "ITR", "ICS", "IPM", "RPM", "FUNDEB", "ICMS", "ADO25", "IPVA"]);
       const transactions = await this.fetchSandboxTransactions(config, periodo);
@@ -194,78 +190,7 @@ export class BankIntegrationClient {
       });
     }
 
-    return [
-      {
-        siglaReceita: "FPM",
-        nomeReceita: "Fundo de Participação dos Municípios - Decêndio 1",
-        valor: 245800.5,
-        dataCredito: new Date(),
-        bancoDestino: config.banco,
-        contaDestino: config.contaNumero,
-        autenticacaoBancaria: `STN-FPM-${Date.now()}`,
-        naturezaReceita: "1.7.1.8.01.2.1.00.00",
-      },
-      {
-        siglaReceita: "ICMS",
-        nomeReceita: "Cota-Parte do ICMS Estadual",
-        valor: 189200.0,
-        dataCredito: new Date(),
-        bancoDestino: config.banco,
-        contaDestino: config.contaNumero,
-        autenticacaoBancaria: `SEFAZ-ICMS-${Date.now()}`,
-        naturezaReceita: "1.7.2.8.01.1.1.00.00",
-      },
-      {
-        siglaReceita: "FUNDEB",
-        nomeReceita: "Transferências de Recursos do FUNDEB",
-        valor: 310500.0,
-        dataCredito: new Date(),
-        bancoDestino: config.banco,
-        contaDestino: config.contaNumero,
-        autenticacaoBancaria: `FNDE-FUNDEB-${Date.now()}`,
-        naturezaReceita: "1.7.1.8.06.1.1.00.00",
-      },
-      {
-        siglaReceita: "IPVA",
-        nomeReceita: "Cota-Parte do IPVA",
-        valor: 42100.0,
-        dataCredito: new Date(),
-        bancoDestino: config.banco,
-        contaDestino: config.contaNumero,
-        autenticacaoBancaria: `DETRAN-IPVA-${Date.now()}`,
-        naturezaReceita: "1.7.2.8.01.2.1.00.00",
-      },
-      {
-        siglaReceita: "ITR",
-        nomeReceita: "Imposto Territorial Rural - Repasse União",
-        valor: 15400.0,
-        dataCredito: new Date(),
-        bancoDestino: config.banco,
-        contaDestino: config.contaNumero,
-        autenticacaoBancaria: `RFB-ITR-${Date.now()}`,
-        naturezaReceita: "1.7.1.8.01.5.1.00.00",
-      },
-      {
-        siglaReceita: "FEP",
-        nomeReceita: "Fundo Especial do Petróleo (FEP / Royalties)",
-        valor: 78900.0,
-        dataCredito: new Date(),
-        bancoDestino: config.banco,
-        contaDestino: config.contaNumero,
-        autenticacaoBancaria: `ANP-ROYALTIES-${Date.now()}`,
-        naturezaReceita: "1.7.1.8.02.1.1.00.00",
-      },
-      {
-        siglaReceita: "ADO25",
-        nomeReceita: "Compensação Financeira Lei Kandir (LC 176/20)",
-        valor: 28400.0,
-        dataCredito: new Date(),
-        bancoDestino: config.banco,
-        contaDestino: config.contaNumero,
-        autenticacaoBancaria: `STN-ADO176-${Date.now()}`,
-        naturezaReceita: "1.7.1.8.01.9.1.00.00",
-      },
-    ];
+    throw new BankIntegrationError("O Banco Virtual Robonuvem não está configurado para consulta de receitas.");
   }
 
   async checkSandboxHealth() {
@@ -554,8 +479,8 @@ export class BankIntegrationClient {
       },
       {
         date: new Date(),
-        description: "RENDIMENTO APLIC FINANCEIRA BB FIX",
-        reference: "REND-BB-FIX",
+        description: "RENDIMENTO DE APLICACAO FINANCEIRA",
+        reference: "REND-APLIC-POC",
         codigoTransacao: `REND-${timestamp}`,
         sinal: "CREDITO",
         value: 4971.15,
@@ -565,7 +490,7 @@ export class BankIntegrationClient {
       {
         date: new Date(),
         description: "RESGATE DE APLICACAO FINANCEIRA AUTOMATICO",
-        reference: "RESG-BB-FIX",
+        reference: "RESG-APLIC-POC",
         codigoTransacao: `RESG-${timestamp}`,
         sinal: "CREDITO",
         value: 50000.0,

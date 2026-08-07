@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Activity, Archive, CircleAlert, CircleCheck, ExternalLink } from "lucide-react";
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { pocVirtualBank } from "@/lib/poc/poc-config";
 
 function displayDate(value: Date) {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(value);
@@ -34,7 +35,7 @@ export default async function AutomacoesFinanceirasPage() {
   try {
     const { prisma } = await getTenantContextForModule("FINANCEIRO");
     [downloads, runs] = await Promise.all([
-      prisma.automatedBankDownload.findMany({ orderBy: { createdAt: "desc" }, take: 15 }),
+      prisma.automatedBankDownload.findMany({ where: { banco: pocVirtualBank.name }, orderBy: { createdAt: "desc" }, take: 15 }),
       prisma.integrationRun.findMany({
         where: { connection: { category: "BANCARIA" } },
         include: { connection: { select: { name: true, code: true } } },

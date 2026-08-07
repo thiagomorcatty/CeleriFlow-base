@@ -8,11 +8,12 @@ import crypto from "crypto";
 
 import { bankIntegrationClient } from "@/lib/financeiro/bank-integration-client";
 import { archiveBankStatement } from "@/lib/platform/blob";
+import { pocVirtualBank } from "@/lib/poc/poc-config";
 
 type ActionResult<T = any> = { error?: string; data?: T };
 
 const downloadSchema = z.object({
-  banco: z.string().min(1, "Selecione o banco."),
+  banco: z.literal(pocVirtualBank.name, "A POC aceita somente o Banco Virtual Robonuvem."),
   agencia: z.string().min(1, "Informe a agência."),
   contaNumero: z.string().min(1, "Informe o número da conta."),
   periodoInicio: z.string().min(1, "Selecione a data inicial."),

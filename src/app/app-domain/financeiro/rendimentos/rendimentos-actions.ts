@@ -4,6 +4,7 @@ import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { calculateInvestmentYield, transmitYieldToMunicipalSystem, YieldType } from "@/lib/financeiro/yield-engine";
 import { bankIntegrationClient } from "@/lib/financeiro/bank-integration-client";
 import { revalidatePath } from "next/cache";
+import { isPocVirtualBank, isPocVirtualBankAccount, pocVirtualBank } from "@/lib/poc/poc-config";
 
 type ActionResult<T = any> = { error?: string; data?: T };
 
@@ -36,6 +37,7 @@ export async function transmitYieldAction(input: {
   tipo: YieldType;
 }): Promise<ActionResult> {
   try {
+    if (!isPocVirtualBankAccount(input.contaNumero)) return { error: "A conta informada não pertence ao Banco Virtual Robonuvem." };
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const result = await transmitYieldToMunicipalSystem(context.prisma, {
       ...input,
@@ -54,6 +56,7 @@ export async function getYieldHistoryAction(): Promise<ActionResult> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const history = await context.prisma.yieldTransaction.findMany({
+      where: { contaNumero: { in: [...pocVirtualBank.accountNumbers] } },
       orderBy: { createdAt: "desc" },
       take: 15,
     });
@@ -71,6 +74,9 @@ export async function fetchExternalYieldsAction(input: {
   periodoFim: string;
 }): Promise<ActionResult> {
   try {
+    if (!isPocVirtualBank(input.banco) || !isPocVirtualBankAccount(input.contaNumero)) {
+      return { error: "A POC aceita somente contas do Banco Virtual Robonuvem." };
+    }
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const yields = await bankIntegrationClient.fetchYieldReport(
       {
@@ -97,6 +103,6 @@ export async function fetchExternalYieldsAction(input: {
       })),
     };
   } catch (err: any) {
-    return { error: err?.message || "Erro ao consultar rendimentos no simulador bancário." };
+    return { error: err?.message || "Erro ao consultar rendimentos no Banco Virtual Robonuvem." };
   }
 }

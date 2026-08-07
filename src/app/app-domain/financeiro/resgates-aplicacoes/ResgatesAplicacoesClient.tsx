@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowRightLeft, CheckCircle2, Send, Zap, Calculator, ShieldCheck, Sparkles, FileText, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { classifyItemAction, transmitItemAction } from "./resgates-actions";
+import { pocVirtualBank } from "@/lib/poc/poc-config";
 
 interface StatementItem {
   id: string;
@@ -39,8 +40,8 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
       codigoTransacao: item.codigoTransacao || undefined,
       sinal: (item.sinal as "CREDITO" | "DEBITO") || (valor < 0 ? "DEBITO" : "CREDITO"),
       valor: Math.abs(valor),
-      banco: item.banco || "001 - Banco do Brasil",
-      contaNumero: item.contaNumero || "98765-4",
+      banco: item.banco || pocVirtualBank.name,
+      contaNumero: item.contaNumero || pocVirtualBank.accountNumbers[2],
     });
 
     if (res.error) {
@@ -59,8 +60,8 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
 
     const res = await transmitItemAction({
       statementItemId: selectedItem.id,
-      banco: selectedItem.banco || "001 - Banco do Brasil S.A.",
-      contaNumero: selectedItem.contaNumero || "98765-4",
+      banco: selectedItem.banco || pocVirtualBank.name,
+      contaNumero: selectedItem.contaNumero || pocVirtualBank.accountNumbers[2],
       categoria: classificationResult.category,
       valor: Math.abs(valor),
       dataMovimento: selectedItem.date,
@@ -99,7 +100,7 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
             Motor de Classificação de Resgates e Aplicações
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Classificação automática dos 7 tipos de lançamentos com cálculo de valores, prévia do lançamento contábil, envio ao sistema municipal e retorno do recibo com vínculo bidirecional.
+            Classificação automática dos lançamentos, cálculo de valores, prévia contábil e registro real no CeleriFlow com recibo e vínculo bidirecional.
           </p>
         </div>
       </div>
@@ -266,7 +267,7 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
                   </div>
                 )}
 
-                {/* Botão de Envio ao Sistema Municipal */}
+                {/* Registro real do lançamento no CeleriFlow */}
                 {!receipt ? (
                   <button
                     onClick={handleTransmit}
@@ -274,10 +275,10 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50"
                   >
                     {transmitting ? (
-                      "Transmitindo ao Sistema Municipal..."
+                      "Registrando no CeleriFlow..."
                     ) : (
                       <>
-                        <Send className="w-5 h-5" /> Enviar ao Sistema Municipal &amp; Gerar Recibo External
+                        <Send className="w-5 h-5" /> Registrar no CeleriFlow &amp; Gerar Recibo
                       </>
                     )}
                   </button>

@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import crypto from "crypto";
 import { Prisma } from "@prisma/client";
+import { isPocVirtualBank, pocVirtualBank } from "@/lib/poc/poc-config";
 
 type ActionResult<T = any> = { error?: string; data?: T };
 
@@ -52,6 +53,8 @@ export async function importBankStatementCsvAction(data: { bankAccountId: string
 
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const account = await context.prisma.bankAccount.findUnique({ where: { id: parsed.data.bankAccountId }, select: { bankName: true } });
+    if (!account || !isPocVirtualBank(account.bankName)) return { error: "A POC aceita somente contas do Banco Virtual Robonuvem." };
     await importBankStatementCsv(context.prisma, actorFor(context), {
       ...parsed.data,
       fileName: parsed.data.fileName?.replace(/[\\/:]/g, "_") || undefined,
@@ -69,6 +72,8 @@ export async function matchBankStatementItemAction(data: { statementItemId: stri
 
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const statementItem = await context.prisma.bankStatementItem.findFirst({ where: { id: parsed.data.statementItemId, banco: pocVirtualBank.name }, select: { id: true } });
+    if (!statementItem) return { error: "O extrato selecionado não pertence ao Banco Virtual Robonuvem." };
     await matchBankStatementItemToTreasuryMovement(context.prisma, actorFor(context), parsed.data);
     revalidatePath("/financeiro/conciliacao-bancaria");
     return {};
@@ -91,6 +96,7 @@ export async function openReconciliationSessionAction(input: {
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados de conciliação inválidos." };
 
   try {
+    if (!isPocVirtualBank(parsed.data.banco)) return { error: "A POC aceita somente o Banco Virtual Robonuvem." };
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const { prisma } = context;
 
@@ -168,6 +174,8 @@ export async function openReconciliationSessionAction(input: {
 export async function runAutoReconciliationAction(sessionId: string): Promise<ActionResult> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const session = await context.prisma.bankReconciliationSession.findUnique({ where: { id: sessionId }, select: { banco: true } });
+    if (!session || !isPocVirtualBank(session.banco)) return { error: "A conciliação não pertence ao Banco Virtual Robonuvem." };
     const result = await runAutoReconciliation(context.prisma, sessionId);
     revalidatePath("/financeiro/conciliacao-bancaria");
     return { data: result };
@@ -177,12 +185,14 @@ export async function runAutoReconciliationAction(sessionId: string): Promise<Ac
 }
 
 /**
- * Confirma a Conciliação e Atualiza o Sistema Municipal
+ * Confirma a conciliação e persiste os resultados no CeleriFlow.
  */
 export async function confirmReconciliationSessionAction(sessionId: string): Promise<ActionResult> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const { prisma, user } = context;
+    const existingSession = await prisma.bankReconciliationSession.findUnique({ where: { id: sessionId }, select: { banco: true } });
+    if (!existingSession || !isPocVirtualBank(existingSession.banco)) return { error: "A conciliação não pertence ao Banco Virtual Robonuvem." };
     const result = await prisma.$transaction(async (tx) => {
       const session = await tx.bankReconciliationSession.findUnique({ where: { id: sessionId } });
       if (!session) throw new Error("Sessão de conciliação não encontrada.");
@@ -252,6 +262,7 @@ export async function getActiveReconciliationSessionsAction(): Promise<ActionRes
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const sessions = await context.prisma.bankReconciliationSession.findMany({
+      where: { banco: pocVirtualBank.name },
       orderBy: { createdAt: "desc" },
       take: 10,
     });

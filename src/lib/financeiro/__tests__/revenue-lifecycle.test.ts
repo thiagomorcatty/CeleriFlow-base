@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { prisma } from "../../prisma";
 import { collectLaunchedRevenue, createRevenue, launchRevenue, redistributeRevenueResourceSource, reverseRevenue, type FinanceActor } from "../index";
+import { pocVirtualBank } from "@/lib/poc/poc-config";
 
 test("revenue lifecycle keeps launch, collection, source redistribution and reversal auditable", async () => {
   const [actorUser, actorEmployee] = await Promise.all([
@@ -14,7 +15,7 @@ test("revenue lifecycle keeps launch, collection, source redistribution and reve
     prisma.revenueNature.findFirst({ select: { id: true } }),
     prisma.resourceSource.findUnique({ where: { code: "15000000" }, select: { id: true } }),
     prisma.resourceSource.findUnique({ where: { code: "15010000" }, select: { id: true } }),
-    prisma.bankAccount.findFirst({ where: { resourceSource: { code: "15000000" }, isActive: true }, select: { id: true } }),
+    prisma.bankAccount.findFirst({ where: { bankName: pocVirtualBank.name, accountNumber: "20001-1", resourceSource: { code: "15000000" }, isActive: true }, select: { id: true } }),
   ]);
   assert.ok(nature && source && destination && account, "A seed POC deve fornecer natureza, fontes e conta bancaria para o ciclo de receita.");
   const accountingPlans = await prisma.accountingPlan.findMany({ take: 2, select: { id: true } });

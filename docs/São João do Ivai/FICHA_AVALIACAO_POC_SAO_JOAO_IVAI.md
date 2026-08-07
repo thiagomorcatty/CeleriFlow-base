@@ -555,10 +555,11 @@ O objeto exige integração com os sistemas necessários à execução das autom
 Pode ser demonstrado por:
 
 - banco externo simulado;
-- sistema de gestão pública simulado;
 - APIs;
 - arquivos estruturados;
-- execução efetiva e retorno do resultado.
+- execução efetiva e retorno do resultado no CeleriFlow.
+
+Na POC, o Banco Virtual Robonuvem é a única origem bancária simulada. Os lançamentos, registros contábeis, movimentos de tesouraria, conciliações e auditorias são persistidos de forma real na instância do CeleriFlow usada para a avaliação.
 
 A documentação não afirma expressamente que a POC deva utilizar credenciais reais de banco ou acesso real ao EloWeb.
 
@@ -707,8 +708,8 @@ A apresentação deve deixar claro que:
 
 - o CeleriFlow não substituirá o sistema municipal;
 - o banco apresentado é um simulador externo;
-- o ERP apresentado é um ambiente externo de testes;
-- os dados são fictícios;
+- o CeleriFlow registra efetivamente as operações executadas na POC;
+- os dados bancários de origem são fornecidos exclusivamente pelo Banco Virtual Robonuvem;
 - nenhuma movimentação financeira real será realizada;
 - nenhuma integração oficial deve ser alegada sem comprovação;
 - a demonstração comprova o fluxo técnico e funcional.

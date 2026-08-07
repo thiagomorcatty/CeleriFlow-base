@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Download, ShieldCheck, FileCheck, HardDrive, Terminal, CheckCircle2, RefreshCw, Eye, Hash, Calendar, Building2 } from "lucide-react";
 import { runAutomatedBankDownloadAction } from "./extratos-actions";
+import { pocVirtualBank } from "@/lib/poc/poc-config";
 
 interface DownloadRecord {
   id: string;
@@ -24,8 +25,8 @@ interface DownloadRecord {
 }
 
 export default function DownloadExtratosClient({ initialHistory = [] }: { initialHistory?: DownloadRecord[] }) {
-  const [banco, setBanco] = useState("001 - Banco Virtual Robonuvem");
-  const [agencia, setAgencia] = useState("0001");
+  const [banco] = useState(pocVirtualBank.name);
+  const [agencia, setAgencia] = useState<string>(pocVirtualBank.agency);
   const [contaNumero, setContaNumero] = useState("20001-1");
   const [periodoInicio, setPeriodoInicio] = useState("2025-08-01");
   const [periodoFim, setPeriodoFim] = useState("2025-08-31");
@@ -87,18 +88,10 @@ export default function DownloadExtratosClient({ initialHistory = [] }: { initia
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                 Instituição Bancária
               </label>
-              <select
-                value={banco}
-                onChange={(e) => setBanco(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="001 - Banco Virtual Robonuvem">001 - Banco Virtual Robonuvem</option>
-                <option value="001 - Banco do Brasil S.A.">001 - Banco do Brasil S.A.</option>
-                <option value="104 - Caixa Econômica Federal">104 - Caixa Econômica Federal</option>
-                <option value="033 - Banco Santander Brasil">033 - Banco Santander Brasil</option>
-                <option value="237 - Banco Bradesco S.A.">237 - Banco Bradesco S.A.</option>
-                <option value="041 - Banco Banrisul">041 - Banco Banrisul</option>
-              </select>
+              <div className="w-full rounded-lg border border-slate-300 bg-slate-100 p-2.5 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                {banco}
+              </div>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Banco externo de testes exclusivo desta POC.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

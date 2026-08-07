@@ -124,7 +124,7 @@ export default function ReceitasConstitucionaisClient({
     } else {
       setExceptions((prev) => prev.filter((ex) => ex.id !== item.id));
       alert(item.statementItemId
-        ? `Receita constitucional processada e registrada no sistema municipal.`
+        ? "Receita constitucional processada e registrada no CeleriFlow."
         : `Exceção resolvida! A descrição "${item.descricao}" foi adicionada às regras de classificação.`);
     }
   }

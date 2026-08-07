@@ -3,6 +3,7 @@
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { classifyBankMovement, sendMovementToMunicipalSystem, ClassificationType } from "@/lib/financeiro/classification-engine";
 import { revalidatePath } from "next/cache";
+import { isPocVirtualBank } from "@/lib/poc/poc-config";
 
 type ActionResult<T = any> = { error?: string; data?: T };
 
@@ -10,6 +11,7 @@ export async function getBankStatementItemsAction(): Promise<ActionResult> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const items = await context.prisma.bankStatementItem.findMany({
+      where: { banco: "001 - Banco Virtual Robonuvem" },
       orderBy: { date: "desc" },
       take: 20,
     });
@@ -46,7 +48,12 @@ export async function transmitItemAction(input: {
   descricao: string;
 }): Promise<ActionResult> {
   try {
+    if (!isPocVirtualBank(input.banco)) return { error: "A POC aceita somente o Banco Virtual Robonuvem." };
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const item = input.statementItemId
+      ? await context.prisma.bankStatementItem.findFirst({ where: { id: input.statementItemId, banco: "001 - Banco Virtual Robonuvem" }, select: { id: true } })
+      : null;
+    if (!item) return { error: "O lançamento informado não pertence ao Banco Virtual Robonuvem." };
     const receipt = await sendMovementToMunicipalSystem(context.prisma, {
       ...input,
       dataMovimento: new Date(input.dataMovimento),
@@ -56,6 +63,6 @@ export async function transmitItemAction(input: {
     revalidatePath("/financeiro/resgates-aplicacoes");
     return { data: receipt };
   } catch (err: any) {
-    return { error: err?.message || "Erro ao transmitir lançamento ao sistema municipal." };
+    return { error: err?.message || "Erro ao registrar lançamento no CeleriFlow." };
   }
 }

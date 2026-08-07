@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { isPocVirtualBank } from "@/lib/poc/poc-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +36,9 @@ export async function POST(req: Request) {
 
     if (!siglaReceita || !autenticacaoBancaria || !contaNumero || !agencia || !banco || !Number.isFinite(Number(valor)) || Number(valor) <= 0) {
       return NextResponse.json({ error: "Payload do webhook incompleto." }, { status: 400 });
+    }
+    if (!isPocVirtualBank(banco)) {
+      return NextResponse.json({ error: "A POC aceita webhooks somente do Banco Virtual Robonuvem." }, { status: 422 });
     }
 
     const [account, technicalUser] = await Promise.all([

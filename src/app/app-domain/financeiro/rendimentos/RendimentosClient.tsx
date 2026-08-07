@@ -4,6 +4,7 @@ import { useState } from "react";
 import { TrendingUp, Calculator, ShieldCheck, CheckCircle2, FileText, Percent, Coins, RotateCcw, Send } from "lucide-react";
 import { calculateYieldAction, fetchExternalYieldsAction, transmitYieldAction } from "./rendimentos-actions";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import { pocVirtualBank } from "@/lib/poc/poc-config";
 
 interface YieldRecord {
   id: string;
@@ -21,7 +22,7 @@ interface YieldRecord {
 }
 
 export default function RendimentosClient({ initialHistory = [] }: { initialHistory?: YieldRecord[] }) {
-  const [contaNumero, setContaNumero] = useState("90001-4");
+  const [contaNumero, setContaNumero] = useState<string>(pocVirtualBank.accountNumbers[2]);
   const [valorBruto, setValorBruto] = useState<number>(3420.5);
   const [irrf, setIrrf] = useState<number>(513.07);
   const [iof, setIof] = useState<number>(0.0);
@@ -68,7 +69,7 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
   async function handleFetchYields() {
     setLoading(true);
     setErrorMsg(null);
-    const res = await fetchExternalYieldsAction({ banco: "001 - Banco Virtual Robonuvem", agencia: "0001", contaNumero, periodoInicio, periodoFim });
+    const res = await fetchExternalYieldsAction({ banco: pocVirtualBank.name, agencia: pocVirtualBank.agency, contaNumero, periodoInicio, periodoFim });
     setLoading(false);
     if (res.error) return setErrorMsg(res.error);
     setExternalYields(res.data || []);
@@ -361,10 +362,10 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all"
                 >
                   {transmitting ? (
-                    "Transmitindo ao Sistema Municipal..."
+                      "Registrando no CeleriFlow..."
                   ) : (
                     <>
-                      <Send className="w-5 h-5" /> Transmitir Rendimento &amp; Obter Recibo Municipal
+                        <Send className="w-5 h-5" /> Registrar Rendimento no CeleriFlow
                     </>
                   )}
                 </button>
@@ -372,7 +373,7 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
                 <div className="p-4 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500 rounded-xl space-y-2 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-emerald-800 dark:text-emerald-200 flex items-center gap-1">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Operação Concluída &amp; Homologada!
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Operação registrada no CeleriFlow!
                     </span>
                     <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded font-bold">
                       {receipt.status}
