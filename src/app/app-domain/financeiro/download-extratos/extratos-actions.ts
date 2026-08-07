@@ -12,6 +12,51 @@ import { pocVirtualBank } from "@/lib/poc/poc-config";
 
 type ActionResult<T = any> = { error?: string; data?: T };
 
+type DownloadRecordForClient = {
+  id: string;
+  banco: string;
+  agencia: string;
+  contaNumero: string;
+  tipoConta: string;
+  periodoInicio: string;
+  periodoFim: string;
+  nomeArquivo: string;
+  caminhoDestino: string;
+  formato: string;
+  hashSHA256: string;
+  tamanhoBytes: number;
+  status: string;
+  logsExecucao: string;
+  auditLogId: string | null;
+  createdAt: string;
+};
+
+function serializeDownloadRecord(record: {
+  id: string;
+  banco: string;
+  agencia: string;
+  contaNumero: string;
+  tipoConta: string;
+  periodoInicio: Date;
+  periodoFim: Date;
+  nomeArquivo: string;
+  caminhoDestino: string;
+  formato: string;
+  hashSHA256: string;
+  tamanhoBytes: number;
+  status: string;
+  logsExecucao: string;
+  auditLogId: string | null;
+  createdAt: Date;
+}): DownloadRecordForClient {
+  return {
+    ...record,
+    periodoInicio: record.periodoInicio.toISOString(),
+    periodoFim: record.periodoFim.toISOString(),
+    createdAt: record.createdAt.toISOString(),
+  };
+}
+
 const downloadSchema = z.object({
   banco: z.literal(pocVirtualBank.name, "A POC aceita somente o Banco Virtual Robonuvem."),
   agencia: z.string().min(1, "Informe a agência."),
@@ -73,7 +118,7 @@ export async function runAutomatedBankDownloadAction(input: {
         hashSHA256: bankData.hashSHA256,
       },
     });
-    if (existingDownload) return { data: existingDownload };
+    if (existingDownload) return { data: serializeDownloadRecord(existingDownload) };
 
     const extension = bankStatementFormatExtension(bankData.formato);
     const fileNameCC = `EXTRATO_CC_${parsed.data.contaNumero}_${timestamp}.${extension}`;
@@ -193,7 +238,7 @@ export async function runAutomatedBankDownloadAction(input: {
 
     revalidatePath("/financeiro/download-extratos");
     revalidatePath("/financeiro/automacoes");
-    return { data: result.downloadRecord };
+    return { data: serializeDownloadRecord(result.downloadRecord) };
   } catch (err: any) {
     if (context) {
       try {

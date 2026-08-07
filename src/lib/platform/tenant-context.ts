@@ -54,6 +54,21 @@ function hasModuleAccess(values: unknown, moduleCode: string) {
   return Array.isArray(values) && values.some((value) => value === moduleCode);
 }
 
+export function canViewModule(user: AppContext["user"], moduleCode: string) {
+  if (isSystemAdministrator(user)) return true;
+
+  const codeUpper = moduleCode.toUpperCase();
+  const rolePermissions = parseRolePermissions(user.permissions);
+  if (hasModuleAccess(rolePermissions?.modulosBloqueados, codeUpper)) return false;
+
+  const allowedModules = rolePermissions?.modulosPermitidos;
+  if (Array.isArray(allowedModules)) return hasModuleAccess(allowedModules, codeUpper);
+
+  return user.modulePermissions.some(
+    (permission) => permission.code === codeUpper && (permission.canView || permission.canEdit),
+  );
+}
+
 export function canEditModule(user: AppContext["user"], moduleCode: string) {
   if (isSystemAdministrator(user)) return true;
 
@@ -176,23 +191,7 @@ export async function getTenantContextForModule(moduleCode: string): Promise<App
     return context;
   }
 
-  const codeUpper = moduleCode.toUpperCase();
-  const rolePermissions = parseRolePermissions(context.user.permissions);
-
-  if (hasModuleAccess(rolePermissions?.modulosBloqueados, codeUpper)) {
-    throw new AccessError(`Acesso negado ao módulo ${moduleCode}.`, 403);
-  }
-
-  const allowedModules = rolePermissions?.modulosPermitidos;
-  if (Array.isArray(allowedModules)) {
-    if (!hasModuleAccess(allowedModules, codeUpper)) {
-      throw new AccessError(`Acesso negado ao módulo ${moduleCode}.`, 403);
-    }
-    return context;
-  }
-
-  const userPermission = context.user.modulePermissions.find((permission) => permission.code === codeUpper);
-  if (!userPermission || (!userPermission.canView && !userPermission.canEdit)) {
+  if (!canViewModule(context.user, moduleCode)) {
     throw new AccessError(`Acesso negado ao módulo ${moduleCode}.`, 403);
   }
 

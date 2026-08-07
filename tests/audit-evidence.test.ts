@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { auditEventTypes, writeAuditEvent } from "../src/lib/platform/audit-evidence.ts";
 import { prisma } from "../src/lib/prisma.ts";
-import { isSystemAdministrator } from "../src/lib/platform/tenant-context.ts";
+import { canViewModule, isSystemAdministrator } from "../src/lib/platform/tenant-context.ts";
 
 test("persists payload-free audit evidence with only actor, event, and target identifiers", async () => {
   let data: unknown;
@@ -60,6 +60,22 @@ test("limits audit-log consultation to system administrators with total access",
   assert.equal(isSystemAdministrator(administrator), true);
   assert.equal(isSystemAdministrator(administratorWithoutTotalAccess), false);
   assert.equal(isSystemAdministrator(nonAdministrator), false);
+});
+
+test("uses the same profile permissions for dashboard visibility and route access", () => {
+  const profileAuthorized = {
+    role: "Gestor",
+    permissions: JSON.stringify({ modulosPermitidos: ["FINANCEIRO", "COMPRAS"] }),
+    modulePermissions: [],
+  } as Parameters<typeof canViewModule>[0];
+  const explicitlyBlocked = {
+    role: "Gestor",
+    permissions: JSON.stringify({ modulosBloqueados: ["COMPRAS"] }),
+    modulePermissions: [{ code: "COMPRAS", canView: true, canEdit: true }],
+  } as Parameters<typeof canViewModule>[0];
+
+  assert.equal(canViewModule(profileAuthorized, "COMPRAS"), true);
+  assert.equal(canViewModule(explicitlyBlocked, "COMPRAS"), false);
 });
 
 test("migration protects audit evidence from mutation and indexes retention queries", async () => {

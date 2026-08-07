@@ -22,7 +22,7 @@ import {
   Shield,
   Lock
 } from "lucide-react";
-import { getOptionalTenantContext, isSystemAdministrator } from "@/lib/platform/tenant-context";
+import { canViewModule, getOptionalTenantContext } from "@/lib/platform/tenant-context";
 
 export const dynamic = "force-dynamic";
 
@@ -82,12 +82,7 @@ export default async function PainelPage() {
     console.warn("Notice: Failed to fetch configuracaoModulo status", err);
   }
 
-  const canViewModule = (code: string) => {
-    if (!context) return false;
-    if (isSystemAdministrator(context.user)) return true;
-    return context.user.modulePermissions.some((permission) => permission.code === code && permission.canView);
-  };
-  const visibleMenuItems = menuItems.filter((item) => canViewModule(item.code));
+  const visibleMenuItems = menuItems.filter((item) => context && canViewModule(context.user, item.code));
   const hasFinancialAccess = visibleMenuItems.some((item) => item.code === "FINANCEIRO");
   const isPocEvaluator = context?.user.role.startsWith("POC Avaliador") ?? false;
 
