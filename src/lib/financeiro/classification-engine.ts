@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import crypto from "crypto";
+import { createTreasuryTransferInTransaction, postAccountingEventInTransaction } from "@/lib/financeiro";
 
 export type ClassificationType =
   | "APLICACAO"
@@ -48,7 +49,7 @@ export interface MunicipalIntegrationReceipt {
  * Avalia um lançamento bancário contra as regras cadastradas ou padrões bancários configurados
  */
 export async function classifyBankMovement(
-  prisma: PrismaClient,
+  prisma: PrismaClient | Prisma.TransactionClient,
   item: {
     descricao: string;
     codigoTransacao?: string | null;
@@ -190,76 +191,120 @@ function buildResult(category: ClassificationType, valor: number, reason: string
 export async function sendMovementToMunicipalSystem(
   prisma: PrismaClient,
   data: {
-    statementItemId?: string;
-    banco: string;
-    contaNumero: string;
-    categoria: ClassificationType;
-    valor: number;
-    dataMovimento: Date;
-    descricao: string;
+    statementItemId: string;
     usuarioId: string;
+    employeeId: string | null;
   }
 ): Promise<MunicipalIntegrationReceipt> {
-  if (!data.statementItemId) {
-    throw new Error("A transmissão exige um lançamento de extrato bancário identificado.");
-  }
-
   const result = await prisma.$transaction(async (tx) => {
     const item = await tx.bankStatementItem.findUnique({ where: { id: data.statementItemId } });
     if (!item) throw new Error("Lançamento bancário não encontrado.");
+    if (!item.banco || !item.agencia || !item.contaNumero) {
+      throw new Error("O lançamento bancário não possui banco, agência e conta suficientes para a transferência.");
+    }
+    const signal = statementSignal(item.sinal, item.direction, item.valueDecimal);
+    const value = new Prisma.Decimal(item.valueDecimal).abs();
+    const classification = await classifyBankMovement(tx, {
+      descricao: item.description || "Movimentação bancária",
+      codigoTransacao: item.codigoTransacao,
+      sinal: signal,
+      valor: Number(value),
+      banco: item.banco,
+      contaNumero: item.contaNumero,
+      documento: item.reference,
+    });
+    if (!isInvestmentCategory(classification.category)) {
+      throw new Error("O lançamento selecionado não é uma aplicação ou resgate financeiro.");
+    }
+    if (isInvestmentApplication(classification.category) && signal !== "DEBITO") {
+      throw new Error("Uma aplicação financeira deve ser identificada como débito no extrato bancário.");
+    }
+    if (isInvestmentRedemption(classification.category) && signal !== "CREDITO") {
+      throw new Error("Um resgate financeiro deve ser identificado como crédito no extrato bancário.");
+    }
     if (item.treasuryMovementId) {
       const existing = await tx.treasuryMovement.findUnique({
         where: { id: item.treasuryMovementId },
         include: { bankAccount: { select: { bankName: true, agency: true, accountNumber: true } } },
       });
       if (!existing) throw new Error("O lançamento bancário possui um vínculo financeiro inválido.");
-      return { movement: existing, auditId: item.lancamentoContabilId, account: existing.bankAccount };
+      return { movement: existing, account: existing.bankAccount, category: classification.category };
     }
 
-    const account = await tx.bankAccount.findFirst({
+    const sourceAccount = await tx.bankAccount.findFirst({
       where: {
-        bankName: item.banco || data.banco,
-        agency: item.agencia || undefined,
-        accountNumber: item.contaNumero || data.contaNumero,
+        bankName: item.banco,
+        agency: item.agencia,
+        accountNumber: item.contaNumero,
         isActive: true,
       },
-      select: { id: true, bankName: true, agency: true, accountNumber: true },
+      select: { id: true, bankName: true, agency: true, accountNumber: true, accountType: true, budgetUnitId: true, resourceSourceId: true },
     });
-    if (!account) throw new Error("A conta bancária do extrato não está cadastrada ou ativa na tesouraria.");
+    if (!sourceAccount) throw new Error("A conta bancária do extrato não está cadastrada ou ativa na tesouraria.");
+    const sourceIsChecking = sourceAccount.accountType === "Movimento";
+    const expectedSourceIsChecking = isInvestmentApplication(classification.category);
+    if (sourceIsChecking !== expectedSourceIsChecking) {
+      throw new Error("A conta do extrato não é compatível com a natureza da aplicação ou resgate.");
+    }
+
+    const destinationAccount = await tx.bankAccount.findFirst({
+      where: {
+        bankName: item.banco,
+        agency: item.agencia,
+        accountType: expectedSourceIsChecking ? "Aplicação" : "Movimento",
+        isActive: true,
+        ...(sourceAccount.budgetUnitId ? { budgetUnitId: sourceAccount.budgetUnitId } : {}),
+        ...(sourceAccount.resourceSourceId ? { resourceSourceId: sourceAccount.resourceSourceId } : {}),
+      },
+      select: { id: true },
+    });
+    if (!destinationAccount) throw new Error("A conta de contrapartida da aplicação não está cadastrada ou ativa na tesouraria.");
 
     const year = await tx.financialYear.findUnique({ where: { year: item.date.getUTCFullYear() }, select: { id: true } });
     if (!year) throw new Error("Não existe exercício financeiro aberto para a data do lançamento.");
 
-    const idempotencyKey = `BANK:STATEMENT:${item.id}:${data.categoria}`;
-    const movement = await tx.treasuryMovement.upsert({
-      where: { idempotencyKey },
-      create: {
-        date: item.date,
-        type: movementType(data.categoria),
-        direction: movementDirection(data.categoria, item.sinal),
-        valueDecimal: new Prisma.Decimal(data.valor),
-        history: data.descricao.trim(),
-        bankAccountId: account.id,
-        financialYearId: year.id,
-        sourceModule: "FINANCEIRO",
-        sourceType: "BANK_STATEMENT",
-        sourceId: item.id,
-        eventType: data.categoria,
-        idempotencyKey,
-      },
-      update: {},
+    const idempotencyKey = `BANK:STATEMENT:${item.id}:INVESTMENT_TRANSFER`;
+    const transfer = await createTreasuryTransferInTransaction(tx, { usuarioId: data.usuarioId, employeeId: data.employeeId }, {
+      date: item.date,
+      value,
+      sourceBankAccountId: sourceAccount.id,
+      destinationBankAccountId: destinationAccount.id,
+      history: item.description || `Transferência de ${classification.category.toLowerCase().replace(/_/g, " ")}`,
+      idempotencyKey,
+      sourceModule: "FINANCEIRO",
+      sourceType: "BANK_STATEMENT_INVESTMENT_TRANSFER",
+      sourceId: item.id,
+      eventType: classification.category,
     });
+
+    const accounting = await postAccountingEventInTransaction(tx, { usuarioId: data.usuarioId, employeeId: data.employeeId }, {
+      financialYearId: year.id,
+      date: item.date,
+      eventCode: isInvestmentApplication(classification.category) ? "APLICACAO_FINANCEIRA" : "RESGATE_APLICACAO_FINANCEIRA",
+      value,
+      history: item.description || `Transferência de ${classification.category.toLowerCase().replace(/_/g, " ")}`,
+      sourceModule: "FINANCEIRO",
+      sourceType: "BANK_STATEMENT_INVESTMENT_TRANSFER",
+      sourceId: item.id,
+      idempotencyKey: `${idempotencyKey}:ACCOUNTING`,
+    });
+
+    const movement = await tx.treasuryMovement.findUnique({
+      where: { id: transfer.sourceMovementId },
+      include: { bankAccount: { select: { bankName: true, agency: true, accountNumber: true } } },
+    });
+    if (!movement) throw new Error("A transferência de tesouraria não possui movimento de origem.");
 
     const reciboId = `REC-MUNI-${movement.id}`;
     const numeroLancamento = `LANC-MUN-${movement.id.slice(-8).toUpperCase()}`;
-    const hashIntegracao = crypto.createHash("sha256").update(`${movement.id}:${item.id}:${data.categoria}`).digest("hex");
+    const hashIntegracao = crypto.createHash("sha256").update(`${movement.id}:${item.id}:${classification.category}`).digest("hex");
     const audit = await tx.financialAuditLog.create({
       data: {
         action: "LANCAMENTO_MUNICIPAL_CLASSIFICADO",
         entityType: "TreasuryMovement",
         entityId: movement.id,
         authorUsuarioId: data.usuarioId,
-        payload: { reciboId, numeroLancamento, categoria: data.categoria, valor: data.valor, hashIntegracao, statementItemId: item.id },
+        payload: { reciboId, numeroLancamento, categoria: classification.category, valor: value.toFixed(2), hashIntegracao, statementItemId: item.id, treasuryTransferId: transfer.id, accountingTransactionId: accounting.id },
       },
     });
 
@@ -269,16 +314,16 @@ export async function sendMovementToMunicipalSystem(
         treasuryMovementId: movement.id,
         status: "Processado",
         reciboMunicipal: reciboId,
-        lancamentoContabilId: audit.id,
-        categoriaClassificada: data.categoria,
+        lancamentoContabilId: accounting.id,
+        categoriaClassificada: classification.category,
       },
     });
-    return { movement, auditId: audit.id, account };
+    return { movement, auditId: audit.id, account: movement.bankAccount, category: classification.category };
   });
 
   const reciboId = `REC-MUNI-${result.movement.id}`;
   const numeroLancamento = `LANC-MUN-${result.movement.id.slice(-8).toUpperCase()}`;
-  const hashIntegracao = crypto.createHash("sha256").update(`${result.movement.id}:${data.statementItemId}:${data.categoria}`).digest("hex");
+  const hashIntegracao = crypto.createHash("sha256").update(`${result.movement.id}:${data.statementItemId}:${result.category}`).digest("hex");
   return {
     reciboId,
     numeroLancamento,
@@ -294,15 +339,20 @@ export async function sendMovementToMunicipalSystem(
   };
 }
 
-function movementType(category: ClassificationType) {
-  if (category === "APLICACAO" || category === "TRANSFERENCIA_PARA_APLICACAO") return "InvestmentApplication";
-  if (category === "RESGATE" || category === "TRANSFERENCIA_DA_APLICACAO") return "InvestmentRedemption";
-  if (category === "ESTORNO") return "BankReversal";
-  return category === "DEBITO" ? "BankDebit" : "BankCredit";
+function isInvestmentApplication(category: ClassificationType) {
+  return category === "APLICACAO" || category === "TRANSFERENCIA_PARA_APLICACAO";
 }
 
-function movementDirection(category: ClassificationType, signal: string | null) {
-  if (category === "APLICACAO" || category === "TRANSFERENCIA_PARA_APLICACAO" || category === "DEBITO") return "Saída";
-  if (category === "RESGATE" || category === "TRANSFERENCIA_DA_APLICACAO" || category === "CREDITO") return "Entrada";
-  return signal === "DEBITO" ? "Saída" : "Entrada";
+function isInvestmentRedemption(category: ClassificationType) {
+  return category === "RESGATE" || category === "TRANSFERENCIA_DA_APLICACAO";
+}
+
+function isInvestmentCategory(category: ClassificationType) {
+  return isInvestmentApplication(category) || isInvestmentRedemption(category);
+}
+
+function statementSignal(signal: string | null, direction: string | null, value: Prisma.Decimal) {
+  if (signal === "DEBITO" || direction === "DEBIT" || direction === "Saída") return "DEBITO" as const;
+  if (signal === "CREDITO" || direction === "CREDIT" || direction === "Entrada") return "CREDITO" as const;
+  return value.lessThan(0) ? "DEBITO" as const : "CREDITO" as const;
 }

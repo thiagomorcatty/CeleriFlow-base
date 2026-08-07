@@ -132,8 +132,8 @@ As senhas não são recuperáveis no Firebase e não devem constar neste arquivo
 **Tela:** `Financeiro > Conciliação Bancária`
 
 1. Informar Banco Virtual Robonuvem, agência `0001`, conta `20001-1` e período `2025-08`.
-2. Clicar em `Abrir Conciliação & Carregar Razão`.
-3. Mostrar saldo inicial, créditos, débitos, saldo final do extrato, saldo do razão e diferença.
+2. Clicar em `Abrir Conciliação & Carregar Tesouraria`.
+3. Mostrar saldo inicial, créditos, débitos, saldo final do extrato, saldo da tesouraria e diferença.
 4. Clicar em `Executar Correspondência Automática`.
 5. Exibir itens conciliados, itens sem correspondência e divergências.
 6. Após eliminar pendências, clicar em `Confirmar Conciliação no CeleriFlow`.

@@ -482,6 +482,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
     const secondContent = `date,description,amount,reference\n2026-06-16,Conciliação duplicada ${suffix},125.50,REF-2-${suffix}`;
     const importIds: string[] = [];
     let movementId = "";
+    let oppositeMovementId = "";
 
     try {
       const firstImport = await importBankStatementCsv(prisma, actor, {
@@ -523,6 +524,28 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         },
       });
       movementId = movement.id;
+      const oppositeMovement = await prisma.treasuryMovement.create({
+        data: {
+          date: new Date("2026-06-15T12:00:00.000Z"),
+          type: "Teste de conciliação com sentido oposto",
+          direction: "Saída",
+          valueDecimal: "125.50",
+          history: `Movimento de sentido oposto ${suffix}`,
+          bankAccountId: account.id,
+          financialYearId: year.id,
+          sourceModule: "TEST",
+          sourceType: "BANK_RECONCILIATION_TEST",
+          eventType: "TEST",
+        },
+      });
+      oppositeMovementId = oppositeMovement.id;
+      await assert.rejects(
+        () => matchBankStatementItemToTreasuryMovement(prisma, actor, {
+          statementItemId: firstItem.id,
+          treasuryMovementId: oppositeMovement.id,
+        }),
+        /mesmo sentido/i,
+      );
 
       const matched = await matchBankStatementItemToTreasuryMovement(prisma, actor, {
         statementItemId: firstItem.id,
@@ -542,6 +565,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         await prisma.bankStatementItem.deleteMany({ where: { statementImportId: { in: importIds } } });
         await prisma.bankStatementImport.deleteMany({ where: { id: { in: importIds } } });
       }
+      if (oppositeMovementId) await prisma.treasuryMovement.deleteMany({ where: { id: oppositeMovementId } });
       if (movementId) await prisma.treasuryMovement.deleteMany({ where: { id: movementId } });
     }
   });

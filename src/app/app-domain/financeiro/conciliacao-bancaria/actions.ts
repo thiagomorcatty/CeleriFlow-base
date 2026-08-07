@@ -83,7 +83,7 @@ export async function matchBankStatementItemAction(data: { statementItemId: stri
 }
 
 /**
- * Abertura de Conciliação Bancária com Carga de Razão e Cálculo de Saldos
+ * Abertura de Conciliação Bancária com saldo de tesouraria e cálculo de saldos.
  */
 export async function openReconciliationSessionAction(input: {
   banco: string;
@@ -115,11 +115,11 @@ export async function openReconciliationSessionAction(input: {
     if (!isSystemAdministrator(context.user) && (!bankAccount.budgetUnitId || !context.user.allowedBudgetUnitIds.includes(bankAccount.budgetUnitId))) {
       throw new Error("Sem permissão para conciliar esta Unidade Gestora.");
     }
-    const ledgerMovements = await prisma.treasuryMovement.findMany({
+    const treasuryMovements = await prisma.treasuryMovement.findMany({
       where: { bankAccountId: bankAccount.id, date: { lte: dataFim } },
       select: { direction: true, valueDecimal: true },
     });
-    const saldoRazao = ledgerMovements.reduce((total, movement) => {
+    const saldoTesouraria = treasuryMovements.reduce((total, movement) => {
       const value = Math.abs(Number(movement.valueDecimal));
       if (["Entrada", "CREDIT"].includes(movement.direction)) return total + value;
       if (["Saída", "DEBIT"].includes(movement.direction)) return total - value;
@@ -149,7 +149,7 @@ export async function openReconciliationSessionAction(input: {
           totalDebitosDecimal: new Prisma.Decimal(0),
           totalCreditosDecimal: new Prisma.Decimal(0),
           saldoFinalDecimal: new Prisma.Decimal(parsed.data.saldoInicial),
-          saldoRazaoDecimal: new Prisma.Decimal(saldoRazao),
+          saldoRazaoDecimal: new Prisma.Decimal(saldoTesouraria),
           diferencaDecimal: new Prisma.Decimal(0),
           status: "ABERTA",
         },
@@ -157,7 +157,7 @@ export async function openReconciliationSessionAction(input: {
     } else {
       session = await prisma.bankReconciliationSession.update({
         where: { id: session.id },
-        data: { saldoRazaoDecimal: new Prisma.Decimal(saldoRazao) },
+        data: { saldoRazaoDecimal: new Prisma.Decimal(saldoTesouraria) },
       });
     }
 
@@ -174,8 +174,12 @@ export async function openReconciliationSessionAction(input: {
 export async function runAutoReconciliationAction(sessionId: string): Promise<ActionResult> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
-    const session = await context.prisma.bankReconciliationSession.findUnique({ where: { id: sessionId }, select: { banco: true } });
+    const session = await context.prisma.bankReconciliationSession.findUnique({ where: { id: sessionId }, select: { banco: true, agencia: true, contaNumero: true } });
     if (!session || !isPocVirtualBank(session.banco)) return { error: "A conciliação não pertence ao Banco Virtual Robonuvem." };
+    const account = await context.prisma.bankAccount.findFirst({ where: { bankName: session.banco, agency: session.agencia, accountNumber: session.contaNumero, isActive: true }, select: { budgetUnitId: true } });
+    if (!account || (!isSystemAdministrator(context.user) && (!account.budgetUnitId || !context.user.allowedBudgetUnitIds.includes(account.budgetUnitId)))) {
+      return { error: "Sem permissão para executar esta conciliação." };
+    }
     const result = await runAutoReconciliation(context.prisma, sessionId);
     revalidatePath("/financeiro/conciliacao-bancaria");
     return { data: result };
@@ -191,8 +195,12 @@ export async function confirmReconciliationSessionAction(sessionId: string): Pro
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const { prisma, user } = context;
-    const existingSession = await prisma.bankReconciliationSession.findUnique({ where: { id: sessionId }, select: { banco: true } });
+    const existingSession = await prisma.bankReconciliationSession.findUnique({ where: { id: sessionId }, select: { banco: true, agencia: true, contaNumero: true } });
     if (!existingSession || !isPocVirtualBank(existingSession.banco)) return { error: "A conciliação não pertence ao Banco Virtual Robonuvem." };
+    const accountForAccess = await prisma.bankAccount.findFirst({ where: { bankName: existingSession.banco, agency: existingSession.agencia, accountNumber: existingSession.contaNumero, isActive: true }, select: { budgetUnitId: true } });
+    if (!accountForAccess || (!isSystemAdministrator(user) && (!accountForAccess.budgetUnitId || !user.allowedBudgetUnitIds.includes(accountForAccess.budgetUnitId)))) {
+      return { error: "Sem permissão para confirmar esta conciliação." };
+    }
     const result = await prisma.$transaction(async (tx) => {
       const session = await tx.bankReconciliationSession.findUnique({ where: { id: sessionId } });
       if (!session) throw new Error("Sessão de conciliação não encontrada.");

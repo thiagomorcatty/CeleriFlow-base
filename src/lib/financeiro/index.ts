@@ -1573,33 +1573,63 @@ export async function updateBankAccountDetails(
   });
 }
 
-export async function createTreasuryTransfer(
-  db: PrismaClient,
+type TreasuryTransferInput = {
+  date: Date;
+  value: Prisma.Decimal | string | number;
+  sourceBankAccountId: string;
+  destinationBankAccountId: string;
+  history?: string;
+  idempotencyKey?: string;
+  sourceModule?: string;
+  sourceType?: string;
+  sourceId?: string;
+  eventType?: string;
+};
+
+export async function createTreasuryTransferInTransaction(
+  tx: Prisma.TransactionClient,
   actor: FinanceActor,
-  input: { date: Date; value: Prisma.Decimal | string | number; sourceBankAccountId: string; destinationBankAccountId: string; history?: string; idempotencyKey?: string },
+  input: TreasuryTransferInput,
 ) {
   const value = money(input.value);
   if (input.sourceBankAccountId === input.destinationBankAccountId) throw new FinanceError("A transferência exige contas de origem e destino diferentes.");
-  return db.$transaction(async (tx) => {
-    if (input.idempotencyKey) {
-      const existing = await tx.treasuryTransfer.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
-      if (existing) return existing;
-    }
-    const [source, destination, year] = await Promise.all([
-      tx.bankAccount.findUnique({ where: { id: input.sourceBankAccountId }, select: { isActive: true } }),
-      tx.bankAccount.findUnique({ where: { id: input.destinationBankAccountId }, select: { isActive: true } }),
-      financialYearForPosting(tx, input.date),
-    ]);
-    if (!source?.isActive || !destination?.isActive) throw new FinanceError("As contas da transferência devem estar ativas.");
-    const common = { date: input.date, type: "Transfer", valueDecimal: value, history: input.history?.trim() || "Transferência entre contas bancárias.", financialYearId: year.id, sourceModule: "FINANCEIRO", sourceType: "TREASURY_TRANSFER", sourceId: input.idempotencyKey, eventType: "TRANSFER", status: "Confirmado" };
-    const debit = await tx.treasuryMovement.create({ data: { ...common, direction: "Saída", bankAccountId: input.sourceBankAccountId, idempotencyKey: input.idempotencyKey ? `${input.idempotencyKey}:OUT` : undefined } });
-    const credit = await tx.treasuryMovement.create({ data: { ...common, direction: "Entrada", bankAccountId: input.destinationBankAccountId, idempotencyKey: input.idempotencyKey ? `${input.idempotencyKey}:IN` : undefined } });
-    const transfer = await tx.treasuryTransfer.create({
-      data: { date: input.date, valueDecimal: value, history: input.history?.trim() || undefined, sourceBankAccountId: input.sourceBankAccountId, destinationBankAccountId: input.destinationBankAccountId, sourceMovementId: debit.id, destinationMovementId: credit.id, idempotencyKey: input.idempotencyKey?.trim() || undefined },
-    });
-    await audit(tx, actor, "CREATE", "TreasuryTransfer", transfer.id, { value: jsonMoney(value), sourceBankAccountId: input.sourceBankAccountId, destinationBankAccountId: input.destinationBankAccountId }, year.id);
-    return transfer;
+  if (input.idempotencyKey) {
+    const existing = await tx.treasuryTransfer.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
+    if (existing) return existing;
+  }
+  const [source, destination, year] = await Promise.all([
+    tx.bankAccount.findUnique({ where: { id: input.sourceBankAccountId }, select: { isActive: true } }),
+    tx.bankAccount.findUnique({ where: { id: input.destinationBankAccountId }, select: { isActive: true } }),
+    financialYearForPosting(tx, input.date),
+  ]);
+  if (!source?.isActive || !destination?.isActive) throw new FinanceError("As contas da transferência devem estar ativas.");
+  const common = {
+    date: input.date,
+    type: "Transfer",
+    valueDecimal: value,
+    history: input.history?.trim() || "Transferência entre contas bancárias.",
+    financialYearId: year.id,
+    sourceModule: input.sourceModule?.trim() || "FINANCEIRO",
+    sourceType: input.sourceType?.trim() || "TREASURY_TRANSFER",
+    sourceId: input.sourceId?.trim() || input.idempotencyKey,
+    eventType: input.eventType?.trim() || "TRANSFER",
+    status: "Confirmado",
+  };
+  const debit = await tx.treasuryMovement.create({ data: { ...common, direction: "Saída", bankAccountId: input.sourceBankAccountId, idempotencyKey: input.idempotencyKey ? `${input.idempotencyKey}:OUT` : undefined } });
+  const credit = await tx.treasuryMovement.create({ data: { ...common, direction: "Entrada", bankAccountId: input.destinationBankAccountId, idempotencyKey: input.idempotencyKey ? `${input.idempotencyKey}:IN` : undefined } });
+  const transfer = await tx.treasuryTransfer.create({
+    data: { date: input.date, valueDecimal: value, history: input.history?.trim() || undefined, sourceBankAccountId: input.sourceBankAccountId, destinationBankAccountId: input.destinationBankAccountId, sourceMovementId: debit.id, destinationMovementId: credit.id, idempotencyKey: input.idempotencyKey?.trim() || undefined },
   });
+  await audit(tx, actor, "CREATE", "TreasuryTransfer", transfer.id, { value: jsonMoney(value), sourceBankAccountId: input.sourceBankAccountId, destinationBankAccountId: input.destinationBankAccountId }, year.id);
+  return transfer;
+}
+
+export async function createTreasuryTransfer(
+  db: PrismaClient,
+  actor: FinanceActor,
+  input: TreasuryTransferInput,
+) {
+  return db.$transaction((tx) => createTreasuryTransferInTransaction(tx, actor, input));
 }
 
 export async function recordConfirmedRevenue(
@@ -1966,17 +1996,23 @@ export async function matchBankStatementItemToTreasuryMovement(
           id: true,
           status: true,
           treasuryMovementId: true,
+          direction: true,
+          sinal: true,
+          valueDecimal: true,
+          banco: true,
+          agencia: true,
+          contaNumero: true,
           statementImport: { select: { bankAccountId: true, bankAccount: { select: { budgetUnitId: true } } } },
         },
       }),
       tx.treasuryMovement.findUnique({
         where: { id: input.treasuryMovementId },
-        select: { id: true, bankAccountId: true, status: true, statementItems: { select: { id: true } } },
+        select: { id: true, bankAccountId: true, status: true, direction: true, valueDecimal: true, bankAccount: { select: { bankName: true, agency: true, accountNumber: true, budgetUnitId: true } }, statementItems: { select: { id: true } } },
       }),
     ]);
     if (!statementItem) throw new FinanceError("Item de extrato não encontrado.");
     if (!treasuryMovement) throw new FinanceError("Movimento de tesouraria não encontrado.");
-    const budgetUnitId = statementItem.statementImport?.bankAccount?.budgetUnitId;
+    const budgetUnitId = statementItem.statementImport?.bankAccount?.budgetUnitId ?? treasuryMovement.bankAccount.budgetUnitId;
     if (budgetUnitId) {
       assertActorCanAccessBankAccount(actor, budgetUnitId);
     }
@@ -1986,6 +2022,21 @@ export async function matchBankStatementItemToTreasuryMovement(
     const bankAccountId = statementItem.statementImport?.bankAccountId;
     if (bankAccountId && bankAccountId !== treasuryMovement.bankAccountId) {
       throw new FinanceError("O movimento de tesouraria deve pertencer à mesma conta bancária do extrato.");
+    }
+    if (
+      (statementItem.banco && statementItem.banco !== treasuryMovement.bankAccount.bankName)
+      || (statementItem.agencia && statementItem.agencia !== treasuryMovement.bankAccount.agency)
+      || (statementItem.contaNumero && statementItem.contaNumero !== treasuryMovement.bankAccount.accountNumber)
+    ) {
+      throw new FinanceError("O movimento de tesouraria deve pertencer ao mesmo banco, agência e conta do extrato.");
+    }
+    const statementDirection = statementItem.sinal === "DEBITO" || statementItem.direction === "DEBIT" || statementItem.direction === "Saída" || statementItem.valueDecimal.lessThan(0) ? "Saída" : "Entrada";
+    const movementDirection = treasuryMovement.direction === "DEBIT" || treasuryMovement.direction === "Saída" ? "Saída" : "Entrada";
+    if (statementDirection !== movementDirection) {
+      throw new FinanceError("O movimento de tesouraria deve possuir o mesmo sentido do lançamento bancário.");
+    }
+    if (!statementItem.valueDecimal.abs().equals(treasuryMovement.valueDecimal.abs())) {
+      throw new FinanceError("O movimento de tesouraria deve possuir o mesmo valor do lançamento bancário.");
     }
     if (treasuryMovement.status !== "Confirmado") {
       throw new FinanceError("Somente movimentos de tesouraria confirmados podem ser conciliados.");

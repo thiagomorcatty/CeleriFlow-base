@@ -35,6 +35,22 @@ export interface SessionBalancesSummary {
   itensDivergentes: number;
 }
 
+function statementDirection(item: { sinal: string | null; direction: string; valueDecimal: Prisma.Decimal }) {
+  if (item.sinal === "DEBITO" || item.direction === "DEBIT" || item.direction === "Saída") return "Saída";
+  if (item.sinal === "CREDITO" || item.direction === "CREDIT" || item.direction === "Entrada") return "Entrada";
+  return item.valueDecimal.lessThan(0) ? "Saída" : "Entrada";
+}
+
+function treasuryDirection(direction: string) {
+  if (direction === "Saída" || direction === "DEBIT") return "Saída";
+  if (direction === "Entrada" || direction === "CREDIT") return "Entrada";
+  throw new Error(`Direção de tesouraria inválida: ${direction}.`);
+}
+
+function sameValue(first: Prisma.Decimal, second: Prisma.Decimal) {
+  return first.abs().minus(second.abs()).abs().lessThan(0.01);
+}
+
 /**
  * Executa o motor de correspondência automática de conciliação bancária cobrindo as 9 regras do edital
  */
@@ -57,8 +73,11 @@ export async function runAutoReconciliation(
   // Obter extratos pendentes da conta
   const bankItems = await prisma.bankStatementItem.findMany({
     where: {
+      banco: session.banco,
+      agencia: session.agencia,
       contaNumero: session.contaNumero,
       date: { gte: session.dataInicio, lte: session.dataFim },
+      status: { not: "Conciliado" },
     },
   });
 
@@ -86,18 +105,21 @@ export async function runAutoReconciliation(
   const matches: ReconciliationMatchResult[] = [];
   const matchedBankIds = new Set<string>();
   const matchedTreasuryIds = new Set<string>();
+  const isCompatible = (item: typeof bankItems[number], movement: typeof treasuryMovements[number]) => (
+    statementDirection(item) === treasuryDirection(movement.direction)
+    && sameValue(item.valueDecimal, movement.valueDecimal)
+  );
 
   // 1. Regra 1: Valor Exato e Mesma Data
   for (const bItem of bankItems) {
     if (matchedBankIds.has(bItem.id)) continue;
-    const bVal = Number(bItem.valueDecimal);
+    const bVal = Math.abs(Number(bItem.valueDecimal));
     const bDateStr = bItem.date.toISOString().split("T")[0];
 
     const match = treasuryMovements.find((t) => {
       if (matchedTreasuryIds.has(t.id)) return false;
-      const tVal = Number(t.valueDecimal);
       const tDateStr = t.date.toISOString().split("T")[0];
-      return Math.abs(bVal - tVal) < 0.01 && bDateStr === tDateStr;
+      return isCompatible(bItem, t) && bDateStr === tDateStr;
     });
 
     if (match) {
@@ -110,7 +132,7 @@ export async function runAutoReconciliation(
         confidenceScore: 1.0,
         description: "Correspondência perfeita de valor e data exata.",
         valorBanco: bVal,
-        valorContabil: Number(match.valueDecimal),
+        valorContabil: Math.abs(Number(match.valueDecimal)),
         diferenca: 0,
       });
     }
@@ -119,14 +141,13 @@ export async function runAutoReconciliation(
   // 2. Regra 2: Valor Exato com Diferença de ±1 Dia
   for (const bItem of bankItems) {
     if (matchedBankIds.has(bItem.id)) continue;
-    const bVal = Number(bItem.valueDecimal);
+    const bVal = Math.abs(Number(bItem.valueDecimal));
     const bTime = bItem.date.getTime();
 
     const match = treasuryMovements.find((t) => {
       if (matchedTreasuryIds.has(t.id)) return false;
-      const tVal = Number(t.valueDecimal);
       const diffDays = Math.abs(bTime - t.date.getTime()) / (1000 * 3600 * 24);
-      return Math.abs(bVal - tVal) < 0.01 && diffDays <= 1.5;
+      return isCompatible(bItem, t) && diffDays <= 1.5;
     });
 
     if (match) {
@@ -139,7 +160,7 @@ export async function runAutoReconciliation(
         confidenceScore: 0.95,
         description: "Correspondência por valor exato com tolerância de ±1 dia útil.",
         valorBanco: bVal,
-        valorContabil: Number(match.valueDecimal),
+        valorContabil: Math.abs(Number(match.valueDecimal)),
         diferenca: 0,
       });
     }
@@ -152,16 +173,17 @@ export async function runAutoReconciliation(
     const bDoc = (bItem.reference || bItem.codigoTransacao || "").trim();
     if (!bDoc || bDoc.length < 3) continue;
 
-    const match = treasuryMovements.find((t) => {
-      if (matchedTreasuryIds.has(t.id)) return false;
-      return (t.sourceId || "").includes(bDoc) || bDoc.includes(t.sourceId || "");
+      const match = treasuryMovements.find((t) => {
+        if (matchedTreasuryIds.has(t.id)) return false;
+        return statementDirection(bItem) === treasuryDirection(t.direction)
+          && ((t.sourceId || "").includes(bDoc) || bDoc.includes(t.sourceId || ""));
     });
 
     if (match) {
       matchedBankIds.add(bItem.id);
       matchedTreasuryIds.add(match.id);
-      const bVal = Number(bItem.valueDecimal);
-      const tVal = Number(match.valueDecimal);
+        const bVal = Math.abs(Number(bItem.valueDecimal));
+        const tVal = Math.abs(Number(match.valueDecimal));
       const diff = bVal - tVal;
 
       matches.push({
@@ -181,11 +203,11 @@ export async function runAutoReconciliation(
   for (const bItem of bankItems) {
     if (matchedBankIds.has(bItem.id)) continue;
     const bDesc = (bItem.description || "").toLowerCase();
-    const bVal = Number(bItem.valueDecimal);
+    const bVal = Math.abs(Number(bItem.valueDecimal));
 
     // Checar duplicidade no banco
     const dupBank = bankItems.filter(
-      (other) => other.id !== bItem.id && Math.abs(Number(other.valueDecimal) - bVal) < 0.01 && other.date.toISOString().split("T")[0] === bItem.date.toISOString().split("T")[0]
+      (other) => other.id !== bItem.id && statementDirection(other) === statementDirection(bItem) && Math.abs(Math.abs(Number(other.valueDecimal)) - bVal) < 0.01 && other.date.toISOString().split("T")[0] === bItem.date.toISOString().split("T")[0]
     );
 
     if (dupBank.length > 0) {
@@ -200,16 +222,16 @@ export async function runAutoReconciliation(
     }
 
     // Tentar match por histórico
-    const match = treasuryMovements.find((t) => {
-      if (matchedTreasuryIds.has(t.id)) return false;
-      const tDesc = (t.history || "").toLowerCase();
-      return bDesc.length > 5 && tDesc.length > 5 && (bDesc.includes(tDesc) || tDesc.includes(bDesc));
+      const match = treasuryMovements.find((t) => {
+        if (matchedTreasuryIds.has(t.id)) return false;
+        const tDesc = (t.history || "").toLowerCase();
+        return isCompatible(bItem, t) && bDesc.length > 5 && tDesc.length > 5 && (bDesc.includes(tDesc) || tDesc.includes(bDesc));
     });
 
     if (match) {
       matchedBankIds.add(bItem.id);
       matchedTreasuryIds.add(match.id);
-      const tVal = Number(match.valueDecimal);
+        const tVal = Math.abs(Number(match.valueDecimal));
 
       matches.push({
         statementItemId: bItem.id,
@@ -224,30 +246,9 @@ export async function runAutoReconciliation(
     }
   }
 
-  // 5. Regras 5 & 6: Agrupamento e 1-para-N (Detecção de Lotes)
-  const remainingBank = bankItems.filter((b) => !matchedBankIds.has(b.id));
-  const remainingTreasury = treasuryMovements.filter((t) => !matchedTreasuryIds.has(t.id));
+  // Agrupamentos e correspondências um-para-muitos permanecem pendentes até que todos os itens possam ser vinculados e confirmados.
 
-  if (remainingBank.length >= 2 && remainingTreasury.length >= 1) {
-    const sumBank = remainingBank.reduce((acc, curr) => acc + Number(curr.valueDecimal), 0);
-    const matchT = remainingTreasury.find((t) => Math.abs(Number(t.valueDecimal) - sumBank) < 0.01);
-
-    if (matchT) {
-      remainingBank.forEach((b) => matchedBankIds.add(b.id));
-      matchedTreasuryIds.add(matchT.id);
-      matches.push({
-        treasuryMovementId: matchT.id,
-        type: "AGRUPADO",
-        confidenceScore: 0.9,
-        description: `Agrupamento de ${remainingBank.length} lançamentos bancários contra 1 registro contábil de R$ ${sumBank.toFixed(2)}`,
-        valorBanco: sumBank,
-        valorContabil: Number(matchT.valueDecimal),
-        diferenca: 0,
-      });
-    }
-  }
-
-  // 6. Regra 8: Lançamentos Sem Correspondente
+  // Regra: Lançamentos Sem Correspondente
   for (const bItem of bankItems) {
     if (!matchedBankIds.has(bItem.id)) {
       matches.push({
@@ -255,7 +256,7 @@ export async function runAutoReconciliation(
         type: "SEM_CORRESPONDENTE",
         confidenceScore: 1.0,
         description: "Lançamento do extrato bancário sem correspondente no Razão Contábil",
-        valorBanco: Number(bItem.valueDecimal),
+        valorBanco: Math.abs(Number(bItem.valueDecimal)),
       });
     }
   }
@@ -280,14 +281,14 @@ export async function runAutoReconciliation(
   }
 
   // Recalcular Saldos
-  const totalDebitos = bankItems.filter((i) => i.sinal === "DEBITO" || Number(i.valueDecimal) < 0).reduce((a, b) => a + Math.abs(Number(b.valueDecimal)), 0);
-  const totalCreditos = bankItems.filter((i) => i.sinal === "CREDITO" || Number(i.valueDecimal) > 0).reduce((a, b) => a + Math.abs(Number(b.valueDecimal)), 0);
+  const totalDebitos = bankItems.filter((item) => statementDirection(item) === "Saída").reduce((total, item) => total + Math.abs(Number(item.valueDecimal)), 0);
+  const totalCreditos = bankItems.filter((item) => statementDirection(item) === "Entrada").reduce((total, item) => total + Math.abs(Number(item.valueDecimal)), 0);
   const saldoInicial = Number(session.saldoInicialDecimal);
   const saldoFinal = saldoInicial + totalCreditos - totalDebitos;
   const saldoRazao = Number(session.saldoRazaoDecimal);
-  const diferenca = saldoFinal - saldoRazao;
+  const diferenca = saldoRazao - saldoFinal;
 
-  const itensConciliados = matches.filter((m) => m.type !== "SEM_CORRESPONDENTE" && m.type !== "DIVERGENCIA_VALOR").length;
+  const itensConciliados = matches.filter((match) => ["VALOR_DATA_EXATA", "VALOR_D1", "DOCUMENTO", "HISTORICO"].includes(match.type) && match.diferenca === 0).length;
   const itensDivergentes = matches.length - itensConciliados;
 
   const updatedSession = await prisma.bankReconciliationSession.update({

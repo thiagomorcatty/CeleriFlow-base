@@ -65,17 +65,7 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
     setTransmitting(true);
     setErrorMsg(null);
 
-    const valor = typeof selectedItem.valueDecimal === "object" ? Number(selectedItem.valueDecimal) : Number(selectedItem.valueDecimal || 0);
-
-    const res = await transmitItemAction({
-      statementItemId: selectedItem.id,
-      banco: selectedItem.banco || pocVirtualBank.name,
-      contaNumero: selectedItem.contaNumero || pocVirtualBank.accountNumbers[2],
-      categoria: classificationResult.category,
-      valor: Math.abs(valor),
-      dataMovimento: selectedItem.date,
-      descricao: selectedItem.description || "Movimento de Tesouraria",
-    });
+    const res = await transmitItemAction({ statementItemId: selectedItem.id });
 
     setTransmitting(false);
 
@@ -89,7 +79,7 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
           i.id === selectedItem.id
             ? {
                 ...i,
-                status: "Conciliado",
+                status: "Processado",
                 reciboMunicipal: res.data.reciboId,
                 categoriaClassificada: classificationResult.category,
               }

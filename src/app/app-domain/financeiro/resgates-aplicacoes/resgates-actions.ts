@@ -1,9 +1,8 @@
 "use server";
 
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
-import { classifyBankMovement, sendMovementToMunicipalSystem, ClassificationType } from "@/lib/financeiro/classification-engine";
+import { classifyBankMovement, sendMovementToMunicipalSystem } from "@/lib/financeiro/classification-engine";
 import { revalidatePath } from "next/cache";
-import { isPocVirtualBank } from "@/lib/poc/poc-config";
 
 type ActionResult<T = any> = { error?: string; data?: T };
 
@@ -38,26 +37,15 @@ export async function classifyItemAction(input: {
   }
 }
 
-export async function transmitItemAction(input: {
-  statementItemId?: string;
-  banco: string;
-  contaNumero: string;
-  categoria: ClassificationType;
-  valor: number;
-  dataMovimento: string;
-  descricao: string;
-}): Promise<ActionResult> {
+export async function transmitItemAction(input: { statementItemId: string }): Promise<ActionResult> {
   try {
-    if (!isPocVirtualBank(input.banco)) return { error: "A POC aceita somente o Banco Virtual Robonuvem." };
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
-    const item = input.statementItemId
-      ? await context.prisma.bankStatementItem.findFirst({ where: { id: input.statementItemId, banco: "001 - Banco Virtual Robonuvem" }, select: { id: true } })
-      : null;
+    const item = await context.prisma.bankStatementItem.findFirst({ where: { id: input.statementItemId, banco: "001 - Banco Virtual Robonuvem" }, select: { id: true } });
     if (!item) return { error: "O lançamento informado não pertence ao Banco Virtual Robonuvem." };
     const receipt = await sendMovementToMunicipalSystem(context.prisma, {
-      ...input,
-      dataMovimento: new Date(input.dataMovimento),
+      statementItemId: item.id,
       usuarioId: context.user.id,
+      employeeId: context.user.employeeId,
     });
 
     revalidatePath("/financeiro/resgates-aplicacoes");

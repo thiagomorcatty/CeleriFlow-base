@@ -84,6 +84,39 @@ async function main() {
     accounts.set(definition.accountNumber, account);
   }
 
+  const [cashAccount, investmentAccount] = await Promise.all([
+    prisma.accountingPlan.upsert({
+      where: { code: "1.1.1.1.1.00.00" },
+      create: { code: "1.1.1.1.1.00.00", name: "Caixa e Equivalentes de Caixa em Moeda Nacional", type: "Analítica" },
+      update: {},
+    }),
+    prisma.accountingPlan.upsert({
+      where: { code: "1.1.1.2.1.00.00" },
+      create: { code: "1.1.1.2.1.00.00", name: "Aplicações Financeiras de Curto Prazo", type: "Analítica" },
+      update: {},
+    }),
+  ]);
+  const investmentEvents = [
+    ["APLICACAO_FINANCEIRA", "Aplicação financeira", investmentAccount.id, cashAccount.id],
+    ["RESGATE_APLICACAO_FINANCEIRA", "Resgate de aplicação financeira", cashAccount.id, investmentAccount.id],
+  ] as const;
+  for (const [code, name, debitAccountId, creditAccountId] of investmentEvents) {
+    const event = await prisma.accountingEventCatalog.upsert({
+      where: { code },
+      create: { code, name, description: "REFERENCIA POC - substituir por matriz PCASP homologada" },
+      update: { name, description: "REFERENCIA POC - substituir por matriz PCASP homologada", isActive: true },
+    });
+    await prisma.accountingPostingRule.updateMany({
+      where: { eventId: event.id, isReference: true, NOT: { debitAccountId, creditAccountId } },
+      data: { isActive: false },
+    });
+    await prisma.accountingPostingRule.upsert({
+      where: { eventId_debitAccountId_creditAccountId: { eventId: event.id, debitAccountId, creditAccountId } },
+      create: { eventId: event.id, debitAccountId, creditAccountId, description: "REFERENCIA POC - não utilizar em produção", isReference: true },
+      update: { isActive: true, isReference: true, description: "REFERENCIA POC - não utilizar em produção" },
+    });
+  }
+
   await prisma.integrationConnection.upsert({
     where: { code: "BANCO_API" },
     create: {
@@ -109,16 +142,28 @@ async function main() {
     },
   });
 
+  // Transactions from the virtual bank must be created by their own processing flows.
+  // Only the opening balance is seeded so a processed August statement can reconcile from R$ 150,000.00.
   const movements = [
-    { key: "poc-robonuvem-fpm-2025", account: "20001-1", year: year2025, date: "2025-08-10", type: "RECEITA", direction: "CREDIT", value: "145000.00", history: "FPM - Fundo de Participação dos Municípios" },
-    { key: "poc-robonuvem-fundeb-2025", account: "20001-1", year: year2025, date: "2025-08-15", type: "RECEITA", direction: "CREDIT", value: "98400.00", history: "FUNDEB - Transferência constitucional" },
-    { key: "poc-robonuvem-ipva-2025", account: "20001-1", year: year2025, date: "2025-08-20", type: "RECEITA", direction: "CREDIT", value: "15500.00", history: "IPVA - Cota-parte municipal" },
-    { key: "poc-robonuvem-icms-2025", account: "20001-1", year: year2025, date: "2025-08-20", type: "RECEITA", direction: "CREDIT", value: "53800.00", history: "ICMS - Cota-parte municipal" },
-    { key: "poc-robonuvem-yield-2025", account: "90001-4", year: year2025, date: "2025-08-28", type: "RENDIMENTO", direction: "CREDIT", value: "4400.00", history: "Rendimento de aplicação financeira" },
-    { key: "poc-robonuvem-investment-2026", account: "10001-0", year: year2026, date: "2026-05-11", type: "APLICACAO", direction: "DEBIT", value: "80000.00", history: "Aplicação financeira" },
-    { key: "poc-robonuvem-redemption-2026", account: "90001-4", year: year2026, date: "2026-05-27", type: "RESGATE", direction: "CREDIT", value: "150000.00", history: "Resgate de aplicação financeira" },
-    { key: "poc-robonuvem-fee-2026", account: "10001-0", year: year2026, date: "2026-06-30", type: "TARIFA", direction: "DEBIT", value: "450.00", history: "Tarifa bancária" },
+    { key: "poc-robonuvem-opening-20001-2025", account: "20001-1", year: year2025, date: "2025-07-31", type: "SaldoInicial", direction: "Entrada", value: "150000.00", history: "Saldo inicial da conciliação POC - agosto de 2025" },
   ];
+  await prisma.treasuryMovement.deleteMany({
+    where: {
+      idempotencyKey: {
+        in: [
+          "poc-robonuvem-fpm-2025",
+          "poc-robonuvem-fundeb-2025",
+          "poc-robonuvem-ipva-2025",
+          "poc-robonuvem-icms-2025",
+          "poc-robonuvem-yield-2025",
+          "poc-robonuvem-investment-2026",
+          "poc-robonuvem-redemption-2026",
+          "poc-robonuvem-fee-2026",
+        ],
+      },
+      statementItems: { none: {} },
+    },
+  });
 
   for (const movement of movements) {
     const bankAccountId = accounts.get(movement.account)?.id;
@@ -158,7 +203,7 @@ async function main() {
     throw new Error(`${activeForeignAccounts} conta(s) de outro banco ainda estão ativas na POC.`);
   }
 
-  console.log("Banco Virtual Robonuvem provisionado: 3 contas, 8 lançamentos e conexão BANCO_API em SANDBOX.");
+  console.log("Banco Virtual Robonuvem provisionado: 3 contas, saldo inicial de conciliação e conexão BANCO_API em SANDBOX.");
 }
 
 main()

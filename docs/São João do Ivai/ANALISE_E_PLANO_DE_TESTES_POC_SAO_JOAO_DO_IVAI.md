@@ -36,30 +36,30 @@ Recomendação interna: não liberar a apresentação com ressalva em qualquer u
 | Interface, Home e Automações | Há Home, catálogo/histórico de automações, status de execução, erros e auditoria de interação. | PRONTO PARA TESTE | Executar CT-01 a CT-03 com os três perfis. |
 | Banco Virtual externo | O cliente autentica, consulta contas, gera/baixa OFX, arquiva conteúdo privado, importa itens e registra execução. | PRONTO PARA TESTE | Validar contrato, hash, período, usuário, idempotência e cenários de falha. |
 | Extratos | Há download, arquivamento, histórico, SHA-256 e deduplicação de itens por identificador externo. | PRONTO COM RISCO | Testar repetição e concorrência; o arquivo é arquivado antes da transação e pode ficar órfão se a gravação falhar. |
-| Aplicações e resgates | Identifica, classifica, exibe prévia, cria movimento de tesouraria, recibo, vínculo de extrato e auditoria. | RISCO ALTO | Não tratar a prévia como lançamento contábil até concluir os testes de razão. |
+| Aplicações e resgates | A transmissão deriva os dados do extrato no servidor, cria transferência pareada, movimento de tesouraria, lançamento contábil equilibrado, recibo, vínculo e auditoria. | PRONTO PARA TESTE | Validar as duas contas, as partidas dobradas e a idempotência. |
 | Rendimentos | Calcula bruto, IRRF, IOF, correção e líquido; registra receita, tesouraria, evento contábil, vínculo e auditoria. | PRONTO PARA TESTE | Validar cálculo, saldo, idempotência e reflexo em Diário/Razão. |
 | Receitas constitucionais | Regras e fila de exceções processam receita, tesouraria, contabilidade e auditoria. | PRONTO PARA TESTE | Validar FPM, FUNDEB, IPVA, ICMS e item não reconhecido. |
-| Conciliação | Carrega extrato e movimentos de tesouraria, propõe correspondências e só confirma sem diferença e sem pendências. | RISCO ALTO | Demonstrar como conciliação de tesouraria, não como razão contábil, até saneamento. |
+| Conciliação | Carrega extrato e movimentos de tesouraria da mesma conta, exige sentido compatível e só confirma sem diferença e sem pendências. | PRONTO COM RESSALVA | Demonstrar como conciliação de tesouraria; o razão contábil analítico por conta exige evolução do modelo. |
 | Relatórios e razão | Diário, Razão e Balancete consultam somente lançamentos contábeis postados. | PRONTO COM RESSALVA | Verificar separadamente receitas/rendimentos e aplicações/resgates. |
 | Controle de caixa | Saldo operacional é derivado de movimentos de tesouraria confirmados. | RISCO ALTO | Recalcular por conta e confrontar com o extrato; conferir saldo de abertura. |
 
 ## 5. Achados financeiros e contábeis prioritários
 
-### P0 - não declarar como atendido sem validação ou correção
+### Controles corrigidos - validar no ensaio
 
 | ID | Achado | Impacto | Evidência técnica | Teste de aceitação |
 |---|---|---|---|---|
-| FIN-01 | Aplicação e resgate geram movimento de tesouraria, mas não geram `AccountingTransaction` nem partidas `AccountingEntry`. A prévia contábil é informativa. | A operação pode não aparecer no Diário, Razão e Balancete. | `src/lib/financeiro/classification-engine.ts` e `src/lib/financeiro/relatorios-legais.ts` | Executar T-M02-06. Se não houver partidas equilibradas, registrar `NÃO ATENDE` para a afirmação de integração contábil. |
-| FIN-02 | A ação de transmissão recebe categoria, valor e histórico do cliente; a validação do servidor confirma o item, mas a gravação usa os dados recebidos. | Risco de valor ou classificação divergente do extrato por chamada manipulada. | `resgates-actions.ts` e `classification-engine.ts` | Executar T-M02-07 com valor e categoria alterados. O comportamento aceitável é rejeitar ou ignorar valores divergentes. |
-| FIN-03 | A aplicação/resgate é registrado em uma única conta do item bancário, sem movimento pareado entre conta corrente e aplicação. | Saldo de caixa e saldo da aplicação podem ficar incompletos; não equivale a transferência interna integral. | `classification-engine.ts`; padrão correto em `createTreasuryTransfer` de `src/lib/financeiro/index.ts` | Executar T-M02-05 e conferir as duas contas. |
-| FIN-04 | A conciliação chamada de “razão” carrega `TreasuryMovement`, não o Razão Contábil (`AccountingEntry`). | O requisito MOD-05 pode ser atendido como conciliação de tesouraria, mas não comprova conciliação do razão contábil. | `conciliacao-bancaria/actions.ts` e `relatorios-legais.ts` | Executar T-M05-02 e T-M05-09; registrar expressamente a origem do saldo. |
+| FIN-01 | Aplicação e resgate agora criam `TreasuryTransfer` com dois movimentos opostos e `AccountingTransaction` com partidas dobradas. | A operação deve aparecer no Diário, Razão e Balancete. | `classification-engine.ts` e `src/lib/financeiro/index.ts` | Executar T-M02-05 e T-M02-06; falha em qualquer partida é bloqueio. |
+| FIN-02 | A transmissão aceita apenas o ID do item; valor, categoria, data, histórico, conta e sinal são derivados no servidor. | Impede gravação baseada em valor ou categoria manipulados no navegador. | `resgates-actions.ts` e `classification-engine.ts` | Executar T-M02-07; campos forjados não podem alterar a persistência. |
+| FIN-03 | Aplicação transfere de corrente para aplicação; resgate transfere de aplicação para corrente. | Os saldos das duas contas permanecem coerentes. | `classification-engine.ts` e `createTreasuryTransferInTransaction` | Executar T-M02-05 e T-M02-08. |
+| FIN-04 | A tela foi renomeada para tesouraria. O modelo ainda não relaciona cada conta bancária a uma conta analítica do Razão. | Não alegar conciliação de Razão Contábil por conta. | `conciliacao-bancaria/actions.ts` e `relatorios-legais.ts` | Executar T-M05-02 e registrar a origem do saldo. |
 
 ### P1 - riscos relevantes para controle interno e evidência
 
 | ID | Achado | Impacto | Teste obrigatório |
 |---|---|---|---|
-| FIN-05 | Correspondência automática compara valores absolutos e data e não valida direção do movimento. Também busca item por número de conta, sem banco/agência. | Pode conciliar crédito bancário com saída de tesouraria de mesmo valor, ou conta homônima. | T-M05-06 e T-M05-07 devem resultar em divergência; se conciliarem, não confirmar sessão. |
-| FIN-06 | Regras agrupadas não carregam todos os IDs de extrato para confirmação e `1_PARA_N` não está implementada. | Casos um-para-muitos não são conciliáveis de forma confiável. | T-M05-08; aceitar apenas 1:1 na POC e manter demais itens pendentes. |
+| FIN-05 | Correspondência automática agora exige banco, agência, conta, valor absoluto, data e sentido compatível. | Evita conciliar crédito bancário com saída de tesouraria de mesmo valor. | T-M05-06 e T-M05-07 devem resultar em divergência. |
+| FIN-06 | Agrupamentos e relações um-para-muitos não são mais propostos automaticamente. | Casos sem vínculo individual permanecem pendentes e não podem ser confirmados. | T-M05-08 deve permanecer pendente. |
 | FIN-07 | Saldos de telas são calculados pelos movimentos de tesouraria, enquanto o provisionamento pode gravar saldo corrente sem movimento de abertura correspondente. | Diferença entre saldo cadastral, saldo de tesouraria e saldo bancário. | T-CAI-01 a T-CAI-03 antes de qualquer demonstração. |
 | FIN-08 | Download grava Blob antes da transação e a idempotência do download é por hash de conteúdo. | Requisição concorrente pode deixar arquivo não referenciado; extrato reemitido pode exigir inspeção dos IDs externos. | T-M01-06 e T-M01-07. |
 | FIN-09 | Acesso a extrato arquivado e operações por ID precisam ser testados contra escopo de unidade gestora. | Risco de leitura cruzada entre unidades. | T-SEG-03 a T-SEG-05. |
@@ -146,9 +146,9 @@ Critério de aprovação: o arquivo é recuperável e rastreável, e os itens ba
 | T-M02-02 | Selecionar a aplicação e acionar a classificação. | Categoria, justificativa, bruto, encargos, líquido e prévia são coerentes com o extrato. | Captura da classificação. |
 | T-M02-03 | Acionar `Registrar no CeleriFlow & Gerar Recibo`. | Criar movimento de tesouraria, vínculo com item, recibo, hash, auditoria e identificação da conta registrada. | Recibo, item e movimento. |
 | T-M02-04 | Baixar 90001-4 em 27/05/2026 e repetir para resgate de 150.000,00. | Resgate aparece como entrada e gera um único registro vinculado. | Extrato, recibo e movimento. |
-| T-M02-05 | Após cada operação, consultar saldos de 10001-0 e 90001-4, além de Fluxo de Caixa/Tesouraria. | Documentar se há movimento pareado entre corrente e aplicação. O resultado contábil esperado de uma transferência interna é reduzir uma conta e elevar a outra pelo mesmo valor. | Extrato de tesouraria por conta e relatório. |
-| T-M02-06 | Gerar Diário, Razão e Balancete do período após a transmissão. | Procurar partidas de débito/crédito equilibradas para aplicação e resgate. Ausência dessas partidas confirma FIN-01 e impede alegar integração ao razão. | CSV/PDF e conferência por conta. |
-| T-M02-07 | Em ambiente de teste técnico, chamar a transmissão com o mesmo `statementItemId` e valor/categoria/histórico divergentes. | Deve rejeitar ou usar exclusivamente dados protegidos do extrato/classificação do servidor. Aceitação confirma FIN-02. | Requisição mascarada e registros resultantes. |
+| T-M02-05 | Após cada operação, consultar saldos de 10001-0 e 90001-4, além de Fluxo de Caixa/Tesouraria. | Há dois movimentos vinculados: saída da origem e entrada da contrapartida pelo mesmo valor. | Extrato de tesouraria por conta e relatório. |
+| T-M02-06 | Gerar Diário, Razão e Balancete do período após a transmissão. | Há duas partidas equilibradas: débito em aplicação/crédito em caixa para aplicação; inverso para resgate. | CSV/PDF e conferência por conta. |
+| T-M02-07 | Em ambiente de teste técnico, tentar enviar valor/categoria/histórico divergentes junto ao `statementItemId`. | A ação pública aceita apenas o ID; qualquer campo adicional é ignorado e a gravação usa exclusivamente o extrato. | Requisição mascarada e registros resultantes. |
 | T-M02-08 | Repetir a transmissão do mesmo item e, se possível, enviar em paralelo. | Um único movimento, um vínculo e recibo idempotente. | Contagem por `statementItemId`. |
 
 Critério de aprovação funcional: identificação, cálculo, registro, recibo e ausência de duplicidade. Critério contábil adicional: somente declarar reflexo no razão se T-M02-06 provar as partidas.
@@ -182,10 +182,10 @@ Critério de aprovação: os quatro repasses são classificados e registrados co
 
 | ID | Ação e botão/interação | Resultado esperado | Evidência |
 |---|---|---|---|
-| T-M05-01 | Selecionar Banco Virtual, agência 0001, conta 20001-1, período 08/2025 e acionar `Abrir Conciliação & Carregar Razão`. | Sessão contém saldo inicial, entradas, saídas, saldo final, população bancária e população interna. | Captura e ID da sessão. |
-| T-M05-02 | Identificar tecnicamente a origem do valor mostrado como razão. | Registrar que a implementação atual usa movimentos de tesouraria. Comparar separadamente com Razão Contábil exportado. | Consulta e relatório de razão. |
+| T-M05-01 | Selecionar Banco Virtual, agência 0001, conta 20001-1, período 08/2025 e acionar `Abrir Conciliação & Carregar Tesouraria`. | Sessão contém saldo inicial, entradas, saídas, saldo final, população bancária e população interna. | Captura e ID da sessão. |
+| T-M05-02 | Identificar tecnicamente a origem do valor mostrado como saldo da tesouraria. | Registrar que a implementação atual usa movimentos de tesouraria da conta selecionada. Comparar separadamente com Razão Contábil exportado. | Consulta e relatório de razão. |
 | T-M05-03 | Executar `Correspondência Automática`. | Cada FPM, FUNDEB, IPVA e ICMS é conciliado apenas com o movimento interno correto. | Lista de correspondências. |
-| T-M05-04 | Verificar fórmula de saldo por conta. | Saldo final do extrato = saldo inicial + créditos - débitos. Diferença = saldo interno - saldo bancário. | Memória de cálculo assinada. |
+| T-M05-04 | Verificar fórmula de saldo por conta. | Saldo final do extrato = saldo inicial + créditos - débitos. Diferença = saldo da tesouraria - saldo bancário. | Memória de cálculo assinada. |
 | T-M05-05 | Confirmar sessão somente sem pendência e diferença igual a zero. | Recibo, hash e status `CONCILIADA`; sessão não pode confirmar antes disso. | Recibo e status. |
 | T-M05-06 | Criar ou escolher crédito e saída de mesmo valor/data. | Não pode ser correspondência válida por ter direção oposta. Se ocorrer match automático, registrar FIN-05. | Resultado do motor. |
 | T-M05-07 | Usar número de conta igual em banco/agência diferente em massa técnica isolada. | Itens de outra conta não devem entrar na sessão. | População de extrato. |
@@ -259,20 +259,16 @@ Evidências mínimas por fluxo: captura da tela antes e depois da ação, arquiv
 - Extrato não puder ser aberto, rastreado ou deduplicado.
 - Receita ou rendimento não criar registros financeiros e contábeis equilibrados.
 - Conciliação puder ser confirmada com diferença, pendência, direção incompatível ou conta diferente.
-- Aplicação/resgate aceitar valor, categoria ou histórico divergente do extrato.
+- Aplicação/resgate não produzir duas movimentações pareadas ou lançamento contábil equilibrado.
 - Saldo de caixa não puder ser explicado pela memória de cálculo.
 - Evidências não identificarem usuário, momento, conta, período e resultado.
 
 ### Correções recomendadas antes da apresentação final
 
-1. Persistir aplicação e resgate como transferência pareada entre conta corrente e aplicação, com saldo suficiente, idempotência e vínculo para ambos os movimentos.
-2. Gerar e vincular lançamento contábil de partidas dobradas para aplicação e resgate; substituir o uso de ID de auditoria como se fosse identificador contábil.
-3. No servidor, derivar valor, histórico, sinal e categoria do item de extrato/classificação persistida; não confiar em campos enviados pelo cliente.
-4. Na conciliação, filtrar por banco, agência, conta e direção; impedir correspondência por valor absoluto em direção oposta.
-5. Implementar ou impedir explicitamente regras um-para-muitos; não apresentar correspondência agrupada como conciliável enquanto não puder ser confirmada com todos os itens vinculados.
-6. Alinhar saldo cadastral, saldo de abertura e saldo calculado exclusivamente por movimentos auditáveis.
-7. Aplicar verificação de unidade gestora em download arquivado, sessões de conciliação e qualquer ação baseada em ID.
-8. Criar testes automatizados de contrato do Banco Virtual, download OFX, idempotência, aplicações/resgates, rendimento, receitas, conciliação e autorização entre UGs.
+1. Criar uma relação analítica obrigatória entre conta bancária e conta do Razão Contábil antes de alegar conciliação contábil por conta.
+2. Alinhar saldo cadastral, saldo de abertura e saldo calculado exclusivamente por movimentos auditáveis.
+3. Aplicar verificação de unidade gestora em download arquivado e qualquer ação baseada em ID.
+4. Criar testes automatizados de contrato do Banco Virtual, download OFX, idempotência, aplicações/resgates, rendimento, receitas, conciliação e autorização entre UGs.
 
 ## 13. Referências de implementação revisadas
 
