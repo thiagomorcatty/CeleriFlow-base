@@ -37,6 +37,11 @@ export interface MunicipalIntegrationReceipt {
   hashIntegracao: string;
   status: "PROCESSADO" | "REJEITADO";
   mensagem: string;
+  contaCeleriFlow: {
+    banco: string;
+    agencia: string;
+    numero: string;
+  };
 }
 
 /**
@@ -203,9 +208,12 @@ export async function sendMovementToMunicipalSystem(
     const item = await tx.bankStatementItem.findUnique({ where: { id: data.statementItemId } });
     if (!item) throw new Error("Lançamento bancário não encontrado.");
     if (item.treasuryMovementId) {
-      const existing = await tx.treasuryMovement.findUnique({ where: { id: item.treasuryMovementId } });
+      const existing = await tx.treasuryMovement.findUnique({
+        where: { id: item.treasuryMovementId },
+        include: { bankAccount: { select: { bankName: true, agency: true, accountNumber: true } } },
+      });
       if (!existing) throw new Error("O lançamento bancário possui um vínculo financeiro inválido.");
-      return { movement: existing, auditId: item.lancamentoContabilId };
+      return { movement: existing, auditId: item.lancamentoContabilId, account: existing.bankAccount };
     }
 
     const account = await tx.bankAccount.findFirst({
@@ -215,7 +223,7 @@ export async function sendMovementToMunicipalSystem(
         accountNumber: item.contaNumero || data.contaNumero,
         isActive: true,
       },
-      select: { id: true },
+      select: { id: true, bankName: true, agency: true, accountNumber: true },
     });
     if (!account) throw new Error("A conta bancária do extrato não está cadastrada ou ativa na tesouraria.");
 
@@ -265,7 +273,7 @@ export async function sendMovementToMunicipalSystem(
         categoriaClassificada: data.categoria,
       },
     });
-    return { movement, auditId: audit.id };
+    return { movement, auditId: audit.id, account };
   });
 
   const reciboId = `REC-MUNI-${result.movement.id}`;
@@ -278,6 +286,11 @@ export async function sendMovementToMunicipalSystem(
     hashIntegracao,
     status: "PROCESSADO",
     mensagem: "Lançamento registrado na tesouraria municipal com vínculo ao extrato bancário.",
+    contaCeleriFlow: {
+      banco: result.account.bankName,
+      agencia: result.account.agency,
+      numero: result.account.accountNumber,
+    },
   };
 }
 

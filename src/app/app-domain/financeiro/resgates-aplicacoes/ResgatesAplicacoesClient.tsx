@@ -8,6 +8,7 @@ import { pocVirtualBank } from "@/lib/poc/poc-config";
 interface StatementItem {
   id: string;
   banco: string | null;
+  agencia: string | null;
   contaNumero: string | null;
   date: string;
   description: string | null;
@@ -27,6 +28,14 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
   const [transmitting, setTransmitting] = useState(false);
   const [receipt, setReceipt] = useState<any | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [accountFilter, setAccountFilter] = useState("TODAS");
+  const [signalFilter, setSignalFilter] = useState("TODOS");
+
+  const availableAccounts = [...new Set(items.map((item) => item.contaNumero).filter((account): account is string => Boolean(account)))];
+  const filteredItems = items.filter((item) => (
+    (accountFilter === "TODAS" || item.contaNumero === accountFilter)
+    && (signalFilter === "TODOS" || item.sinal === signalFilter)
+  ));
 
   async function handleClassify(item: StatementItem) {
     setSelectedItem(item);
@@ -115,17 +124,35 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
               Lançamentos do Extrato Bancário
             </span>
             <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded text-slate-600 dark:text-slate-300 font-mono">
-              Total: {items.length}
+              Exibindo: {filteredItems.length} de {items.length}
             </span>
           </h2>
 
+          <div className="grid grid-cols-2 gap-2">
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+              Conta do extrato
+              <select value={accountFilter} onChange={(event) => setAccountFilter(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+                <option value="TODAS">Todas as contas</option>
+                {availableAccounts.map((account) => <option key={account} value={account}>{account}</option>)}
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+              Tipo de movimento
+              <select value={signalFilter} onChange={(event) => setSignalFilter(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+                <option value="TODOS">Créditos e débitos</option>
+                <option value="CREDITO">Somente créditos</option>
+                <option value="DEBITO">Somente débitos</option>
+              </select>
+            </label>
+          </div>
+
           <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
-            {items.length === 0 ? (
-              <p className="text-sm text-slate-500 italic p-4 text-center">Nenhum lançamento bancário carregado. Faça o download do extrato na Funcionalidade 1.</p>
+            {filteredItems.length === 0 ? (
+              <p className="text-sm text-slate-500 italic p-4 text-center">Nenhum lançamento corresponde aos filtros. Baixe o extrato da conta desejada na funcionalidade de Extratos Bancários.</p>
             ) : (
-              items.map((item) => {
+              filteredItems.map((item) => {
                 const valor = typeof item.valueDecimal === "object" ? Number(item.valueDecimal) : Number(item.valueDecimal || 0);
-                const isCredito = item.sinal === "CREDITO" || valor >= 0;
+                const isCredito = item.sinal === "CREDITO" || (item.sinal !== "DEBITO" && valor >= 0);
                 const isSelected = selectedItem?.id === item.id;
 
                 return (
@@ -156,6 +183,7 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
                           <span className="text-[11px] text-slate-500 font-mono">
                             Doc: {item.reference || item.codigoTransacao || "S/D"} | {new Date(item.date).toLocaleDateString("pt-BR")}
                           </span>
+                          <span className="text-[11px] text-slate-500 font-mono block">Conta: {item.contaNumero || "Não identificada"}</span>
                         </div>
                       </div>
 
@@ -261,6 +289,12 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
                   </div>
                 </div>
 
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-950 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
+                  <p className="font-bold">Conta que receberá o lançamento no CeleriFlow</p>
+                  <p className="mt-1 font-mono">{selectedItem.banco || pocVirtualBank.name} | Agência {selectedItem.agencia || pocVirtualBank.agency} | Conta {selectedItem.contaNumero || "Não identificada"}</p>
+                  <p className="mt-1 text-blue-800 dark:text-blue-200">O movimento será gravado na mesma conta identificada no item de extrato selecionado.</p>
+                </div>
+
                 {errorMsg && (
                   <div className="p-3 bg-rose-50 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 text-xs rounded-lg">
                     {errorMsg}
@@ -293,8 +327,9 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
                       </span>
                     </div>
                     <div className="font-mono text-slate-700 dark:text-slate-300 space-y-1">
-                      <div>Recibo Municipal: <strong className="text-emerald-700 dark:text-emerald-300">{receipt.reciboId}</strong></div>
+                      <div>Recibo CeleriFlow: <strong className="text-emerald-700 dark:text-emerald-300">{receipt.reciboId}</strong></div>
                       <div>Número do Lançamento: <strong>{receipt.numeroLancamento}</strong></div>
+                      <div>Conta registrada: <strong>{receipt.contaCeleriFlow?.banco} | Ag. {receipt.contaCeleriFlow?.agencia} | {receipt.contaCeleriFlow?.numero}</strong></div>
                       <div className="truncate">Hash SHA-256: <span className="text-[10px] text-slate-500">{receipt.hashIntegracao}</span></div>
                     </div>
                   </div>
