@@ -5,6 +5,9 @@ export const auditEventTypes = {
   sessionLogout: "SESSION_LOGOUT",
   documentDownload: "DOCUMENT_DOWNLOAD",
   financialReportExport: "FINANCIAL_REPORT_EXPORT",
+  pageView: "PAGE_VIEW",
+  uiInteraction: "UI_INTERACTION",
+  formSubmit: "FORM_SUBMIT",
 } as const;
 
 type AuditEventType = (typeof auditEventTypes)[keyof typeof auditEventTypes];

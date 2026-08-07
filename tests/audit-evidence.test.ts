@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { auditEventTypes, writeAuditEvent } from "../src/lib/platform/audit-evidence.ts";
 import { prisma } from "../src/lib/prisma.ts";
+import { isSystemAdministrator } from "../src/lib/platform/tenant-context.ts";
 
 test("persists payload-free audit evidence with only actor, event, and target identifiers", async () => {
   let data: unknown;
@@ -30,13 +31,35 @@ test("persists payload-free audit evidence with only actor, event, and target id
   });
 });
 
-test("defines the Group A session, download, and finance-export event types", () => {
+test("defines authentication, protected-operation, and usage-monitoring event types", () => {
   assert.deepEqual(Object.values(auditEventTypes), [
     "SESSION_LOGIN",
     "SESSION_LOGOUT",
     "DOCUMENT_DOWNLOAD",
     "FINANCIAL_REPORT_EXPORT",
+    "PAGE_VIEW",
+    "UI_INTERACTION",
+    "FORM_SUBMIT",
   ]);
+});
+
+test("limits audit-log consultation to system administrators with total access", () => {
+  const administrator = {
+    role: "Administrador",
+    permissions: JSON.stringify({ acesso: "total" }),
+  } as Parameters<typeof isSystemAdministrator>[0];
+  const administratorWithoutTotalAccess = {
+    role: "Administrador",
+    permissions: JSON.stringify({ acesso: "restrito" }),
+  } as Parameters<typeof isSystemAdministrator>[0];
+  const nonAdministrator = {
+    role: "Gestor",
+    permissions: JSON.stringify({ acesso: "total" }),
+  } as Parameters<typeof isSystemAdministrator>[0];
+
+  assert.equal(isSystemAdministrator(administrator), true);
+  assert.equal(isSystemAdministrator(administratorWithoutTotalAccess), false);
+  assert.equal(isSystemAdministrator(nonAdministrator), false);
 });
 
 test("migration protects audit evidence from mutation and indexes retention queries", async () => {

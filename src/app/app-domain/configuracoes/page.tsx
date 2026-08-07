@@ -1,10 +1,10 @@
 import React from "react";
-import { Settings, Building2, Blocks, KeyRound, ArrowRight, ShieldCheck, UserCog, SlidersHorizontal, Cable } from "lucide-react";
+import { Settings, Building2, Blocks, KeyRound, ArrowRight, ShieldCheck, UserCog, SlidersHorizontal, Cable, ClipboardList } from "lucide-react";
 import Link from "next/link";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { getTenantContextForModule, isSystemAdministrator } from "@/lib/platform/tenant-context";
 
 export default async function ConfiguracoesDashboard() {
-  const { prisma } = await getTenantContextForModule("CONFIGURACOES");
+  const { prisma, user } = await getTenantContextForModule("CONFIGURACOES");
   const [instancias, totalModulosAtivos, totalPerfis] = await Promise.all([
     prisma.configuracaoInstancia.count(),
     prisma.configuracaoModulo.count({ where: { ativo: true } }),
@@ -112,6 +112,12 @@ export default async function ConfiguracoesDashboard() {
           <Cable className="h-6 w-6 text-emerald-700 dark:text-emerald-300 mb-2" />
           <div><h4 className="font-medium text-gray-900 dark:text-white flex items-center justify-between">Conexões e Integrações<ArrowRight className="h-4 w-4" /></h4><p className="text-xs text-gray-500 mt-1">Ambientes mock, homologação e produção</p></div>
         </Link>
+        {isSystemAdministrator(user) && (
+          <Link href="/configuracoes/auditoria" className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow group flex flex-col justify-between h-32">
+            <ClipboardList className="h-6 w-6 text-amber-700 dark:text-amber-300 mb-2" />
+            <div><h4 className="font-medium text-gray-900 dark:text-white flex items-center justify-between">Auditoria de Uso<ArrowRight className="h-4 w-4" /></h4><p className="text-xs text-gray-500 mt-1">Interações, navegações e acessos dos usuários</p></div>
+          </Link>
+        )}
       </div>
     </div>
   );
