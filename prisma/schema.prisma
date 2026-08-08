@@ -2636,6 +2636,7 @@ model BankAccount {
   statementImports     BankStatementImport[]
   taxPayments          TaxPayment[]
   taxFinancialMappings TaxFinancialMapping[]
+  constitutionalRevenueRules ClassificationRule[] @relation("ClassificationRuleBankAccount")
   statementItems       BankStatementItem[]
   covenants            Covenant[]
   investmentAllocationsAsOrigin InvestmentAllocation[] @relation("InvestmentAllocationOrigin")
@@ -5977,6 +5978,8 @@ model ClassificationRule {
   sinalEsperado    String? // "CREDITO", "DEBITO", "AMBOS"
   tipoMovimento    String // APLICACAO, RESGATE, TRANSFERENCIA_PARA_APLICACAO, TRANSFERENCIA_DA_APLICACAO, DEBITO, CREDITO, ESTORNO, RENDIMENTO, RECEITA_CONSTITUCIONAL
   bancoContaFiltro String?
+  bankAccountId     String?
+  bankAccount       BankAccount? @relation("ClassificationRuleBankAccount", fields: [bankAccountId], references: [id])
   tipoReceita      String? // FPM, ICMS, FUNDEB, etc.
   naturezaReceita  String?
   fonteRecurso     String?
@@ -5989,6 +5992,7 @@ model ClassificationRule {
   updatedAt        DateTime @updatedAt
 
   @@index([ativo, prioridade])
+  @@index([bankAccountId])
 }
 
 model YieldTransaction {

@@ -8,7 +8,7 @@ import { createRuleAction, processConstitutionalRevenueAction, resolveExceptionA
 interface Rule {
   id: string;
   textoProcurado: string;
-  bancoContaFiltro: string | null;
+  bankAccount: BankAccount | null;
   tipoReceita: string | null;
   naturezaReceita: string | null;
   fonteRecurso: string | null;
@@ -17,6 +17,13 @@ interface Rule {
   prioridade: number;
   exigeConfirmacao: boolean;
   ativo: boolean;
+}
+
+interface BankAccount {
+  id: string;
+  bankName: string;
+  agency: string;
+  accountNumber: string;
 }
 
 interface ExceptionItem {
@@ -36,9 +43,11 @@ interface ExceptionItem {
 
 export default function ReceitasConstitucionaisClient({
   initialRules = [],
+  initialBankAccounts = [],
   initialExceptions = [],
 }: {
   initialRules?: Rule[];
+  initialBankAccounts?: BankAccount[];
   initialExceptions?: ExceptionItem[];
 }) {
   const [activeTab, setActiveTab] = useState<"regras" | "nova" | "excecoes">("regras");
@@ -48,7 +57,7 @@ export default function ReceitasConstitucionaisClient({
 
   // Form para nova regra
   const [textoProcurado, setTextoProcurado] = useState("");
-  const [bancoContaFiltro, setBancoContaFiltro] = useState("Conta de Transferências");
+  const [bankAccountId, setBankAccountId] = useState(initialBankAccounts[0]?.id ?? "");
   const [tipoReceita, setTipoReceita] = useState("FPM");
   const [naturezaReceita, setNaturezaReceita] = useState("1.7.1.8.01.2.1.00.00 - Cota-Parte do FPM");
   const [fonteRecurso, setFonteRecurso] = useState("15000000 - Recursos Não Vinculados");
@@ -90,7 +99,7 @@ export default function ReceitasConstitucionaisClient({
 
     const res = await createRuleAction({
       textoProcurado,
-      bancoContaFiltro,
+      bankAccountId,
       tipoReceita,
       naturezaReceita,
       fonteRecurso,
@@ -207,7 +216,11 @@ export default function ReceitasConstitucionaisClient({
                       </span>
                     </td>
                     <td className="p-3 font-mono font-bold text-slate-900 dark:text-white">{r.textoProcurado}</td>
-                    <td className="p-3 text-slate-600 dark:text-slate-400">{r.bancoContaFiltro || "Qualquer Conta"}</td>
+                    <td className="p-3 text-slate-600 dark:text-slate-400">
+                      {r.bankAccount
+                        ? `${r.bankAccount.bankName} / ${r.bankAccount.agency} / ${r.bankAccount.accountNumber}`
+                        : "Conta não vinculada"}
+                    </td>
                     <td className="p-3 font-semibold text-purple-700 dark:text-purple-300">{r.tipoReceita}</td>
                     <td className="p-3 font-mono text-[11px] text-slate-600 dark:text-slate-400">{r.naturezaReceita}</td>
                     <td className="p-3 font-mono text-[11px] text-slate-600 dark:text-slate-400">{r.fonteRecurso}</td>
@@ -280,12 +293,19 @@ export default function ReceitasConstitucionaisClient({
               </div>
               <div>
                 <label className="block font-semibold uppercase mb-1">Banco / Conta</label>
-                <input
-                  type="text"
-                  value={bancoContaFiltro}
-                  onChange={(e) => setBancoContaFiltro(e.target.value)}
+                <select
+                  value={bankAccountId}
+                  onChange={(e) => setBankAccountId(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-800 border p-2.5 rounded-lg text-sm"
-                />
+                  required
+                >
+                  <option value="" disabled>Selecione uma conta</option>
+                  {initialBankAccounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.bankName} / {account.agency} / {account.accountNumber}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

@@ -111,14 +111,14 @@ async function main() {
   // ---------------------------------------------------------------------------
   const ugPrefeitura = await prisma.budgetUnit.upsert({
     where: { code: "0101" },
-    create: { code: "0101", name: "Prefeitura Municipal de Lagoa Seca", secretariatId: secFinancas.id },
-    update: { name: "Prefeitura Municipal de Lagoa Seca" },
+    create: { code: "0101", name: "Prefeitura Municipal de São João do Ivaí", secretariatId: secFinancas.id },
+    update: { name: "Prefeitura Municipal de São João do Ivaí" },
   });
 
   const ugCamara = await prisma.budgetUnit.upsert({
     where: { code: "0201" },
-    create: { code: "0201", name: "Câmara Municipal de Lagoa Seca", secretariatId: secFinancas.id },
-    update: { name: "Câmara Municipal de Lagoa Seca" },
+    create: { code: "0201", name: "Câmara Municipal de São João do Ivaí", secretariatId: secFinancas.id },
+    update: { name: "Câmara Municipal de São João do Ivaí" },
   });
 
   // ---------------------------------------------------------------------------

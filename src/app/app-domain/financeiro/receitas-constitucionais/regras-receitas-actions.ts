@@ -11,7 +11,7 @@ type ActionResult<T = any> = { error?: string; data?: T };
 
 const ruleSchema = z.object({
   textoProcurado: z.string().min(1, "Informe o texto procurado."),
-  bancoContaFiltro: z.string().optional(),
+  bankAccountId: z.string().min(1, "Selecione a conta bancária vinculada."),
   tipoReceita: z.string().min(1, "Informe o tipo de receita."),
   naturezaReceita: z.string().min(1, "Informe a natureza da receita."),
   fonteRecurso: z.string().min(1, "Informe a fonte de recurso."),
@@ -32,6 +32,12 @@ export async function seedConstitutionalRulesAction(): Promise<ActionResult> {
     const count = await prisma.classificationRule.count({
       where: { tipoMovimento: "RECEITA_CONSTITUCIONAL" },
     });
+    const revenueAccount = await prisma.bankAccount.findFirst({
+      where: { bankName: pocVirtualBank.name, agency: pocVirtualBank.agency, accountNumber: "20001-1", isActive: true },
+      select: { id: true },
+    });
+    if (!revenueAccount) throw new Error("A conta de receitas 20001-1 deve estar ativa antes de cadastrar as regras constitucionais.");
+    const revenueAccountLabel = `${pocVirtualBank.name} / ${pocVirtualBank.agency} / 20001-1`;
 
     {
       const defaultRules = [
@@ -166,7 +172,9 @@ export async function seedConstitutionalRulesAction(): Promise<ActionResult> {
         const exists = await prisma.classificationRule.findFirst({
           where: { textoProcurado: rule.textoProcurado, tipoMovimento: "RECEITA_CONSTITUCIONAL" },
         });
-        if (!exists) await prisma.classificationRule.create({ data: rule });
+        const data = { ...rule, bankAccountId: revenueAccount.id, bancoContaFiltro: revenueAccountLabel };
+        if (exists) await prisma.classificationRule.update({ where: { id: exists.id }, data });
+        else await prisma.classificationRule.create({ data });
       }
 
       // Inserir itens de teste na Fila de Exceções para demonstração na POC
@@ -227,7 +235,9 @@ export async function seedConstitutionalRulesAction(): Promise<ActionResult> {
     ];
     for (const rule of missingRules) {
       const exists = await prisma.classificationRule.findFirst({ where: { textoProcurado: rule.textoProcurado, tipoMovimento: "RECEITA_CONSTITUCIONAL" } });
-      if (!exists) await prisma.classificationRule.create({ data: { ...rule, tipoMovimento: "RECEITA_CONSTITUCIONAL" } });
+      const data = { ...rule, tipoMovimento: "RECEITA_CONSTITUCIONAL", bankAccountId: revenueAccount.id, bancoContaFiltro: revenueAccountLabel };
+      if (exists) await prisma.classificationRule.update({ where: { id: exists.id }, data });
+      else await prisma.classificationRule.create({ data });
     }
     const natures = [
       ["1.7.1.8.01.2.1", "Cota-Parte do Fundo de Participação dos Municípios - FPM"],
@@ -255,8 +265,18 @@ export async function getConstitutionalRulesAction(): Promise<ActionResult> {
     const rules = await context.prisma.classificationRule.findMany({
       where: { tipoMovimento: "RECEITA_CONSTITUCIONAL" },
       orderBy: { prioridade: "asc" },
+      include: { bankAccount: { select: { id: true, bankName: true, agency: true, accountNumber: true } } },
     });
-    return { data: rules };
+    const bankAccounts = await context.prisma.bankAccount.findMany({
+      where: {
+        bankName: pocVirtualBank.name,
+        isActive: true,
+        ...(isSystemAdministrator(context.user) ? {} : { budgetUnitId: { in: context.user.allowedBudgetUnitIds } }),
+      },
+      orderBy: [{ agency: "asc" }, { accountNumber: "asc" }],
+      select: { id: true, bankName: true, agency: true, accountNumber: true },
+    });
+    return { data: { rules, bankAccounts } };
   } catch (err: any) {
     return { error: err?.message || "Erro ao buscar regras de receita." };
   }
@@ -281,9 +301,20 @@ export async function createRuleAction(data: z.infer<typeof ruleSchema>): Promis
 
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
+    const bankAccount = await context.prisma.bankAccount.findFirst({
+      where: {
+        id: parsed.data.bankAccountId,
+        bankName: pocVirtualBank.name,
+        isActive: true,
+        ...(isSystemAdministrator(context.user) ? {} : { budgetUnitId: { in: context.user.allowedBudgetUnitIds } }),
+      },
+      select: { bankName: true, agency: true, accountNumber: true },
+    });
+    if (!bankAccount) return { error: "A conta bancária selecionada não está disponível para esta Unidade Gestora." };
     const newRule = await context.prisma.classificationRule.create({
       data: {
         ...parsed.data,
+        bancoContaFiltro: `${bankAccount.bankName} / ${bankAccount.agency} / ${bankAccount.accountNumber}`,
         tipoMovimento: "RECEITA_CONSTITUCIONAL",
       },
     });
@@ -309,9 +340,16 @@ export async function resolveExceptionAction(exceptionId: string, ruleText?: str
     // Se fornecido texto para nova regra, cria a regra no banco
     let newRuleId: string | undefined = undefined;
     if (ruleText && ruleText.trim() !== "") {
+      const bankAccount = await prisma.bankAccount.findFirst({
+        where: { bankName: exceptionItem.banco, accountNumber: exceptionItem.contaNumero, isActive: true },
+        select: { id: true, bankName: true, agency: true, accountNumber: true },
+      });
+      if (!bankAccount) return { error: "A exceção não pertence a uma conta bancária ativa e vinculada." };
       const newRule = await prisma.classificationRule.create({
         data: {
           textoProcurado: ruleText.trim(),
+          bankAccountId: bankAccount.id,
+          bancoContaFiltro: `${bankAccount.bankName} / ${bankAccount.agency} / ${bankAccount.accountNumber}`,
           tipoReceita: exceptionItem.sugestaoTipo || "Receita Municipal",
           naturezaReceita: "1.7.1.8.00.0.0.00.00 - Transferência Legal",
           fonteRecurso: "15000000 - Recursos Não Vinculados",
@@ -366,7 +404,7 @@ export async function processConstitutionalRevenueAction(statementItemId: string
       }
 
       const rules = await tx.classificationRule.findMany({
-        where: { ativo: true, tipoMovimento: "RECEITA_CONSTITUCIONAL" },
+        where: { ativo: true, tipoMovimento: "RECEITA_CONSTITUCIONAL", bankAccountId: account.id },
         orderBy: { prioridade: "asc" },
       });
       const description = (item.description || "").toUpperCase();

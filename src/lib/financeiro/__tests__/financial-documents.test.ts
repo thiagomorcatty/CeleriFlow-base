@@ -20,7 +20,7 @@ test("generates linked internal financial documents with each financial fact", a
     prisma.budgetAppropriation.findFirst({ where: { code: "0101.04.122.0001.2002.3.3.90.30.00" }, select: { id: true } }),
     prisma.secretariat.findFirst({ select: { id: true } }),
     prisma.document.findUnique({ where: { id: "doc-nf-lagoaseca-01" }, select: { id: true } }),
-    prisma.bankAccount.findUnique({ where: { id: "cl-lagoaseca-bb-pref-1000" }, select: { id: true } }),
+    prisma.bankAccount.findUnique({ where: { id: "poc-robonuvem-checking-10001" }, select: { id: true } }),
   ]);
   if (!user || !employee || !appropriation || !secretariat || !document || !bankAccount) {
     t.skip("A base POC financeira não está disponível.");

@@ -65,7 +65,7 @@ export async function classifyBankMovement(
 
   // 1. Buscar regras ativas no banco de dados ordenadas por prioridade asc
   const rules = await prisma.classificationRule.findMany({
-    where: { ativo: true },
+    where: { ativo: true, NOT: { tipoMovimento: "RECEITA_CONSTITUCIONAL" } },
     orderBy: { prioridade: "asc" },
   });
 

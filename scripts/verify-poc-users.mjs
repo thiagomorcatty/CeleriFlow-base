@@ -9,12 +9,7 @@ import { getAuth } from "firebase-admin/auth";
 const defaultEmails = [
   "adminteste@email.com",
   "gestao1@email.com",
-  "servidor1@email.com",
   "contadorteste@email.com",
-  "pessoateste1@email.com",
-  "pessoateste2@email.com",
-  "contador.prefeitura@lagoaseca.pb.gov.br",
-  "contador.camara@lagoaseca.pb.gov.br",
 ];
 
 function requiredEnvironment(name) {

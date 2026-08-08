@@ -1,149 +1,52 @@
 import "dotenv/config";
 import { prisma } from "../src/lib/prisma";
+import { pocVirtualBank } from "../src/lib/poc/poc-config";
+import { constitutionalRevenueRules } from "../src/lib/poc/constitutional-revenue-rules";
 
-type Check = { check: string; status: "OK" | "FALHA" | "OBSERVACAO"; detail: string };
-
-const requiredEventCodes = [
-  "EMPENHO_EMITIDO",
-  "LIQUIDACAO_REGISTRADA",
-  "PAGAMENTO_EFETIVADO",
-  "RETENCAO_RECOLHIDA",
-  "PAGAMENTO_ESTORNADO",
-  "RECEITA_LANCADA",
-  "RECEITA_ARRECADADA",
-  "RECEITA_ESTORNADA",
-  "RECEITA_REDISTRIBUIDA_FONTE",
-] as const;
-
-function money(value: { toString(): string } | number | null) {
-  return Number(value ?? 0).toFixed(2);
-}
+type Check = { check: string; status: "OK" | "FALHA"; detail: string };
 
 async function main() {
   const checks: Check[] = [];
   const fail = (check: string, detail: string) => checks.push({ check, status: "FALHA", detail });
   const pass = (check: string, detail: string) => checks.push({ check, status: "OK", detail });
-  const observe = (check: string, detail: string) => checks.push({ check, status: "OBSERVACAO", detail });
 
   try {
-    const year = await prisma.financialYear.findUnique({ where: { year: 2026 } });
-    if (!year) {
-      fail("Exercício", "Exercício financeiro 2026 não encontrado.");
-      process.exitCode = 1;
-      return;
-    }
-    pass("Exercício", `2026 (${year.status}).`);
-
-    const [units, accounts, events, planning, reports, revenue] = await Promise.all([
-      prisma.budgetUnit.findMany({ where: { code: { in: ["0101", "0201"] } }, orderBy: { code: "asc" } }),
-      prisma.bankAccount.findMany({ where: { id: { in: ["cl-lagoaseca-bb-pref-1000", "cl-lagoaseca-bb-cam-2000"] } } }),
-      prisma.accountingEventCatalog.findMany({
-        where: { code: { in: [...requiredEventCodes] } },
-        include: { rules: { where: { isActive: true, isReference: true }, select: { debitAccountId: true, creditAccountId: true } } },
+    const [unit, years, accounts, integration] = await Promise.all([
+      prisma.budgetUnit.findUnique({ where: { code: "0101" }, select: { id: true, name: true } }),
+      prisma.financialYear.findMany({ where: { year: { in: [2025, 2026] } }, select: { year: true, status: true } }),
+      prisma.bankAccount.findMany({
+        where: { bankName: pocVirtualBank.name, agency: pocVirtualBank.agency, accountNumber: { in: ["10001-0", "20001-1", "90001-4"] } },
+        select: { id: true, accountNumber: true, isActive: true, budgetUnitId: true, resourceSourceId: true, accountingPlanId: true },
       }),
-      prisma.annualBudgetLaw.findUnique({
-        where: { id: "loa-2026-lagoaseca" },
-        include: {
-          budgetGuideline: {
-            include: {
-              multiYearPlan: {
-                include: {
-                  programs: { include: { objectives: { include: { indicators: true } }, actions: { include: { goals: true } } } },
-                },
-              },
-              priorities: true,
-              risks: true,
-            },
-          },
-          revenueForecasts: true,
-          expenseFixations: { include: { appropriations: true } },
-          cmdSchedules: true,
-          mbaTargets: true,
-        },
-      }),
-      prisma.document.findMany({
-        where: { documentType: { startsWith: `PUBLIC_FINANCIAL_REPORT:${year.id}:` } },
-        include: { versions: { where: { status: { in: ["FINAL", "SIGNED"] } }, select: { versionNumber: true } } },
-      }),
-      prisma.revenue.findUnique({
-        where: { idempotencyKey: "SEED:LAGOA_SECA:REV:IPTU:01" },
-        include: { treasuryMovement: true },
-      }),
+      prisma.integrationConnection.findUnique({ where: { code: "BANCO_API" }, select: { status: true, environment: true, provider: true } }),
     ]);
 
-    const unitCodes = new Set(units.map((unit) => unit.code));
-    for (const code of ["0101", "0201"]) {
-      if (!unitCodes.has(code)) fail("Unidades gestoras", `UG ${code} não encontrada.`);
-    }
-    if (unitCodes.size === 2) pass("Unidades gestoras", "UGs 0101 e 0201 configuradas.");
+    if (unit?.name === "Prefeitura Municipal de São João do Ivaí") pass("Unidade gestora", "UG 0101 identificada como Prefeitura Municipal de São João do Ivaí.");
+    else fail("Unidade gestora", "A UG 0101 não está identificada como Prefeitura Municipal de São João do Ivaí.");
 
-    const unitIds = new Set(units.map((unit) => unit.id));
-    for (const account of accounts) {
-      if (!account.isActive || !account.resourceSourceId || !account.budgetUnitId || !unitIds.has(account.budgetUnitId)) {
-        fail("Contas bancárias", `Conta ${account.id} sem vínculo ativo e coerente de UG/fonte.`);
-      }
-    }
-    if (accounts.length === 2 && accounts.every((account) => account.isActive && account.resourceSourceId && account.budgetUnitId && unitIds.has(account.budgetUnitId))) {
-      pass("Contas bancárias", "Contas POC ativas com fonte e UG vinculadas.");
-    } else if (accounts.length !== 2) {
-      fail("Contas bancárias", "As duas contas bancárias POC não foram encontradas.");
-    }
+    if (years.length === 2 && years.every((year) => year.status === "Aberto")) pass("Exercícios", "Exercícios 2025 e 2026 estão abertos.");
+    else fail("Exercícios", "Os exercícios 2025 e 2026 devem estar abertos para os cenários do roteiro.");
 
-    if (revenue?.stage === "ARRECADADA" && revenue.bankAccountId && revenue.treasuryMovement?.revenueId === revenue.id && revenue.treasuryMovement.bankAccountId === revenue.bankAccountId) {
-      pass("Receita e tesouraria", "Arrecadação IPTU POC está vinculada ao movimento de tesouraria da mesma conta.");
-    } else {
-      fail("Receita e tesouraria", "Arrecadação IPTU POC ou seu vínculo com a tesouraria está ausente ou incoerente.");
-    }
+    const invalidAccounts = accounts.filter((account) => !account.isActive || account.budgetUnitId !== unit?.id || !account.resourceSourceId || !account.accountingPlanId);
+    if (accounts.length === 3 && invalidAccounts.length === 0) pass("Contas bancárias", "Contas 10001-0, 20001-1 e 90001-4 ativas, com UG, fonte e plano contábil vinculados.");
+    else fail("Contas bancárias", "As contas essenciais da POC devem estar ativas e vinculadas à UG, fonte e plano contábil.");
 
-    const accountCodes = await prisma.accountingPlan.findMany({ where: { code: { in: ["1.1.1.1.1.00.00", "2.1.1.1.1.00.00", "2.3.7.1.1.00.00"] } }, select: { code: true } });
-    if (accountCodes.length === 3) pass("Plano de contas de referência", "Contas caixa, credores e patrimônio líquido encontradas.");
-    else fail("Plano de contas de referência", "Contas mínimas de referência ausentes.");
+    if (integration?.status === "ATIVA" && integration.environment === "SANDBOX" && integration.provider === "Robonuvem - ambiente externo de testes") pass("Integração bancária", "BANCO_API ativa em SANDBOX para o Banco Virtual Robonuvem.");
+    else fail("Integração bancária", "BANCO_API não está ativa e configurada para o sandbox da POC.");
 
-    const eventsByCode = new Map(events.map((event) => [event.code, event]));
-    const invalidEvents = requiredEventCodes.filter((code) => {
-      const event = eventsByCode.get(code);
-      return !event?.isActive || event.rules.length !== 1 || event.rules[0].debitAccountId === event.rules[0].creditAccountId;
+    const revenueAccount = accounts.find((account) => account.accountNumber === "20001-1");
+    const rules = await prisma.classificationRule.findMany({
+      where: { tipoMovimento: "RECEITA_CONSTITUCIONAL", ativo: true },
+      select: { textoProcurado: true, ativo: true, bankAccountId: true },
     });
-    if (invalidEvents.length) fail("Regras contábeis de referência", `Eventos inválidos ou ausentes: ${invalidEvents.join(", ")}.`);
-    else pass("Regras contábeis de referência", `${requiredEventCodes.length} eventos ativos com partida de débito e crédito distintas.`);
+    const missingRules = constitutionalRevenueRules.filter((rule) => !rules.some((stored) => stored.textoProcurado === rule.textoProcurado && stored.bankAccountId === revenueAccount?.id));
+    const unlinkedRules = rules.filter((rule) => rule.bankAccountId !== revenueAccount?.id);
+    if (missingRules.length === 0 && unlinkedRules.length === 0) pass("Regras constitucionais", `${rules.length} regras ativas vinculadas à conta 20001-1.`);
+    else fail("Regras constitucionais", `Regras sem vínculo à conta 20001-1: ${[...missingRules.map((rule) => rule.textoProcurado), ...unlinkedRules.map((rule) => rule.textoProcurado)].join(", ")}.`);
 
-    const plan = planning?.budgetGuideline?.multiYearPlan;
-    if (!planning || !plan) {
-      fail("Rastreabilidade PPA/LDO/LOA", "LOA 2026 não está vinculada a uma LDO e PPA.");
-    } else {
-      const { expenseFixations, revenueForecasts } = planning;
-      const forecastTotal = revenueForecasts.reduce((total, item) => total + Number(item.estimatedValue), 0);
-      const fixationTotal = expenseFixations.reduce((total, item) => total + Number(item.fixedValue), 0);
-      const appropriations = expenseFixations.flatMap((fixation) => fixation.appropriations);
-      const traceValid = plan.programs.length > 0
-        && plan.programs.every((program) => program.objectives.some((objective) => objective.indicators.length > 0) && program.actions.some((action) => action.goals.some((goal) => goal.year === 2026)))
-        && appropriations.length > 0
-        && appropriations.every((appropriation) => appropriation.annualBudgetExpenseFixationId && appropriation.programPPAId && appropriation.actionPPAId)
-        && forecastTotal === Number(planning.totalRevenue)
-        && fixationTotal === Number(planning.totalExpense);
-      if (traceValid) pass("Rastreabilidade PPA/LDO/LOA", `PPA ${plan.code}, LDO, LOA, fixações e ${appropriations.length} dotações estão vinculados.`);
-      else fail("Rastreabilidade PPA/LDO/LOA", "Cadeia de planejamento, metas/indicadores, totais ou vínculos das dotações incompletos.");
-
-      const cmdByUnit = new Map<string, Set<number>>();
-      for (const schedule of planning.cmdSchedules) {
-        const months = cmdByUnit.get(schedule.budgetUnitId) ?? new Set<number>();
-        months.add(schedule.month);
-        cmdByUnit.set(schedule.budgetUnitId, months);
-      }
-      const cmdComplete = [...unitIds].every((unitId) => cmdByUnit.get(unitId)?.size === 12);
-      const mbaComplete = new Set(planning.mbaTargets.map((target) => target.bimonth)).size === 6;
-      if (cmdComplete && mbaComplete) pass("CMD e MBA", "CMD possui 12 meses por UG e MBA possui 6 bimestres.");
-      else fail("CMD e MBA", "CMD ou MBA incompleto para a LOA POC.");
-      observe("Totais LOA", `Receita prevista ${money(planning.totalRevenue)}; fixação ${money(planning.totalExpense)}.`);
-    }
-
-    if (!reports.length) {
-      observe("Snapshots públicos", "Nenhum snapshot público encontrado; ausência não é aprovada como publicação legal.");
-    } else {
-      const invalidReports = reports.filter((report) => !report.versions.length);
-      if (invalidReports.length) fail("Snapshots públicos", `${invalidReports.length} documento(s) publicado(s) sem versão FINAL ou SIGNED.`);
-      else pass("Snapshots públicos", `${reports.length} documento(s) publicado(s) possuem versão final.`);
-    }
+    const opening = revenueAccount && await prisma.treasuryMovement.findUnique({ where: { idempotencyKey: "poc-robonuvem-opening-20001-2025" }, select: { bankAccountId: true } });
+    if (opening?.bankAccountId === revenueAccount?.id) pass("Saldo inicial", "Saldo inicial auditável da conta 20001-1 está disponível para a conciliação.");
+    else fail("Saldo inicial", "O saldo inicial auditável da conta 20001-1 não está disponível.");
   } finally {
     console.table(checks);
     await prisma.$disconnect();

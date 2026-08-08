@@ -201,7 +201,7 @@ export async function runAutomatedBankDownloadAction(input: {
         skipDuplicates: true,
       });
       const constitutionalRules = await tx.classificationRule.findMany({
-        where: { ativo: true, tipoMovimento: "RECEITA_CONSTITUCIONAL" },
+        where: { ativo: true, tipoMovimento: "RECEITA_CONSTITUCIONAL", bankAccountId: bankAccount.id },
         select: { textoProcurado: true, tipoReceita: true },
       });
       if (constitutionalRules.length > 0) {

@@ -129,7 +129,7 @@ async function main() {
   }
 
   const revenueRules = await prisma.classificationRule.findMany({
-    where: { ativo: true, tipoMovimento: "RECEITA_CONSTITUCIONAL" },
+    where: { ativo: true, tipoMovimento: "RECEITA_CONSTITUCIONAL", bankAccountId: accountByNumber.get("20001-1")!.id },
     select: { textoProcurado: true, naturezaReceita: true, fonteRecurso: true, eventoContabil: true },
   });
   const revenueItems = await prisma.bankStatementItem.findMany({

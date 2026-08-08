@@ -9,6 +9,7 @@ for (const [key, value] of Object.entries(localBankEnvironment)) {
   }
 }
 import { pocVirtualBank } from "../src/lib/poc/poc-config";
+import { constitutionalRevenueRules } from "../src/lib/poc/constitutional-revenue-rules";
 
 const bankName = pocVirtualBank.name;
 const agency = pocVirtualBank.agency;
@@ -81,7 +82,12 @@ async function main() {
     ensureFinancialYear(2026),
   ]);
   if (!budgetUnit) throw new Error("A UG 0101 é obrigatória para provisionar as contas da POC.");
-  const sourceCodes = [...new Set(sandboxAccounts.flatMap((account) => account.sourceCode ? [account.sourceCode] : []))];
+  await prisma.budgetUnit.update({ where: { id: budgetUnit.id }, data: { name: "Prefeitura Municipal de São João do Ivaí" } });
+  await prisma.budgetUnit.updateMany({ where: { code: "0201" }, data: { name: "Câmara Municipal de São João do Ivaí" } });
+  const sourceCodes = [...new Set([
+    ...sandboxAccounts.flatMap((account) => account.sourceCode ? [account.sourceCode] : []),
+    ...constitutionalRevenueRules.map((rule) => rule.fonteRecurso.match(/^\d+/)?.[0]).filter((code): code is string => Boolean(code)),
+  ])];
   for (const code of sourceCodes) {
     await prisma.resourceSource.upsert({ where: { code }, create: { code, name: `Fonte POC ${code}` }, update: {} });
   }
@@ -127,6 +133,26 @@ async function main() {
       select: { id: true },
     });
     accounts.set(definition.accountNumber, account);
+  }
+  const revenueBankAccountId = accounts.get("20001-1")?.id;
+  if (!revenueBankAccountId) throw new Error("A conta de receitas 20001-1 é obrigatória para as regras constitucionais.");
+  const revenueBankAccountLabel = `${bankName} / ${agency} / 20001-1`;
+  for (const rule of constitutionalRevenueRules) {
+    const natureCode = rule.naturezaReceita.match(/^\d[\d.]+/)?.[0]?.replace(/(?:\.00)+$/, "");
+    if (natureCode) {
+      await prisma.revenueNature.upsert({
+        where: { code: natureCode },
+        create: { code: natureCode, name: rule.naturezaReceita.replace(/^\d[\d.]+\s*-\s*/, "") },
+        update: {},
+      });
+    }
+    const existingRule = await prisma.classificationRule.findFirst({
+      where: { textoProcurado: rule.textoProcurado, tipoMovimento: "RECEITA_CONSTITUCIONAL" },
+      select: { id: true },
+    });
+    const data = { ...rule, tipoMovimento: "RECEITA_CONSTITUCIONAL", bankAccountId: revenueBankAccountId, bancoContaFiltro: revenueBankAccountLabel };
+    if (existingRule) await prisma.classificationRule.update({ where: { id: existingRule.id }, data });
+    else await prisma.classificationRule.create({ data });
   }
   const investmentLinks: Record<string, string> = {
     "10001-0": "90001-4",
@@ -194,9 +220,11 @@ async function main() {
   });
 
   // Transactions from the virtual bank must be created by their own processing flows.
-  // Only the opening balance is seeded so a processed August statement can reconcile from R$ 150,000.00.
+  // The three demonstration accounts start with an auditable balance so applications, redemptions, and reconciliation can run.
   const movements = [
+    { key: "poc-robonuvem-opening-10001-2025", account: "10001-0", year: year2025, date: "2025-07-31", type: "SaldoInicial", direction: "Entrada", value: "3037984.77", history: "Saldo inicial da tesouraria POC - Conta 10001-0" },
     { key: "poc-robonuvem-opening-20001-2025", account: "20001-1", year: year2025, date: "2025-07-31", type: "SaldoInicial", direction: "Entrada", value: "150000.00", history: "Saldo inicial da conciliação POC - agosto de 2025" },
+    { key: "poc-robonuvem-opening-90001-2025", account: "90001-4", year: year2025, date: "2025-07-31", type: "SaldoInicial", direction: "Entrada", value: "1028071.37", history: "Saldo inicial da tesouraria POC - Conta 90001-4" },
   ];
   await prisma.treasuryMovement.deleteMany({
     where: {
@@ -248,32 +276,37 @@ async function main() {
   }
 
   const openingAuthor = await prisma.usuario.findFirst({ where: { ativo: true, employeeId: { not: null } }, select: { id: true, employeeId: true } });
-  const revenueAccountId = accounts.get("20001-1")?.id;
-  if (!openingAuthor?.employeeId || !revenueAccountId) throw new Error("A POC exige um usuário ativo vinculado a servidor e a conta de receitas para registrar o saldo inicial contábil.");
-  await prisma.accountingTransaction.upsert({
-    where: { idempotencyKey: "poc-robonuvem-opening-20001-2025:ACCOUNTING" },
-    create: {
-      financialYearId: year2025.id,
-      date: new Date("2025-07-31T12:00:00.000Z"),
-      history: "Saldo inicial do razão bancário POC - Conta 20001-1",
-      status: "POSTADO",
-      sourceModule: "POC_BANCO_VIRTUAL",
-      sourceType: "OPENING_BALANCE",
-      sourceId: revenueAccountId,
-      eventType: "OPENING_BALANCE",
-      idempotencyKey: "poc-robonuvem-opening-20001-2025:ACCOUNTING",
-      authorUsuarioId: openingAuthor.id,
-      authorEmployeeId: openingAuthor.employeeId,
-      postedAt: new Date(),
-      entries: {
-        create: [
-          { date: new Date("2025-07-31T12:00:00.000Z"), value: 150000, valueDecimal: new Prisma.Decimal("150000.00"), type: "Débito", history: "Saldo inicial do razão bancário POC", accountId: revenueAccountingPlan.id, authorId: openingAuthor.employeeId },
-          { date: new Date("2025-07-31T12:00:00.000Z"), value: 150000, valueDecimal: new Prisma.Decimal("150000.00"), type: "Crédito", history: "Contrapartida do saldo inicial do razão bancário POC", accountId: openingEquityPlan.id, authorId: openingAuthor.employeeId },
-        ],
+  if (!openingAuthor?.employeeId) throw new Error("A POC exige um usuário ativo vinculado a servidor para registrar os saldos iniciais contábeis.");
+  for (const movement of movements) {
+    const definition = sandboxAccounts.find((account) => account.accountNumber === movement.account);
+    const bankAccountId = accounts.get(movement.account)?.id;
+    const accountingPlanId = definition && accountingPlanIdByCode.get(definition.planCode);
+    if (!bankAccountId || !accountingPlanId) throw new Error(`A conta ${movement.account} não possui plano contábil para o saldo inicial.`);
+    await prisma.accountingTransaction.upsert({
+      where: { idempotencyKey: `${movement.key}:ACCOUNTING` },
+      create: {
+        financialYearId: movement.year.id,
+        date: new Date(`${movement.date}T12:00:00.000Z`),
+        history: `Saldo inicial do razão bancário POC - Conta ${movement.account}`,
+        status: "POSTADO",
+        sourceModule: "POC_BANCO_VIRTUAL",
+        sourceType: "OPENING_BALANCE",
+        sourceId: bankAccountId,
+        eventType: "OPENING_BALANCE",
+        idempotencyKey: `${movement.key}:ACCOUNTING`,
+        authorUsuarioId: openingAuthor.id,
+        authorEmployeeId: openingAuthor.employeeId,
+        postedAt: new Date(),
+        entries: {
+          create: [
+            { date: new Date(`${movement.date}T12:00:00.000Z`), value: Number(movement.value), valueDecimal: new Prisma.Decimal(movement.value), type: "Débito", history: `Saldo inicial do razão bancário POC - Conta ${movement.account}`, accountId: accountingPlanId, authorId: openingAuthor.employeeId },
+            { date: new Date(`${movement.date}T12:00:00.000Z`), value: Number(movement.value), valueDecimal: new Prisma.Decimal(movement.value), type: "Crédito", history: `Contrapartida do saldo inicial do razão bancário POC - Conta ${movement.account}`, accountId: openingEquityPlan.id, authorId: openingAuthor.employeeId },
+          ],
+        },
       },
-    },
-    update: {},
-  });
+      update: {},
+    });
+  }
 
   const activeForeignAccounts = await prisma.bankAccount.count({
     where: { isActive: true, bankName: { not: bankName } },

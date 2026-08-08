@@ -91,7 +91,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
           value: "1000.00",
           commitmentId: "invalid-id",
           settlementId: "", // Vazio!
-          bankAccountId: "cl-lagoaseca-bb-pref-1000",
+          bankAccountId: "poc-robonuvem-checking-10001",
           supplierId: "supp-lagoaseca-01",
           paymentMethod: "Transferência",
         });
@@ -200,14 +200,14 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       assert.equal(settlementRetention.valueDecimal.toString(), "110");
 
       // e) Efetiva e estorna um pagamento sem retenções para validar o evento de estorno.
-      const initialBankBalance = await getBankAccountBalance(prisma, "cl-lagoaseca-bb-pref-1000");
+      const initialBankBalance = await getBankAccountBalance(prisma, "poc-robonuvem-checking-10001");
       const paymentForReversal = await createPayment(prisma, actor, {
         orderNumber: `OP-ESTORNO-${timestamp}`,
         date: testDate,
         value: "1000.00",
         commitmentId: commitment.id,
         settlementId: settlement.id,
-        bankAccountId: "cl-lagoaseca-bb-pref-1000",
+        bankAccountId: "poc-robonuvem-checking-10001",
         supplierId: "supp-lagoaseca-01",
         paymentMethod: "Transferência",
       });
@@ -216,7 +216,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       await assertAccountingTransaction("PAGAMENTO_EFETIVADO", paymentForReversal.id);
       await reversePayment(prisma, actor, paymentForReversal.id, "Estorno de teste");
       await assertAccountingTransaction("PAGAMENTO_ESTORNADO", paymentForReversal.id);
-      const bankBalanceAfterReversal = await getBankAccountBalance(prisma, "cl-lagoaseca-bb-pref-1000");
+      const bankBalanceAfterReversal = await getBankAccountBalance(prisma, "poc-robonuvem-checking-10001");
       assert.equal(Number(bankBalanceAfterReversal.minus(initialBankBalance).toFixed(2)), 0);
 
       // f) Emissão de pagamento com retenção INSS já apurada na liquidação (R$ 110,00)
@@ -226,7 +226,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         value: "1000.00",
         commitmentId: commitment.id,
         settlementId: settlement.id,
-        bankAccountId: "cl-lagoaseca-bb-pref-1000",
+        bankAccountId: "poc-robonuvem-checking-10001",
         supplierId: "supp-lagoaseca-01",
         paymentMethod: "Transferência",
         retentionRuleIds: [inssRule.id],
@@ -246,7 +246,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         async () => {
           await settleWithholdingPayable(prisma, actor, {
             withholdingPayableId: payable.id,
-            bankAccountId: "cl-lagoaseca-bb-pref-1000",
+            bankAccountId: "poc-robonuvem-checking-10001",
             receiptDocumentId: "doc-nf-lagoaseca-01",
             paymentDate: testDate,
           });
@@ -258,18 +258,18 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
       );
 
       // i) Efetiva o pagamento -> Status vira 'Paga'
-      const bankBalanceBeforePayment = await getBankAccountBalance(prisma, "cl-lagoaseca-bb-pref-1000", testDate);
+      const bankBalanceBeforePayment = await getBankAccountBalance(prisma, "poc-robonuvem-checking-10001", testDate);
       await updatePaymentStatus(prisma, actor, payment.id, "Paga");
       await assertAccountingTransaction("PAGAMENTO_EFETIVADO", payment.id);
 
-      const bankBalanceAfterPayment = await getBankAccountBalance(prisma, "cl-lagoaseca-bb-pref-1000", testDate);
+      const bankBalanceAfterPayment = await getBankAccountBalance(prisma, "poc-robonuvem-checking-10001", testDate);
       // Saída deve ser apenas o valor LÍQUIDO R$ 890,00 (1000 - 110)
       assert.equal(Number(bankBalanceBeforePayment.minus(bankBalanceAfterPayment).toFixed(2)), 890.00);
 
       // j) Recolhe a retenção INSS -> Status vira 'Recolhida'
         await settleWithholdingPayable(prisma, actor, {
           withholdingPayableId: payable.id,
-          bankAccountId: "cl-lagoaseca-bb-pref-1000",
+          bankAccountId: "poc-robonuvem-checking-10001",
           receiptDocumentId: "doc-nf-lagoaseca-01",
           paymentDate: testDate,
         });
@@ -279,7 +279,7 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
         assert.equal((withholdingDocument.snapshot as { receiptDocument: { id: string }; sourcePayment: { id: string } }).receiptDocument.id, "doc-nf-lagoaseca-01");
         assert.equal((withholdingDocument.snapshot as { receiptDocument: { id: string }; sourcePayment: { id: string } }).sourcePayment.id, payment.id);
 
-      const bankBalanceAfterRetention = await getBankAccountBalance(prisma, "cl-lagoaseca-bb-pref-1000", testDate);
+      const bankBalanceAfterRetention = await getBankAccountBalance(prisma, "poc-robonuvem-checking-10001", testDate);
       // Saída adicional da retenção de R$ 110,00 -> Total acumulado = 890 + 110 = 1000,00!
       assert.equal(Number(bankBalanceAfterPayment.minus(bankBalanceAfterRetention).toFixed(2)), 110.00);
 
@@ -456,16 +456,16 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
     }
   });
 
-  test("4. Deve validar integridade e alinhamento dos dados da seed de Lagoa Seca", async () => {
+  test("4. Deve validar integridade e alinhamento dos dados da seed da POC", async () => {
     const year = await prisma.financialYear.findUnique({ where: { year: 2026 } });
     assert.ok(year, "Exercício 2026 deve existir");
 
-    const bankAccPref = await prisma.bankAccount.findUnique({ where: { id: "cl-lagoaseca-bb-pref-1000" } });
+    const bankAccPref = await prisma.bankAccount.findUnique({ where: { id: "poc-robonuvem-revenue-20001" } });
     assert.ok(bankAccPref, "Conta da Prefeitura deve existir");
     assert.ok(bankAccPref.resourceSourceId, "Conta bancária deve ter fonte vinculada");
 
     const balance = await getBankAccountBalance(prisma, bankAccPref.id);
-    assert.ok(balance.greaterThanOrEqualTo(800000), "Saldo inicial da Prefeitura deve ser R$ 800.000,00 ou maior");
+    assert.ok(balance.greaterThanOrEqualTo(150000), "Saldo inicial da conta de receitas deve ser R$ 150.000,00 ou maior");
   });
 
   test("3.1. Deve importar CSV de forma idempotente e conciliar manualmente em relação um-para-um", async () => {
@@ -808,8 +808,8 @@ describe("Lagoa Seca/PB - Validação Integrada e Regras Fiscais/Financeiras Est
   test("7. Deve registrar transferência de tesouraria em movimentos correspondentes", async () => {
     const actor = await getActor();
     const idempotencyKey = `TEST:TREASURY_TRANSFER:${Date.now()}`;
-    const sourceBankAccountId = "cl-lagoaseca-bb-pref-1000";
-    const destinationBankAccountId = "cl-lagoaseca-bb-cam-2000";
+    const sourceBankAccountId = "poc-robonuvem-checking-10001";
+    const destinationBankAccountId = "poc-robonuvem-investment-90001";
     let transferId = "";
 
     try {
