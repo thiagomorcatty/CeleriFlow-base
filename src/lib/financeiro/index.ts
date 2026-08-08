@@ -96,6 +96,7 @@ async function audit(
 export async function assertFinancialYearOpen(tx: Db, financialYearId: string, date: Date) {
   const year = await tx.financialYear.findUnique({ where: { id: financialYearId } });
   if (!year) throw new FinanceError("Exercício financeiro não encontrado.");
+  if (year.year !== date.getUTCFullYear()) throw new FinanceError("O exercício financeiro deve corresponder ao ano da data do lançamento.");
   if (year.status !== OPEN_STATUS) throw new FinanceError(`O exercício ${year.year} não está aberto para lançamentos.`);
   if (date < year.startDate || date > year.endDate) {
     throw new FinanceError("A data do lançamento está fora do exercício financeiro da dotação.");
@@ -1462,10 +1463,7 @@ export async function setFinancialYearStatus(db: PrismaClient, actor: FinanceAct
 }
 
 async function financialYearForPosting(tx: Db, date: Date) {
-  const year = await tx.financialYear.findFirst({
-    where: { startDate: { lte: date }, endDate: { gte: date } },
-    orderBy: { year: "desc" },
-  });
+  const year = await tx.financialYear.findUnique({ where: { year: date.getUTCFullYear() } });
   if (!year) throw new FinanceError("Não há exercício financeiro configurado para a data do lançamento.");
   const openYear = await assertFinancialYearOpen(tx, year.id, date);
   await assertAccountingPeriodOpen(tx, openYear.id, date);
@@ -1702,7 +1700,7 @@ export async function recordConfirmedRevenue(
     tx.resourceSource.findUnique({ where: { id: input.resourceSourceId }, select: { id: true } }),
   ]);
   if (!bankAccount?.isActive) throw new FinanceError("A receita exige uma conta bancária ativa.");
-  if (bankAccount.resourceSourceId !== input.resourceSourceId) throw new FinanceError("A conta bancária deve possuir a mesma fonte de recursos da receita.");
+  // A conta arrecadadora pode receber recursos de mais de uma fonte; its source is only a default routing hint.
   if (!nature || !source) throw new FinanceError("Natureza e fonte da receita devem estar configuradas.");
   const revenue = await tx.revenue.create({
     data: { date: input.date, valueDecimal: value, value: legacyMoney(value), financialYearId: year.id, revenueNatureId: input.revenueNatureId, resourceSourceId: input.resourceSourceId, bankAccountId: input.bankAccountId, classification: input.classification ?? "ORCAMENTARIA", collectionDate: input.date, history: input.history?.trim() || undefined, sourceModule: input.sourceModule.trim(), sourceType: input.sourceType.trim(), sourceId: input.sourceId?.trim() || undefined, eventType: input.eventType.trim(), idempotencyKey: input.idempotencyKey, status: "Arrecadada", stage: "ARRECADADA" },
@@ -1802,7 +1800,7 @@ export async function collectLaunchedRevenue(
       tx.bankAccount.findUnique({ where: { id: input.bankAccountId }, select: { isActive: true, resourceSourceId: true, accountingPlanId: true } }),
     ]);
     if (year.id !== revenue.financialYearId) throw new FinanceError("A arrecadacao deve ocorrer no mesmo exercicio financeiro da receita lancada.");
-    if (!account?.isActive || account.resourceSourceId !== revenue.resourceSourceId) throw new FinanceError("A conta bancaria ativa deve possuir a mesma fonte de recursos da receita.");
+    if (!account?.isActive) throw new FinanceError("A arrecadação exige uma conta bancária ativa.");
     const value = requiredDecimal(revenue.valueDecimal, "Revenue.valueDecimal");
     const collected = await tx.revenue.update({
       where: { id: revenue.id },

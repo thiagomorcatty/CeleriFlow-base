@@ -10,7 +10,11 @@ export interface PocConfig {
 export const pocVirtualBank = {
   name: "001 - Banco Virtual Robonuvem",
   agency: "0001",
-  accountNumbers: ["10001-0", "20001-1", "90001-4"],
+  accountNumbers: [
+    "10001-0", "20001-1", "10003-3", "10004-4", "10005-5", "10006-6", "10007-7", "10008-8",
+    "10009-9", "10010-0", "10011-1", "10012-2", "10013-3", "10014-4", "10015-5", "10016-6",
+    "10017-7", "10018-8", "10019-9", "10020-0", "90001-4", "90002-5", "90003-6", "90004-7",
+  ],
   baseUrl: "https://banco-virtual-robonuvem.vercel.app/api/bank",
 } as const;
 

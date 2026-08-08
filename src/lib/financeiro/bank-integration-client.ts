@@ -56,6 +56,26 @@ export interface ExternalRevenueDTO {
   naturezaReceita: string;
 }
 
+export interface BankPaymentOrderDTO {
+  paymentOrderExternalId: string;
+  integrationEventId: string;
+  bankAccountExternalId: string;
+  clientReference: string;
+  beneficiary: { name: string; document?: string };
+  amount: number;
+  scheduledDate: Date;
+  paymentMethod: string;
+  purposeText: string;
+  idempotencyKey: string;
+}
+
+export interface BankInteractionDTO {
+  externalId: string;
+  interactionType: string;
+  status: string;
+  payload: JsonRecord;
+}
+
 type JsonRecord = Record<string, unknown>;
 
 export class BankIntegrationError extends Error {}
@@ -200,6 +220,54 @@ export class BankIntegrationClient {
     const health = asRecord(payload);
     if (health?.status !== "UP") throw new BankIntegrationError("O banco simulado não informou status UP.");
     return health;
+  }
+
+  async submitPaymentOrder(order: BankPaymentOrderDTO) {
+    const response = await this.request("/payment-orders", {
+      method: "POST",
+      body: JSON.stringify({
+        payment_order_external_id: order.paymentOrderExternalId,
+        integration_event_id: order.integrationEventId,
+        bank_account_external_id: order.bankAccountExternalId,
+        client_reference: order.clientReference,
+        beneficiary: order.beneficiary,
+        amount: order.amount,
+        scheduled_date: order.scheduledDate.toISOString(),
+        payment_method: order.paymentMethod,
+        purpose_text: order.purposeText,
+        idempotency_key: order.idempotencyKey,
+      }),
+    });
+    return asRecord(await response.json());
+  }
+
+  async processPaymentOrder(paymentOrderExternalId: string) {
+    const response = await this.request(`/payment-orders/${encodeURIComponent(paymentOrderExternalId)}/process`, { method: "POST" });
+    return asRecord(await response.json());
+  }
+
+  async fetchPendingInteractions(): Promise<BankInteractionDTO[]> {
+    const response = await this.request("/interactions?status=PENDING", { method: "GET" });
+    const payload = asRecord(await response.json());
+    const interactions = Array.isArray(payload?.interactions) ? payload.interactions : [];
+    return interactions.flatMap((item) => {
+      const interaction = asRecord(item);
+      const payload = interaction && asRecord(interaction.payload);
+      const externalId = interaction && stringValue(interaction, "external_id");
+      const interactionType = interaction && stringValue(interaction, "interaction_type");
+      const status = interaction && stringValue(interaction, "status");
+      return interaction && payload && externalId && interactionType && status
+        ? [{ externalId, interactionType, status, payload }]
+        : [];
+    });
+  }
+
+  async acknowledgeInteraction(externalId: string, status: "COMPLETED" | "FAILED", errorDetails?: string) {
+    const response = await this.request(`/interactions/${encodeURIComponent(externalId)}/ack`, {
+      method: "POST",
+      body: JSON.stringify({ status, error_details: errorDetails }),
+    });
+    return asRecord(await response.json());
   }
 
   private async fetchSandboxStatement(config: BankAccountConfig, range: DateRange): Promise<BankStatementResponse> {
