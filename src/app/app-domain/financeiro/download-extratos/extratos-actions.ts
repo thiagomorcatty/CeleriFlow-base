@@ -177,6 +177,7 @@ export async function runAutomatedBankDownloadAction(input: {
       const inserted = await tx.bankStatementItem.createMany({
         data: statementItems.map((item) => ({
           downloadId: downloadRecord.id,
+          bankAccountId: bankAccount.id,
           banco: parsed.data.banco,
           agencia: parsed.data.agencia,
           contaNumero: parsed.data.contaNumero,
@@ -190,6 +191,12 @@ export async function runAutomatedBankDownloadAction(input: {
           valueDecimal: new Prisma.Decimal(item.value),
           status: "Pendente",
           reciboMunicipal: item.documento || null,
+          bankTransactionId: item.bankTransactionId || null,
+          integrationEventId: item.integrationEventId || null,
+          transactionType: item.transactionType || null,
+          clientReference: item.clientReference || null,
+          collectionReference: item.collectionReference || null,
+          reversalOfBankTransactionId: item.reversalOfBankTransactionId || null,
         })),
         skipDuplicates: true,
       });

@@ -401,6 +401,10 @@ export async function processConstitutionalRevenueAction(statementItemId: string
         sourceId: item.id,
         eventType: rule.eventoContabil || "RECEITA_CONSTITUCIONAL",
         idempotencyKey,
+        integrationEventId: item.integrationEventId ?? undefined,
+        bankTransactionId: item.bankTransactionId ?? item.codigoTransacao ?? undefined,
+        bankAccountExternalId: account.id ? (await tx.bankAccount.findUnique({ where: { id: account.id }, select: { externalId: true } }))?.externalId ?? undefined : undefined,
+        collectionReference: item.collectionReference ?? undefined,
       });
       if (!revenue.treasuryMovement) throw new Error("A receita constitucional não gerou movimento de tesouraria.");
       await tx.bankStatementItem.update({
