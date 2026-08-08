@@ -14,9 +14,19 @@ BANK_SANDBOX_CLIENT_SECRET=<mesmo segredo configurado no Banco Virtual>
 BANK_SANDBOX_TIMEOUT_MS=15000
 BANK_SANDBOX_RETRY_LIMIT=2
 BANK_SANDBOX_STATEMENT_FORMAT=ofx
+# Definir como true somente quando a POC deve processar a fila no mesmo ciclo.
+BANK_SANDBOX_PROCESS_PAYMENTS=false
 ```
 
 O `BANK_SANDBOX_CLIENT_SECRET` deve ser transmitido somente por canal seguro. Se o dominio publicado for alterado, atualizar apenas `BANK_SANDBOX_BASE_URL` e `CORS_ALLOWED_ORIGINS` no Banco Virtual.
+
+Para sincronizar ordens emitidas e retornos bancarios, executar no CeleriFlow:
+
+```bash
+npm run sync:poc-bank-payments
+```
+
+Agendar esse comando no worker/cron da POC. Com `BANK_SANDBOX_PROCESS_PAYMENTS=true`, o mesmo ciclo tambem solicita a compensacao simulada das ordens recebidas.
 
 ## 2. Contas bancarias a cadastrar
 
@@ -198,3 +208,76 @@ Prioridade de conciliacao: `bank_transaction_id`, depois ordem de pagamento, ref
 6. Enviar uma OP, processar o retorno e confirmar que ela e baixada uma unica vez.
 7. Testar cenarios `PAYMENT_REJECTED`, `PAYMENT_PENDING`, `RATE_LIMITED`, `TIMEOUT` e `INVALID_STATEMENT`.
 8. Executar conciliacao com itens exatos, divergencia, duplicidade e estorno.
+
+## 9. Exemplos de retorno canonico
+
+### Retorno `PAYMENT_ORDER_STATUS_CHANGED`
+
+Resposta de `GET /interactions?status=PENDING` para uma ordem liquidada:
+
+```json
+{
+  "interactions": [
+    {
+      "external_id": "EVENT-EVT-PAY-cm123-RESULT",
+      "direction": "OUTBOUND",
+      "interaction_type": "PAYMENT_ORDER_STATUS_CHANGED",
+      "status": "PENDING",
+      "payload": {
+        "payment_order_external_id": "OP-008721",
+        "integration_event_id": "EVT-PAY-cm123",
+        "tenant_external_id": "DEMO-SJI-2026",
+        "bank_account_external_id": "BA-001",
+        "status": "SETTLED",
+        "processed_at": "2026-08-06T14:00:00.000Z",
+        "bank_transaction_id": "BTX-PAY-cm123",
+        "reversal_of_bank_transaction_id": null,
+        "reversal_bank_transaction_id": null,
+        "direction": "DEBIT",
+        "amount": 21640.00,
+        "currency": "BRL",
+        "client_reference": "OP-008721",
+        "bank_file_id": "API-SYNC-PAYMENT-ORDER",
+        "sync_batch_id": "SYNC-EVT-PAY-cm123",
+        "idempotency_key": "bank:EVT-PAY-cm123:SETTLED",
+        "rejection_code": null,
+        "rejection_message": null
+      }
+    }
+  ]
+}
+```
+
+### Transacao JSON com campos canonicos
+
+Resposta de `GET /accounts/{accountId}/transactions`:
+
+```json
+{
+  "external_id": "TX-BTX-000009",
+  "tenant_external_id": "DEMO-SJI-2026",
+  "integration_event_id": "EVT-000009",
+  "bank_transaction_id": "BTX-000009",
+  "bank_account_external_id": "BA-001",
+  "client_reference": "OP-008721",
+  "payment_order_external_id": "OP-008721",
+  "collection_reference": null,
+  "bank_file_id": "API-SYNC-2026-08",
+  "sync_batch_id": "SYNC-SJI-2026-08-01",
+  "idempotency_key": "bank:BTX-000009",
+  "transaction_date": "2026-08-06T12:00:00.000Z",
+  "posting_date": "2026-08-06T12:00:00.000Z",
+  "direction": "DEBIT",
+  "amount": 21640.00,
+  "transaction_type": "COMMITMENT_PAYMENT",
+  "status": "SETTLED",
+  "description": "PIX ENVIADO FORNECEDOR COMBUSTIVEL",
+  "document_number": "OP-008721",
+  "reversal_of_bank_transaction_id": null,
+  "balance_after": 3016344.77
+}
+```
+
+`bank_transaction_id` e imutavel por contrato e possui restricao unica no Banco Virtual. Portanto, e unico globalmente no ambiente POC, o que e mais restritivo que a unicidade por conta. Nao existe rota de alteracao de transacoes; correcao ocorre por novo lancamento de estorno, nunca por edicao do lancamento original.
+
+No retorno `REVERSED`, o Banco cria o debito original `SETTLED` e um novo credito `REVERSAL_IN`, cujo `reversal_of_bank_transaction_id` aponta para o debito original. O evento retorna `status: "REVERSED"`, `bank_transaction_id` do debito original e `reversal_bank_transaction_id` do credito de estorno. O CeleriFlow deve efetivar e estornar a mesma OP de forma idempotente.

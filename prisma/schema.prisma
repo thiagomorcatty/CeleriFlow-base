@@ -2476,6 +2476,7 @@ model Payment {
   bankRejectionCode       String?
   bankRejectionMessage    String?
   reversalOfBankTransactionId String?
+  reversalBankTransactionId   String?     @unique
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
 
