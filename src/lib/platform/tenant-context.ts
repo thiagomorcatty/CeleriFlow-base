@@ -88,11 +88,11 @@ export function isModuleBlockedForUser(user: AppContext["user"], moduleCode: str
 }
 
 export function canShowDashboardCard(user: AppContext["user"], moduleCode: string) {
-  if (isSystemAdministrator(user)) return true;
   const codeUpper = moduleCode.toUpperCase();
   const rolePermissions = parseRolePermissions(user.permissions);
   const permission = getModuleProfilePermission(rolePermissions, codeUpper);
-  return permission ? permission.showDashboardCard : canViewModule(user, codeUpper);
+  if (permission) return permission.showDashboardCard;
+  return isSystemAdministrator(user) || canViewModule(user, codeUpper);
 }
 
 export function canViewModule(user: AppContext["user"], moduleCode: string) {

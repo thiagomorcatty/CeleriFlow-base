@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { 
   ShieldCheck, Plus, Search, X, Pencil, CheckCircle2, SlidersHorizontal, 
-  Building2, Users, FileText, ShoppingCart, FileSpreadsheet, DollarSign, 
+  Building2, Users, FileText, HeadphonesIcon, ShoppingCart, FileSpreadsheet, DollarSign, 
   Package, Receipt, Stethoscope, GraduationCap, HeartHandshake, HardHat, 
   Trees, Shield, Droplets, Landmark, Palette, Share2, Settings, Lock, CheckSquare, Square
 } from "lucide-react";
@@ -17,11 +17,13 @@ type Perfil = {
   ativo: boolean;
 };
 
-// 20 CeleriFlow System Modules for Permission Matrix
+// Modules that can appear on the dashboard or have their own access boundary.
 const MODULES_LIST = [
   { code: "ADMINISTRACAO", label: "Administração Geral & Entidades", icon: Building2, color: "text-blue-500" },
   { code: "RH", label: "Recursos Humanos & Servidores", icon: Users, color: "text-indigo-500" },
   { code: "CADASTROS", label: "Pessoas & Cadastros Gerais", icon: FileText, color: "text-purple-500" },
+  { code: "DOCUMENTOS", label: "Documentos, GED & Emissões", icon: FileText, color: "text-amber-500" },
+  { code: "ATENDIMENTO", label: "Atendimento, Ouvidoria & Chamados", icon: HeadphonesIcon, color: "text-orange-500" },
   { code: "COMPRAS", label: "Compras, Licitações & Cotações", icon: ShoppingCart, color: "text-emerald-500" },
   { code: "CONTRATOS", label: "Gestão de Contratos Públicos", icon: FileSpreadsheet, color: "text-teal-500" },
   { code: "FINANCEIRO", label: "Financeiro, Orçamento & Tesouraria", icon: DollarSign, color: "text-green-500" },
@@ -325,7 +327,7 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                           <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-500" />
-                          {activeModulesCount === 20 ? "Todos os 20 Módulos" : `${activeModulesCount} de 20 Módulos`}
+                           {activeModulesCount === MODULES_LIST.length ? `Todos os ${MODULES_LIST.length} Módulos` : `${activeModulesCount} de ${MODULES_LIST.length} Módulos`}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -397,7 +399,7 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
                       : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                   }`}
                 >
-                  🛡️ Matriz de Permissões (20 Módulos)
+                  🛡️ Matriz de Permissões ({MODULES_LIST.length} Módulos)
                 </button>
                 <button
                   type="button"

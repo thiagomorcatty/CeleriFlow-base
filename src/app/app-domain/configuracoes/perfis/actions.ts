@@ -9,7 +9,7 @@ async function getTenantPrisma() {
 
 const SYSTEM_ADMINISTRATOR_ROLE = "Administrador";
 const MODULE_CODES = new Set([
-  "ADMINISTRACAO", "RH", "CADASTROS", "COMPRAS", "CONTRATOS", "FINANCEIRO", "PATRIMONIO", "TRIBUTACAO", "PROCESSOS", "SAUDE",
+  "ADMINISTRACAO", "RH", "CADASTROS", "DOCUMENTOS", "ATENDIMENTO", "COMPRAS", "CONTRATOS", "FINANCEIRO", "PATRIMONIO", "TRIBUTACAO", "PROCESSOS", "SAUDE",
   "EDUCACAO", "SOCIAL", "OBRAS", "MEIO_AMBIENTE", "SEGURANCA", "SANEAMENTO", "CAMARA", "CULTURA", "TRANSPARENCIA", "CONFIGURACOES",
 ]);
 
@@ -84,7 +84,7 @@ export async function upsertPerfil(data: {
         },
       });
     }
-    revalidatePath("/configuracoes/perfis");
+    revalidatePermissionConsumers();
     return { error: null };
   } catch (error) {
     console.error(error);
@@ -102,10 +102,17 @@ export async function togglePerfilStatus(id: string, ativo: boolean) {
       where: { id },
       data: { ativo },
     });
-    revalidatePath("/configuracoes/perfis");
+    revalidatePermissionConsumers();
     return { error: null };
   } catch (error) {
     console.error(error);
     return { error: error instanceof AccessError ? error.message : "Erro ao alterar o status do perfil." };
   }
+}
+
+function revalidatePermissionConsumers() {
+  revalidatePath("/configuracoes/perfis");
+  revalidatePath("/dashboard");
+  revalidatePath("/app-domain/dashboard");
+  revalidatePath("/");
 }
