@@ -1575,6 +1575,9 @@ model ActiveDebt {
   assessmentId String?           @unique
   assessment   TaxAssessment?    @relation(fields: [assessmentId], references: [id])
   installments DebtInstallment[]
+  bankTransactionId      String?
+  integrationEventId     String?
+  collectionReference    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2251,6 +2254,10 @@ model Revenue {
   sourceId                String?
   eventType               String                          @default("REVENUE_CONFIRMED")
   idempotencyKey          String?                         @unique
+  integrationEventId      String?
+  bankTransactionId       String?
+  bankAccountExternalId   String?
+  collectionReference     String?
   treasuryMovement        TreasuryMovement?
   taxIntegration          TaxRevenueIntegrationEvent?
   reversal                RevenueReversal?
@@ -2260,6 +2267,8 @@ model Revenue {
 
   @@index([financialYearId, stage, date])
   @@index([resourceSourceId, stage])
+  @@index([bankTransactionId])
+  @@index([integrationEventId])
 }
 
 model Expense {
@@ -2457,8 +2466,20 @@ model Payment {
   netValueDecimal        Decimal?    @db.Decimal(18, 2)
   paymentMethod          String      @default("TransferÃªncia")
   status                 String      @default("Pago") // Pago, Cancelado
+  paymentOrderExternalId String?     @unique
+  integrationEventId      String?     @unique
+  bankAccountExternalId   String?
+  bankTransactionId       String?     @unique
+  bankStatus              String?     @default("PENDING_SUBMISSION")
+  bankSubmittedAt         DateTime?
+  bankProcessedAt         DateTime?
+  bankRejectionCode       String?
+  bankRejectionMessage    String?
+  reversalOfBankTransactionId String?
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
+
+  @@index([bankAccountExternalId, bankStatus])
 
   retentions                PaymentRetention[]
   financialDocument         FinancialDocument?         @relation("FinancialDocumentPayment")
@@ -2597,6 +2618,11 @@ model BankAccount {
   accountingPlanId      String?         @unique
   accountingPlan        AccountingPlan? @relation("BankAccountAccountingPlan", fields: [accountingPlanId], references: [id])
   isActive              Boolean         @default(true)
+  externalId            String?         @unique
+  purpose               String?
+  linkedInvestmentAccountId String?
+  linkedInvestmentAccount   BankAccount? @relation("BankAccountInvestmentLink", fields: [linkedInvestmentAccountId], references: [id])
+  linkedCurrentAccounts     BankAccount[] @relation("BankAccountInvestmentLink")
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
 
@@ -2609,6 +2635,8 @@ model BankAccount {
   statementImports     BankStatementImport[]
   taxPayments          TaxPayment[]
   taxFinancialMappings TaxFinancialMapping[]
+  statementItems       BankStatementItem[]
+  covenants            Covenant[]
 }
 
 model TreasuryMovement {
@@ -2709,6 +2737,8 @@ model BankStatementImport {
 
 model BankStatementItem {
   id                 String               @id @default(cuid())
+  bankAccountId      String?
+  bankAccount        BankAccount?         @relation(fields: [bankAccountId], references: [id])
   statementImportId  String?
   statementImport    BankStatementImport? @relation(fields: [statementImportId], references: [id])
   date               DateTime
@@ -2732,12 +2762,20 @@ model BankStatementItem {
   categoriaClassificada  String? // APLICACAO, RESGATE, TRANSFERENCIA_PARA_APLICACAO, etc.
   reciboMunicipal        String?
   lancamentoContabilId   String?
+  bankTransactionId      String?
+  integrationEventId     String?
+  transactionType        String?
+  clientReference        String?
+  collectionReference    String?
+  reversalOfBankTransactionId String?
 
   @@unique([banco, agencia, contaNumero, codigoTransacao])
   @@index([statementImportId, date])
   @@index([treasuryMovementId])
   @@index([downloadId])
   @@index([contaNumero, date])
+  @@index([bankAccountId, bankTransactionId])
+  @@index([integrationEventId])
 }
 
 model TaxFinancialMapping {
@@ -2954,6 +2992,9 @@ model PayableCarryForward {
   type                          String
   status                        String                     @default("PENDENTE")
   notes                         String?
+  bankTransactionId             String?
+  integrationEventId            String?
+  paymentOrderExternalId        String?
   events                        PayableCarryForwardEvent[]
   createdAt                     DateTime                   @default(now())
   updatedAt                     DateTime                   @updatedAt
@@ -2961,6 +3002,7 @@ model PayableCarryForward {
   @@unique([financialYearId, commitmentId, type])
   @@index([originFinancialYearId, type])
   @@index([status])
+  @@index([bankTransactionId])
 }
 
 // HistÃ³rico interno de acompanhamento. NÃ£o cria nem altera pagamentos, tesouraria ou lanÃ§amentos contÃ¡beis.
@@ -5845,9 +5887,15 @@ model Covenant {
   startDate         DateTime
   endDate           DateTime
   status            String       @default("Ativo")
+  bankTransactionId String?
+  integrationEventId String?
+  bankAccountExternalId String?
+  bankAccountId     String?
+  bankAccount       BankAccount? @relation(fields: [bankAccountId], references: [id])
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   commitments       Commitment[] @relation("CovenantCommitments")
+  @@index([bankTransactionId])
 }
 
 model PublicityCampaign {

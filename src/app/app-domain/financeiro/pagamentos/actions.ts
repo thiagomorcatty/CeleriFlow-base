@@ -49,7 +49,42 @@ export async function createPayment(data: {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const commitment = await assertCommitmentAccess(context, data.commitmentId);
     await assertBankAccountAccess(context, data.bankAccountId);
-    await createOfficialPayment(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, data);
+    const payment = await createOfficialPayment(context.prisma, { usuarioId: context.user.id, employeeId: context.user.employeeId }, data);
+    const bankOrder = await context.prisma.payment.findUnique({
+      where: { id: payment.id },
+      select: {
+        paymentOrderExternalId: true,
+        integrationEventId: true,
+        bankAccountExternalId: true,
+        netValueDecimal: true,
+        date: true,
+        paymentMethod: true,
+        orderNumber: true,
+        supplier: { include: { company: true, person: true } },
+      },
+    });
+    if (bankOrder?.paymentOrderExternalId && bankOrder.integrationEventId && bankOrder.bankAccountExternalId && bankOrder.netValueDecimal) {
+      try {
+        const { bankIntegrationClient } = await import("@/lib/financeiro/bank-integration-client");
+        const beneficiaryName = bankOrder.supplier.company?.corporateName ?? bankOrder.supplier.person?.fullName ?? "FAVORECIDO DEMO";
+        const beneficiaryDocument = bankOrder.supplier.company?.cnpj ?? bankOrder.supplier.person?.cpf ?? undefined;
+        await bankIntegrationClient.submitPaymentOrder({
+          paymentOrderExternalId: bankOrder.paymentOrderExternalId,
+          integrationEventId: bankOrder.integrationEventId,
+          bankAccountExternalId: bankOrder.bankAccountExternalId,
+          clientReference: bankOrder.orderNumber,
+          beneficiary: { name: beneficiaryName, document: beneficiaryDocument ?? undefined },
+          amount: Number(bankOrder.netValueDecimal),
+          scheduledDate: bankOrder.date,
+          paymentMethod: bankOrder.paymentMethod,
+          purposeText: `Pagamento líquido da ${bankOrder.paymentOrderExternalId}`,
+          idempotencyKey: `celeriflow:payment:${bankOrder.paymentOrderExternalId}:v1`,
+        });
+        await context.prisma.payment.update({ where: { id: payment.id }, data: { bankStatus: "RECEIVED", bankSubmittedAt: new Date() } });
+      } catch (bankError) {
+        console.error("Ordem criada, mas não foi possível enviá-la ao Banco Virtual:", bankError);
+      }
+    }
     revalidatePath("/financeiro/pagamentos");
     revalidatePath("/financeiro/liquidacoes");
     revalidatePath("/financeiro/empenhos");
@@ -66,6 +101,7 @@ export async function cancelPayment(id: string): Promise<ActionResult> {
 
 export async function updatePaymentStatus(id: string, status: string): Promise<ActionResult> {
   try {
+    if (status === "Paga") throw new FinanceError("A baixa do pagamento ocorre exclusivamente após a confirmação do Banco Virtual.");
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const payment = await context.prisma.payment.findUnique({ where: { id }, select: { commitmentId: true } });
     if (!payment) throw new FinanceError("Pagamento não encontrado.");

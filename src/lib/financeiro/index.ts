@@ -988,7 +988,7 @@ export async function createPayment(
     const { commitment, year } = await commitmentForPosting(tx, input.commitmentId, input.date);
     const bankAccount = await tx.bankAccount.findUnique({
       where: { id: input.bankAccountId },
-      select: { id: true, isActive: true, resourceSourceId: true, budgetUnitId: true },
+      select: { id: true, isActive: true, resourceSourceId: true, budgetUnitId: true, externalId: true },
     });
     if (!bankAccount?.isActive) throw new FinanceError("Selecione uma conta bancária ativa.");
 
@@ -1076,6 +1076,10 @@ export async function createPayment(
         isExceptional: false,
         paymentMethod: input.paymentMethod,
         status: "Emitida",
+        paymentOrderExternalId: input.orderNumber.trim().startsWith("OP-") ? input.orderNumber.trim() : `OP-${input.orderNumber.trim()}`,
+        integrationEventId: `EVT-PAY-${input.orderNumber.trim()}`,
+        bankAccountExternalId: bankAccount.externalId,
+        bankStatus: bankAccount.externalId ? "PENDING_SUBMISSION" : null,
       },
     });
     await createFinancialDocument(tx, actor, {

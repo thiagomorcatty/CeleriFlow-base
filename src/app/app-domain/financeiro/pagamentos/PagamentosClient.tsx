@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { Wallet, Plus, Search, Ban, CheckCircle } from "lucide-react";
+import { Wallet, Plus, Search, Ban } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -345,11 +345,6 @@ export default function PagamentosClient({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right flex justify-end gap-2">
-                      {payment.status === 'Emitida' && (
-                        <Button variant="ghost" size="icon" onClick={() => handleChangeStatus(payment.id, 'Paga')} title="Marcar como Paga">
-                          <CheckCircle className="h-4 w-4 text-emerald-500" />
-                        </Button>
-                      )}
                       {payment.status === 'Paga' && (
                         <Button variant="outline" size="sm" onClick={() => handleReversePayment(payment.id)} title="Estornar Pagamento Pago">
                           Estornar
