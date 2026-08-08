@@ -37,6 +37,16 @@ type RolePermissions = {
   modulosBloqueados?: unknown;
   modulosPermitidos?: unknown;
   modulosSomenteLeitura?: unknown;
+  modules?: unknown;
+};
+
+type ModuleProfilePermission = {
+  showDashboardCard: boolean;
+  blocked: boolean;
+  view: boolean;
+  create: boolean;
+  update: boolean;
+  delete: boolean;
 };
 
 function parseRolePermissions(value: string | null | undefined): RolePermissions | null {
@@ -54,11 +64,44 @@ function hasModuleAccess(values: unknown, moduleCode: string) {
   return Array.isArray(values) && values.some((value) => value === moduleCode);
 }
 
+function getModuleProfilePermission(rolePermissions: RolePermissions | null, moduleCode: string): ModuleProfilePermission | null {
+  if (!rolePermissions?.modules || typeof rolePermissions.modules !== "object" || Array.isArray(rolePermissions.modules)) return null;
+  const raw = (rolePermissions.modules as Record<string, unknown>)[moduleCode];
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const permission = raw as Partial<ModuleProfilePermission>;
+  return {
+    showDashboardCard: permission.showDashboardCard === true,
+    blocked: permission.blocked === true,
+    view: permission.view === true,
+    create: permission.create === true,
+    update: permission.update === true,
+    delete: permission.delete === true,
+  };
+}
+
+export function isModuleBlockedForUser(user: AppContext["user"], moduleCode: string) {
+  if (isSystemAdministrator(user)) return false;
+  const codeUpper = moduleCode.toUpperCase();
+  const rolePermissions = parseRolePermissions(user.permissions);
+  const permission = getModuleProfilePermission(rolePermissions, codeUpper);
+  return permission ? permission.blocked : hasModuleAccess(rolePermissions?.modulosBloqueados, codeUpper);
+}
+
+export function canShowDashboardCard(user: AppContext["user"], moduleCode: string) {
+  if (isSystemAdministrator(user)) return true;
+  const codeUpper = moduleCode.toUpperCase();
+  const rolePermissions = parseRolePermissions(user.permissions);
+  const permission = getModuleProfilePermission(rolePermissions, codeUpper);
+  return permission ? permission.showDashboardCard : canViewModule(user, codeUpper);
+}
+
 export function canViewModule(user: AppContext["user"], moduleCode: string) {
   if (isSystemAdministrator(user)) return true;
 
   const codeUpper = moduleCode.toUpperCase();
   const rolePermissions = parseRolePermissions(user.permissions);
+  const permission = getModuleProfilePermission(rolePermissions, codeUpper);
+  if (permission) return !permission.blocked && (permission.view || permission.create || permission.update || permission.delete);
   if (hasModuleAccess(rolePermissions?.modulosBloqueados, codeUpper)) return false;
 
   const allowedModules = rolePermissions?.modulosPermitidos;
@@ -74,6 +117,8 @@ export function canEditModule(user: AppContext["user"], moduleCode: string) {
 
   const codeUpper = moduleCode.toUpperCase();
   const rolePermissions = parseRolePermissions(user.permissions);
+  const permission = getModuleProfilePermission(rolePermissions, codeUpper);
+  if (permission) return !permission.blocked && (permission.create || permission.update || permission.delete);
   if (hasModuleAccess(rolePermissions?.modulosBloqueados, codeUpper)) return false;
   if (hasModuleAccess(rolePermissions?.modulosSomenteLeitura, codeUpper)) return false;
 

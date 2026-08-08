@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { auditEventTypes, writeAuditEvent } from "../src/lib/platform/audit-evidence.ts";
 import { prisma } from "../src/lib/prisma.ts";
-import { canViewModule, isSystemAdministrator } from "../src/lib/platform/tenant-context.ts";
+import { canEditModule, canShowDashboardCard, canViewModule, isModuleBlockedForUser, isSystemAdministrator } from "../src/lib/platform/tenant-context.ts";
 
 test("persists payload-free audit evidence with only actor, event, and target identifiers", async () => {
   let data: unknown;
@@ -76,6 +76,28 @@ test("uses the same profile permissions for dashboard visibility and route acces
 
   assert.equal(canViewModule(profileAuthorized, "COMPRAS"), true);
   assert.equal(canViewModule(explicitlyBlocked, "COMPRAS"), false);
+});
+
+test("applies dashboard visibility, blocking, and operational module permissions independently", () => {
+  const profile = {
+    role: "Gestor",
+    permissions: JSON.stringify({
+      acesso: "operacional",
+      modules: {
+        FINANCEIRO: { showDashboardCard: true, blocked: false, view: false, create: true, update: false, delete: false },
+        COMPRAS: { showDashboardCard: true, blocked: true, view: true, create: true, update: true, delete: true },
+      },
+    }),
+    modulePermissions: [],
+  } as unknown as Parameters<typeof canViewModule>[0];
+
+  assert.equal(canShowDashboardCard(profile, "FINANCEIRO"), true);
+  assert.equal(canViewModule(profile, "FINANCEIRO"), true);
+  assert.equal(canEditModule(profile, "FINANCEIRO"), true);
+  assert.equal(canShowDashboardCard(profile, "COMPRAS"), true);
+  assert.equal(isModuleBlockedForUser(profile, "COMPRAS"), true);
+  assert.equal(canViewModule(profile, "COMPRAS"), false);
+  assert.equal(canEditModule(profile, "COMPRAS"), false);
 });
 
 test("migration protects audit evidence from mutation and indexes retention queries", async () => {

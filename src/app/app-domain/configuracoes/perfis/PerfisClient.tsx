@@ -41,15 +41,31 @@ const MODULES_LIST = [
   { code: "CONFIGURACOES", label: "Configurações do Sistema & Integrações", icon: Settings, color: "text-slate-600" },
 ];
 
-type ActionType = "read" | "create" | "update" | "delete" | "approve";
+type ModulePermission = {
+  showDashboardCard: boolean;
+  blocked: boolean;
+  view: boolean;
+  create: boolean;
+  update: boolean;
+  delete: boolean;
+};
 
-const ACTIONS_LABELS: { key: ActionType; label: string }[] = [
-  { key: "read", label: "Visualizar" },
+type PermissionKey = keyof Omit<ModulePermission, "blocked">;
+const ACTIONS_LABELS: { key: Exclude<PermissionKey, "showDashboardCard">; label: string }[] = [
+  { key: "view", label: "Visualizar" },
   { key: "create", label: "Criar / Incluir" },
   { key: "update", label: "Editar" },
   { key: "delete", label: "Excluir" },
-  { key: "approve", label: "Aprovar / Homologar" },
 ];
+
+const emptyPermission = (): ModulePermission => ({
+  showDashboardCard: false,
+  blocked: true,
+  view: false,
+  create: false,
+  update: false,
+  delete: false,
+});
 
 export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -62,11 +78,13 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
     nome: string;
     descricao: string;
     ativo: boolean;
-    permissionsMap: Record<string, ActionType[]>;
+    accessLevel: "operacional" | "total";
+    permissionsMap: Record<string, ModulePermission>;
   }>({
     nome: "",
     descricao: "",
     ativo: true,
+    accessLevel: "operacional",
     permissionsMap: {},
   });
 
@@ -75,71 +93,112 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
     (p.descricao && p.descricao.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  function parsePermissionsJSON(jsonStr: string | null): Record<string, ActionType[]> {
-    if (!jsonStr) return {};
+  function parsePermissionsJSON(jsonStr: string | null): { accessLevel: "operacional" | "total"; map: Record<string, ModulePermission> } {
+    const map = Object.fromEntries(MODULES_LIST.map((moduleItem) => [moduleItem.code, emptyPermission()])) as Record<string, ModulePermission>;
+    if (!jsonStr) return { accessLevel: "operacional", map };
     try {
-      const parsed = JSON.parse(jsonStr);
+      const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
       if (parsed.ALL) {
-        // Full access
-        const full: Record<string, ActionType[]> = {};
         MODULES_LIST.forEach((m) => {
-          full[m.code] = ["read", "create", "update", "delete", "approve"];
+          map[m.code] = { showDashboardCard: true, blocked: false, view: true, create: true, update: true, delete: true };
         });
-        return full;
+        return { accessLevel: "total", map };
       }
-      return parsed;
+      const modules = parsed.modules;
+      if (modules && typeof modules === "object" && !Array.isArray(modules)) {
+        for (const moduleItem of MODULES_LIST) {
+          const raw = (modules as Record<string, unknown>)[moduleItem.code];
+          if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+          const permission = raw as Partial<ModulePermission>;
+          const blocked = permission.blocked === true;
+          map[moduleItem.code] = {
+            showDashboardCard: permission.showDashboardCard === true,
+            blocked,
+            view: !blocked && permission.view === true,
+            create: !blocked && permission.create === true,
+            update: !blocked && permission.update === true,
+            delete: !blocked && permission.delete === true,
+          };
+        }
+        return { accessLevel: parsed.acesso === "total" ? "total" : "operacional", map };
+      }
+      const blockedModules = Array.isArray(parsed.modulosBloqueados) ? parsed.modulosBloqueados : [];
+      const allowedModules = Array.isArray(parsed.modulosPermitidos) ? parsed.modulosPermitidos : null;
+      for (const moduleItem of MODULES_LIST) {
+        const legacyActions = Array.isArray(parsed[moduleItem.code]) ? parsed[moduleItem.code] as string[] : [];
+        const blocked = blockedModules.includes(moduleItem.code);
+        const allowed = allowedModules ? allowedModules.includes(moduleItem.code) : legacyActions.length > 0;
+        map[moduleItem.code] = {
+          showDashboardCard: !blocked && allowed,
+          blocked,
+          view: !blocked && (allowed || legacyActions.includes("read")),
+          create: !blocked && legacyActions.includes("create"),
+          update: !blocked && legacyActions.includes("update"),
+          delete: !blocked && legacyActions.includes("delete"),
+        };
+      }
+      return { accessLevel: parsed.acesso === "total" ? "total" : "operacional", map };
     } catch {
-      return {};
+      return { accessLevel: "operacional", map };
     }
   }
 
-  function serializePermissionsJSON(map: Record<string, ActionType[]>): string {
-    // Check if all are selected
-    let totalCount = 0;
-    MODULES_LIST.forEach((m) => {
-      totalCount += map[m.code]?.length || 0;
+  function serializePermissionsJSON(accessLevel: "operacional" | "total", map: Record<string, ModulePermission>): string {
+    return JSON.stringify({
+      acesso: accessLevel,
+      modules: map,
+      modulosBloqueados: MODULES_LIST.filter((moduleItem) => map[moduleItem.code]?.blocked).map((moduleItem) => moduleItem.code),
     });
-    if (totalCount === MODULES_LIST.length * 5) {
-      return JSON.stringify({ ALL: true });
-    }
-    return JSON.stringify(map);
   }
 
   function openNew() {
-    const defaultMap: Record<string, ActionType[]> = {};
+    const defaultMap: Record<string, ModulePermission> = {};
     MODULES_LIST.forEach((m) => {
-      defaultMap[m.code] = ["read"];
+      defaultMap[m.code] = emptyPermission();
     });
-    setFormData({ nome: "", descricao: "", ativo: true, permissionsMap: defaultMap });
+    setFormData({ nome: "", descricao: "", ativo: true, accessLevel: "operacional", permissionsMap: defaultMap });
     setActiveTab("matriz");
     setIsModalOpen(true);
   }
 
   function openEdit(p: Perfil) {
-    const map = parsePermissionsJSON(p.permissoes);
-    setFormData({ id: p.id, nome: p.nome, descricao: p.descricao ?? "", ativo: p.ativo, permissionsMap: map });
+    const parsed = parsePermissionsJSON(p.permissoes);
+    setFormData({ id: p.id, nome: p.nome, descricao: p.descricao ?? "", ativo: p.ativo, accessLevel: parsed.accessLevel, permissionsMap: parsed.map });
     setActiveTab("matriz");
     setIsModalOpen(true);
   }
 
-  const toggleAction = (moduleCode: string, action: ActionType) => {
+  const toggleAction = (moduleCode: string, action: PermissionKey) => {
     setFormData((prev) => {
-      const current = prev.permissionsMap[moduleCode] || [];
-      const updated = current.includes(action)
-        ? current.filter((a) => a !== action)
-        : [...current, action];
+      const current = prev.permissionsMap[moduleCode] || emptyPermission();
       return {
         ...prev,
-        permissionsMap: { ...prev.permissionsMap, [moduleCode]: updated },
+        permissionsMap: { ...prev.permissionsMap, [moduleCode]: { ...current, [action]: !current[action] } },
+      };
+    });
+  };
+
+  const toggleBlocked = (moduleCode: string) => {
+    setFormData((prev) => {
+      const current = prev.permissionsMap[moduleCode] || emptyPermission();
+      const blocked = !current.blocked;
+      return {
+        ...prev,
+        permissionsMap: {
+          ...prev.permissionsMap,
+          [moduleCode]: blocked ? { ...current, blocked, view: false, create: false, update: false, delete: false } : { ...current, blocked },
+        },
       };
     });
   };
 
   const toggleAllModuleActions = (moduleCode: string) => {
     setFormData((prev) => {
-      const current = prev.permissionsMap[moduleCode] || [];
-      const allActions: ActionType[] = ["read", "create", "update", "delete", "approve"];
-      const updated = current.length === 5 ? [] : allActions;
+      const current = prev.permissionsMap[moduleCode] || emptyPermission();
+      const allSelected = !current.blocked && current.showDashboardCard && current.view && current.create && current.update && current.delete;
+      const updated = allSelected
+        ? emptyPermission()
+        : { showDashboardCard: true, blocked: false, view: true, create: true, update: true, delete: true };
       return {
         ...prev,
         permissionsMap: { ...prev.permissionsMap, [moduleCode]: updated },
@@ -148,14 +207,14 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
   };
 
   const applyPreset = (preset: "FULL" | "READ_ONLY" | "CLEAR") => {
-    const newMap: Record<string, ActionType[]> = {};
+    const newMap: Record<string, ModulePermission> = {};
     MODULES_LIST.forEach((m) => {
       if (preset === "FULL") {
-        newMap[m.code] = ["read", "create", "update", "delete", "approve"];
+        newMap[m.code] = { showDashboardCard: true, blocked: false, view: true, create: true, update: true, delete: true };
       } else if (preset === "READ_ONLY") {
-        newMap[m.code] = ["read"];
+        newMap[m.code] = { showDashboardCard: true, blocked: false, view: true, create: false, update: false, delete: false };
       } else {
-        newMap[m.code] = [];
+        newMap[m.code] = emptyPermission();
       }
     });
     setFormData((prev) => ({ ...prev, permissionsMap: newMap }));
@@ -164,7 +223,7 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsSubmitting(true);
-    const jsonPerms = serializePermissionsJSON(formData.permissionsMap);
+    const jsonPerms = serializePermissionsJSON(formData.accessLevel, formData.permissionsMap);
     const result = await upsertPerfil({
       id: formData.id,
       nome: formData.nome,
@@ -248,8 +307,11 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
                 </tr>
               ) : (
                 filtered.map((perfil) => {
-                  const permMap = parsePermissionsJSON(perfil.permissoes);
-                  const activeModulesCount = Object.keys(permMap).filter((k) => (permMap[k]?.length || 0) > 0).length;
+                  const permMap = parsePermissionsJSON(perfil.permissoes).map;
+                  const activeModulesCount = MODULES_LIST.filter((moduleItem) => {
+                    const permission = permMap[moduleItem.code];
+                    return permission && !permission.blocked && (permission.view || permission.create || permission.update || permission.delete);
+                  }).length;
 
                   return (
                     <tr key={perfil.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
@@ -429,8 +491,8 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
                   <div className="grid grid-cols-1 gap-3">
                     {MODULES_LIST.map((moduleItem) => {
                       const IconComponent = moduleItem.icon;
-                      const activeActions = formData.permissionsMap[moduleItem.code] || [];
-                      const isAllSelected = activeActions.length === 5;
+                       const permission = formData.permissionsMap[moduleItem.code] || emptyPermission();
+                       const isAllSelected = !permission.blocked && permission.showDashboardCard && permission.view && permission.create && permission.update && permission.delete;
 
                       return (
                         <div
@@ -458,10 +520,20 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
                             </button>
                           </div>
 
-                          {/* Actions Checkboxes */}
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
-                            {ACTIONS_LABELS.map((act) => {
-                              const isChecked = activeActions.includes(act.key);
+                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+                             <label className="flex items-center gap-2 p-2 rounded-lg border text-xs font-medium cursor-pointer bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400">
+                               <input type="checkbox" checked={permission.showDashboardCard} onChange={() => toggleAction(moduleItem.code, "showDashboardCard")} className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5" />
+                               <span>Exibir card no dashboard</span>
+                             </label>
+                             <label className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-medium cursor-pointer ${permission.blocked ? "bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-900 text-rose-800 dark:text-rose-200" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"}`}>
+                               <input type="checkbox" checked={permission.blocked} onChange={() => toggleBlocked(moduleItem.code)} className="rounded border-slate-300 text-rose-600 focus:ring-rose-500 w-3.5 h-3.5" />
+                               <span>Bloquear acesso ao módulo</span>
+                             </label>
+                           </div>
+                           {!permission.blocked ? (
+                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                             {ACTIONS_LABELS.map((act) => {
+                               const isChecked = permission[act.key];
                               return (
                                 <label
                                   key={act.key}
@@ -479,9 +551,12 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
                                   />
                                   <span>{act.label}</span>
                                 </label>
-                              );
-                            })}
-                          </div>
+                             );
+                             })}
+                           </div>
+                           ) : (
+                             <p className="text-xs text-rose-700 dark:text-rose-300">Módulo bloqueado: as permissões operacionais ficam indisponíveis até o desbloqueio.</p>
+                           )}
                         </div>
                       );
                     })}

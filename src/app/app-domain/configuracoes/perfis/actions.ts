@@ -8,6 +8,44 @@ async function getTenantPrisma() {
 }
 
 const SYSTEM_ADMINISTRATOR_ROLE = "Administrador";
+const MODULE_CODES = new Set([
+  "ADMINISTRACAO", "RH", "CADASTROS", "COMPRAS", "CONTRATOS", "FINANCEIRO", "PATRIMONIO", "TRIBUTACAO", "PROCESSOS", "SAUDE",
+  "EDUCACAO", "SOCIAL", "OBRAS", "MEIO_AMBIENTE", "SEGURANCA", "SANEAMENTO", "CAMARA", "CULTURA", "TRANSPARENCIA", "CONFIGURACOES",
+]);
+
+function normalizePermissions(value: string | undefined) {
+  if (!value) return JSON.stringify({ acesso: "operacional", modules: {} });
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error("A matriz de permissões é inválida.");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("A matriz de permissões é inválida.");
+  const source = parsed as { acesso?: unknown; modules?: unknown };
+  const modulesSource = source.modules && typeof source.modules === "object" && !Array.isArray(source.modules)
+    ? source.modules as Record<string, unknown>
+    : {};
+  const modules: Record<string, { showDashboardCard: boolean; blocked: boolean; view: boolean; create: boolean; update: boolean; delete: boolean }> = {};
+  for (const [code, raw] of Object.entries(modulesSource)) {
+    if (!MODULE_CODES.has(code) || !raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const item = raw as Record<string, unknown>;
+    const blocked = item.blocked === true;
+    modules[code] = {
+      showDashboardCard: item.showDashboardCard === true,
+      blocked,
+      view: !blocked && item.view === true,
+      create: !blocked && item.create === true,
+      update: !blocked && item.update === true,
+      delete: !blocked && item.delete === true,
+    };
+  }
+  return JSON.stringify({
+    acesso: source.acesso === "total" ? "total" : "operacional",
+    modules,
+    modulosBloqueados: Object.entries(modules).filter(([, permission]) => permission.blocked).map(([code]) => code),
+  });
+}
 
 export async function upsertPerfil(data: {
   id?: string;
@@ -21,7 +59,7 @@ export async function upsertPerfil(data: {
     const nome = data.nome.trim();
     if (!nome) return { error: "Informe o nome do perfil." };
 
-    const jsonPermissoes = data.permissoes || JSON.stringify({ ALL: true });
+    const jsonPermissoes = normalizePermissions(data.permissoes);
 
     if (data.id) {
       const existing = await prisma.configuracaoPerfil.findUnique({ where: { id: data.id } });

@@ -22,7 +22,7 @@ import {
   Shield,
   Lock
 } from "lucide-react";
-import { canViewModule, getOptionalTenantContext } from "@/lib/platform/tenant-context";
+import { canShowDashboardCard, canViewModule, getOptionalTenantContext, isModuleBlockedForUser } from "@/lib/platform/tenant-context";
 
 export const dynamic = "force-dynamic";
 
@@ -82,8 +82,8 @@ export default async function PainelPage() {
     console.warn("Notice: Failed to fetch configuracaoModulo status", err);
   }
 
-  const visibleMenuItems = menuItems.filter((item) => context && canViewModule(context.user, item.code));
-  const hasFinancialAccess = visibleMenuItems.some((item) => item.code === "FINANCEIRO");
+  const visibleMenuItems = menuItems.filter((item) => context && canShowDashboardCard(context.user, item.code));
+  const hasFinancialAccess = context ? canViewModule(context.user, "FINANCEIRO") : false;
   const isPocEvaluator = context?.user.role.startsWith("POC Avaliador") ?? false;
 
   return (
@@ -104,13 +104,14 @@ export default async function PainelPage() {
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 w-full">
         {visibleMenuItems.map((item) => {
           const isConfig = item.code === "CONFIGURACOES";
-          const isLocked = hasDbRecords && !isConfig && !modulosAtivosSet.has(item.code);
+          const isProfileBlocked = !context || isModuleBlockedForUser(context.user, item.code) || !canViewModule(context.user, item.code);
+          const isLocked = isProfileBlocked || (hasDbRecords && !isConfig && !modulosAtivosSet.has(item.code));
 
           if (isLocked) {
             return (
               <div
                 key={item.name}
-                title="Módulo não contratado nesta instância municipal. Ative em Configurações e Integrações > Módulos."
+                title={isProfileBlocked ? "Acesso bloqueado ou sem permissão de visualização neste perfil." : "Módulo não contratado nesta instância municipal. Ative em Configurações e Integrações > Módulos."}
                 className="relative overflow-hidden h-full bg-slate-100/90 dark:bg-slate-900/60 border border-dashed border-slate-300 dark:border-slate-800 rounded-[16px] flex flex-col justify-center text-center py-4 px-2 cursor-not-allowed opacity-60 grayscale select-none"
               >
                 {/* Top Gray Bar */}
@@ -130,7 +131,7 @@ export default async function PainelPage() {
                       {item.name}
                     </h3>
                     <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                      Não Contratado
+                       {isProfileBlocked ? "Acesso Bloqueado" : "Não Contratado"}
                     </span>
                   </div>
                 </div>
