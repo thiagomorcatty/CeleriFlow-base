@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { Prisma } from "@prisma/client";
+import type { HealthProfessional } from "@prisma/client";
 import { prisma } from "../src/lib/prisma";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -317,7 +318,7 @@ export async function runMassivePocSeed() {
   });
 
   const firstServidor = await prisma.employee.findFirst({ where: { isActive: true } });
-  let profSaude: any = null;
+  let profSaude: HealthProfessional | null = null;
   if (firstServidor) {
     profSaude = await prisma.healthProfessional.upsert({
       where: { employeeId: firstServidor.id },

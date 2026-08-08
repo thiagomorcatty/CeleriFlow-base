@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { GitCompare, CheckCircle2, Play, AlertCircle, FileSpreadsheet, ShieldCheck, ArrowRightLeft, Sparkles, Scale, RefreshCw } from "lucide-react";
+import { GitCompare, CheckCircle2, FileSpreadsheet, ArrowRightLeft, Sparkles, Scale } from "lucide-react";
 import { confirmReconciliationSessionAction, openReconciliationSessionAction, runAutoReconciliationAction } from "./actions";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { pocVirtualBank } from "@/lib/poc/poc-config";
+import type { ReconciliationMatchResult } from "@/lib/financeiro/reconciliation-engine";
 
 interface Session {
   id: string;
@@ -12,18 +13,24 @@ interface Session {
   agencia: string;
   contaNumero: string;
   periodo: string;
-  saldoInicialDecimal: any;
-  totalDebitosDecimal: any;
-  totalCreditosDecimal: any;
-  saldoFinalDecimal: any;
-  saldoRazaoDecimal: any;
-  diferencaDecimal: any;
+  saldoInicialDecimal: unknown;
+  totalDebitosDecimal: unknown;
+  totalCreditosDecimal: unknown;
+  saldoFinalDecimal: unknown;
+  saldoRazaoDecimal: unknown;
+  diferencaDecimal: unknown;
   status: string;
   totalItensBanco: number;
   totalItensContabeis: number;
   itensConciliados: number;
   itensDivergentes: number;
   reciboIntegracao: string | null;
+}
+
+interface ConfirmReceipt {
+  session: Session;
+  recibo: string;
+  hash: string;
 }
 
 export default function ConciliacaoBancariaClient({ initialSessions = [] }: { initialSessions?: Session[] }) {
@@ -34,9 +41,9 @@ export default function ConciliacaoBancariaClient({ initialSessions = [] }: { in
   const [saldoInicial, setSaldoInicial] = useState<number>(150000.0);
 
   const [activeSession, setActiveSession] = useState<Session | null>(initialSessions[0] || null);
-  const [matchResults, setMatchResults] = useState<any[]>([]);
+  const [matchResults, setMatchResults] = useState<ReconciliationMatchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [confirmReceipt, setConfirmReceipt] = useState<any | null>(null);
+  const [confirmReceipt, setConfirmReceipt] = useState<ConfirmReceipt | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   async function handleOpenSession(e: React.FormEvent) {
@@ -89,7 +96,7 @@ export default function ConciliacaoBancariaClient({ initialSessions = [] }: { in
 
     if (res.error) {
       setErrorMsg(res.error);
-    } else {
+    } else if (res.data) {
       setConfirmReceipt(res.data);
       setActiveSession(res.data.session);
     }

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRightLeft, CheckCircle2, Send, Zap, Calculator, ShieldCheck, Sparkles, FileText, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { ArrowRightLeft, CheckCircle2, Send, Zap, Calculator, Sparkles, FileText, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { classifyItemAction, transmitItemAction } from "./resgates-actions";
 import { pocVirtualBank } from "@/lib/poc/poc-config";
+import type { ClassificationResult, MunicipalIntegrationReceipt } from "@/lib/financeiro/classification-engine";
 
 interface StatementItem {
   id: string;
@@ -15,7 +16,7 @@ interface StatementItem {
   reference: string | null;
   codigoTransacao: string | null;
   sinal: string | null;
-  valueDecimal: any;
+  valueDecimal: unknown;
   status: string;
   categoriaClassificada: string | null;
   reciboMunicipal: string | null;
@@ -24,9 +25,9 @@ interface StatementItem {
 export default function ResgatesAplicacoesClient({ initialItems = [] }: { initialItems?: StatementItem[] }) {
   const [items, setItems] = useState<StatementItem[]>(initialItems);
   const [selectedItem, setSelectedItem] = useState<StatementItem | null>(null);
-  const [classificationResult, setClassificationResult] = useState<any | null>(null);
+  const [classificationResult, setClassificationResult] = useState<ClassificationResult | null>(null);
   const [transmitting, setTransmitting] = useState(false);
-  const [receipt, setReceipt] = useState<any | null>(null);
+  const [receipt, setReceipt] = useState<MunicipalIntegrationReceipt | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [accountFilter, setAccountFilter] = useState("TODAS");
   const [signalFilter, setSignalFilter] = useState("TODOS");
@@ -55,7 +56,7 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
 
     if (res.error) {
       setErrorMsg(res.error);
-    } else {
+    } else if (res.data) {
       setClassificationResult(res.data);
     }
   }
@@ -71,8 +72,9 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
 
     if (res.error) {
       setErrorMsg(res.error);
-    } else {
-      setReceipt(res.data);
+    } else if (res.data) {
+      const transmissionReceipt = res.data;
+      setReceipt(transmissionReceipt);
       // Atualizar lista local
       setItems((prev) =>
         prev.map((i) =>
@@ -80,7 +82,7 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
             ? {
                 ...i,
                 status: "Processado",
-                reciboMunicipal: res.data.reciboId,
+                reciboMunicipal: transmissionReceipt.reciboId,
                 categoriaClassificada: classificationResult.category,
               }
             : i

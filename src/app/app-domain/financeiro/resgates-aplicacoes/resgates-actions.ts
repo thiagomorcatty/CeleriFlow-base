@@ -1,10 +1,17 @@
 "use server";
 
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
-import { classifyBankMovement, sendMovementToMunicipalSystem } from "@/lib/financeiro/classification-engine";
+import { classifyBankMovement, sendMovementToMunicipalSystem, type ClassificationResult, type MunicipalIntegrationReceipt } from "@/lib/financeiro/classification-engine";
 import { revalidatePath } from "next/cache";
 
-type ActionResult<T = any> = { error?: string; data?: T };
+type ActionResult<T = unknown> = { error?: string; data?: T };
+
+function errorMessage(error: unknown, fallback: string) {
+  if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string" && error.message) {
+    return error.message;
+  }
+  return fallback;
+}
 
 export async function getBankStatementItemsAction(): Promise<ActionResult> {
   try {
@@ -15,8 +22,8 @@ export async function getBankStatementItemsAction(): Promise<ActionResult> {
       take: 20,
     });
     return { data: items };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao carregar lançamentos bancários." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao carregar lançamentos bancários.") };
   }
 }
 
@@ -27,17 +34,17 @@ export async function classifyItemAction(input: {
   valor: number;
   banco?: string;
   contaNumero?: string;
-}): Promise<ActionResult> {
+}): Promise<ActionResult<ClassificationResult>> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const result = await classifyBankMovement(context.prisma, input);
     return { data: result };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao classificar lançamento." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao classificar lançamento.") };
   }
 }
 
-export async function transmitItemAction(input: { statementItemId: string }): Promise<ActionResult> {
+export async function transmitItemAction(input: { statementItemId: string }): Promise<ActionResult<MunicipalIntegrationReceipt>> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const item = await context.prisma.bankStatementItem.findFirst({ where: { id: input.statementItemId, banco: "001 - Banco Virtual Robonuvem" }, select: { id: true } });
@@ -50,7 +57,7 @@ export async function transmitItemAction(input: { statementItemId: string }): Pr
 
     revalidatePath("/financeiro/resgates-aplicacoes");
     return { data: receipt };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao registrar lançamento no CeleriFlow." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao registrar lançamento no CeleriFlow.") };
   }
 }

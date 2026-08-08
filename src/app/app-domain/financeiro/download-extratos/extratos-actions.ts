@@ -10,7 +10,14 @@ import { bankIntegrationClient } from "@/lib/financeiro/bank-integration-client"
 import { archiveBankStatement } from "@/lib/platform/blob";
 import { pocVirtualBank } from "@/lib/poc/poc-config";
 
-type ActionResult<T = any> = { error?: string; data?: T };
+type ActionResult<T = unknown> = { error?: string; data?: T };
+
+function errorMessage(error: unknown, fallback: string) {
+  if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string" && error.message) {
+    return error.message;
+  }
+  return fallback;
+}
 
 type DownloadRecordForClient = {
   id: string;
@@ -71,7 +78,7 @@ export async function runAutomatedBankDownloadAction(input: {
   contaNumero: string;
   periodoInicio: string;
   periodoFim: string;
-}): Promise<ActionResult> {
+}): Promise<ActionResult<DownloadRecordForClient>> {
   const parsed = downloadSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
@@ -246,7 +253,7 @@ export async function runAutomatedBankDownloadAction(input: {
     revalidatePath("/financeiro/download-extratos");
     revalidatePath("/financeiro/automacoes");
     return { data: serializeDownloadRecord(result.downloadRecord) };
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (context) {
       try {
         const integration = await context.prisma.integrationConnection.findFirst({
@@ -260,7 +267,7 @@ export async function runAutomatedBankDownloadAction(input: {
               operation: "DOWNLOAD_EXTRATO",
               environment: "SANDBOX",
               status: "FALHA",
-              message: err instanceof Error ? err.message : "Falha na automação bancária.",
+              message: errorMessage(err, "Falha na automação bancária."),
               payload: { banco: parsed.data.banco, agencia: parsed.data.agencia, contaNumero: parsed.data.contaNumero },
             },
           });
@@ -269,7 +276,7 @@ export async function runAutomatedBankDownloadAction(input: {
         // Preserve the original integration error even if audit persistence is unavailable.
       }
     }
-    return { error: err?.message || "Falha na execução da automação bancária." };
+    return { error: errorMessage(err, "Falha na execução da automação bancária.") };
   }
 }
 
@@ -298,7 +305,7 @@ export async function getDownloadHistoryAction(): Promise<ActionResult> {
       take: 10,
     });
     return { data: history };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao carregar histórico de downloads." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao carregar histórico de downloads.") };
   }
 }

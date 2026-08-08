@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Landmark, Plus, AlertTriangle, CheckCircle2, ShieldCheck, Filter, ArrowUpRight, Zap, RefreshCw, ListFilter } from "lucide-react";
+import { Landmark, Plus, AlertTriangle, Zap, RefreshCw, ListFilter } from "lucide-react";
 import { createRuleAction, processConstitutionalRevenueAction, resolveExceptionAction, seedConstitutionalRulesAction } from "./regras-receitas-actions";
 
 interface Rule {
@@ -30,7 +30,7 @@ interface ExceptionItem {
   id: string;
   statementItemId: string | null;
   descricao: string;
-  valorDecimal: any;
+  valorDecimal: unknown;
   dataMovimento: string;
   banco: string;
   contaNumero: string;
@@ -53,6 +53,7 @@ export default function ReceitasConstitucionaisClient({
   const [activeTab, setActiveTab] = useState<"regras" | "nova" | "excecoes">("regras");
   const [rules, setRules] = useState<Rule[]>(initialRules);
   const [exceptions, setExceptions] = useState<ExceptionItem[]>(initialExceptions);
+  const [previousInitialData, setPreviousInitialData] = useState({ rules: initialRules, exceptions: initialExceptions });
   const router = useRouter();
 
   // Form para nova regra
@@ -70,10 +71,11 @@ export default function ReceitasConstitucionaisClient({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  useEffect(() => {
+  if (previousInitialData.rules !== initialRules || previousInitialData.exceptions !== initialExceptions) {
+    setPreviousInitialData({ rules: initialRules, exceptions: initialExceptions });
     setRules(initialRules);
     setExceptions(initialExceptions);
-  }, [initialExceptions, initialRules]);
+  }
 
   async function handleSeedRules() {
     setLoading(true);
@@ -114,8 +116,9 @@ export default function ReceitasConstitucionaisClient({
     if (res.error) {
       setErrorMsg(res.error);
     } else if (res.data) {
+      const rule = res.data;
       setSuccessMsg("Regra configurada e ativada com sucesso!");
-      setRules((prev) => [...prev, res.data].sort((a, b) => a.prioridade - b.prioridade));
+      setRules((prev) => [...prev, rule].sort((a, b) => a.prioridade - b.prioridade));
       setTextoProcurado("");
       setActiveTab("regras");
     }

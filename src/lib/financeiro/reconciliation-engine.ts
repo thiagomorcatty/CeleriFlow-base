@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from "@prisma/client";
+import type { BankReconciliationSession } from "@prisma/client";
 import { getBankAccountLedgerBalance } from "@/lib/financeiro";
 
 export type ReconciliationMatchType =
@@ -59,7 +60,7 @@ export async function runAutoReconciliation(
   prisma: PrismaClient,
   sessionId: string
 ): Promise<{
-  session: any;
+  session: BankReconciliationSession;
   matches: ReconciliationMatchResult[];
   balances: SessionBalancesSummary;
 }> {

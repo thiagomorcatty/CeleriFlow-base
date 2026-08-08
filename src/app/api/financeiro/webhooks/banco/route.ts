@@ -102,8 +102,8 @@ export async function POST(req: Request) {
       message: `Receita ${siglaReceita} no valor de R$ ${valor} registrada via Webhook com sucesso.`,
       statementItemId: item.id,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[Webhook Banco Error]", err);
-    return NextResponse.json({ error: err?.message || "Erro ao processar webhook bancário." }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Erro ao processar webhook bancário." }, { status: 500 });
   }
 }

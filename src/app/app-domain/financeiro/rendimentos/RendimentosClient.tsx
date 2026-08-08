@@ -1,24 +1,38 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingUp, Calculator, ShieldCheck, CheckCircle2, FileText, Percent, Coins, RotateCcw, Send } from "lucide-react";
+import { TrendingUp, Calculator, CheckCircle2, FileText, Percent, Coins, RotateCcw, Send } from "lucide-react";
 import { calculateYieldAction, fetchExternalYieldsAction, transmitYieldAction } from "./rendimentos-actions";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { pocVirtualBank } from "@/lib/poc/poc-config";
+import type { YieldCalculationResult, YieldTransmissionResult } from "@/lib/financeiro/yield-engine";
 
 interface YieldRecord {
   id: string;
   contaNumero: string;
   data: string;
-  valorBrutoDecimal: any;
-  irrfDecimal: any;
-  iofDecimal: any;
-  correcaoDecimal: any;
-  valorLiquidoDecimal: any;
-  saldoAcumuladoDecimal: any;
+  valorBrutoDecimal: unknown;
+  irrfDecimal: unknown;
+  iofDecimal: unknown;
+  correcaoDecimal: unknown;
+  valorLiquidoDecimal: unknown;
+  saldoAcumuladoDecimal: unknown;
   tipoRendimento: string;
   reciboMunicipal: string | null;
   createdAt: string;
+}
+
+interface ExternalYield {
+  documentoRef?: string;
+  data: string;
+  valorBruto: number;
+  irrf: number;
+  iof: number;
+  correcaoMonetaria: number;
+  valorLiquido: number;
+  saldoAcumulado: number;
+  statementItemId?: string;
+  alreadyProcessed: boolean;
 }
 
 export default function RendimentosClient({ initialHistory = [] }: { initialHistory?: YieldRecord[] }) {
@@ -31,13 +45,13 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
   const [isEstorno, setIsEstorno] = useState<boolean>(false);
   const [periodoInicio, setPeriodoInicio] = useState("2025-08-01");
   const [periodoFim, setPeriodoFim] = useState("2025-08-31");
-  const [externalYields, setExternalYields] = useState<any[]>([]);
-  const [selectedYield, setSelectedYield] = useState<any | null>(null);
+  const [externalYields, setExternalYields] = useState<ExternalYield[]>([]);
+  const [selectedYield, setSelectedYield] = useState<ExternalYield | null>(null);
 
-  const [calculation, setCalculation] = useState<any | null>(null);
+  const [calculation, setCalculation] = useState<YieldCalculationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [transmitting, setTransmitting] = useState(false);
-  const [receipt, setReceipt] = useState<any | null>(null);
+  const [receipt, setReceipt] = useState<YieldTransmissionResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [history, setHistory] = useState<YieldRecord[]>(initialHistory);
@@ -61,7 +75,7 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
 
     if (res.error) {
       setErrorMsg(res.error);
-    } else {
+    } else if (res.data) {
       setCalculation(res.data);
     }
   }
@@ -76,7 +90,7 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
     if (!res.data?.length) setErrorMsg("Nenhum rendimento foi encontrado no extrato para o período informado.");
   }
 
-  async function handleSelectYield(yieldItem: any) {
+  async function handleSelectYield(yieldItem: ExternalYield) {
     if (!yieldItem.statementItemId) return setErrorMsg("Baixe o extrato da aplicação antes de processar este rendimento.");
     if (yieldItem.alreadyProcessed) return setErrorMsg("Este rendimento já foi processado.");
     setSelectedYield(yieldItem);
@@ -86,7 +100,7 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
     setCorrecaoMonetaria(yieldItem.correcaoMonetaria);
     const res = await calculateYieldAction({ ...yieldItem, saldoAnteriorAcumulado });
     if (res.error) setErrorMsg(res.error);
-    else setCalculation(res.data);
+    else if (res.data) setCalculation(res.data);
   }
 
   async function handleTransmit() {
@@ -111,11 +125,12 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
 
     if (res.error) {
       setErrorMsg(res.error);
-    } else {
-      setReceipt(res.data);
+    } else if (res.data) {
+      const transmittedYield = res.data;
+      setReceipt(transmittedYield);
       setHistory((prev) => [
         {
-          id: res.data.yieldTransactionId,
+          id: transmittedYield.yieldTransactionId,
           contaNumero,
           data: new Date().toISOString(),
           valorBrutoDecimal: calculation.valorBruto,
@@ -125,7 +140,7 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
           valorLiquidoDecimal: calculation.valorLiquido,
           saldoAcumuladoDecimal: calculation.saldoAcumulado,
           tipoRendimento: calculation.tipo,
-          reciboMunicipal: res.data.reciboId,
+          reciboMunicipal: transmittedYield.reciboId,
           createdAt: new Date().toISOString(),
         },
         ...prev,

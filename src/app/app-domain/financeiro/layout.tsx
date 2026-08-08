@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -83,10 +83,12 @@ export default function FinanceiroLayout({ children }: { children: React.ReactNo
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }))?.title ?? null;
   const [openGroup, setOpenGroup] = useState<string | null>(activeGroup);
+  const [previousPathname, setPreviousPathname] = useState(pathname);
 
-  useEffect(() => {
+  if (pathname !== previousPathname) {
+    setPreviousPathname(pathname);
     setOpenGroup(activeGroup);
-  }, [activeGroup]);
+  }
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen w-full max-w-[1600px] mx-auto bg-slate-50/30 relative">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { 
@@ -18,29 +18,29 @@ import Link from "next/link"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getFinanceiroDashboardStats } from "./dashboard-actions"
 
-export default function FinanceiroDashboardClient({ initialStats }: { initialStats: any }) {
+interface FinanceiroDashboardStats {
+  totalReceita: number
+  totalDespesa: number
+  resultadoOperacional: number
+}
+
+export default function FinanceiroDashboardClient({ initialStats }: { initialStats: FinanceiroDashboardStats }) {
   const [stats, setStats] = useState(initialStats)
   const [month, setMonth] = useState("")
   const [year, setYear] = useState(new Date().getFullYear().toString())
   const [isLoading, setIsLoading] = useState(false)
 
-  const fetchStats = useCallback(async () => {
+  async function fetchStats(nextMonth: string, nextYear: string) {
     setIsLoading(true)
     try {
-      const data = await getFinanceiroDashboardStats(month, year)
+      const data = await getFinanceiroDashboardStats(nextMonth, nextYear)
       setStats(data)
     } catch (error) {
       console.error(error)
     } finally {
       setIsLoading(false)
     }
-  }, [month, year])
-
-  useEffect(() => {
-    if (month !== undefined && year !== undefined) {
-      fetchStats()
-    }
-  }, [month, year, fetchStats])
+  }
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
@@ -51,7 +51,11 @@ export default function FinanceiroDashboardClient({ initialStats }: { initialSta
       <div className="flex items-center justify-between space-y-2 mb-6">
         <h2 className="text-3xl font-bold tracking-tight">Painel Financeiro</h2>
         <div className="flex items-center space-x-2">
-          <Select value={month} onValueChange={(val) => setMonth(val as string)}>
+          <Select value={month} onValueChange={(value) => {
+            if (value === null) return
+            setMonth(value)
+            void fetchStats(value, year)
+          }}>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Todos os Meses" />
             </SelectTrigger>
@@ -72,7 +76,11 @@ export default function FinanceiroDashboardClient({ initialStats }: { initialSta
             </SelectContent>
           </Select>
           
-          <Select value={year} onValueChange={(val) => setYear(val as string)}>
+          <Select value={year} onValueChange={(value) => {
+            if (value === null) return
+            setYear(value)
+            void fetchStats(month, value)
+          }}>
             <SelectTrigger className="w-[120px]">
               <SelectValue placeholder="Ano" />
             </SelectTrigger>

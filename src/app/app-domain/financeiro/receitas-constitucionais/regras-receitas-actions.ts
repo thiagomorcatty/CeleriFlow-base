@@ -7,7 +7,21 @@ import { Prisma } from "@prisma/client";
 import { recordConfirmedRevenue, type FinanceActor } from "@/lib/financeiro";
 import { isPocVirtualBank, pocVirtualBank } from "@/lib/poc/poc-config";
 
-type ActionResult<T = any> = { error?: string; data?: T };
+type ActionResult<T = unknown> = { error?: string; data?: T };
+type ConstitutionalRuleForClient = Prisma.ClassificationRuleGetPayload<{
+  include: { bankAccount: { select: { id: true; bankName: true; agency: true; accountNumber: true } } };
+}>;
+type ConstitutionalRuleBankAccount = Prisma.BankAccountGetPayload<{
+  select: { id: true; bankName: true; agency: true; accountNumber: true };
+}>;
+type ConstitutionalRulesData = { rules: ConstitutionalRuleForClient[]; bankAccounts: ConstitutionalRuleBankAccount[] };
+
+function errorMessage(error: unknown, fallback: string) {
+  if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string" && error.message) {
+    return error.message;
+  }
+  return fallback;
+}
 
 const ruleSchema = z.object({
   textoProcurado: z.string().min(1, "Informe o texto procurado."),
@@ -254,12 +268,12 @@ export async function seedConstitutionalRulesAction(): Promise<ActionResult> {
 
     revalidatePath("/financeiro/receitas-constitucionais");
     return { data: { count } };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao gerar regras pré-cadastradas." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao gerar regras pré-cadastradas.") };
   }
 }
 
-export async function getConstitutionalRulesAction(): Promise<ActionResult> {
+export async function getConstitutionalRulesAction(): Promise<ActionResult<ConstitutionalRulesData>> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const rules = await context.prisma.classificationRule.findMany({
@@ -277,8 +291,8 @@ export async function getConstitutionalRulesAction(): Promise<ActionResult> {
       select: { id: true, bankName: true, agency: true, accountNumber: true },
     });
     return { data: { rules, bankAccounts } };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao buscar regras de receita." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao buscar regras de receita.") };
   }
 }
 
@@ -290,12 +304,12 @@ export async function getExceptionQueueAction(): Promise<ActionResult> {
       orderBy: { createdAt: "desc" },
     });
     return { data: items };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao buscar fila de exceções." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao buscar fila de exceções.") };
   }
 }
 
-export async function createRuleAction(data: z.infer<typeof ruleSchema>): Promise<ActionResult> {
+export async function createRuleAction(data: z.infer<typeof ruleSchema>): Promise<ActionResult<ConstitutionalRuleForClient>> {
   const parsed = ruleSchema.safeParse(data);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
 
@@ -317,12 +331,13 @@ export async function createRuleAction(data: z.infer<typeof ruleSchema>): Promis
         bancoContaFiltro: `${bankAccount.bankName} / ${bankAccount.agency} / ${bankAccount.accountNumber}`,
         tipoMovimento: "RECEITA_CONSTITUCIONAL",
       },
+      include: { bankAccount: { select: { id: true, bankName: true, agency: true, accountNumber: true } } },
     });
 
     revalidatePath("/financeiro/receitas-constitucionais");
     return { data: newRule };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao criar regra de receita." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao criar regra de receita.") };
   }
 }
 
@@ -374,8 +389,8 @@ export async function resolveExceptionAction(exceptionId: string, ruleText?: str
 
     revalidatePath("/financeiro/receitas-constitucionais");
     return { data: { success: true } };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao resolver exceção." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao resolver exceção.") };
   }
 }
 
@@ -469,7 +484,7 @@ export async function processConstitutionalRevenueAction(statementItemId: string
     revalidatePath("/financeiro/receitas-constitucionais");
     revalidatePath("/financeiro/receitas");
     return { data: result };
-  } catch (err: any) {
-    return { error: err?.message || "Não foi possível processar a receita constitucional." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Não foi possível processar a receita constitucional.") };
   }
 }

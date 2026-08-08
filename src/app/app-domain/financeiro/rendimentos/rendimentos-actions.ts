@@ -1,12 +1,20 @@
 "use server";
 
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
-import { calculateInvestmentYield, transmitYieldToMunicipalSystem, YieldType } from "@/lib/financeiro/yield-engine";
-import { bankIntegrationClient } from "@/lib/financeiro/bank-integration-client";
+import { calculateInvestmentYield, transmitYieldToMunicipalSystem, type YieldCalculationResult, type YieldTransmissionResult, YieldType } from "@/lib/financeiro/yield-engine";
+import { bankIntegrationClient, type InvestmentYieldDTO } from "@/lib/financeiro/bank-integration-client";
 import { revalidatePath } from "next/cache";
 import { isPocVirtualBank, isPocVirtualBankAccount, pocVirtualBank } from "@/lib/poc/poc-config";
 
-type ActionResult<T = any> = { error?: string; data?: T };
+type ActionResult<T = unknown> = { error?: string; data?: T };
+type ExternalYieldForClient = Omit<InvestmentYieldDTO, "data"> & { data: string; statementItemId?: string; alreadyProcessed: boolean };
+
+function errorMessage(error: unknown, fallback: string) {
+  if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string" && error.message) {
+    return error.message;
+  }
+  return fallback;
+}
 
 export async function calculateYieldAction(input: {
   valorBruto: number;
@@ -15,12 +23,12 @@ export async function calculateYieldAction(input: {
   correcaoMonetaria?: number;
   saldoAnteriorAcumulado?: number;
   isEstorno?: boolean;
-}): Promise<ActionResult> {
+}): Promise<ActionResult<YieldCalculationResult>> {
   try {
     const result = calculateInvestmentYield(input);
     return { data: result };
-  } catch (err: any) {
-    return { error: err?.message || "Erro no cálculo de rendimentos." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro no cálculo de rendimentos.") };
   }
 }
 
@@ -35,7 +43,7 @@ export async function transmitYieldAction(input: {
   valorLiquido: number;
   saldoAcumulado: number;
   tipo: YieldType;
-}): Promise<ActionResult> {
+}): Promise<ActionResult<YieldTransmissionResult>> {
   try {
     if (!isPocVirtualBankAccount(input.contaNumero)) return { error: "A conta informada não pertence ao Banco Virtual Robonuvem." };
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
@@ -48,8 +56,8 @@ export async function transmitYieldAction(input: {
 
     revalidatePath("/financeiro/rendimentos");
     return { data: result };
-  } catch (err: any) {
-    return { error: err?.message || "Erro na transmissão do rendimento." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro na transmissão do rendimento.") };
   }
 }
 
@@ -62,8 +70,8 @@ export async function getYieldHistoryAction(): Promise<ActionResult> {
       take: 15,
     });
     return { data: history };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao buscar histórico de rendimentos." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao buscar histórico de rendimentos.") };
   }
 }
 
@@ -73,7 +81,7 @@ export async function fetchExternalYieldsAction(input: {
   contaNumero: string;
   periodoInicio: string;
   periodoFim: string;
-}): Promise<ActionResult> {
+}): Promise<ActionResult<ExternalYieldForClient[]>> {
   try {
     if (!isPocVirtualBank(input.banco) || !isPocVirtualBankAccount(input.contaNumero)) {
       return { error: "A POC aceita somente contas do Banco Virtual Robonuvem." };
@@ -99,11 +107,12 @@ export async function fetchExternalYieldsAction(input: {
     return {
       data: yields.map((item) => ({
         ...item,
+        data: item.data.toISOString(),
         statementItemId: item.documentoRef ? itemsByReference.get(item.documentoRef)?.id : undefined,
         alreadyProcessed: Boolean(item.documentoRef && itemsByReference.get(item.documentoRef)?.treasuryMovementId),
       })),
     };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao consultar rendimentos no Banco Virtual Robonuvem." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao consultar rendimentos no Banco Virtual Robonuvem.") };
   }
 }

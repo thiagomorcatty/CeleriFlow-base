@@ -6,10 +6,12 @@ import { getTenantContextForModuleEdit, isSystemAdministrator } from "@/lib/plat
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import crypto from "crypto";
-import { Prisma } from "@prisma/client";
+import { Prisma, type BankReconciliationSession } from "@prisma/client";
 import { isPocVirtualBank, pocVirtualBank } from "@/lib/poc/poc-config";
 
-type ActionResult<T = any> = { error?: string; data?: T };
+type ActionResult<T = unknown> = { error?: string; data?: T };
+type AutoReconciliationResult = Awaited<ReturnType<typeof runAutoReconciliation>>;
+type ReconciliationReceipt = { session: BankReconciliationSession; recibo: string; hash: string };
 
 const MAX_CSV_BYTES = 2 * 1024 * 1024;
 const importSchema = z.object({
@@ -37,8 +39,11 @@ function actorFor(context: Awaited<ReturnType<typeof getTenantContextForModuleEd
   };
 }
 
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Não foi possível concluir a conciliação bancária.";
+function errorMessage(error: unknown, fallback = "Não foi possível concluir a conciliação bancária.") {
+  if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string" && error.message) {
+    return error.message;
+  }
+  return fallback;
 }
 
 export async function importBankStatementCsvAction(data: { bankAccountId: string; content: string; fileName?: string }): Promise<ActionResult> {
@@ -91,7 +96,7 @@ export async function openReconciliationSessionAction(input: {
   contaNumero: string;
   periodo: string;
   saldoInicial: number;
-}): Promise<ActionResult> {
+}): Promise<ActionResult<BankReconciliationSession>> {
   const parsed = reconciliationSessionSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados de conciliação inválidos." };
 
@@ -154,15 +159,15 @@ export async function openReconciliationSessionAction(input: {
 
     revalidatePath("/financeiro/conciliacao-bancaria");
     return { data: session };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao abrir sessão de conciliação." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao abrir sessão de conciliação.") };
   }
 }
 
 /**
  * Executa o Motor de Correspondência Automática (9 Regras)
  */
-export async function runAutoReconciliationAction(sessionId: string): Promise<ActionResult> {
+export async function runAutoReconciliationAction(sessionId: string): Promise<ActionResult<AutoReconciliationResult>> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const session = await context.prisma.bankReconciliationSession.findUnique({ where: { id: sessionId }, select: { banco: true, agencia: true, contaNumero: true } });
@@ -174,15 +179,15 @@ export async function runAutoReconciliationAction(sessionId: string): Promise<Ac
     const result = await runAutoReconciliation(context.prisma, sessionId);
     revalidatePath("/financeiro/conciliacao-bancaria");
     return { data: result };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao executar correspondência automática." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao executar correspondência automática.") };
   }
 }
 
 /**
  * Confirma a conciliação e persiste os resultados no CeleriFlow.
  */
-export async function confirmReconciliationSessionAction(sessionId: string): Promise<ActionResult> {
+export async function confirmReconciliationSessionAction(sessionId: string): Promise<ActionResult<ReconciliationReceipt>> {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
     const { prisma, user } = context;
@@ -258,8 +263,8 @@ export async function confirmReconciliationSessionAction(sessionId: string): Pro
 
     revalidatePath("/financeiro/conciliacao-bancaria");
     return { data: { session: result.session, recibo: result.recibo, hash } };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao confirmar conciliação." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao confirmar conciliação.") };
   }
 }
 
@@ -272,7 +277,7 @@ export async function getActiveReconciliationSessionsAction(): Promise<ActionRes
       take: 10,
     });
     return { data: sessions };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao listar sessões de conciliação." };
+  } catch (err: unknown) {
+    return { error: errorMessage(err, "Erro ao listar sessões de conciliação.") };
   }
 }

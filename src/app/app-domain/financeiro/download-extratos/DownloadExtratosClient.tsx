@@ -55,8 +55,9 @@ export default function DownloadExtratosClient({ initialHistory = [] }: { initia
     if (res.error) {
       setErrorMessage(res.error);
     } else if (res.data) {
-      setCurrentResult(res.data);
-      setHistory((prev) => [res.data, ...prev]);
+      const record = res.data;
+      setCurrentResult(record);
+      setHistory((prev) => [record, ...prev]);
     }
   }
 
