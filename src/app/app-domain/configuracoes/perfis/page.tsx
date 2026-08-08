@@ -9,6 +9,15 @@ export default async function PerfisPage() {
   // Fetch profiles ordered by name
   const allPerfis = await prisma.configuracaoPerfil.findMany({
     orderBy: { createdAt: "asc" },
+    include: {
+      usuarios: {
+        select: {
+          permissoesModulo: {
+            include: { modulo: { select: { codigo: true } } },
+          },
+        },
+      },
+    },
   });
 
   // Deduplicate by normalized profile name (e.g. "Administrador", "Contador", etc.)
@@ -42,7 +51,14 @@ export default async function PerfisPage() {
     }
   }
 
-  const perfisDeduplicados = Array.from(seenNames.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+  const perfisDeduplicados = Array.from(seenNames.values())
+    .sort((a, b) => a.nome.localeCompare(b.nome))
+    .map(({ usuarios, ...perfil }) => ({
+      ...perfil,
+      legacyModuleCodes: [...new Set(usuarios.flatMap((user) => user.permissoesModulo
+        .filter((permission) => permission.canView || permission.canEdit)
+        .map((permission) => permission.modulo.codigo.toUpperCase())))],
+    }));
 
   return <PerfisClient perfis={perfisDeduplicados} />;
 }

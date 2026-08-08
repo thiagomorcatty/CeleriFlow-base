@@ -15,6 +15,7 @@ type Perfil = {
   descricao: string | null;
   permissoes: string | null;
   ativo: boolean;
+  legacyModuleCodes: string[];
 };
 
 // Modules that can appear on the dashboard or have their own access boundary.
@@ -95,7 +96,7 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
     (p.descricao && p.descricao.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  function parsePermissionsJSON(jsonStr: string | null): { accessLevel: "operacional" | "total"; map: Record<string, ModulePermission> } {
+  function parsePermissionsJSON(jsonStr: string | null, legacyModuleCodes: string[] = []): { accessLevel: "operacional" | "total"; map: Record<string, ModulePermission> } {
     const map = Object.fromEntries(MODULES_LIST.map((moduleItem) => [moduleItem.code, emptyPermission()])) as Record<string, ModulePermission>;
     if (!jsonStr) return { accessLevel: "operacional", map };
     try {
@@ -103,6 +104,12 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
       if (parsed.ALL) {
         MODULES_LIST.forEach((m) => {
           map[m.code] = { showDashboardCard: true, blocked: false, view: true, create: true, update: true, delete: true };
+        });
+        return { accessLevel: "total", map };
+      }
+      if (parsed.acesso === "total" && !parsed.modules) {
+        MODULES_LIST.forEach((moduleItem) => {
+          map[moduleItem.code] = { showDashboardCard: true, blocked: false, view: true, create: true, update: true, delete: true };
         });
         return { accessLevel: "total", map };
       }
@@ -129,7 +136,9 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
       for (const moduleItem of MODULES_LIST) {
         const legacyActions = Array.isArray(parsed[moduleItem.code]) ? parsed[moduleItem.code] as string[] : [];
         const blocked = blockedModules.includes(moduleItem.code);
-        const allowed = allowedModules ? allowedModules.includes(moduleItem.code) : legacyActions.length > 0;
+        const allowed = allowedModules
+          ? allowedModules.includes(moduleItem.code)
+          : legacyActions.length > 0 || legacyModuleCodes.includes(moduleItem.code);
         map[moduleItem.code] = {
           showDashboardCard: !blocked && allowed,
           blocked,
@@ -164,7 +173,7 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
   }
 
   function openEdit(p: Perfil) {
-    const parsed = parsePermissionsJSON(p.permissoes);
+    const parsed = parsePermissionsJSON(p.permissoes, p.legacyModuleCodes);
     setFormData({ id: p.id, nome: p.nome, descricao: p.descricao ?? "", ativo: p.ativo, accessLevel: parsed.accessLevel, permissionsMap: parsed.map });
     setActiveTab("matriz");
     setIsModalOpen(true);
@@ -309,7 +318,7 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
                 </tr>
               ) : (
                 filtered.map((perfil) => {
-                  const permMap = parsePermissionsJSON(perfil.permissoes).map;
+                  const permMap = parsePermissionsJSON(perfil.permissoes, perfil.legacyModuleCodes).map;
                   const activeModulesCount = MODULES_LIST.filter((moduleItem) => {
                     const permission = permMap[moduleItem.code];
                     return permission && !permission.blocked && (permission.view || permission.create || permission.update || permission.delete);
