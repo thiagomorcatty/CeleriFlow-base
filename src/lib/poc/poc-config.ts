@@ -26,6 +26,11 @@ export function isPocVirtualBankAccount(accountNumber: string | null | undefined
   return Boolean(accountNumber && pocVirtualBank.accountNumbers.includes(accountNumber as (typeof pocVirtualBank.accountNumbers)[number]));
 }
 
+export function pocBankAccountExternalId(accountNumber: string) {
+  const index = pocVirtualBank.accountNumbers.indexOf(accountNumber as (typeof pocVirtualBank.accountNumbers)[number]);
+  return index >= 0 ? `BA-${String(index + 1).padStart(3, "0")}` : null;
+}
+
 export const defaultPocConfig: PocConfig = {
   enabled: true,
   environmentName: "Demonstração & POC",

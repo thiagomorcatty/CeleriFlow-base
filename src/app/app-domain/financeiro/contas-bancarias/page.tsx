@@ -7,7 +7,11 @@ export default async function ContasBancariasPage() {
   const context = await getTenantContextForModule("FINANCEIRO");
   const { prisma } = context;
   const accounts = await prisma.bankAccount.findMany({
-    where: isSystemAdministrator(context.user) ? {} : { budgetUnitId: { in: context.user.allowedBudgetUnitIds } },
+    where: {
+      bankName: "001 - Banco Virtual Robonuvem",
+      isActive: true,
+      ...(isSystemAdministrator(context.user) ? {} : { budgetUnitId: { in: context.user.allowedBudgetUnitIds } }),
+    },
     include: {
       resourceSource: true,
       budgetUnit: true,

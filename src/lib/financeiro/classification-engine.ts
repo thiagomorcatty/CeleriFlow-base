@@ -238,7 +238,7 @@ export async function sendMovementToMunicipalSystem(
         accountNumber: item.contaNumero,
         isActive: true,
       },
-      select: { id: true, bankName: true, agency: true, accountNumber: true, accountType: true, budgetUnitId: true, resourceSourceId: true, accountingPlanId: true },
+      select: { id: true, bankName: true, agency: true, accountNumber: true, accountType: true, budgetUnitId: true, resourceSourceId: true, accountingPlanId: true, linkedInvestmentAccountId: true },
     });
     if (!sourceAccount) throw new Error("A conta bancária do extrato não está cadastrada ou ativa na tesouraria.");
     const sourceIsChecking = sourceAccount.accountType === "Movimento";
@@ -247,17 +247,9 @@ export async function sendMovementToMunicipalSystem(
       throw new Error("A conta do extrato não é compatível com a natureza da aplicação ou resgate.");
     }
 
-    const destinationAccount = await tx.bankAccount.findFirst({
-      where: {
-        bankName: item.banco,
-        agency: item.agencia,
-        accountType: expectedSourceIsChecking ? "Aplicação" : "Movimento",
-        isActive: true,
-        ...(sourceAccount.budgetUnitId ? { budgetUnitId: sourceAccount.budgetUnitId } : {}),
-        ...(sourceAccount.resourceSourceId ? { resourceSourceId: sourceAccount.resourceSourceId } : {}),
-      },
-      select: { id: true, accountingPlanId: true },
-    });
+    const destinationAccount = expectedSourceIsChecking
+      ? await tx.bankAccount.findUnique({ where: { id: sourceAccount.linkedInvestmentAccountId ?? "__sem-vinculo__" }, select: { id: true, accountingPlanId: true, isActive: true } })
+      : await tx.bankAccount.findFirst({ where: { linkedInvestmentAccountId: sourceAccount.id, isActive: true }, select: { id: true, accountingPlanId: true } });
     if (!destinationAccount) throw new Error("A conta de contrapartida da aplicação não está cadastrada ou ativa na tesouraria.");
     if (!sourceAccount.accountingPlanId || !destinationAccount.accountingPlanId) {
       throw new Error("As contas da transferência devem possuir contas analíticas vinculadas para registrar o razão bancário.");

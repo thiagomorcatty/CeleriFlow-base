@@ -15,15 +15,40 @@ const agency = pocVirtualBank.agency;
 
 type SandboxAccount = {
   id: string;
+  externalId: string;
   accountNumber: string;
   accountType: string;
   balance: string;
+  purpose: string;
+  sourceCode?: string;
+  planCode: string;
 };
 
 const sandboxAccounts: SandboxAccount[] = [
-  { id: "poc-robonuvem-checking-10001", accountNumber: "10001-0", accountType: "Movimento", balance: "-877510.00" },
-  { id: "poc-robonuvem-revenue-20001", accountNumber: "20001-1", accountType: "Transferências", balance: "2021791.00" },
-  { id: "poc-robonuvem-investment-90001", accountNumber: "90001-4", accountType: "Aplicação", balance: "557800.00" },
+  { id: "poc-robonuvem-checking-10001", externalId: "BA-001", accountNumber: "10001-0", accountType: "Movimento", balance: "3037984.77", purpose: "Recursos livres, pagamentos e dívida", sourceCode: "15000000", planCode: "1.1.1.1.1.00.01" },
+  { id: "poc-robonuvem-revenue-20001", externalId: "BA-002", accountNumber: "20001-1", accountType: "Arrecadação", balance: "52231.76", purpose: "Tributária e receitas constitucionais", sourceCode: "15000000", planCode: "1.1.1.1.1.00.02" },
+  { id: "poc-sji-ba-003", externalId: "BA-003", accountNumber: "10003-3", accountType: "Movimento", balance: "237154.81", purpose: "Folha de pagamento", sourceCode: "15000000", planCode: "1.1.1.1.1.00.03" },
+  { id: "poc-sji-ba-004", externalId: "BA-004", accountNumber: "10004-4", accountType: "Movimento", balance: "374980.42", purpose: "FUNDEB 70%", sourceCode: "15400000", planCode: "1.1.1.1.1.00.04" },
+  { id: "poc-sji-ba-005", externalId: "BA-005", accountNumber: "10005-5", accountType: "Movimento", balance: "131257.44", purpose: "FUNDEB outros", sourceCode: "15400000", planCode: "1.1.1.1.1.00.05" },
+  { id: "poc-sji-ba-006", externalId: "BA-006", accountNumber: "10006-6", accountType: "Movimento", balance: "200000.00", purpose: "Salário-Educação", sourceCode: "15500000", planCode: "1.1.1.1.1.00.06" },
+  { id: "poc-sji-ba-007", externalId: "BA-007", accountNumber: "10007-7", accountType: "Movimento", balance: "234760.00", purpose: "PNAE", sourceCode: "15520000", planCode: "1.1.1.1.1.00.07" },
+  { id: "poc-sji-ba-008", externalId: "BA-008", accountNumber: "10008-8", accountType: "Movimento", balance: "200000.00", purpose: "PNATE", sourceCode: "15530000", planCode: "1.1.1.1.1.00.08" },
+  { id: "poc-sji-ba-009", externalId: "BA-009", accountNumber: "10009-9", accountType: "Movimento", balance: "291320.00", purpose: "Saúde - Atenção Primária", sourceCode: "16000000", planCode: "1.1.1.1.1.00.09" },
+  { id: "poc-sji-ba-010", externalId: "BA-010", accountNumber: "10010-0", accountType: "Movimento", balance: "200000.00", purpose: "Saúde - Média/Alta Complexidade", sourceCode: "16000000", planCode: "1.1.1.1.1.00.10" },
+  { id: "poc-sji-ba-011", externalId: "BA-011", accountNumber: "10011-1", accountType: "Movimento", balance: "200000.00", purpose: "Saúde - Vigilância", sourceCode: "16000000", planCode: "1.1.1.1.1.00.11" },
+  { id: "poc-sji-ba-012", externalId: "BA-012", accountNumber: "10012-2", accountType: "Movimento", balance: "258750.00", purpose: "Assistência Social - FNAS", sourceCode: "16600000", planCode: "1.1.1.1.1.00.12" },
+  { id: "poc-sji-ba-013", externalId: "BA-013", accountNumber: "10013-3", accountType: "Movimento", balance: "231900.00", purpose: "Assistência Social - Estadual", sourceCode: "16610000", planCode: "1.1.1.1.1.00.13" },
+  { id: "poc-sji-ba-014", externalId: "BA-014", accountNumber: "10014-4", accountType: "Movimento", balance: "262480.33", purpose: "COSIP", sourceCode: "17510000", planCode: "1.1.1.1.1.00.14" },
+  { id: "poc-sji-ba-015", externalId: "BA-015", accountNumber: "10015-5", accountType: "Movimento", balance: "541050.00", purpose: "Convênio Obras 01", sourceCode: "REC-CONV-OBR-001", planCode: "1.1.1.1.1.00.15" },
+  { id: "poc-sji-ba-016", externalId: "BA-016", accountNumber: "10016-6", accountType: "Movimento", balance: "200000.00", purpose: "Convênio Obras 02", sourceCode: "REC-CONV-OBR-002", planCode: "1.1.1.1.1.00.16" },
+  { id: "poc-sji-ba-017", externalId: "BA-017", accountNumber: "10017-7", accountType: "Movimento", balance: "200000.00", purpose: "Convênio Estadual", sourceCode: "REC-CONV-EST-001", planCode: "1.1.1.1.1.00.17" },
+  { id: "poc-sji-ba-018", externalId: "BA-018", accountNumber: "10018-8", accountType: "Movimento", balance: "222500.00", purpose: "Cultura", sourceCode: "REC-CUL-001", planCode: "1.1.1.1.1.00.18" },
+  { id: "poc-sji-ba-019", externalId: "BA-019", accountNumber: "10019-9", accountType: "Movimento", balance: "218400.00", purpose: "Defesa Civil", sourceCode: "REC-DEF-001", planCode: "1.1.1.1.1.00.19" },
+  { id: "poc-sji-ba-020", externalId: "BA-020", accountNumber: "10020-0", accountType: "Movimento", balance: "283174.22", purpose: "Retenções e consignações", planCode: "2.1.8.8.1.00.20" },
+  { id: "poc-robonuvem-investment-90001", externalId: "BA-021", accountNumber: "90001-4", accountType: "Aplicação", balance: "1028071.37", purpose: "Aplicações de recursos livres", sourceCode: "15000000", planCode: "1.1.1.2.1.00.01" },
+  { id: "poc-sji-ba-022", externalId: "BA-022", accountNumber: "90002-5", accountType: "Aplicação", balance: "375000.00", purpose: "Aplicação FUNDEB", sourceCode: "15400000", planCode: "1.1.1.2.1.00.02" },
+  { id: "poc-sji-ba-023", externalId: "BA-023", accountNumber: "90003-6", accountType: "Aplicação", balance: "342000.00", purpose: "Aplicação Saúde", sourceCode: "16000000", planCode: "1.1.1.2.1.00.03" },
+  { id: "poc-sji-ba-024", externalId: "BA-024", accountNumber: "90004-7", accountType: "Aplicação", balance: "430000.00", purpose: "Aplicação Convênios", planCode: "1.1.1.2.1.00.04" },
 ];
 
 async function main() {
@@ -50,12 +75,18 @@ async function main() {
     throw new Error("O Banco Virtual Robonuvem não retornou movimentações para a validação da POC.");
   }
 
-  const [budgetUnit, resourceSource, year2025, year2026] = await Promise.all([
-    prisma.budgetUnit.findFirst({ orderBy: { code: "asc" }, select: { id: true } }),
-    prisma.resourceSource.findFirst({ orderBy: { code: "asc" }, select: { id: true } }),
+  const [budgetUnit, year2025, year2026] = await Promise.all([
+    prisma.budgetUnit.findFirst({ where: { code: "0101" }, select: { id: true } }),
     ensureFinancialYear(2025),
     ensureFinancialYear(2026),
   ]);
+  if (!budgetUnit) throw new Error("A UG 0101 é obrigatória para provisionar as contas da POC.");
+  const sourceCodes = [...new Set(sandboxAccounts.flatMap((account) => account.sourceCode ? [account.sourceCode] : []))];
+  for (const code of sourceCodes) {
+    await prisma.resourceSource.upsert({ where: { code }, create: { code, name: `Fonte POC ${code}` }, update: {} });
+  }
+  const sources = await prisma.resourceSource.findMany({ where: { code: { in: sourceCodes } }, select: { id: true, code: true } });
+  const sourceIdByCode = new Map(sources.map((source) => [source.code, source.id]));
 
   const [checkingAccountingPlan, revenueAccountingPlan, investmentAccountingPlan, openingEquityPlan] = await Promise.all([
     prisma.accountingPlan.upsert({ where: { code: "1.1.1.1.1.00.01" }, create: { code: "1.1.1.1.1.00.01", name: "Banco Virtual Robonuvem - Conta Movimento 10001-0", type: "Analítica" }, update: {} }),
@@ -63,11 +94,11 @@ async function main() {
     prisma.accountingPlan.upsert({ where: { code: "1.1.1.2.1.00.01" }, create: { code: "1.1.1.2.1.00.01", name: "Banco Virtual Robonuvem - Aplicações 90001-4", type: "Analítica" }, update: {} }),
     prisma.accountingPlan.upsert({ where: { code: "2.3.7.1.1.00.00" }, create: { code: "2.3.7.1.1.00.00", name: "Patrimônio Social e Capital Social", type: "Analítica" }, update: {} }),
   ]);
-  const accountingPlanByAccount = new Map([
-    ["10001-0", checkingAccountingPlan.id],
-    ["20001-1", revenueAccountingPlan.id],
-    ["90001-4", investmentAccountingPlan.id],
-  ]);
+  for (const definition of sandboxAccounts) {
+    await prisma.accountingPlan.upsert({ where: { code: definition.planCode }, create: { code: definition.planCode, name: `Banco Virtual Robonuvem - ${definition.externalId} ${definition.purpose}`, type: "Analítica" }, update: {} });
+  }
+  const plans = await prisma.accountingPlan.findMany({ where: { code: { in: sandboxAccounts.map((account) => account.planCode) } }, select: { id: true, code: true } });
+  const accountingPlanIdByCode = new Map(plans.map((plan) => [plan.code, plan.id]));
   const accounts = new Map<string, { id: string }>();
   // Historical sandbox accounts remain preserved for referential integrity, but are not usable or displayed in this POC.
   await prisma.bankAccount.updateMany({
@@ -82,9 +113,11 @@ async function main() {
       accountType: definition.accountType,
       currentBalance: Number(definition.balance),
       currentBalanceDecimal: new Prisma.Decimal(definition.balance),
-      budgetUnitId: budgetUnit?.id,
-      resourceSourceId: resourceSource?.id,
-      accountingPlanId: accountingPlanByAccount.get(definition.accountNumber),
+       budgetUnitId: budgetUnit.id,
+       resourceSourceId: definition.sourceCode ? sourceIdByCode.get(definition.sourceCode) : null,
+       accountingPlanId: accountingPlanIdByCode.get(definition.planCode),
+       externalId: definition.externalId,
+       purpose: definition.purpose,
       isActive: true,
     };
     const account = await prisma.bankAccount.upsert({
@@ -94,6 +127,23 @@ async function main() {
       select: { id: true },
     });
     accounts.set(definition.accountNumber, account);
+  }
+  const investmentLinks: Record<string, string> = {
+    "10001-0": "90001-4",
+    "10004-4": "90002-5",
+    "10005-5": "90002-5",
+    "10009-9": "90003-6",
+    "10010-0": "90003-6",
+    "10011-1": "90003-6",
+    "10015-5": "90004-7",
+    "10016-6": "90004-7",
+    "10017-7": "90004-7",
+  };
+  for (const [currentAccount, investmentAccount] of Object.entries(investmentLinks)) {
+    await prisma.bankAccount.update({
+      where: { id: accounts.get(currentAccount)?.id },
+      data: { linkedInvestmentAccountId: accounts.get(investmentAccount)?.id },
+    });
   }
 
   const investmentEvents = [
@@ -232,7 +282,7 @@ async function main() {
     throw new Error(`${activeForeignAccounts} conta(s) de outro banco ainda estão ativas na POC.`);
   }
 
-  console.log("Banco Virtual Robonuvem provisionado: 3 contas, saldo inicial de conciliação e conexão BANCO_API em SANDBOX.");
+  console.log("Banco Virtual Robonuvem provisionado: 24 contas BA, vínculos de aplicação e conexão BANCO_API em SANDBOX.");
 }
 
 main()
