@@ -107,6 +107,8 @@ function dateValue(record: JsonRecord, ...keys: string[]) {
 
 export class BankIntegrationClient {
   private baseUrl?: string;
+  private accessToken?: string;
+  private accessTokenExpiresAt = 0;
 
   constructor() {
     this.baseUrl = (process.env.BANK_SANDBOX_BASE_URL || pocVirtualBank.baseUrl).replace(/\/+$/, "");
@@ -341,6 +343,7 @@ export class BankIntegrationClient {
   }
 
   private async getAccessToken() {
+    if (this.accessToken && Date.now() < this.accessTokenExpiresAt) return this.accessToken;
     const clientId = process.env.BANK_SANDBOX_CLIENT_ID;
     const clientSecret = process.env.BANK_SANDBOX_CLIENT_SECRET;
     if (!clientId || !clientSecret) throw new BankIntegrationError("As credenciais do banco simulado não estão configuradas.");
@@ -352,6 +355,9 @@ export class BankIntegrationClient {
     const payload: unknown = await response.json();
     const token = asRecord(payload) && stringValue(asRecord(payload)!, "access_token");
     if (!token) throw new BankIntegrationError("O banco simulado não retornou um token de acesso válido.");
+    const expiresIn = Number(stringValue(asRecord(payload)!, "expires_in"));
+    this.accessToken = token;
+    this.accessTokenExpiresAt = Date.now() + (Number.isFinite(expiresIn) && expiresIn > 0 ? expiresIn * 1000 : 10 * 60 * 1000) - 5_000;
     return token;
   }
 
