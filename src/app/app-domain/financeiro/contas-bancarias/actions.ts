@@ -48,6 +48,7 @@ export async function createBankAccount(data: {
   currentBalance: number;
   resourceSourceId: string;
   budgetUnitId: string;
+  accountingPlanId: string;
   isActive: boolean;
 }) {
   const context = await getTenantPrisma();
@@ -69,6 +70,7 @@ export async function updateBankAccount(id: string, data: {
   currentBalance?: number;
   resourceSourceId?: string;
   budgetUnitId?: string;
+  accountingPlanId?: string;
   isActive?: boolean;
 }) {
   const context = await getTenantPrisma();

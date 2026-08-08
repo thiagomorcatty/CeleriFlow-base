@@ -57,6 +57,17 @@ async function main() {
     ensureFinancialYear(2026),
   ]);
 
+  const [checkingAccountingPlan, revenueAccountingPlan, investmentAccountingPlan, openingEquityPlan] = await Promise.all([
+    prisma.accountingPlan.upsert({ where: { code: "1.1.1.1.1.00.01" }, create: { code: "1.1.1.1.1.00.01", name: "Banco Virtual Robonuvem - Conta Movimento 10001-0", type: "Analítica" }, update: {} }),
+    prisma.accountingPlan.upsert({ where: { code: "1.1.1.1.1.00.02" }, create: { code: "1.1.1.1.1.00.02", name: "Banco Virtual Robonuvem - Conta Receitas 20001-1", type: "Analítica" }, update: {} }),
+    prisma.accountingPlan.upsert({ where: { code: "1.1.1.2.1.00.01" }, create: { code: "1.1.1.2.1.00.01", name: "Banco Virtual Robonuvem - Aplicações 90001-4", type: "Analítica" }, update: {} }),
+    prisma.accountingPlan.upsert({ where: { code: "2.3.7.1.1.00.00" }, create: { code: "2.3.7.1.1.00.00", name: "Patrimônio Social e Capital Social", type: "Analítica" }, update: {} }),
+  ]);
+  const accountingPlanByAccount = new Map([
+    ["10001-0", checkingAccountingPlan.id],
+    ["20001-1", revenueAccountingPlan.id],
+    ["90001-4", investmentAccountingPlan.id],
+  ]);
   const accounts = new Map<string, { id: string }>();
   // Historical sandbox accounts remain preserved for referential integrity, but are not usable or displayed in this POC.
   await prisma.bankAccount.updateMany({
@@ -73,6 +84,7 @@ async function main() {
       currentBalanceDecimal: new Prisma.Decimal(definition.balance),
       budgetUnitId: budgetUnit?.id,
       resourceSourceId: resourceSource?.id,
+      accountingPlanId: accountingPlanByAccount.get(definition.accountNumber),
       isActive: true,
     };
     const account = await prisma.bankAccount.upsert({
@@ -84,21 +96,10 @@ async function main() {
     accounts.set(definition.accountNumber, account);
   }
 
-  const [cashAccount, investmentAccount] = await Promise.all([
-    prisma.accountingPlan.upsert({
-      where: { code: "1.1.1.1.1.00.00" },
-      create: { code: "1.1.1.1.1.00.00", name: "Caixa e Equivalentes de Caixa em Moeda Nacional", type: "Analítica" },
-      update: {},
-    }),
-    prisma.accountingPlan.upsert({
-      where: { code: "1.1.1.2.1.00.00" },
-      create: { code: "1.1.1.2.1.00.00", name: "Aplicações Financeiras de Curto Prazo", type: "Analítica" },
-      update: {},
-    }),
-  ]);
   const investmentEvents = [
-    ["APLICACAO_FINANCEIRA", "Aplicação financeira", investmentAccount.id, cashAccount.id],
-    ["RESGATE_APLICACAO_FINANCEIRA", "Resgate de aplicação financeira", cashAccount.id, investmentAccount.id],
+    ["APLICACAO_FINANCEIRA", "Aplicação financeira", investmentAccountingPlan.id, checkingAccountingPlan.id],
+    ["RESGATE_APLICACAO_FINANCEIRA", "Resgate de aplicação financeira", checkingAccountingPlan.id, investmentAccountingPlan.id],
+    ["RECEITA_ARRECADADA", "Receita arrecadada", revenueAccountingPlan.id, openingEquityPlan.id],
   ] as const;
   for (const [code, name, debitAccountId, creditAccountId] of investmentEvents) {
     const event = await prisma.accountingEventCatalog.upsert({
@@ -195,6 +196,34 @@ async function main() {
       },
     });
   }
+
+  const openingAuthor = await prisma.usuario.findFirst({ where: { ativo: true, employeeId: { not: null } }, select: { id: true, employeeId: true } });
+  const revenueAccountId = accounts.get("20001-1")?.id;
+  if (!openingAuthor?.employeeId || !revenueAccountId) throw new Error("A POC exige um usuário ativo vinculado a servidor e a conta de receitas para registrar o saldo inicial contábil.");
+  await prisma.accountingTransaction.upsert({
+    where: { idempotencyKey: "poc-robonuvem-opening-20001-2025:ACCOUNTING" },
+    create: {
+      financialYearId: year2025.id,
+      date: new Date("2025-07-31T12:00:00.000Z"),
+      history: "Saldo inicial do razão bancário POC - Conta 20001-1",
+      status: "POSTADO",
+      sourceModule: "POC_BANCO_VIRTUAL",
+      sourceType: "OPENING_BALANCE",
+      sourceId: revenueAccountId,
+      eventType: "OPENING_BALANCE",
+      idempotencyKey: "poc-robonuvem-opening-20001-2025:ACCOUNTING",
+      authorUsuarioId: openingAuthor.id,
+      authorEmployeeId: openingAuthor.employeeId,
+      postedAt: new Date(),
+      entries: {
+        create: [
+          { date: new Date("2025-07-31T12:00:00.000Z"), value: 150000, valueDecimal: new Prisma.Decimal("150000.00"), type: "Débito", history: "Saldo inicial do razão bancário POC", accountId: revenueAccountingPlan.id, authorId: openingAuthor.employeeId },
+          { date: new Date("2025-07-31T12:00:00.000Z"), value: 150000, valueDecimal: new Prisma.Decimal("150000.00"), type: "Crédito", history: "Contrapartida do saldo inicial do razão bancário POC", accountId: openingEquityPlan.id, authorId: openingAuthor.employeeId },
+        ],
+      },
+    },
+    update: {},
+  });
 
   const activeForeignAccounts = await prisma.bankAccount.count({
     where: { isActive: true, bankName: { not: bankName } },

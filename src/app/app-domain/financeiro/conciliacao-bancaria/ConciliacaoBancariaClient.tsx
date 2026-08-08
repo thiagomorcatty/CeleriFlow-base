@@ -105,7 +105,7 @@ export default function ConciliacaoBancariaClient({ initialSessions = [] }: { in
             Motor Avançado de Conciliação Bancária
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Abertura de conciliação de tesouraria, leitura do extrato, cálculo de saldos (Inicial, Entradas, Saídas, Final) e correspondência segura entre extrato e movimentos internos.
+            Abertura de conciliação bancária, leitura do extrato, cálculo de saldos e confronto com o razão bancário analítico.
           </p>
         </div>
       </div>
@@ -182,7 +182,7 @@ export default function ConciliacaoBancariaClient({ initialSessions = [] }: { in
               disabled={loading}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow transition-all"
             >
-              Abrir Conciliação &amp; Carregar Tesouraria
+              Abrir Conciliação &amp; Carregar Razão Bancário
             </button>
           </form>
         </div>
@@ -191,7 +191,7 @@ export default function ConciliacaoBancariaClient({ initialSessions = [] }: { in
         <div className="lg:col-span-8 space-y-4">
           {!activeSession ? (
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center text-slate-500 italic">
-              Preencha os dados e clique em &quot;Abrir Conciliação &amp; Carregar Tesouraria&quot; para iniciar.
+              Preencha os dados e clique em &quot;Abrir Conciliação &amp; Carregar Razão Bancário&quot; para iniciar.
             </div>
           ) : (
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
@@ -240,7 +240,7 @@ export default function ConciliacaoBancariaClient({ initialSessions = [] }: { in
                   </span>
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-950/40 p-3 rounded-lg border border-blue-300">
-                  <span className="text-blue-800 dark:text-blue-200 block font-semibold">Saldo da Tesouraria</span>
+                  <span className="text-blue-800 dark:text-blue-200 block font-semibold">Saldo do Razão Bancário</span>
                   <span className="font-extrabold text-blue-600 dark:text-blue-400 text-sm">
                     R$ {Number(activeSession.saldoRazaoDecimal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </span>

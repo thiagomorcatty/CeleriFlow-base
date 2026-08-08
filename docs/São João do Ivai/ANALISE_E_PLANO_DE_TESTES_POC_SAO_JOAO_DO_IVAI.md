@@ -39,7 +39,7 @@ Recomendação interna: não liberar a apresentação com ressalva em qualquer u
 | Aplicações e resgates | A transmissão deriva os dados do extrato no servidor, cria transferência pareada, movimento de tesouraria, lançamento contábil equilibrado, recibo, vínculo e auditoria. | PRONTO PARA TESTE | Validar as duas contas, as partidas dobradas e a idempotência. |
 | Rendimentos | Calcula bruto, IRRF, IOF, correção e líquido; registra receita, tesouraria, evento contábil, vínculo e auditoria. | PRONTO PARA TESTE | Validar cálculo, saldo, idempotência e reflexo em Diário/Razão. |
 | Receitas constitucionais | Regras e fila de exceções processam receita, tesouraria, contabilidade e auditoria. | PRONTO PARA TESTE | Validar FPM, FUNDEB, IPVA, ICMS e item não reconhecido. |
-| Conciliação | Carrega extrato e movimentos de tesouraria da mesma conta, exige sentido compatível e só confirma sem diferença e sem pendências. | PRONTO COM RESSALVA | Demonstrar como conciliação de tesouraria; o razão contábil analítico por conta exige evolução do modelo. |
+| Conciliação | Carrega extrato e movimentos da mesma conta, calcula o razão bancário pelos débitos e créditos da conta analítica vinculada e só confirma sem diferença e sem pendências. | PRONTO PARA TESTE | Validar vínculo exclusivo da conta, memória de cálculo e recálculo antes da confirmação. |
 | Relatórios e razão | Diário, Razão e Balancete consultam somente lançamentos contábeis postados. | PRONTO COM RESSALVA | Verificar separadamente receitas/rendimentos e aplicações/resgates. |
 | Controle de caixa | Saldo operacional é derivado de movimentos de tesouraria confirmados. | RISCO ALTO | Recalcular por conta e confrontar com o extrato; conferir saldo de abertura. |
 
@@ -52,7 +52,7 @@ Recomendação interna: não liberar a apresentação com ressalva em qualquer u
 | FIN-01 | Aplicação e resgate agora criam `TreasuryTransfer` com dois movimentos opostos e `AccountingTransaction` com partidas dobradas. | A operação deve aparecer no Diário, Razão e Balancete. | `classification-engine.ts` e `src/lib/financeiro/index.ts` | Executar T-M02-05 e T-M02-06; falha em qualquer partida é bloqueio. |
 | FIN-02 | A transmissão aceita apenas o ID do item; valor, categoria, data, histórico, conta e sinal são derivados no servidor. | Impede gravação baseada em valor ou categoria manipulados no navegador. | `resgates-actions.ts` e `classification-engine.ts` | Executar T-M02-07; campos forjados não podem alterar a persistência. |
 | FIN-03 | Aplicação transfere de corrente para aplicação; resgate transfere de aplicação para corrente. | Os saldos das duas contas permanecem coerentes. | `classification-engine.ts` e `createTreasuryTransferInTransaction` | Executar T-M02-05 e T-M02-08. |
-| FIN-04 | A tela foi renomeada para tesouraria. O modelo ainda não relaciona cada conta bancária a uma conta analítica do Razão. | Não alegar conciliação de Razão Contábil por conta. | `conciliacao-bancaria/actions.ts` e `relatorios-legais.ts` | Executar T-M05-02 e registrar a origem do saldo. |
+| FIN-04 | Cada conta bancária possui conta analítica exclusiva e a conciliação calcula o razão por `AccountingEntry` postado. | O saldo do razão bancário é independente dos movimentos de tesouraria. | `getBankAccountLedgerBalance`, `conciliacao-bancaria/actions.ts` e `reconciliation-engine.ts` | Executar T-M05-02 e T-M05-04 com memória de cálculo. |
 
 ### P1 - riscos relevantes para controle interno e evidência
 
@@ -182,10 +182,10 @@ Critério de aprovação: os quatro repasses são classificados e registrados co
 
 | ID | Ação e botão/interação | Resultado esperado | Evidência |
 |---|---|---|---|
-| T-M05-01 | Selecionar Banco Virtual, agência 0001, conta 20001-1, período 08/2025 e acionar `Abrir Conciliação & Carregar Tesouraria`. | Sessão contém saldo inicial, entradas, saídas, saldo final, população bancária e população interna. | Captura e ID da sessão. |
-| T-M05-02 | Identificar tecnicamente a origem do valor mostrado como saldo da tesouraria. | Registrar que a implementação atual usa movimentos de tesouraria da conta selecionada. Comparar separadamente com Razão Contábil exportado. | Consulta e relatório de razão. |
+| T-M05-01 | Selecionar Banco Virtual, agência 0001, conta 20001-1, período 08/2025 e acionar `Abrir Conciliação & Carregar Razão Bancário`. | Sessão contém saldo inicial, entradas, saídas, saldo final, população bancária e população interna. | Captura e ID da sessão. |
+| T-M05-02 | Identificar a conta analítica exclusiva vinculada à conta 20001-1 e exportar o Razão. | O saldo exibido é a soma de débitos menos créditos de lançamentos postados dessa conta, até o fim do período. | Vínculo da conta, relatório e memória de cálculo. |
 | T-M05-03 | Executar `Correspondência Automática`. | Cada FPM, FUNDEB, IPVA e ICMS é conciliado apenas com o movimento interno correto. | Lista de correspondências. |
-| T-M05-04 | Verificar fórmula de saldo por conta. | Saldo final do extrato = saldo inicial + créditos - débitos. Diferença = saldo da tesouraria - saldo bancário. | Memória de cálculo assinada. |
+| T-M05-04 | Verificar fórmula de saldo por conta. | Saldo final do extrato = saldo inicial + créditos - débitos. Razão bancário = débitos contábeis - créditos contábeis. Diferença = razão bancário - saldo bancário. | Memória de cálculo assinada. |
 | T-M05-05 | Confirmar sessão somente sem pendência e diferença igual a zero. | Recibo, hash e status `CONCILIADA`; sessão não pode confirmar antes disso. | Recibo e status. |
 | T-M05-06 | Criar ou escolher crédito e saída de mesmo valor/data. | Não pode ser correspondência válida por ter direção oposta. Se ocorrer match automático, registrar FIN-05. | Resultado do motor. |
 | T-M05-07 | Usar número de conta igual em banco/agência diferente em massa técnica isolada. | Itens de outra conta não devem entrar na sessão. | População de extrato. |
@@ -193,7 +193,7 @@ Critério de aprovação: os quatro repasses são classificados e registrados co
 | T-M05-09 | Inserir item somente no banco e item somente na tesouraria. | Exibir ambos como divergência e bloquear confirmação. | Tela e tentativa de confirmação. |
 | T-M05-10 | Gerar `Relatório de Conciliações Bancárias`. | Conta, período, saldos, diferença e status correspondem à sessão confirmada. | CSV/PDF arquivado. |
 
-Critério de aprovação: a sessão só é confirmada quando todos os itens exigidos estiverem corretos e a diferença for zero. Na evidência final, usar a expressão `conciliação de tesouraria` até que a origem seja efetivamente o Razão Contábil.
+Critério de aprovação: a sessão só é confirmada quando todos os itens exigidos estiverem corretos e a diferença for zero. A evidência deve exibir a conta analítica vinculada e a memória de cálculo do razão bancário.
 
 ## 9. Testes transversais de caixa, razão, relatórios e segurança
 
@@ -247,7 +247,7 @@ Evidências mínimas por fluxo: captura da tela antes e depois da ação, arquiv
 3. Executar MOD-01 completo, incluindo repetição e uma falha controlada.
 4. Executar MOD-04, pois gera a massa mais segura para razão e conciliação em agosto/2025.
 5. Executar MOD-03 e comprovar seu reflexo contábil.
-6. Executar MOD-05 com a massa das receitas, distinguindo tesouraria de razão contábil.
+6. Executar MOD-05 com a massa das receitas e conferir o razão bancário contra a conta analítica vinculada.
 7. Executar MOD-02 por último e tratar T-M02-05 a T-M02-07 como gate técnico antes de qualquer afirmação contábil.
 8. Exportar relatórios, revisar todos os recibos e realizar reset controlado do simulador.
 
@@ -265,7 +265,7 @@ Evidências mínimas por fluxo: captura da tela antes e depois da ação, arquiv
 
 ### Correções recomendadas antes da apresentação final
 
-1. Criar uma relação analítica obrigatória entre conta bancária e conta do Razão Contábil antes de alegar conciliação contábil por conta.
+1. Aplicar a migração e executar o provisionamento POC para vincular as contas analíticas e criar o saldo inicial contábil.
 2. Alinhar saldo cadastral, saldo de abertura e saldo calculado exclusivamente por movimentos auditáveis.
 3. Aplicar verificação de unidade gestora em download arquivado e qualquer ação baseada em ID.
 4. Criar testes automatizados de contrato do Banco Virtual, download OFX, idempotência, aplicações/resgates, rendimento, receitas, conciliação e autorização entre UGs.

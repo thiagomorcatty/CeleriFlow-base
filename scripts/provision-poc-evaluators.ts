@@ -21,8 +21,22 @@ async function main() {
   })).map((module) => module.codigo);
 
   for (const evaluator of evaluatorProfiles) {
-    const user = await prisma.usuario.findUnique({ where: { email: evaluator.email }, select: { id: true } });
+    const user = await prisma.usuario.findUnique({ where: { email: evaluator.email }, select: { id: true, employeeId: true } });
     if (!user) throw new Error(`Usuário avaliador ${evaluator.email} não foi encontrado.`);
+    let employeeId = user.employeeId;
+    if (!employeeId) {
+      const registration = `POC-SJI-${evaluator.id.replace("perfil-poc-", "").toUpperCase()}`;
+      const employee = await prisma.employee.findFirst({ where: { registration }, select: { id: true } })
+        ?? await prisma.employee.create({
+          data: {
+            name: evaluator.name,
+            registration,
+            email: evaluator.email,
+            isActive: true,
+          },
+        });
+      employeeId = employee.id;
+    }
 
     const profile = await prisma.configuracaoPerfil.upsert({
       where: { id: evaluator.id },
@@ -42,7 +56,7 @@ async function main() {
     });
 
     await prisma.$transaction([
-      prisma.usuario.update({ where: { id: user.id }, data: { perfilId: profile.id, ativo: true } }),
+      prisma.usuario.update({ where: { id: user.id }, data: { perfilId: profile.id, employeeId, ativo: true } }),
       prisma.usuarioModulo.deleteMany({ where: { usuarioId: user.id } }),
       prisma.usuarioModulo.create({ data: { usuarioId: user.id, moduloId: financeModule.id, canView: true, canEdit: true } }),
       prisma.usuarioUnidadeGestora.deleteMany({ where: { usuarioId: user.id } }),

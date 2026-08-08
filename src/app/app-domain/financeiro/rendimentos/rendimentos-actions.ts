@@ -43,6 +43,7 @@ export async function transmitYieldAction(input: {
       ...input,
       data: new Date(input.data),
       usuarioId: context.user.id,
+      employeeId: context.user.employeeId,
     });
 
     revalidatePath("/financeiro/rendimentos");

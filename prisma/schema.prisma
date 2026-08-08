@@ -2594,6 +2594,8 @@ model BankAccount {
   resourceSource        ResourceSource? @relation(fields: [resourceSourceId], references: [id])
   budgetUnitId          String?
   budgetUnit            BudgetUnit?     @relation(fields: [budgetUnitId], references: [id])
+  accountingPlanId      String?         @unique
+  accountingPlan        AccountingPlan? @relation("BankAccountAccountingPlan", fields: [accountingPlanId], references: [id])
   isActive              Boolean         @default(true)
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
@@ -2799,6 +2801,7 @@ model AccountingPlan {
   updatedAt DateTime @updatedAt
 
   entries            AccountingEntry[]
+  bankAccount        BankAccount?          @relation("BankAccountAccountingPlan")
   debitPostingRules  AccountingPostingRule[] @relation("PostingRuleDebitAccount")
   creditPostingRules AccountingPostingRule[] @relation("PostingRuleCreditAccount")
 }

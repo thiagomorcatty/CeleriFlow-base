@@ -29,6 +29,7 @@ type BankAccount = {
   currentBalance: number;
   resourceSourceId: string | null;
   budgetUnitId: string | null;
+  accountingPlanId: string | null;
   isActive: boolean;
   resourceSource?: { id: string; name: string } | null;
   budgetUnit?: { id: string; code: string; name: string } | null;
@@ -38,10 +39,12 @@ export default function ContasBancariasClient({
   accounts,
   resourceSources,
   budgetUnits,
+  accountingPlans,
 }: {
   accounts: BankAccount[];
   resourceSources: { id: string; name: string }[];
   budgetUnits: { id: string; code: string; name: string }[];
+  accountingPlans: { id: string; code: string; name: string }[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,6 +59,7 @@ export default function ContasBancariasClient({
     currentBalance: 0,
     resourceSourceId: "",
     budgetUnitId: "",
+    accountingPlanId: "",
     isActive: true
   });
 
@@ -75,6 +79,7 @@ export default function ContasBancariasClient({
       currentBalance: 0,
       resourceSourceId: "",
       budgetUnitId: "",
+      accountingPlanId: "",
       isActive: true
     });
     setIsModalOpen(true);
@@ -90,6 +95,7 @@ export default function ContasBancariasClient({
       currentBalance: 0,
       resourceSourceId: account.resourceSourceId || "",
       budgetUnitId: account.budgetUnitId || "",
+      accountingPlanId: account.accountingPlanId || "",
       isActive: account.isActive
     });
     setIsModalOpen(true);
@@ -264,6 +270,17 @@ export default function ContasBancariasClient({
                 <SelectContent>
                   {budgetUnits.map(unit => (
                     <SelectItem key={unit.id} value={unit.id}>{unit.code} - {unit.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="accountingPlanId">Conta Analítica do Razão Bancário</Label>
+              <Select value={formData.accountingPlanId} onValueChange={v => setFormData({...formData, accountingPlanId: v as string})}>
+                <SelectTrigger><SelectValue placeholder="Selecione a conta analítica" /></SelectTrigger>
+                <SelectContent>
+                  {accountingPlans.map(plan => (
+                    <SelectItem key={plan.id} value={plan.id}>{plan.code} - {plan.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

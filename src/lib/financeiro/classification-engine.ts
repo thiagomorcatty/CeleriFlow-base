@@ -238,7 +238,7 @@ export async function sendMovementToMunicipalSystem(
         accountNumber: item.contaNumero,
         isActive: true,
       },
-      select: { id: true, bankName: true, agency: true, accountNumber: true, accountType: true, budgetUnitId: true, resourceSourceId: true },
+      select: { id: true, bankName: true, agency: true, accountNumber: true, accountType: true, budgetUnitId: true, resourceSourceId: true, accountingPlanId: true },
     });
     if (!sourceAccount) throw new Error("A conta bancária do extrato não está cadastrada ou ativa na tesouraria.");
     const sourceIsChecking = sourceAccount.accountType === "Movimento";
@@ -256,9 +256,12 @@ export async function sendMovementToMunicipalSystem(
         ...(sourceAccount.budgetUnitId ? { budgetUnitId: sourceAccount.budgetUnitId } : {}),
         ...(sourceAccount.resourceSourceId ? { resourceSourceId: sourceAccount.resourceSourceId } : {}),
       },
-      select: { id: true },
+      select: { id: true, accountingPlanId: true },
     });
     if (!destinationAccount) throw new Error("A conta de contrapartida da aplicação não está cadastrada ou ativa na tesouraria.");
+    if (!sourceAccount.accountingPlanId || !destinationAccount.accountingPlanId) {
+      throw new Error("As contas da transferência devem possuir contas analíticas vinculadas para registrar o razão bancário.");
+    }
 
     const year = await tx.financialYear.findUnique({ where: { year: item.date.getUTCFullYear() }, select: { id: true } });
     if (!year) throw new Error("Não existe exercício financeiro aberto para a data do lançamento.");
@@ -287,6 +290,8 @@ export async function sendMovementToMunicipalSystem(
       sourceType: "BANK_STATEMENT_INVESTMENT_TRANSFER",
       sourceId: item.id,
       idempotencyKey: `${idempotencyKey}:ACCOUNTING`,
+      debitAccountId: destinationAccount.accountingPlanId,
+      creditAccountId: sourceAccount.accountingPlanId,
     });
 
     const movement = await tx.treasuryMovement.findUnique({

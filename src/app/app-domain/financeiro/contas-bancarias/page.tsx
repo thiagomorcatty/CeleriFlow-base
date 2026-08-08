@@ -31,6 +31,10 @@ export default async function ContasBancariasPage() {
     where: isSystemAdministrator(context.user) ? {} : { id: { in: context.user.allowedBudgetUnitIds } },
     orderBy: { code: "asc" },
   });
+  const accountingPlans = await prisma.accountingPlan.findMany({
+    orderBy: { code: "asc" },
+    select: { id: true, code: true, name: true },
+  });
 
   const transferAccountAccess = isSystemAdministrator(context.user) ? {} : { budgetUnitId: { in: context.user.allowedBudgetUnitIds } };
   const transfers = await prisma.treasuryTransfer.findMany({
@@ -50,7 +54,7 @@ export default async function ContasBancariasPage() {
 
   return (
     <>
-      <ContasBancariasClient accounts={displayAccounts} resourceSources={resourceSources} budgetUnits={budgetUnits} />
+      <ContasBancariasClient accounts={displayAccounts} resourceSources={resourceSources} budgetUnits={budgetUnits} accountingPlans={accountingPlans} />
       <div className="px-8 pb-8">
         <TreasuryTransferSection
           accounts={displayAccounts.map(({ id, bankName, agency, accountNumber, isActive }) => ({ id, bankName, agency, accountNumber, isActive }))}

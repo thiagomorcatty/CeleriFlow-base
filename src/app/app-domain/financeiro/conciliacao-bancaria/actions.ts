@@ -1,6 +1,6 @@
 "use server";
 
-import { importBankStatementCsv, matchBankStatementItemToTreasuryMovement } from "@/lib/financeiro";
+import { getBankAccountLedgerBalance, importBankStatementCsv, matchBankStatementItemToTreasuryMovement } from "@/lib/financeiro";
 import { runAutoReconciliation } from "@/lib/financeiro/reconciliation-engine";
 import { getTenantContextForModuleEdit, isSystemAdministrator } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
@@ -83,7 +83,7 @@ export async function matchBankStatementItemAction(data: { statementItemId: stri
 }
 
 /**
- * Abertura de Conciliação Bancária com saldo de tesouraria e cálculo de saldos.
+ * Abertura de Conciliação Bancária com razão bancário e cálculo de saldos.
  */
 export async function openReconciliationSessionAction(input: {
   banco: string;
@@ -115,16 +115,7 @@ export async function openReconciliationSessionAction(input: {
     if (!isSystemAdministrator(context.user) && (!bankAccount.budgetUnitId || !context.user.allowedBudgetUnitIds.includes(bankAccount.budgetUnitId))) {
       throw new Error("Sem permissão para conciliar esta Unidade Gestora.");
     }
-    const treasuryMovements = await prisma.treasuryMovement.findMany({
-      where: { bankAccountId: bankAccount.id, date: { lte: dataFim } },
-      select: { direction: true, valueDecimal: true },
-    });
-    const saldoTesouraria = treasuryMovements.reduce((total, movement) => {
-      const value = Math.abs(Number(movement.valueDecimal));
-      if (["Entrada", "CREDIT"].includes(movement.direction)) return total + value;
-      if (["Saída", "DEBIT"].includes(movement.direction)) return total - value;
-      throw new Error(`Direção de tesouraria inválida: ${movement.direction}.`);
-    }, 0);
+    const saldoRazao = await getBankAccountLedgerBalance(prisma, bankAccount.id, dataFim);
 
     // Buscar ou criar sessão
     let session = await prisma.bankReconciliationSession.findFirst({
@@ -149,7 +140,7 @@ export async function openReconciliationSessionAction(input: {
           totalDebitosDecimal: new Prisma.Decimal(0),
           totalCreditosDecimal: new Prisma.Decimal(0),
           saldoFinalDecimal: new Prisma.Decimal(parsed.data.saldoInicial),
-          saldoRazaoDecimal: new Prisma.Decimal(saldoTesouraria),
+          saldoRazaoDecimal: saldoRazao,
           diferencaDecimal: new Prisma.Decimal(0),
           status: "ABERTA",
         },
@@ -157,7 +148,7 @@ export async function openReconciliationSessionAction(input: {
     } else {
       session = await prisma.bankReconciliationSession.update({
         where: { id: session.id },
-        data: { saldoRazaoDecimal: new Prisma.Decimal(saldoTesouraria) },
+        data: { saldoRazaoDecimal: saldoRazao },
       });
     }
 
@@ -209,15 +200,21 @@ export async function confirmReconciliationSessionAction(sessionId: string): Pro
         return { session, recibo };
       }
       if (session.status !== "EM_ANDAMENTO") throw new Error("Execute a correspondência automática antes de confirmar a conciliação.");
-      if (Number(session.diferencaDecimal) !== 0 || session.itensDivergentes > 0 || session.totalItensBanco === 0 || session.itensConciliados !== session.totalItensBanco) {
-        throw new Error("A conciliação possui divergências ou lançamentos pendentes e não pode ser confirmada.");
-      }
 
       const [account, matches] = await Promise.all([
         tx.bankAccount.findFirst({ where: { bankName: session.banco, agency: session.agencia, accountNumber: session.contaNumero, isActive: true }, select: { id: true } }),
         tx.bankReconciliationMatch.findMany({ where: { sessionId: session.id }, orderBy: { id: "asc" } }),
       ]);
       if (!account) throw new Error("A conta bancária da conciliação não está cadastrada ou ativa.");
+      const saldoRazao = await getBankAccountLedgerBalance(tx, account.id, session.dataFim);
+      const diferenca = saldoRazao.minus(session.saldoFinalDecimal);
+      if (!saldoRazao.equals(session.saldoRazaoDecimal) || !diferenca.equals(session.diferencaDecimal)) {
+        await tx.bankReconciliationSession.update({ where: { id: session.id }, data: { saldoRazaoDecimal: saldoRazao, diferencaDecimal: diferenca } });
+        throw new Error("O razão bancário foi alterado. Execute novamente a correspondência antes de confirmar.");
+      }
+      if (!diferenca.isZero() || session.itensDivergentes > 0 || session.totalItensBanco === 0 || session.itensConciliados !== session.totalItensBanco) {
+        throw new Error("A conciliação possui divergências ou lançamentos pendentes e não pode ser confirmada.");
+      }
       if (matches.length !== session.totalItensBanco || matches.some((match) => !match.statementItemId || !match.treasuryMovementId)) {
         throw new Error("A conciliação contém correspondências incompletas e não pode ser confirmada.");
       }

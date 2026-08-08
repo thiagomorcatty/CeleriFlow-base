@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from "@prisma/client";
+import { getBankAccountLedgerBalance } from "@/lib/financeiro";
 
 export type ReconciliationMatchType =
   | "VALOR_DATA_EXATA"
@@ -285,7 +286,7 @@ export async function runAutoReconciliation(
   const totalCreditos = bankItems.filter((item) => statementDirection(item) === "Entrada").reduce((total, item) => total + Math.abs(Number(item.valueDecimal)), 0);
   const saldoInicial = Number(session.saldoInicialDecimal);
   const saldoFinal = saldoInicial + totalCreditos - totalDebitos;
-  const saldoRazao = Number(session.saldoRazaoDecimal);
+  const saldoRazao = Number(await getBankAccountLedgerBalance(prisma, bankAccount.id, session.dataFim));
   const diferenca = saldoRazao - saldoFinal;
 
   const itensConciliados = matches.filter((match) => ["VALOR_DATA_EXATA", "VALOR_D1", "DOCUMENTO", "HISTORICO"].includes(match.type) && match.diferenca === 0).length;
@@ -294,10 +295,11 @@ export async function runAutoReconciliation(
   const updatedSession = await prisma.bankReconciliationSession.update({
     where: { id: sessionId },
     data: {
-      totalDebitosDecimal: new Prisma.Decimal(totalDebitos),
-      totalCreditosDecimal: new Prisma.Decimal(totalCreditos),
-      saldoFinalDecimal: new Prisma.Decimal(saldoFinal),
-      diferencaDecimal: new Prisma.Decimal(diferenca),
+        totalDebitosDecimal: new Prisma.Decimal(totalDebitos),
+        totalCreditosDecimal: new Prisma.Decimal(totalCreditos),
+        saldoFinalDecimal: new Prisma.Decimal(saldoFinal),
+        saldoRazaoDecimal: new Prisma.Decimal(saldoRazao),
+        diferencaDecimal: new Prisma.Decimal(diferenca),
       totalItensBanco: bankItems.length,
       totalItensContabeis: treasuryMovements.length,
       itensConciliados,
