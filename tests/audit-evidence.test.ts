@@ -84,7 +84,7 @@ test("applies dashboard visibility, blocking, and operational module permissions
     permissions: JSON.stringify({
       acesso: "operacional",
       modules: {
-        FINANCEIRO: { showDashboardCard: false, blocked: false, view: false, create: true, update: false, delete: false },
+        FINANCEIRO: { showDashboardCard: false, blocked: false, create: true, update: false, delete: false },
         COMPRAS: { showDashboardCard: true, blocked: true, view: true, create: true, update: true, delete: true },
       },
     }),

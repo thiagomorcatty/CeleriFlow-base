@@ -63,21 +63,13 @@ const menuItems: MenuItem[] = [
 
 export default async function PainelPage() {
   const context = await getOptionalTenantContext();
-  let modulosAtivosSet = new Set<string>();
-  let hasDbRecords = false;
+  const moduleActivationByCode = new Map<string, boolean>();
 
   try {
     const modulos = await context?.prisma.configuracaoModulo.findMany({
       select: { codigo: true, ativo: true },
     }) ?? [];
-    if (modulos.length > 0) {
-      hasDbRecords = true;
-      modulos.forEach((m) => {
-        if (m.ativo) {
-          modulosAtivosSet.add(m.codigo.toUpperCase());
-        }
-      });
-    }
+    modulos.forEach((module) => moduleActivationByCode.set(module.codigo.toUpperCase(), module.ativo));
   } catch (err) {
     console.warn("Notice: Failed to fetch configuracaoModulo status", err);
   }
@@ -105,7 +97,7 @@ export default async function PainelPage() {
         {visibleMenuItems.map((item) => {
           const isConfig = item.code === "CONFIGURACOES";
           const isProfileBlocked = !context || isModuleBlockedForUser(context.user, item.code) || !canViewModule(context.user, item.code);
-          const isLocked = isProfileBlocked || (hasDbRecords && !isConfig && !modulosAtivosSet.has(item.code));
+          const isLocked = isProfileBlocked || (!isConfig && moduleActivationByCode.get(item.code) === false);
 
           if (isLocked) {
             return (

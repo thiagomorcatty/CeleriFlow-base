@@ -55,6 +55,9 @@ export async function createInstancia(data: {
 // --- Módulos Contratados ---
 export async function toggleModulo(id: string, ativo: boolean) {
   const prisma = await getTenantPrisma();
+  const module = await prisma.configuracaoModulo.findUnique({ where: { id }, select: { codigo: true } });
+  if (!module) throw new Error("Módulo não encontrado.");
+  if (module.codigo === "CONFIGURACOES" && !ativo) throw new Error("O módulo Configurações não pode ser inativado.");
   await prisma.configuracaoModulo.update({
     where: { id },
     data: {
@@ -79,7 +82,7 @@ export async function createModulo(data: {
       nome: data.nome,
       codigo: data.codigo,
       ativo: data.ativo ?? true,
-      dataAtivacao: data.ativo ? new Date() : new Date(),
+      dataAtivacao: data.ativo === false ? null : new Date(),
     },
   });
   revalidatePath("/configuracoes/modulos");

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import { AccessError, assertBudgetUnitAccess, getTenantContextForModule, isSystemAdministrator } from "@/lib/platform/tenant-context";
 import {
   generateCommitmentPrintHtml,
   generateSettlementPrintHtml,
@@ -26,6 +26,9 @@ export async function GET(request: NextRequest) {
     if (!documentType) {
       return NextResponse.json({ error: "Tipo de documento não informado." }, { status: 400 });
     }
+    if (["PCA", "BALANCO_FINANCEIRO", "COMPARATIVO_ORCAMENTO"].includes(documentType) && !isSystemAdministrator(context.user)) {
+      throw new AccessError("A impressão de demonstrativos consolidados é restrita ao administrador do sistema.", 403);
+    }
 
     let html = "";
 
@@ -46,6 +49,7 @@ export async function GET(request: NextRequest) {
           },
         });
         if (!commitment) return NextResponse.json({ error: "Empenho não encontrado." }, { status: 404 });
+        assertBudgetUnitAccess(context.user, commitment.appropriation.budgetUnit.id);
 
         html = generateCommitmentPrintHtml({
           number: commitment.number,
@@ -80,6 +84,7 @@ export async function GET(request: NextRequest) {
           },
         });
         if (!settlement) return NextResponse.json({ error: "Liquidação não encontrada." }, { status: 404 });
+        assertBudgetUnitAccess(context.user, settlement.commitment.appropriation.budgetUnit.id);
 
         const grossVal = Number(settlement.valueDecimal ?? settlement.value);
 
@@ -117,6 +122,8 @@ export async function GET(request: NextRequest) {
           },
         });
         if (!payment) return NextResponse.json({ error: "Pagamento não encontrado." }, { status: 404 });
+        if (!payment.bankAccount.budgetUnitId) throw new AccessError("Pagamento sem Unidade Gestora vinculada.", 403);
+        assertBudgetUnitAccess(context.user, payment.bankAccount.budgetUnitId);
 
         const gross = Number(payment.valueDecimal ?? payment.value);
         const net = Number(payment.netValueDecimal ?? gross);
@@ -218,7 +225,7 @@ export async function GET(request: NextRequest) {
               include: {
                 settlement: {
                   include: {
-                    commitment: true,
+                    commitment: { include: { appropriation: { select: { budgetUnitId: true } } } },
                   },
                 },
               },
@@ -229,6 +236,9 @@ export async function GET(request: NextRequest) {
         if (!retention || !retention.payment) {
           return NextResponse.json({ error: "Retenção não encontrada." }, { status: 404 });
         }
+        const retentionBudgetUnitId = retention.payment.settlement?.commitment.appropriation.budgetUnitId;
+        if (!retentionBudgetUnitId) throw new AccessError("Retenção sem Unidade Gestora vinculada.", 403);
+        assertBudgetUnitAccess(context.user, retentionBudgetUnitId);
 
         const p = retention.payment;
         const s = p.settlement;
@@ -256,6 +266,10 @@ export async function GET(request: NextRequest) {
       case "EXTRATO_BANCARIO": {
         const bankAccountId = request.nextUrl.searchParams.get("bankAccountId");
         if (!bankAccountId) return NextResponse.json({ error: "bankAccountId é obrigatório." }, { status: 400 });
+        const account = await context.prisma.bankAccount.findUnique({ where: { id: bankAccountId }, select: { budgetUnitId: true } });
+        if (!account) return NextResponse.json({ error: "Conta bancária não encontrada." }, { status: 404 });
+        if (!account.budgetUnitId) throw new AccessError("Conta bancária sem Unidade Gestora vinculada.", 403);
+        assertBudgetUnitAccess(context.user, account.budgetUnitId);
 
         const startDateParam = request.nextUrl.searchParams.get("startDate");
         const endDateParam = request.nextUrl.searchParams.get("endDate");
@@ -279,6 +293,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof AccessError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error("Erro ao gerar impressão técnica:", error);
     return NextResponse.json({ error: "Não foi possível gerar o documento imprimível." }, { status: 500 });
   }

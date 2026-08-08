@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { AccessError, getCurrentTenantContext, isSystemAdministrator, type AppContext } from "@/lib/platform/tenant-context";
+import { AccessError, canEditModule, getTenantContextForModule, getTenantContextForModuleEdit, isSystemAdministrator, type AppContext } from "@/lib/platform/tenant-context";
 
 export type AttendanceContext = AppContext & {
   attendanceAccess: {
@@ -12,33 +12,15 @@ export type AttendanceContext = AppContext & {
 };
 
 export async function getAttendanceContext(required: "view" | "edit" = "view"): Promise<AttendanceContext> {
-  const context = await getCurrentTenantContext();
+  const context = required === "edit"
+    ? await getTenantContextForModuleEdit("ATENDIMENTO")
+    : await getTenantContextForModule("ATENDIMENTO");
   const role = context.user.role.toLowerCase();
   const isAdmin = isSystemAdministrator(context.user);
   const isManager = isAdmin || role.includes("gestor");
   const isOmbudsman = isAdmin || role.includes("ouvid");
 
-  if (isAdmin) {
-    return { ...context, attendanceAccess: { isAdmin, isManager, isOmbudsman, canView: true, canEdit: true } };
-  }
-
-  const moduleConfig = await context.prisma.configuracaoModulo.findUnique({
-    where: { codigo: "ATENDIMENTO" },
-    select: { id: true, ativo: true },
-  });
-  if (!moduleConfig?.ativo) throw new AccessError("Modulo de Atendimento indisponivel para este usuario.", 403);
-
-  const permission = await context.prisma.usuarioModulo.findUnique({
-    where: { usuarioId_moduloId: { usuarioId: context.user.id, moduloId: moduleConfig.id } },
-    select: { canView: true, canEdit: true },
-  });
-  const canView = Boolean(permission?.canView || permission?.canEdit);
-  const canEdit = Boolean(permission?.canEdit);
-  if (!canView || (required === "edit" && !canEdit)) {
-    throw new AccessError(required === "edit" ? "Sem permissao de edicao em Atendimento." : "Sem permissao de visualizacao em Atendimento.", 403);
-  }
-
-  return { ...context, attendanceAccess: { isAdmin, isManager, isOmbudsman, canView, canEdit } };
+  return { ...context, attendanceAccess: { isAdmin, isManager, isOmbudsman, canView: true, canEdit: canEditModule(context.user, "ATENDIMENTO") } };
 }
 
 export async function getAttendanceOperationalContext() {

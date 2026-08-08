@@ -43,7 +43,6 @@ type RolePermissions = {
 type ModuleProfilePermission = {
   showDashboardCard: boolean;
   blocked: boolean;
-  view: boolean;
   create: boolean;
   update: boolean;
   delete: boolean;
@@ -72,7 +71,6 @@ function getModuleProfilePermission(rolePermissions: RolePermissions | null, mod
   return {
     showDashboardCard: permission.showDashboardCard === true,
     blocked: permission.blocked === true,
-    view: permission.view === true,
     create: permission.create === true,
     update: permission.update === true,
     delete: permission.delete === true,
@@ -101,7 +99,7 @@ export function canViewModule(user: AppContext["user"], moduleCode: string) {
   const codeUpper = moduleCode.toUpperCase();
   const rolePermissions = parseRolePermissions(user.permissions);
   const permission = getModuleProfilePermission(rolePermissions, codeUpper);
-  if (permission) return !permission.blocked && (permission.view || permission.create || permission.update || permission.delete);
+  if (permission) return !permission.blocked;
   if (hasModuleAccess(rolePermissions?.modulosBloqueados, codeUpper)) return false;
 
   const allowedModules = rolePermissions?.modulosPermitidos;
@@ -232,11 +230,15 @@ export async function getTenantContextForSystemAdministration(): Promise<AppCont
 // Enforces granular module RBAC based on user profile permissions.
 export async function getTenantContextForModule(moduleCode: string): Promise<AppContext> {
   const context = await getCurrentTenantContext();
-  if (isSystemAdministrator(context.user)) {
-    return context;
+  const codeUpper = moduleCode.toUpperCase();
+  const moduleConfig = await context.prisma.configuracaoModulo.findUnique({
+    where: { codigo: codeUpper },
+    select: { ativo: true },
+  });
+  if (moduleConfig && !moduleConfig.ativo) {
+    throw new AccessError(`O módulo ${moduleCode} está inativo nesta instância.`, 423);
   }
-
-  if (!canViewModule(context.user, moduleCode)) {
+  if (!canViewModule(context.user, codeUpper)) {
     throw new AccessError(`Acesso negado ao módulo ${moduleCode}.`, 403);
   }
 

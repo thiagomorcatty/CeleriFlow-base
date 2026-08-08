@@ -47,7 +47,6 @@ const MODULES_LIST = [
 type ModulePermission = {
   showDashboardCard: boolean;
   blocked: boolean;
-  view: boolean;
   create: boolean;
   update: boolean;
   delete: boolean;
@@ -55,8 +54,7 @@ type ModulePermission = {
 
 type PermissionKey = keyof Omit<ModulePermission, "blocked">;
 const ACTIONS_LABELS: { key: Exclude<PermissionKey, "showDashboardCard">; label: string }[] = [
-  { key: "view", label: "Visualizar" },
-  { key: "create", label: "Criar / Incluir" },
+  { key: "create", label: "Criar" },
   { key: "update", label: "Editar" },
   { key: "delete", label: "Excluir" },
 ];
@@ -64,7 +62,6 @@ const ACTIONS_LABELS: { key: Exclude<PermissionKey, "showDashboardCard">; label:
 const emptyPermission = (): ModulePermission => ({
   showDashboardCard: false,
   blocked: true,
-  view: false,
   create: false,
   update: false,
   delete: false,
@@ -103,13 +100,13 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
       const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
       if (parsed.ALL) {
         MODULES_LIST.forEach((m) => {
-          map[m.code] = { showDashboardCard: true, blocked: false, view: true, create: true, update: true, delete: true };
+          map[m.code] = { showDashboardCard: true, blocked: false, create: true, update: true, delete: true };
         });
         return { accessLevel: "total", map };
       }
       if (parsed.acesso === "total" && !parsed.modules) {
         MODULES_LIST.forEach((moduleItem) => {
-          map[moduleItem.code] = { showDashboardCard: true, blocked: false, view: true, create: true, update: true, delete: true };
+          map[moduleItem.code] = { showDashboardCard: true, blocked: false, create: true, update: true, delete: true };
         });
         return { accessLevel: "total", map };
       }
@@ -123,7 +120,6 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
           map[moduleItem.code] = {
             showDashboardCard: permission.showDashboardCard === true,
             blocked,
-            view: !blocked && permission.view === true,
             create: !blocked && permission.create === true,
             update: !blocked && permission.update === true,
             delete: !blocked && permission.delete === true,
@@ -142,7 +138,6 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
         map[moduleItem.code] = {
           showDashboardCard: !blocked && allowed,
           blocked,
-          view: !blocked && (allowed || legacyActions.includes("read")),
           create: !blocked && legacyActions.includes("create"),
           update: !blocked && legacyActions.includes("update"),
           delete: !blocked && legacyActions.includes("delete"),
@@ -197,7 +192,7 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
         ...prev,
         permissionsMap: {
           ...prev.permissionsMap,
-          [moduleCode]: blocked ? { ...current, blocked, view: false, create: false, update: false, delete: false } : { ...current, blocked },
+          [moduleCode]: blocked ? { ...current, blocked, create: false, update: false, delete: false } : { ...current, blocked },
         },
       };
     });
@@ -206,10 +201,10 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
   const toggleAllModuleActions = (moduleCode: string) => {
     setFormData((prev) => {
       const current = prev.permissionsMap[moduleCode] || emptyPermission();
-      const allSelected = !current.blocked && current.showDashboardCard && current.view && current.create && current.update && current.delete;
+      const allSelected = !current.blocked && current.showDashboardCard && current.create && current.update && current.delete;
       const updated = allSelected
         ? emptyPermission()
-        : { showDashboardCard: true, blocked: false, view: true, create: true, update: true, delete: true };
+        : { showDashboardCard: true, blocked: false, create: true, update: true, delete: true };
       return {
         ...prev,
         permissionsMap: { ...prev.permissionsMap, [moduleCode]: updated },
@@ -221,9 +216,9 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
     const newMap: Record<string, ModulePermission> = {};
     MODULES_LIST.forEach((m) => {
       if (preset === "FULL") {
-        newMap[m.code] = { showDashboardCard: true, blocked: false, view: true, create: true, update: true, delete: true };
+        newMap[m.code] = { showDashboardCard: true, blocked: false, create: true, update: true, delete: true };
       } else if (preset === "READ_ONLY") {
-        newMap[m.code] = { showDashboardCard: true, blocked: false, view: true, create: false, update: false, delete: false };
+        newMap[m.code] = { showDashboardCard: true, blocked: false, create: false, update: false, delete: false };
       } else {
         newMap[m.code] = emptyPermission();
       }
@@ -321,7 +316,7 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
                   const permMap = parsePermissionsJSON(perfil.permissoes, perfil.legacyModuleCodes).map;
                   const activeModulesCount = MODULES_LIST.filter((moduleItem) => {
                     const permission = permMap[moduleItem.code];
-                    return permission && !permission.blocked && (permission.view || permission.create || permission.update || permission.delete);
+                    return permission && !permission.blocked;
                   }).length;
 
                   return (
@@ -438,7 +433,7 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
                     onClick={() => applyPreset("READ_ONLY")}
                     className="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-800 hover:opacity-90"
                   >
-                    👁️ Apenas Leitura
+                    Sem ações operacionais
                   </button>
                   <button
                     type="button"
@@ -503,7 +498,7 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
                     {MODULES_LIST.map((moduleItem) => {
                       const IconComponent = moduleItem.icon;
                        const permission = formData.permissionsMap[moduleItem.code] || emptyPermission();
-                       const isAllSelected = !permission.blocked && permission.showDashboardCard && permission.view && permission.create && permission.update && permission.delete;
+                       const isAllSelected = !permission.blocked && permission.showDashboardCard && permission.create && permission.update && permission.delete;
 
                       return (
                         <div
@@ -542,7 +537,7 @@ export default function PerfisClient({ perfis }: { perfis: Perfil[] }) {
                              </label>
                            </div>
                            {!permission.blocked ? (
-                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                              {ACTIONS_LABELS.map((act) => {
                                const isChecked = permission[act.key];
                               return (
