@@ -30,6 +30,7 @@ type BankAccount = {
   resourceSourceId: string | null;
   budgetUnitId: string | null;
   accountingPlanId: string | null;
+  purpose: string | null;
   isActive: boolean;
   resourceSource?: { id: string; name: string } | null;
   budgetUnit?: { id: string; code: string; name: string } | null;
@@ -66,7 +67,8 @@ export default function ContasBancariasClient({
   const filteredAccounts = accounts.filter(account =>
     account.bankName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     account.agency.includes(searchTerm) ||
-    account.accountNumber.includes(searchTerm)
+    account.accountNumber.includes(searchTerm) ||
+    account.purpose?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleOpenNew = () => {
@@ -130,7 +132,7 @@ export default function ContasBancariasClient({
       <div className="flex items-center justify-between space-y-2">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Contas Bancárias</h2>
-          <p className="text-muted-foreground">Gestão da tesouraria e contas do município</p>
+          <p className="text-muted-foreground">Gestão da tesouraria, com contas separadas por finalidade, área e fonte de recurso.</p>
         </div>
         <div className="flex items-center space-x-2">
           <Button onClick={handleOpenNew}>
@@ -145,7 +147,7 @@ export default function ContasBancariasClient({
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Listagem de Contas</CardTitle>
-              <CardDescription>Contas bancárias ativas e seus saldos atuais.</CardDescription>
+              <CardDescription>As contas da POC são segregadas por finalidade operacional, como saúde, educação, convênios, arrecadação e aplicações.</CardDescription>
             </div>
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -165,6 +167,7 @@ export default function ContasBancariasClient({
                 <TableHead>Banco</TableHead>
                 <TableHead>Agência / Conta</TableHead>
                 <TableHead>Tipo</TableHead>
+                <TableHead>Finalidade</TableHead>
                 <TableHead>Fonte de Recurso</TableHead>
                 <TableHead>Unidade Gestora</TableHead>
                 <TableHead>Saldo Atual (R$)</TableHead>
@@ -175,7 +178,7 @@ export default function ContasBancariasClient({
             <TableBody>
               {filteredAccounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground h-32">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground h-32">
                     <div className="flex flex-col items-center justify-center">
                       <Landmark className="h-8 w-8 mb-2 opacity-20" />
                       Nenhuma conta bancária encontrada.
@@ -188,6 +191,7 @@ export default function ContasBancariasClient({
                     <TableCell className="font-medium">{account.bankName}</TableCell>
                     <TableCell>{account.agency} / {account.accountNumber}</TableCell>
                     <TableCell>{account.accountType}</TableCell>
+                    <TableCell className="max-w-52 whitespace-normal">{account.purpose || "Finalidade não informada"}</TableCell>
                     <TableCell>{account.resourceSource?.name || 'Não vinculada'}</TableCell>
                     <TableCell>{account.budgetUnit ? `${account.budgetUnit.code} - ${account.budgetUnit.name}` : "Não vinculada"}</TableCell>
                     <TableCell className={account.currentBalance < 0 ? "text-rose-500 font-medium" : "text-emerald-500 font-medium"}>
