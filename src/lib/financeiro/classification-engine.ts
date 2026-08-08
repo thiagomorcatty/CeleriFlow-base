@@ -271,6 +271,18 @@ export async function sendMovementToMunicipalSystem(
       sourceId: item.id,
       eventType: classification.category,
     });
+    if (isInvestmentApplication(classification.category)) {
+      await tx.investmentAllocation.upsert({
+        where: { treasuryTransferId: transfer.id },
+        create: {
+          originBankAccountId: sourceAccount.id,
+          investmentBankAccountId: destinationAccount.id,
+          treasuryTransferId: transfer.id,
+          valueDecimal: value,
+        },
+        update: {},
+      });
+    }
 
     const accounting = await postAccountingEventInTransaction(tx, { usuarioId: data.usuarioId, employeeId: data.employeeId }, {
       financialYearId: year.id,

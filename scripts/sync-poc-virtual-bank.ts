@@ -67,6 +67,7 @@ async function main() {
     const result = await prisma.bankStatementItem.createMany({
       data: statement.items.map((item, index) => ({
         statementImportId: statementImport.id,
+        bankAccountId: account.id,
         banco: BANK,
         agencia: AGENCY,
         contaNumero: definition.number,
@@ -80,6 +81,12 @@ async function main() {
         valueDecimal: new Prisma.Decimal(item.value),
         status: "Pendente",
         reciboMunicipal: item.documento ?? null,
+        bankTransactionId: item.bankTransactionId ?? null,
+        integrationEventId: item.integrationEventId ?? null,
+        transactionType: item.transactionType ?? null,
+        clientReference: item.clientReference ?? null,
+        collectionReference: item.collectionReference ?? null,
+        reversalOfBankTransactionId: item.reversalOfBankTransactionId ?? null,
       })),
       skipDuplicates: true,
     });

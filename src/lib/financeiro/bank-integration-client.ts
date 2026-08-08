@@ -22,6 +22,12 @@ export interface BankStatementItemDTO {
   value: number;
   tipoConta: "CORRENTE" | "APLICACAO";
   documento?: string;
+  bankTransactionId?: string;
+  integrationEventId?: string;
+  transactionType?: string;
+  clientReference?: string;
+  collectionReference?: string;
+  reversalOfBankTransactionId?: string;
 }
 
 export interface BankStatementResponse {
@@ -505,6 +511,12 @@ export class BankIntegrationClient {
           value: Math.abs(amount),
           tipoConta: stringValue(item, "tipoConta", "tipo_conta", "account_type")?.toUpperCase() === "APLICACAO" ? "APLICACAO" as const : "CORRENTE" as const,
           documento: stringValue(item, "documento", "document_number"),
+          bankTransactionId: stringValue(item, "bank_transaction_id", "bankTransactionId"),
+          integrationEventId: stringValue(item, "integration_event_id", "integrationEventId"),
+          transactionType: stringValue(item, "transaction_type", "transactionType"),
+          clientReference: stringValue(item, "client_reference", "clientReference"),
+          collectionReference: stringValue(item, "collection_reference", "collectionReference"),
+          reversalOfBankTransactionId: stringValue(item, "reversal_of_bank_transaction_id", "reversalOfBankTransactionId"),
         }];
       }) : [],
     };
