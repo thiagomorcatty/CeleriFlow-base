@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -19,7 +19,8 @@ import {
   ArrowRightLeft,
   TrendingUp,
   GitCompare,
-  Activity
+  Activity,
+  ChevronDown
 } from "lucide-react";
 
 const sidebarNavGroups = [
@@ -77,6 +78,15 @@ export default function FinanceiroLayout({ children }: { children: React.ReactNo
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
+  const activeGroup = sidebarNavGroups.find((group) => group.items.some((item) => {
+    if (item.href === "/financeiro") return pathname === "/financeiro";
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  }))?.title ?? null;
+  const [openGroup, setOpenGroup] = useState<string | null>(activeGroup);
+
+  useEffect(() => {
+    setOpenGroup(activeGroup);
+  }, [activeGroup]);
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen w-full max-w-[1600px] mx-auto bg-slate-50/30 relative">
@@ -121,11 +131,25 @@ export default function FinanceiroLayout({ children }: { children: React.ReactNo
           )}
         </div>
         
-        <nav className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
+        <nav className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
           {sidebarNavGroups.map((group) => (
-            <section key={group.title} className="space-y-1.5">
-              {!isDesktopCollapsed && <h3 className="px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">{group.title}</h3>}
-              {group.items.map((item) => {
+            <section key={group.title} className="space-y-1">
+              {!isDesktopCollapsed && (
+                <button
+                  type="button"
+                  onClick={() => setOpenGroup((current) => current === group.title ? null : group.title)}
+                  aria-expanded={openGroup === group.title}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] transition-colors ${
+                    activeGroup === group.title
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                  }`}
+                >
+                  <span>{group.title}</span>
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${openGroup === group.title ? "rotate-180" : ""}`} />
+                </button>
+              )}
+              {(isDesktopCollapsed || openGroup === group.title) && group.items.map((item) => {
                 const isActive = item.href === "/financeiro"
                   ? pathname === "/financeiro"
                   : pathname === item.href || (
@@ -139,7 +163,7 @@ export default function FinanceiroLayout({ children }: { children: React.ReactNo
                     href={item.href}
                     onClick={() => setIsSidebarOpen(false)}
                     title={isDesktopCollapsed ? item.title : undefined}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 outline-none ${
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 outline-none ${
                       isActive
                         ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-600/50"
