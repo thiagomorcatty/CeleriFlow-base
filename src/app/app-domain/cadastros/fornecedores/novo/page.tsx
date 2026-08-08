@@ -1,7 +1,8 @@
-import { Truck, Save, ArrowLeft, User, List, Building } from "lucide-react";
+import { Truck, Save, ArrowLeft, User, List } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTenantContextForModule, getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
+import type { Prisma } from "@prisma/client";
 
 export default async function NovoFornecedorPage() {
   const { prisma } = await getTenantContextForModule("CADASTROS");
@@ -26,7 +27,7 @@ export default async function NovoFornecedorPage() {
     const bankData = formData.get("bankData") as string;
     const notes = formData.get("notes") as string;
 
-    const data: any = {
+    const data: Prisma.SupplierUncheckedCreateInput = {
       category: category || null,
       businessBranch: businessBranch || null,
       certificationsValidUntil: certificationsValidUntil ? new Date(certificationsValidUntil) : null,

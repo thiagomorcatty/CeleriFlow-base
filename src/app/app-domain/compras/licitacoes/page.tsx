@@ -72,7 +72,7 @@ export default async function LicitacoesPage() {
             <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
               <Gavel className="h-10 w-10 mb-4 opacity-20" />
               <p>Nenhuma licitação encontrada.</p>
-              <p className="text-sm">Clique em "Nova Licitação" para cadastrar um certame.</p>
+              <p className="text-sm">Clique em &quot;Nova Licitação&quot; para cadastrar um certame.</p>
             </div>
           ) : (
             <div className="rounded-md border">

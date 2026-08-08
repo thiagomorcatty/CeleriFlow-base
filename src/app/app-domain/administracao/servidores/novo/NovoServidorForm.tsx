@@ -4,7 +4,16 @@ import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
 import { createEmployee } from "../actions";
 
-export default function NovoServidorForm({ roles, secretariats, departments, units }: any) {
+type NamedOption = { id: string; name: string };
+
+type NovoServidorFormProps = {
+  roles: NamedOption[];
+  secretariats: NamedOption[];
+  departments: NamedOption[];
+  units: NamedOption[];
+};
+
+export default function NovoServidorForm({ roles, secretariats, departments, units }: NovoServidorFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -65,28 +74,28 @@ export default function NovoServidorForm({ roles, secretariats, departments, uni
                 <label className="text-sm font-semibold text-slate-700">Cargo / Função</label>
                 <select name="roleId" className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm bg-white">
                   <option value="">Selecione...</option>
-                  {roles.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700">Secretaria</label>
                 <select name="secretariatId" className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm bg-white">
                   <option value="">Nenhuma / Sem Vínculo</option>
-                  {secretariats.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  {secretariats.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700">Departamento</label>
                 <select name="departmentId" className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm bg-white">
                   <option value="">Nenhum / Sem Vínculo</option>
-                  {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700">Unidade Administrativa (Escolas/UBS)</label>
                 <select name="unitId" className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-sm bg-white">
                   <option value="">Nenhuma / Sem Vínculo</option>
-                  {units.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
             </div>

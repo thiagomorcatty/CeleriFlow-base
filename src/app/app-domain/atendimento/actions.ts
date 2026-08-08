@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { nextYearlyCode } from "@/lib/sequence";
 import { getAttendanceContext, getAttendanceOperationalContext, ombudsmanScope, ticketScope } from "@/lib/attendance/access";
 import { createValidatedProcess } from "@/lib/protocols/service";
+import type { Prisma } from "@prisma/client";
 
 const TICKET_STATUSES = new Set(["Aberto", "Encaminhado", "Aguardando Recebimento", "Em Atendimento", "Aguardando Informação", "Resolvido", "Concluído", "Cancelado", "Reaberto"]);
 const OMBUDSMAN_STATUSES = new Set(["Recebida", "Em Triagem", "Encaminhada", "Em Apuração", "Aguardando Resposta", "Concluída"]);
@@ -44,7 +45,7 @@ async function scopedOmbudsman(id: string) {
   return { context, ombudsman };
 }
 
-async function auditTicket(tx: any, ticketId: string, context: Awaited<ReturnType<typeof getAttendanceOperationalContext>>, action: string, details?: Record<string, unknown>) {
+async function auditTicket(tx: Prisma.TransactionClient, ticketId: string, context: Awaited<ReturnType<typeof getAttendanceOperationalContext>>, action: string, details?: Prisma.InputJsonObject) {
   await tx.ticketAuditLog.create({
     data: { ticketId, userId: context.user.id, employeeId: context.employee.id, action, details },
   });
@@ -135,7 +136,7 @@ export async function createTicket(formData: FormData): Promise<void> {
         data: { ticketId: ticket.id, toDepartmentId: departmentId, employeeId: context.employee.id, reason: "Distribuicao inicial" },
       });
     }
-    await auditTicket(tx, ticket.id, context, "CREATED", { departmentId, requesterType, serviceSubjectId, dueAt });
+    await auditTicket(tx, ticket.id, context, "CREATED", { departmentId, requesterType, serviceSubjectId, dueAt: dueAt?.toISOString() ?? null });
     return ticket;
   });
 

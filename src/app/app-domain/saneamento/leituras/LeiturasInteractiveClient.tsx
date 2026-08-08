@@ -1,19 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Droplet, QrCode, Calculator, CheckCircle2, Receipt } from "lucide-react";
+import { Droplet, Calculator } from "lucide-react";
 import { processMeterReadingAction } from "./leituras-actions";
 
 export function LeiturasInteractiveClient() {
   const [matricula, setMatricula] = useState("MAT-9921-04");
   const [consumidor, setConsumidor] = useState("JOÃO PEDRO DOS SANTOS");
-  const [endereco, setEndereco] = useState("RUA DAS ACÁCIAS, 140 - BAIRRO DAS FREIRAS");
+  const endereco = "RUA DAS ACÁCIAS, 140 - BAIRRO DAS FREIRAS";
   const [hidrometro, setHidrometro] = useState("A2026-99182");
   const [leituraAnterior, setLeituraAnterior] = useState<number>(450.0);
   const [leituraAtual, setLeituraAtual] = useState<number>(478.0);
   const [tipoTarifa, setTipoTarifa] = useState<"RESIDENCIAL" | "COMERCIAL" | "INDUSTRIAL">("RESIDENCIAL");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any | null>(null);
+  const [result, setResult] = useState<Awaited<ReturnType<typeof processMeterReadingAction>>["data"] | null>(null);
 
   async function handleProcessReading(e: React.FormEvent) {
     e.preventDefault();
@@ -94,7 +94,7 @@ export function LeiturasInteractiveClient() {
           <label className="block text-slate-300 font-semibold mb-1">Tipo de Tarifa</label>
           <select
             value={tipoTarifa}
-            onChange={(e: any) => setTipoTarifa(e.target.value)}
+            onChange={(e) => setTipoTarifa(e.target.value as "RESIDENCIAL" | "COMERCIAL" | "INDUSTRIAL")}
             className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-semibold"
           >
             <option value="RESIDENCIAL">RESIDENCIAL</option>

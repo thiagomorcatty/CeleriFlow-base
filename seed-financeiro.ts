@@ -31,7 +31,7 @@ async function main() {
   })
 
   // Budget Units
-  const budgetUnitAdmin = await prisma.budgetUnit.upsert({
+  await prisma.budgetUnit.upsert({
     where: { code: '02.01.00' },
     update: {},
     create: { code: '02.01.00', name: 'Gabinete do Prefeito', secretariatId: secretariat.id }
@@ -204,7 +204,7 @@ async function main() {
   })
 
   // Payments
-  const payment1 = await prisma.payment.upsert({
+  await prisma.payment.upsert({
     where: { orderNumber: '2026OB00001' },
     update: {},
     create: {
@@ -219,7 +219,7 @@ async function main() {
     }
   })
 
-  const payment2 = await prisma.payment.upsert({
+  await prisma.payment.upsert({
     where: { orderNumber: '2026OB00002' },
     update: {},
     create: {
@@ -233,7 +233,7 @@ async function main() {
     }
   })
 
-  const payment3 = await prisma.payment.upsert({
+  await prisma.payment.upsert({
     where: { orderNumber: '2026OB00003' },
     update: {},
     create: {

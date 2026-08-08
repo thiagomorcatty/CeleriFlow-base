@@ -11,8 +11,8 @@ async function createAdminUser() {
       displayName: "Administrador CeleriFlow",
     });
     console.log("Successfully created new user:", userRecord.uid);
-  } catch (error: any) {
-    if (error.code === 'auth/email-already-exists') {
+  } catch (error: unknown) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "auth/email-already-exists") {
        console.log("User already exists!");
     } else {
        console.error("Error creating new user:", error);

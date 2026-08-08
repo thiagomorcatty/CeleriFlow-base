@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Stethoscope, Pencil, Trash2, RefreshCw, CheckCircle, XCircle, Plus, Search, AlertCircle } from "lucide-react";
+import { Stethoscope, Pencil, Trash2, CheckCircle, XCircle, Plus, Search, AlertCircle } from "lucide-react";
 import { createHealthProfessional, updateHealthProfessional, toggleHealthProfessionalStatus, deleteHealthProfessional } from "./actions";
 
 type Employee = {
@@ -21,6 +21,13 @@ type HealthProfessional = {
   isActive: boolean;
 };
 
+type HealthProfessionalFormData = {
+  employeeId: string;
+  specialty: string;
+  councilType: string;
+  councilNumber: string;
+};
+
 const CONSELHOS = ["CRM", "COREN", "CRF", "CRO", "CRN", "CRP", "CREFITO", "CRAS", "Outro"];
 
 export default function ProfissionaisClient({ 
@@ -33,7 +40,7 @@ export default function ProfissionaisClient({
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Partial<HealthProfessional> & { councilType?: string }>({
+  const [formData, setFormData] = useState<HealthProfessionalFormData>({
     employeeId: "", specialty: "", councilType: "", councilNumber: ""
   });
   const [isSaving, setIsSaving] = useState(false);

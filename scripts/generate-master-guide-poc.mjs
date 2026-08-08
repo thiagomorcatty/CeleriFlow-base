@@ -107,39 +107,6 @@ function createHeading2(text) {
   });
 }
 
-function createHeading3(text) {
-  return new Paragraph({
-    text: text,
-    heading: HeadingLevel.HEADING_3,
-    spacing: { before: 180, after: 80 },
-    children: [
-      new TextRun({
-        text,
-        bold: true,
-        size: 21, // 10.5pt
-        color: COLOR_ACCENT,
-        font: "Calibri",
-      }),
-    ],
-  });
-}
-
-function createParagraph(text, options = {}) {
-  return new Paragraph({
-    spacing: { before: 60, after: 60, line: 260 },
-    children: [
-      new TextRun({
-        text,
-        size: 20, // 10pt
-        color: options.color || COLOR_SECONDARY,
-        font: "Calibri",
-        bold: options.bold || false,
-        italics: options.italics || false,
-      }),
-    ],
-  });
-}
-
 function createBullet(text, boldPrefix = "") {
   const children = [];
   if (boldPrefix) {

@@ -17,7 +17,7 @@ export default async function ImoveisFiscaisPage() {
 
   return (
     <div className="max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-      <ImoveisClient imoveis={imoveis as any} />
+      <ImoveisClient imoveis={imoveis} />
     </div>
   );
 }

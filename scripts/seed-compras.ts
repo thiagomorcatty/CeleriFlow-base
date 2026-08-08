@@ -66,7 +66,7 @@ async function main() {
   console.log(`✅ Itens de Catálogo inseridos.`)
 
   // 3. Inserir 3 Solicitações de Compra
-  const req1 = await prisma.purchaseRequest.create({
+  await prisma.purchaseRequest.create({
     data: { 
       number: 'REQ-2026-001', object: 'Aquisição de material de expediente', justification: 'Reposição de estoque', estimatedValue: 321.00, status: 'Aprovada', secretariatId: secretariat.id, departmentId: department.id, requesterId: employee.id,
       items: {
@@ -78,7 +78,7 @@ async function main() {
     }
   })
 
-  const req2 = await prisma.purchaseRequest.create({
+  await prisma.purchaseRequest.create({
     data: { 
       number: 'REQ-2026-002', object: 'Aquisição de computadores para o setor', justification: 'Atualização do parque tecnológico', estimatedValue: 10500.00, status: 'Enviada', secretariatId: secretariat.id, departmentId: department.id, requesterId: employee.id,
       items: {
@@ -89,7 +89,7 @@ async function main() {
     }
   })
 
-  const req3 = await prisma.purchaseRequest.create({
+  await prisma.purchaseRequest.create({
     data: { 
       number: 'REQ-2026-003', object: 'Contratação de serviço de limpeza', justification: 'Manutenção predial', estimatedValue: 5000.00, status: 'Rascunho', secretariatId: secretariat.id, departmentId: department.id, requesterId: employee.id,
       items: {

@@ -5,11 +5,11 @@ import { Input } from "@/components/ui/input"
 import { 
   Building2,
   Plus,
-  Search,
-  Filter
+  Search
 } from "lucide-react"
 import Link from "next/link"
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import type { Prisma } from "@prisma/client";
 
 export default async function BensPatrimoniaisPage(
   props: { searchParams?: Promise<{ q?: string, status?: string }> }
@@ -19,7 +19,7 @@ export default async function BensPatrimoniaisPage(
   const q = searchParams?.q || "";
   const status = searchParams?.status || "";
 
-  const where: any = {};
+  const where: Prisma.AssetWhereInput = {};
   if (q) {
     where.OR = [
       { name: { contains: q, mode: 'insensitive' } },

@@ -8,6 +8,24 @@ async function getTenantPrisma() {
   return (await getTenantContextForModuleEdit("COMPRAS")).prisma;
 }
 
+type PurchaseRequestItemInput = {
+  catalogItemId: string;
+  customName: string;
+  quantity: number;
+  estimatedUnitValue: number;
+};
+
+type PurchaseRequestInput = {
+  id?: string;
+  number: string;
+  object: string;
+  justification: string;
+  estimatedValue: number;
+  items: PurchaseRequestItemInput[];
+  secretariatId?: string;
+  departmentId?: string;
+};
+
 export async function deletePurchaseRequest(id: string) {
   const prisma = await getTenantPrisma();
   try {
@@ -22,7 +40,7 @@ export async function deletePurchaseRequest(id: string) {
   }
 }
 
-export async function savePurchaseRequest(payload: any) {
+export async function savePurchaseRequest(payload: PurchaseRequestInput) {
   const prisma = await getTenantPrisma();
   const { id, number, object, justification, estimatedValue, items, secretariatId, departmentId } = payload;
   
@@ -54,11 +72,12 @@ export async function savePurchaseRequest(payload: any) {
       requesterId: requester.id,
     };
 
-    let requestId = id;
+    let requestId: string;
 
     if (id) {
       // Atualizar a solicitacao
       await prisma.purchaseRequest.update({ where: { id }, data });
+      requestId = id;
       
       // Deletar os itens antigos para recriar (abordagem simples para sync de itens)
       await prisma.purchaseRequestItem.deleteMany({
@@ -72,7 +91,7 @@ export async function savePurchaseRequest(payload: any) {
 
     // Criar os itens
     if (items && items.length > 0) {
-      const itemsToCreate = items.map((item: any) => ({
+      const itemsToCreate = items.map((item) => ({
         purchaseRequestId: requestId,
         materialId: item.catalogItemId === "custom" || !item.catalogItemId ? null : item.catalogItemId,
         customName: item.catalogItemId === "custom" || !item.catalogItemId ? item.customName : null,

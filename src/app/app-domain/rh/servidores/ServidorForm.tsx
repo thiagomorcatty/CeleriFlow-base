@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { saveServidor } from "./actions";
 import { useRouter } from "next/navigation";
@@ -13,6 +13,7 @@ import Link from "next/link";
 import { Edit, Save, Plus, ArrowLeft } from "lucide-react";
 import { EmployeeBenefitsCard } from "./EmployeeBenefitsCard";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import type { BenefitConfig, Department, Dependent, Employee, PayrollBenefit, Role, Secretariat } from "@prisma/client";
 
 // Formata CPF: 000.000.000-00
 const formatCPF = (value: string) => {
@@ -33,6 +34,11 @@ const formatPhone = (value: string) => {
     .replace(/(-\d{4})\d+?$/, "$1");
 };
 
+type EmployeeWithRelations = Employee & {
+  dependents: Dependent[];
+  benefits: (PayrollBenefit & { benefitConfig: BenefitConfig })[];
+};
+
 export function ServidorForm({ 
   data, 
   roles = [], 
@@ -40,11 +46,11 @@ export function ServidorForm({
   secretariats = [],
   benefitConfigs = []
 }: { 
-  data?: any, 
-  roles?: any[], 
-  departments?: any[], 
-  secretariats?: any[],
-  benefitConfigs?: any[]
+  data?: EmployeeWithRelations,
+  roles?: Role[],
+  departments?: Department[],
+  secretariats?: Secretariat[],
+  benefitConfigs?: BenefitConfig[]
 }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
@@ -245,7 +251,7 @@ export function ServidorForm({
                       </tr>
                     </thead>
                     <tbody>
-                      {data.dependents.map((dep: any) => (
+                      {data.dependents.map((dep) => (
                         <tr key={dep.id} className="border-b last:border-0 hover:bg-muted/50">
                           <td className="p-3">{dep.name}</td>
                           <td className="p-3">{dep.relationship}</td>

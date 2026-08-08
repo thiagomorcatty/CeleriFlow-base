@@ -1,6 +1,6 @@
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import Link from "next/link";
-import { File, Search, Plus, Upload, Download, FileText } from "lucide-react";
+import { File, Search, Plus, Upload, Download } from "lucide-react";
 import DocumentosClient from "./DocumentosClient";
 
 export const dynamic = "force-dynamic";

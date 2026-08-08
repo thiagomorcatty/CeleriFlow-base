@@ -101,7 +101,7 @@ async function seedMod6() {
   }
 
   // 6. Criar PortalNews
-  let news = await prisma.portalNews.findUnique({ where: { slug: "prefeitura-inicia-reforma" } });
+  const news = await prisma.portalNews.findUnique({ where: { slug: "prefeitura-inicia-reforma" } });
   if (!news) {
     await prisma.portalNews.create({
       data: {
@@ -118,7 +118,7 @@ async function seedMod6() {
   }
 
   // 7. Criar Diário Oficial
-  let diary = await prisma.officialDiary.findUnique({ where: { editionNumber: 1542 } });
+  const diary = await prisma.officialDiary.findUnique({ where: { editionNumber: 1542 } });
   if (!diary) {
     await prisma.officialDiary.create({
       data: {

@@ -20,8 +20,8 @@ export default function NovaPaginaPage() {
     try {
       await createPage(formData);
       router.push("/transparencia/paginas");
-    } catch (err: any) {
-      setError(err.message || "Erro ao salvar a página.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Erro ao salvar a página.");
     } finally {
       setIsPending(false);
     }

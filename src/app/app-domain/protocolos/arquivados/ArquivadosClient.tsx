@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Archive, Search, FileText } from "lucide-react";
+import { Archive, Search } from "lucide-react";
 
 type Processo = {
   id: string;

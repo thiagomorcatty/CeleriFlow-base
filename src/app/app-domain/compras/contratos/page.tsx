@@ -6,7 +6,6 @@ import { Scale, Plus, Filter, Search } from "lucide-react"
 import Link from "next/link"
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { format } from "date-fns"
-import { ptBR } from "date-fns/locale"
 import { ContratoRowActions } from "./ContratoRowActions"
 
 export default async function ContratosPage() {
@@ -70,7 +69,7 @@ export default async function ContratosPage() {
             <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
               <Scale className="h-10 w-10 mb-4 opacity-20" />
               <p>Nenhum contrato encontrado.</p>
-              <p className="text-sm">Clique em "Novo Contrato" para registrar um contrato.</p>
+              <p className="text-sm">Clique em &quot;Novo Contrato&quot; para registrar um contrato.</p>
             </div>
           ) : (
             <div className="rounded-md border">

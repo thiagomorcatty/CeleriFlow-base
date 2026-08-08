@@ -3,10 +3,13 @@
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import crypto from "crypto";
-import { Prisma } from "@prisma/client";
+import { CulturalIncentiveProject, Prisma } from "@prisma/client";
 
-type ActionResult<T = any> = { error?: string; data?: T };
+type ActionResult<T = unknown> = { error?: string; data?: T };
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
 
 const projectSchema = z.object({
   codigoEdital: z.string().min(1, "Informe o código do edital."),
@@ -18,7 +21,7 @@ const projectSchema = z.object({
   valorSolicitado: z.number().positive("Informe o valor solicitado."),
 });
 
-export async function submitCulturalProjectAction(input: z.infer<typeof projectSchema>): Promise<ActionResult> {
+export async function submitCulturalProjectAction(input: z.infer<typeof projectSchema>): Promise<ActionResult<CulturalIncentiveProject>> {
   const parsed = projectSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
 
@@ -35,12 +38,13 @@ export async function submitCulturalProjectAction(input: z.infer<typeof projectS
 
     revalidatePath("/cultura/fomento-projetos");
     return { data: project };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao submeter projeto cultural." };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao submeter projeto cultural.") };
   }
 }
 
-export async function submitAccountabilityAction(projectId: string, reciboNota: string): Promise<ActionResult> {
+export async function submitAccountabilityAction(projectId: string, reciboNota: string): Promise<ActionResult<{ project: CulturalIncentiveProject; recibo: string }>> {
+  void reciboNota;
   try {
     const context = await getTenantContextForModuleEdit("CULTURA");
     const timestamp = Date.now();
@@ -57,12 +61,12 @@ export async function submitAccountabilityAction(projectId: string, reciboNota: 
 
     revalidatePath("/cultura/fomento-projetos");
     return { data: { project: updated, recibo } };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao enviar prestação de contas." };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao enviar prestação de contas.") };
   }
 }
 
-export async function getCulturalProjectsAction(): Promise<ActionResult> {
+export async function getCulturalProjectsAction(): Promise<ActionResult<CulturalIncentiveProject[]>> {
   try {
     const context = await getTenantContextForModuleEdit("CULTURA");
     const projects = await context.prisma.culturalIncentiveProject.findMany({
@@ -70,7 +74,7 @@ export async function getCulturalProjectsAction(): Promise<ActionResult> {
       take: 20,
     });
     return { data: projects };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao carregar projetos de fomento." };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao carregar projetos de fomento.") };
   }
 }

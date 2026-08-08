@@ -2,6 +2,7 @@
 
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
 
 export async function saveInstitution(formData: FormData) {
   try {
@@ -23,7 +24,7 @@ export async function saveInstitution(formData: FormData) {
       logoUrl = `data:${mimeType};base64,${base64}`;
     }
 
-    const data: any = {
+    const data: Prisma.InstitutionCreateInput = {
       name: formData.get("name") as string,
       cnpj: formData.get("cnpj") as string,
       legalName: formData.get("legalName") as string,
@@ -63,8 +64,8 @@ export async function saveInstitution(formData: FormData) {
     revalidatePath("/administracao/instituicao");
     
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error saving institution:", error);
-    return { error: error.message || "Erro desconhecido ao salvar os dados da instituição." };
+    return { error: error instanceof Error ? error.message : "Erro desconhecido ao salvar os dados da instituição." };
   }
 }

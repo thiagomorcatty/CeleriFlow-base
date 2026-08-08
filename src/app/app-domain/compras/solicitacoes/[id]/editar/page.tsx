@@ -26,8 +26,10 @@ export default async function EditarSolicitacaoPage({ params }: { params: Promis
   const mappedSolicitacao = {
     ...solicitacao,
     items: solicitacao.items.map((item) => ({
-      ...item,
-      catalogItemId: item.materialId,
+      catalogItemId: item.materialId ?? "",
+      customName: item.customName ?? "",
+      quantity: item.quantity,
+      estimatedUnitValue: item.estimatedUnitValue ?? 0,
     }))
   };
 

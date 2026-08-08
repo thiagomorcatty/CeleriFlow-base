@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getAttendanceContext, ticketScope } from "@/lib/attendance/access";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export default async function CentralDemandasPage({ searchParams }: { searchPara
   const search = q.trim();
   const now = new Date();
   const deadlineWarning = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-  const filters: any[] = [ticketScope(context)];
+  const filters: Prisma.TicketWhereInput[] = [ticketScope(context)];
   if (status) filters.push({ status });
   if (priority) filters.push({ priority });
   if (channelId) filters.push({ channelId });

@@ -144,7 +144,7 @@ export default function CargosClient({ roles }: { roles: Role[] }) {
           {filteredRoles.length === 0 && (
             <tr>
               <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
-                Nenhum cargo encontrado para "{searchTerm}".
+                Nenhum cargo encontrado para &quot;{searchTerm}&quot;.
               </td>
             </tr>
           )}

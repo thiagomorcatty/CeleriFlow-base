@@ -1,19 +1,12 @@
 "use client";
 
-import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { deletePonto } from "./actions";
+import type { AttendanceRecord } from "@prisma/client";
 
-export function PontoRowActions({ record }: { record: any }) {
+export function PontoRowActions({ record }: { record: AttendanceRecord }) {
   const handleDelete = async () => {
     if (confirm(`Deseja realmente excluir este registro de ponto?`)) {
       const result = await deletePonto(record.id);

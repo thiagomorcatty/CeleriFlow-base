@@ -10,16 +10,46 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
-import { MoneyInput } from "@/components/ui/MoneyInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export function ContratoForm({ data, processos = [], secretarias = [], fornecedores = [] }: { data?: any, processos?: any[], secretarias?: any[], fornecedores?: any[] }) {
+type ContractData = {
+  id: string;
+  processId: string;
+  supplierId: string;
+  secretariatId: string;
+  number: string;
+  object: string;
+  initialValue: number;
+};
+
+type ProcessOption = {
+  id: string;
+  number: string;
+  object: string;
+  estimatedValue: number | null;
+};
+
+type SecretariatOption = { id: string; name: string };
+
+type SupplierOption = {
+  id: string;
+  company: { corporateName: string; tradeName: string | null } | null;
+};
+
+type ContratoFormProps = {
+  data?: ContractData;
+  processos?: ProcessOption[];
+  secretarias?: SecretariatOption[];
+  fornecedores?: SupplierOption[];
+};
+
+export function ContratoForm({ data, processos = [], secretarias = [], fornecedores = [] }: ContratoFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [selectedProcessId, setSelectedProcessId] = useState<string>(data?.processId || "");
 
   const selectedProcess = processos.find(p => p.id === selectedProcessId);
-  const calculatedTotal = selectedProcess ? selectedProcess.estimatedValue : (data?.initialValue || 0);
+  const calculatedTotal = selectedProcess?.estimatedValue ?? data?.initialValue ?? 0;
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);

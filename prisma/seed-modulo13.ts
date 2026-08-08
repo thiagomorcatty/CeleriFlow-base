@@ -33,7 +33,7 @@ async function main() {
     }
   });
 
-  const farmacia = await prisma.healthUnit.create({
+  await prisma.healthUnit.create({
     data: {
       name: `Farmácia Municipal Central ${randomUnitSuffix}`,
       type: 'Farmácia',

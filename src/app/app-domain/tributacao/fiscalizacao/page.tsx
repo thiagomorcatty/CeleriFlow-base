@@ -24,7 +24,7 @@ export default async function FiscalizacaoPage() {
 
   return (
     <div className="max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-      <FiscalizacaoClient infractions={infractions as any} taxpayers={taxpayers} />
+      <FiscalizacaoClient infractions={infractions} taxpayers={taxpayers} />
     </div>
   );
 }

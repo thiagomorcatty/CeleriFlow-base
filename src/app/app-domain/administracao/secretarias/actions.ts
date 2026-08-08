@@ -15,7 +15,7 @@ export async function createSecretariat(formData: FormData) {
     await prisma.secretariat.create({
       data: { name, acronym, managerName }
     });
-  } catch (error) {
+  } catch {
     return { error: "Erro ao criar secretaria" };
   }
 

@@ -18,7 +18,7 @@ async function main() {
   const crasCentro = await prisma.socialUnit.create({
     data: { name: 'CRAS Centro', type: 'CRAS', phone: '(11) 3333-4444', email: 'cras.centro@prefeitura.gov.br', realEstateId: realEstate1.id, managerId: assistenteSocial.id },
   });
-  const creasSul = await prisma.socialUnit.create({
+  await prisma.socialUnit.create({
     data: { name: 'CREAS Zona Sul', type: 'CREAS', phone: '(11) 5555-6666', email: 'creas.sul@prefeitura.gov.br', realEstateId: realEstate2.id },
   });
 

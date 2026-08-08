@@ -4,7 +4,9 @@ import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
 import { createUnit } from "../actions";
 
-export default function NovaUnidadeForm({ secretariats }: { secretariats: any[] }) {
+type Secretariat = { id: string; name: string };
+
+export default function NovaUnidadeForm({ secretariats }: { secretariats: Secretariat[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 

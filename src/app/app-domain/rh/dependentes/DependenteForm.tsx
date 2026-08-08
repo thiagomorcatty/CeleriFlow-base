@@ -11,8 +11,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
 import { MaskedInput } from "@/components/ui/MaskedInput";
+import type { Dependent, Employee } from "@prisma/client";
 
-export function DependenteForm({ data, employees = [], defaultEmployeeId }: { data?: any, employees?: any[], defaultEmployeeId?: string }) {
+export function DependenteForm({ data, employees = [], defaultEmployeeId }: { data?: Dependent, employees?: Employee[], defaultEmployeeId?: string }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -28,7 +29,7 @@ export function DependenteForm({ data, employees = [], defaultEmployeeId }: { da
     }
   }
 
-  const formatDateForInput = (dateString?: string | Date) => {
+  const formatDateForInput = (dateString?: string | Date | null) => {
     if (!dateString) return "";
     const date = new Date(dateString);
     return date.toISOString().split("T")[0];

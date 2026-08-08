@@ -4,21 +4,41 @@ import { useState } from "react";
 import { Building2, Search, Plus, Phone, Mail, CheckCircle2, XCircle } from "lucide-react";
 import { createSocialUnit, updateSocialUnit, toggleSocialUnitStatus } from "../actions";
 
-export default function UnidadesClient({ unidadesInicial, realEstates, employees }: any) {
-  const [unidades, setUnidades] = useState(unidadesInicial);
+type SocialUnit = {
+  id: string;
+  name: string;
+  type: string;
+  phone: string | null;
+  email: string | null;
+  realEstateId: string | null;
+  managerId: string | null;
+  isActive: boolean;
+  realEstate: { streetName: string | null; number: string | null } | null;
+  manager: { name: string } | null;
+};
+type RealEstate = { id: string; streetName: string | null; number: string | null; propertyType: string | null };
+type Employee = { id: string; name: string };
+type SocialUnitFormData = { name: string; type: string; phone: string; email: string; realEstateId: string; managerId: string };
+
+export default function UnidadesClient({ unidadesInicial, realEstates, employees }: {
+  unidadesInicial: SocialUnit[];
+  realEstates: RealEstate[];
+  employees: Employee[];
+}) {
+  const [unidades, setUnidades] = useState<SocialUnit[]>(unidadesInicial);
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUnidade, setEditingUnidade] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  const [editingUnidade, setEditingUnidade] = useState<SocialUnit | null>(null);
+  const [formData, setFormData] = useState<SocialUnitFormData>({
     name: "", type: "CRAS", phone: "", email: "", realEstateId: "", managerId: ""
   });
 
-  const filtered = unidades.filter((u: any) => 
+  const filtered = unidades.filter((u) =>
     u.name.toLowerCase().includes(search.toLowerCase()) || 
     u.type.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleOpenModal = (unidade?: any) => {
+  const handleOpenModal = (unidade?: SocialUnit) => {
     if (unidade) {
       setEditingUnidade(unidade);
       setFormData({
@@ -40,12 +60,12 @@ export default function UnidadesClient({ unidadesInicial, realEstates, employees
     e.preventDefault();
     if (editingUnidade) {
       const res = await updateSocialUnit(editingUnidade.id, formData);
-      if (res.success) {
-        setUnidades(unidades.map((u: any) => u.id === editingUnidade.id ? res.data : u));
+      if (res.success && res.data) {
+        setUnidades(unidades.map((u) => u.id === editingUnidade.id ? res.data : u));
       }
     } else {
       const res = await createSocialUnit(formData);
-      if (res.success) {
+      if (res.success && res.data) {
         setUnidades([...unidades, res.data]);
       }
     }
@@ -54,8 +74,8 @@ export default function UnidadesClient({ unidadesInicial, realEstates, employees
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     const res = await toggleSocialUnitStatus(id, !currentStatus);
-    if (res.success) {
-      setUnidades(unidades.map((u: any) => u.id === id ? res.data : u));
+    if (res.success && res.data) {
+      setUnidades(unidades.map((u) => u.id === id ? res.data : u));
     }
   };
 
@@ -108,7 +128,7 @@ export default function UnidadesClient({ unidadesInicial, realEstates, employees
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
               {filtered.length > 0 ? (
-                filtered.map((unidade: any) => (
+                filtered.map((unidade) => (
                   <tr key={unidade.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-4"><p className="font-semibold text-slate-800">{unidade.name}</p></td>
                     <td className="p-4">
@@ -210,7 +230,7 @@ export default function UnidadesClient({ unidadesInicial, realEstates, employees
                   <label className="text-sm font-medium text-slate-700">Imóvel Vinculado (Patrimônio)</label>
                   <select value={formData.realEstateId} onChange={e => setFormData({...formData, realEstateId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                     <option value="">Nenhum</option>
-                    {realEstates.map((re: any) => (
+                    {realEstates.map((re) => (
                       <option key={re.id} value={re.id}>{re.streetName}, {re.number} - {re.propertyType}</option>
                     ))}
                   </select>
@@ -219,7 +239,7 @@ export default function UnidadesClient({ unidadesInicial, realEstates, employees
                   <label className="text-sm font-medium text-slate-700">Servidor Responsável (Gestor)</label>
                   <select value={formData.managerId} onChange={e => setFormData({...formData, managerId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                     <option value="">Nenhum</option>
-                    {employees.map((emp: any) => (
+                    {employees.map((emp) => (
                       <option key={emp.id} value={emp.id}>{emp.name}</option>
                     ))}
                   </select>

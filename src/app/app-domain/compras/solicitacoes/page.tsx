@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { buttonVariants } from "@/components/ui/button"
-import { ShoppingCart, Plus, Filter, Search, FileText } from "lucide-react"
+import { ShoppingCart, Plus, Filter, Search } from "lucide-react"
 import Link from "next/link"
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { format } from "date-fns"
@@ -64,7 +64,7 @@ export default async function SolicitacoesPage() {
             <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
               <ShoppingCart className="h-10 w-10 mb-4 opacity-20" />
               <p>Nenhuma solicitação encontrada.</p>
-              <p className="text-sm">Clique em "Nova Solicitação" para criar um pedido.</p>
+              <p className="text-sm">Clique em &quot;Nova Solicitação&quot; para criar um pedido.</p>
             </div>
           ) : (
             <div className="rounded-md border">

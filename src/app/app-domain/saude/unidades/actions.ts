@@ -7,7 +7,18 @@ async function getTenantPrisma() {
   return (await getTenantContextForModuleEdit("SAUDE")).prisma;
 }
 
-export async function createHealthUnit(data: any) {
+type HealthUnitInput = {
+  name: string;
+  type: string;
+  cnes?: string | null;
+  phone?: string | null;
+};
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+export async function createHealthUnit(data: HealthUnitInput) {
   const prisma = await getTenantPrisma();
   try {
     await prisma.healthUnit.create({
@@ -21,12 +32,12 @@ export async function createHealthUnit(data: any) {
     });
     revalidatePath('/app-domain/saude/unidades');
     return { success: true };
-  } catch (error: any) {
-    return { error: error.message || "Erro ao criar unidade de saúde" };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao criar unidade de saúde") };
   }
 }
 
-export async function updateHealthUnit(id: string, data: any) {
+export async function updateHealthUnit(id: string, data: HealthUnitInput) {
   const prisma = await getTenantPrisma();
   try {
     await prisma.healthUnit.update({
@@ -40,8 +51,8 @@ export async function updateHealthUnit(id: string, data: any) {
     });
     revalidatePath('/app-domain/saude/unidades');
     return { success: true };
-  } catch (error: any) {
-    return { error: error.message || "Erro ao atualizar unidade de saúde" };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao atualizar unidade de saúde") };
   }
 }
 
@@ -54,8 +65,8 @@ export async function toggleHealthUnitStatus(id: string, isActive: boolean) {
     });
     revalidatePath('/app-domain/saude/unidades');
     return { success: true };
-  } catch (error: any) {
-    return { error: error.message || "Erro ao alterar status da unidade" };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao alterar status da unidade") };
   }
 }
 
@@ -67,7 +78,7 @@ export async function deleteHealthUnit(id: string) {
     });
     revalidatePath('/app-domain/saude/unidades');
     return { success: true };
-  } catch (error: any) {
+  } catch {
     return { error: "Não é possível excluir esta unidade pois ela já possui vínculos no sistema (ex: Equipes, Pacientes)." };
   }
 }

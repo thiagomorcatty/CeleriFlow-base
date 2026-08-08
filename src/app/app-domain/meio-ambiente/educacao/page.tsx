@@ -5,13 +5,14 @@ import Link from "next/link";
 import { NewEduProgramSheet } from "../components/NewEduProgramSheet";
 import { QuickFilters } from "../components/QuickFilters";
 import { EduProgramRowActions } from "../components/EduProgramRowActions";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 export default async function EducacaoAmbientalPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const { prisma } = await getTenantContextForModule("MEIO_AMBIENTE");
   const searchParams = await Promise.resolve(props.searchParams || {});
-  const where: any = {};
+  const where: Prisma.EnvEduProgramWhereInput = {};
   if (searchParams.status) where.status = searchParams.status;
 
   const programs = await prisma.envEduProgram.findMany({ where, orderBy: { startDate: "desc" } });

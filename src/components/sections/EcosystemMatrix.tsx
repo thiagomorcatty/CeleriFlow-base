@@ -12,19 +12,12 @@ import {
   UserCheck, 
   FolderCheck, 
   MessageSquare, 
-  ShieldCheck, 
   BarChart3, 
   Activity, 
   GraduationCap, 
   HardHat, 
   Trees, 
-  HeartHandshake, 
-  ShieldAlert, 
-  Droplet, 
-  Scale, 
   ArrowRight,
-  Sparkles,
-  CheckCircle2,
   Cpu
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

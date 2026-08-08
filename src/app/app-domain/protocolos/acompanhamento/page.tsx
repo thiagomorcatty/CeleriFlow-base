@@ -20,15 +20,16 @@ function queryString(filters: Record<string, string>) {
   return query ? `/protocolos/acompanhamento?${query}` : "/protocolos/acompanhamento";
 }
 
-function deadlineState(expectedCompletionAt: Date | null) {
+function deadlineState(expectedCompletionAt: Date | null, requestTime: Date) {
   if (!expectedCompletionAt) return { label: "Sem prazo", className: "bg-slate-100 text-slate-600" };
-  const days = Math.ceil((expectedCompletionAt.getTime() - Date.now()) / 86_400_000);
+  const days = Math.ceil((expectedCompletionAt.getTime() - requestTime.getTime()) / 86_400_000);
   if (days < 0) return { label: `${Math.abs(days)}d atrasado`, className: "bg-red-100 text-red-700" };
   if (days <= 3) return { label: `${days}d restantes`, className: "bg-amber-100 text-amber-700" };
   return { label: `${days}d restantes`, className: "bg-emerald-100 text-emerald-700" };
 }
 
 export default async function AcompanhamentoPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const requestTime = new Date();
   const context = await getProtocolContext();
   const { prisma, user } = context;
   const filters = await searchParams;
@@ -39,9 +40,9 @@ export default async function AcompanhamentoPage({ searchParams }: { searchParam
   if (filters.status) where.status = filters.status;
   if (filters.priority) where.priority = filters.priority;
   if (isAdmin && filters.departmentId) where.currentDepartmentId = filters.departmentId;
-  if (filters.deadline === "overdue") where.expectedCompletionAt = { lt: new Date() };
+  if (filters.deadline === "overdue") where.expectedCompletionAt = { lt: requestTime };
   if (filters.deadline === "soon") {
-    where.expectedCompletionAt = { gte: new Date(), lte: new Date(Date.now() + 3 * 86_400_000) };
+    where.expectedCompletionAt = { gte: requestTime, lte: new Date(requestTime.getTime() + 3 * 86_400_000) };
   }
   if (filters.q?.trim()) {
     const query = filters.q.trim();
@@ -110,7 +111,7 @@ export default async function AcompanhamentoPage({ searchParams }: { searchParam
           <tbody className="divide-y divide-slate-100">
             {processes.map(process => {
               const lastMovement = process.movements[0];
-              const deadline = deadlineState(process.expectedCompletionAt);
+              const deadline = deadlineState(process.expectedCompletionAt, requestTime);
               return <tr key={process.id} className="hover:bg-slate-50"><td className="px-4 py-3"><p className="font-semibold text-slate-800">{process.protocolNumber}</p><p className="text-xs text-slate-500">{process.processType.name} · {process.subject.name}</p></td><td className="px-4 py-3 text-slate-700">{process.person?.fullName || process.company?.corporateName || "Não informado"}</td><td className="px-4 py-3"><p className="text-slate-700">{process.currentDepartment?.name || "Sem setor"}</p><p className="text-xs text-slate-500">{process.currentResponsibleEmployee?.name || "Sem responsável"}</p></td><td className="px-4 py-3"><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{process.status}</span></td><td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${deadline.className}`}>{deadline.label}</span></td><td className="px-4 py-3 text-xs text-slate-500">{lastMovement ? <>{lastMovement.fromDepartment?.name || "Abertura"} → {lastMovement.toDepartment.name}<br />{new Date(lastMovement.movedAt).toLocaleString("pt-BR")}</> : "Sem movimentação"}</td><td className="px-4 py-3 text-right"><Link href={`/protocolos/processos/${process.id}`} className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:text-emerald-900"><Eye className="h-4 w-4" />Ver</Link></td></tr>;
             })}
             {processes.length === 0 && <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-500">Nenhum processo encontrado para os filtros selecionados.</td></tr>}

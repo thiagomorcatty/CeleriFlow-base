@@ -1,5 +1,4 @@
 import "dotenv/config";
-import { Prisma } from "@prisma/client";
 import type { HealthProfessional } from "@prisma/client";
 import { prisma } from "../src/lib/prisma";
 import crypto from "node:crypto";
@@ -42,7 +41,7 @@ export async function runMassivePocSeed() {
   const pwHash = hashPassword(seedPassword);
 
   // 1. Exercício Fiscal e Secretarias
-  const year2026 = await prisma.financialYear.upsert({
+  await prisma.financialYear.upsert({
     where: { year: 2026 },
     create: {
       year: 2026,
@@ -83,13 +82,13 @@ export async function runMassivePocSeed() {
     update: { name: "Departamento de Compras e Licitações" },
   });
 
-  const ugPrefeitura = await prisma.budgetUnit.upsert({
+  await prisma.budgetUnit.upsert({
     where: { code: "0101" },
     create: { code: "0101", name: "Prefeitura Municipal de São João do Ivaí", secretariatId: secFinancas.id },
     update: { name: "Prefeitura Municipal de São João do Ivaí" },
   });
 
-  const ugCamara = await prisma.budgetUnit.upsert({
+  await prisma.budgetUnit.upsert({
     where: { code: "0201" },
     create: { code: "0201", name: "Câmara Municipal de São João do Ivaí", secretariatId: secFinancas.id },
     update: { name: "Câmara Municipal de São João do Ivaí" },
@@ -111,12 +110,6 @@ export async function runMassivePocSeed() {
   // 3. SEED MASSIVO: CADASTRO DE SERVIDORES (500 SERVIDORES)
   console.log("   --> Gerando 500 Servidores no RH...");
   const secretariasList = [secFinancas.id, secEducacao.id, secSaude.id, secSocial.id];
-  const cargosList = [
-    "Analista de Gestão Pública", "Fiscal de Tributos", "Médico da Família", 
-    "Professor Educação Básica", "Assistente Social", "Guarda Municipal", 
-    "Agente Administrativo", "Técnico em Enfermagem", "Engenheiro Civil", "Psicólogo"
-  ];
-  
   for (let i = 1; i <= 500; i++) {
     const numStr = i.toString().padStart(4, "0");
     const part1 = (100 + (i % 800)).toString().padStart(3, "0");
@@ -125,7 +118,6 @@ export async function runMassivePocSeed() {
     const digito = ((i * 7) % 89 + 10).toString();
     const cpfSimulado = `${part1}.${part2}.${part3}-${digito}`;
     const secId = secretariasList[i % secretariasList.length];
-    const cargoNome = cargosList[i % cargosList.length];
 
     await prisma.employee.upsert({
       where: { cpf: cpfSimulado },

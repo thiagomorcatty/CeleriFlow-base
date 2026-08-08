@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Download, Upload, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Download, Upload, Loader2 } from "lucide-react";
 
 interface ImportExportDropdownProps {
   onExport?: () => void;

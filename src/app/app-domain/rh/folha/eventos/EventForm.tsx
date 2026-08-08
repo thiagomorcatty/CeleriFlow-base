@@ -4,15 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { saveEvent } from "./actions";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
+import type { PayrollEvent } from "@prisma/client";
 
-export function EventForm({ data }: { data?: any }) {
+export function EventForm({ data }: { data?: PayrollEvent }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isActive, setIsActive] = useState(data ? data.isActive : true);

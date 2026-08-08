@@ -68,7 +68,7 @@ async function main() {
   });
 
   // 2. Licenças
-  const lic1 = await prisma.envLicense.create({
+  await prisma.envLicense.create({
     data: {
       licenseNumber: 'LO-2026/012',
       licenseType: 'De Operação (LO)',
@@ -78,7 +78,7 @@ async function main() {
     }
   });
 
-  const lic2 = await prisma.envLicense.create({
+  await prisma.envLicense.create({
     data: {
       licenseNumber: 'LI-2026/045',
       licenseType: 'De Instalação (LI)',
@@ -88,7 +88,7 @@ async function main() {
     }
   });
 
-  const lic3 = await prisma.envLicense.create({
+  await prisma.envLicense.create({
     data: {
       licenseNumber: 'LP-2026/009',
       licenseType: 'Prévia (LP)',

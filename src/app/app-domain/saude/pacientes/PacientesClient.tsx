@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Users, Pencil, Trash2, RefreshCw, CheckCircle, XCircle, Plus, Search, AlertCircle } from "lucide-react";
+import { Users, Pencil, Trash2, CheckCircle, XCircle, Plus, Search, AlertCircle } from "lucide-react";
 import { createPatient, updatePatient, togglePatientStatus, deletePatient } from "./actions";
 
 type Person = {
@@ -31,6 +31,17 @@ type Patient = {
   referenceUnitId: string | null;
   teamId: string | null;
   status: string;
+};
+
+type PatientFormData = {
+  personId: string;
+  cns: string;
+  bloodType: string;
+  referenceUnitId: string;
+  teamId: string;
+  fullName: string;
+  cpf: string;
+  birthDate: string;
 };
 
 function formatCPF(cpf: string | null | undefined) {
@@ -68,7 +79,7 @@ export default function PacientesClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isNewPerson, setIsNewPerson] = useState(false);
-  const [formData, setFormData] = useState<Partial<Patient> & { fullName?: string; cpf?: string; birthDate?: string }>({
+  const [formData, setFormData] = useState<PatientFormData>({
     personId: "", cns: "", bloodType: "", referenceUnitId: "", teamId: "", fullName: "", cpf: "", birthDate: ""
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -112,7 +123,10 @@ export default function PacientesClient({
       cns: patient.cns || "",
       bloodType: patient.bloodType || "",
       referenceUnitId: patient.referenceUnitId || "",
-      teamId: patient.teamId || ""
+      teamId: patient.teamId || "",
+      fullName: "",
+      cpf: "",
+      birthDate: ""
     });
     setErrorMsg("");
     setIsModalOpen(true);

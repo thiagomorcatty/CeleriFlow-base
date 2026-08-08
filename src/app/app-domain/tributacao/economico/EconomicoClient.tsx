@@ -17,6 +17,12 @@ type Registration = {
   };
 };
 
+type RegistrationUpdate = {
+  municipalInsc?: string;
+  primaryCnae?: string | null;
+  taxRegime?: string | null;
+};
+
 type Taxpayer = {
   id: string;
   name: string;
@@ -30,7 +36,7 @@ export default function EconomicoClient({
   taxpayers: Taxpayer[];
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Registration>>({});
+  const [editForm, setEditForm] = useState<RegistrationUpdate>({});
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
@@ -53,7 +59,7 @@ export default function EconomicoClient({
     if (!editingId) return;
     if (confirm("Deseja salvar as alterações?")) {
       try {
-        await updateEconomicRegistration(editingId, editForm as any);
+        await updateEconomicRegistration(editingId, editForm);
         setEditingId(null);
       } catch (e) {
         console.error(e);

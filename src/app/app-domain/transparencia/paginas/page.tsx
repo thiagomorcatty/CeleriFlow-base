@@ -32,7 +32,7 @@ export default async function PaginasPage() {
             <FileOutput className="text-slate-400 w-8 h-8" />
           </div>
           <h3 className="text-lg font-bold text-slate-700">Nenhuma página encontrada</h3>
-          <p className="text-slate-500 mt-1">Crie páginas como "História", "Prefeito" ou "Estrutura".</p>
+          <p className="text-slate-500 mt-1">Crie páginas como &quot;História&quot;, &quot;Prefeito&quot; ou &quot;Estrutura&quot;.</p>
         </div>
       ) : (
         <PaginasTable pages={pages} />

@@ -15,7 +15,7 @@ export async function createDepartment(formData: FormData) {
     await prisma.department.create({
       data: { name, description, secretariatId }
     });
-  } catch (error) {
+  } catch {
     return { error: "Erro ao criar departamento" };
   }
 

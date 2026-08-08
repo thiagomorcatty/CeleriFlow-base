@@ -7,7 +7,7 @@ async function main() {
   console.log('Populando Módulo 1 (Administração)...');
   
   // Institution
-  const inst = await prisma.institution.create({
+  await prisma.institution.create({
     data: {
       name: 'Prefeitura Municipal de Exemplo',
       cnpj: '12.345.678/0001-99',

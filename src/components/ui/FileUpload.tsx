@@ -39,8 +39,8 @@ export function FileUpload({ name, defaultValue, onUploadSuccess }: FileUploadPr
       const data = await response.json();
       setFileUrl(data.url);
       if (onUploadSuccess) onUploadSuccess(data.url);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Erro ao fazer upload");
     } finally {
       setIsUploading(false);
     }

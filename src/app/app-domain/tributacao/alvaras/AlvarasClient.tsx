@@ -7,8 +7,8 @@ import { createLicense, updateLicense, deactivateLicense, activateLicense } from
 type License = {
   id: string;
   licenseType: string;
-  issueDate: Date;
-  validUntil: Date;
+  issueDate: Date | null;
+  validUntil: Date | null;
   status: string;
   taxpayer: {
     id: string;
@@ -43,7 +43,7 @@ export default function AlvarasClient({
     setEditingId(lic.id);
     setEditForm({
       licenseType: lic.licenseType,
-      validUntil: new Date(lic.validUntil).toISOString().split('T')[0]
+      validUntil: lic.validUntil ? new Date(lic.validUntil).toISOString().split('T')[0] : ""
     });
   };
 
@@ -171,7 +171,7 @@ export default function AlvarasClient({
                       {license.taxpayer.company?.corporateName || license.taxpayer.person?.fullName || "Não Informado"}
                     </td>
                     <td className="px-6 py-4 text-slate-600">
-                      {new Date(license.issueDate).toLocaleDateString('pt-BR')}
+                      {license.issueDate ? new Date(license.issueDate).toLocaleDateString('pt-BR') : "-"}
                     </td>
                     <td className="px-6 py-4 text-slate-600">
                       {editingId === license.id ? (
@@ -182,7 +182,7 @@ export default function AlvarasClient({
                           className="border rounded px-2 py-1 text-sm"
                         />
                       ) : (
-                        new Date(license.validUntil).toLocaleDateString('pt-BR')
+                        license.validUntil ? new Date(license.validUntil).toLocaleDateString('pt-BR') : "-"
                       )}
                     </td>
                     <td className="px-6 py-4">

@@ -2,6 +2,7 @@ import { File, Save, ArrowLeft, Building, User, Info, Upload } from "lucide-reac
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTenantContextForModule, getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
+import type { Prisma } from "@prisma/client";
 
 export default async function NovoDocumentoPage() {
   const { prisma } = await getTenantContextForModule("CADASTROS");
@@ -32,7 +33,7 @@ export default async function NovoDocumentoPage() {
       fileUrl = "/uploads/simulated-" + file.name;
     }
 
-    const data: any = {
+    const data: Prisma.DocumentUncheckedCreateInput = {
       title,
       documentType,
       notes: notes || null,

@@ -2,6 +2,7 @@
 
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
 
 async function getTenantPrisma() {
   return (await getTenantContextForModuleEdit("COMPRAS")).prisma;
@@ -28,21 +29,20 @@ export async function saveDispensa(formData: FormData) {
   
   const processId = formData.get("processId") as string;
   const supplierId = formData.get("supplierId") as string;
+  const value = Number(formData.get("value") || 0);
 
-  if (!processId) {
-    return { success: false, error: "Selecione um Processo Vinculado." };
+  if (!processId || !supplierId) {
+    return { success: false, error: "Selecione o processo e o fornecedor vinculados." };
   }
 
-  const data: any = {
+  const data: Prisma.DirectContractingUncheckedCreateInput = {
     type: type || "Dispensa",
     status: status || "Em Elaboração",
     justification,
     processId,
+    supplierId,
+    value,
   };
-
-  if (supplierId) {
-    data.supplierId = supplierId;
-  }
 
   try {
     if (id) {

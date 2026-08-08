@@ -7,7 +7,18 @@ async function getTenantPrisma() {
   return (await getTenantContextForModuleEdit("SAUDE")).prisma;
 }
 
-export async function createHealthProfessional(data: any) {
+type HealthProfessionalInput = {
+  employeeId: string;
+  specialty?: string | null;
+  councilType?: string | null;
+  councilNumber?: string | null;
+};
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+export async function createHealthProfessional(data: HealthProfessionalInput) {
   const prisma = await getTenantPrisma();
   try {
     const existing = await prisma.healthProfessional.findUnique({
@@ -28,12 +39,12 @@ export async function createHealthProfessional(data: any) {
     });
     revalidatePath('/app-domain/saude/profissionais');
     return { success: true };
-  } catch (error: any) {
-    return { error: error.message || "Erro ao criar profissional" };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao criar profissional") };
   }
 }
 
-export async function updateHealthProfessional(id: string, data: any) {
+export async function updateHealthProfessional(id: string, data: HealthProfessionalInput) {
   const prisma = await getTenantPrisma();
   try {
     await prisma.healthProfessional.update({
@@ -46,8 +57,8 @@ export async function updateHealthProfessional(id: string, data: any) {
     });
     revalidatePath('/app-domain/saude/profissionais');
     return { success: true };
-  } catch (error: any) {
-    return { error: error.message || "Erro ao atualizar profissional" };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao atualizar profissional") };
   }
 }
 
@@ -60,8 +71,8 @@ export async function toggleHealthProfessionalStatus(id: string, isActive: boole
     });
     revalidatePath('/app-domain/saude/profissionais');
     return { success: true };
-  } catch (error: any) {
-    return { error: error.message || "Erro ao alterar status do profissional" };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao alterar status do profissional") };
   }
 }
 
@@ -73,7 +84,7 @@ export async function deleteHealthProfessional(id: string) {
     });
     revalidatePath('/app-domain/saude/profissionais');
     return { success: true };
-  } catch (error: any) {
+  } catch {
     return { error: "Não é possível excluir este profissional pois ele possui prontuários ou agendamentos vinculados." };
   }
 }

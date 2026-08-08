@@ -17,7 +17,7 @@ export async function createUnit(formData: FormData) {
     await prisma.administrativeUnit.create({
       data: { name, type, secretariatId, address, managerName }
     });
-  } catch (error) {
+  } catch {
     return { error: "Erro ao criar unidade" };
   }
 

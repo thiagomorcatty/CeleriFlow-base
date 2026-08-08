@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Users, Search, Plus, Filter, Phone, Mail, Building, Briefcase } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 type Vereador = {

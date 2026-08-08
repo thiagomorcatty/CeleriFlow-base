@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { 
-  ShoppingCart,
   Plus,
   Search
 } from "lucide-react"
@@ -11,6 +10,7 @@ import Link from "next/link"
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import type { Prisma } from "@prisma/client";
 
 export default async function RequisicoesPage(
   props: { searchParams?: Promise<{ q?: string, status?: string }> }
@@ -20,7 +20,7 @@ export default async function RequisicoesPage(
   const q = searchParams?.q || "";
   const status = searchParams?.status || "";
 
-  const where: any = {};
+  const where: Prisma.MaterialRequestWhereInput = {};
   if (q) {
     where.number = { contains: q, mode: 'insensitive' };
   }

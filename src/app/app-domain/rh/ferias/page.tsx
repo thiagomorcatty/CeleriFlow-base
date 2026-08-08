@@ -7,12 +7,13 @@ import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { FeriasRowActions } from "./FeriasRowActions"
 import { format } from "date-fns"
 import { FeriasFilters } from "./FeriasFilters"
+import type { Prisma } from "@prisma/client";
 
 export default async function FeriasPage({ searchParams }: { searchParams: Promise<{ q?: string, status?: string }> }) {
   const { prisma } = await getTenantContextForModule("RH");
   const { q, status } = await searchParams;
 
-  const whereClause: any = {};
+  const whereClause: Prisma.VacationWhereInput = {};
   if (q) {
     whereClause.employee = { name: { contains: q, mode: 'insensitive' } };
   }

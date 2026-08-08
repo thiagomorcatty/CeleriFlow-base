@@ -4,13 +4,34 @@ import { useState } from "react";
 import { Users, Search, Plus, CreditCard, CheckCircle2, XCircle } from "lucide-react";
 import { createFamily, updateFamily, toggleFamilyStatus } from "../actions";
 
-export default function FamiliasClient({ familiasInicial, persons }: any) {
-  const [familias, setFamilias] = useState(familiasInicial);
+type Person = { id: string; fullName: string; cpf: string | null };
+type Family = {
+  id: string;
+  representativeId: string;
+  representative: Person;
+  nis: string | null;
+  familyCode: string | null;
+  income: number | null;
+  perCapitaIncome: number | null;
+  vulnerabilities: string | null;
+  status: string;
+};
+type FamilyFormData = {
+  representativeId: string;
+  nis: string;
+  familyCode: string;
+  income: string;
+  perCapitaIncome: string;
+  vulnerabilities: string;
+};
+
+export default function FamiliasClient({ familiasInicial, persons }: { familiasInicial: Family[]; persons: Person[] }) {
+  const [familias, setFamilias] = useState<Family[]>(familiasInicial);
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingFamilia, setEditingFamilia] = useState<any>(null);
+  const [editingFamilia, setEditingFamilia] = useState<Family | null>(null);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FamilyFormData>({
     representativeId: "",
     nis: "",
     familyCode: "",
@@ -19,13 +40,13 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
     vulnerabilities: ""
   });
 
-  const filtered = familias.filter((f: any) => 
+  const filtered = familias.filter((f) =>
     (f.representative?.fullName || "").toLowerCase().includes(search.toLowerCase()) || 
     (f.nis || "").includes(search) ||
     (f.familyCode || "").includes(search)
   );
 
-  const handleOpenModal = (familia?: any) => {
+  const handleOpenModal = (familia?: Family) => {
     if (familia) {
       setEditingFamilia(familia);
       setFormData({
@@ -45,14 +66,19 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    const data = {
+      ...formData,
+      income: formData.income ? Number(formData.income) : undefined,
+      perCapitaIncome: formData.perCapitaIncome ? Number(formData.perCapitaIncome) : undefined,
+    };
     if (editingFamilia) {
-      const res = await updateFamily(editingFamilia.id, formData as any);
-      if (res.success) {
-        setFamilias(familias.map((f: any) => f.id === editingFamilia.id ? res.data : f));
+      const res = await updateFamily(editingFamilia.id, data);
+      if (res.success && res.data) {
+        setFamilias(familias.map((f) => f.id === editingFamilia.id ? res.data : f));
       }
     } else {
-      const res = await createFamily(formData as any);
-      if (res.success) {
+      const res = await createFamily(data);
+      if (res.success && res.data) {
         setFamilias([res.data, ...familias]);
       }
     }
@@ -62,8 +88,8 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
   const handleToggleStatus = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === "Ativo" ? "Inativo" : "Ativo";
     const res = await toggleFamilyStatus(id, newStatus);
-    if (res.success) {
-      setFamilias(familias.map((f: any) => f.id === id ? res.data : f));
+    if (res.success && res.data) {
+      setFamilias(familias.map((f) => f.id === id ? res.data : f));
     }
   };
 
@@ -112,7 +138,7 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
               {filtered.length > 0 ? (
-                filtered.map((familia: any) => (
+                filtered.map((familia) => (
                   <tr key={familia.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-4">
                       <p className="font-semibold text-slate-800">
@@ -206,7 +232,7 @@ export default function FamiliasClient({ familiasInicial, persons }: any) {
                   <label className="text-sm font-medium text-slate-700">Responsável Familiar (Pessoa)</label>
                   <select required value={formData.representativeId} onChange={e => setFormData({...formData, representativeId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                     <option value="">Selecione a Pessoa</option>
-                    {persons.map((p: any) => (
+                    {persons.map((p) => (
                       <option key={p.id} value={p.id}>{p.fullName} {p.cpf ? `(CPF: ${p.cpf})` : ''}</option>
                     ))}
                   </select>

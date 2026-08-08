@@ -22,9 +22,9 @@ export async function createEmployee(formData: FormData) {
     await prisma.employee.create({
       data: { name, cpf, email, phone, registration, roleId, secretariatId, departmentId, unitId }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating employee:", error);
-    return { error: error.message || "Erro desconhecido ao cadastrar servidor." };
+    return { error: error instanceof Error ? error.message : "Erro desconhecido ao cadastrar servidor." };
   }
 
   revalidatePath("/administracao/servidores");

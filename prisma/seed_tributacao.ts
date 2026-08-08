@@ -110,7 +110,7 @@ async function main() {
     }
   });
 
-  const re2 = await prisma.realEstate.upsert({
+  await prisma.realEstate.upsert({
     where: { municipalInsc: 'IM-1002' },
     update: {},
     create: {
@@ -152,7 +152,7 @@ async function main() {
   // 6. Alvarás (No unique key, delete first)
   await prisma.license.deleteMany({ where: { taxpayerId: { in: [t3.id, t4.id] } }});
   
-  const l1 = await prisma.license.create({
+  await prisma.license.create({
     data: {
       licenseType: 'Funcionamento',
       taxpayerId: t3.id,
@@ -163,7 +163,7 @@ async function main() {
     }
   });
 
-  const l2 = await prisma.license.create({
+  await prisma.license.create({
     data: {
       licenseType: 'Sanitária',
       taxpayerId: t4.id,
@@ -175,7 +175,7 @@ async function main() {
   });
 
   // 7. Dívida Ativa
-  const ad1 = await prisma.activeDebt.upsert({
+  await prisma.activeDebt.upsert({
     where: { cdaNumber: 'CDA-2025-1001' },
     update: {},
     create: {
@@ -189,7 +189,7 @@ async function main() {
     }
   });
 
-  const ad2 = await prisma.activeDebt.upsert({
+  await prisma.activeDebt.upsert({
     where: { cdaNumber: 'CDA-2024-5002' },
     update: {},
     create: {
@@ -242,7 +242,7 @@ async function main() {
     }
   });
 
-  const tg1 = await prisma.taxGuide.create({
+  await prisma.taxGuide.create({
     data: {
       assessmentId: assess1.id,
       barcode: '111122223333444455556666',
@@ -252,7 +252,7 @@ async function main() {
     }
   });
 
-  const tg2 = await prisma.taxGuide.create({
+  await prisma.taxGuide.create({
     data: {
       assessmentId: assess2.id,
       barcode: '999988887777666655554444',

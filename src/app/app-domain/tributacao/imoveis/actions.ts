@@ -33,12 +33,12 @@ export async function createRealEstate(data: {
 }
 
 export async function updateRealEstate(id: string, data: {
-  municipalInsc?: string;
-  streetName?: string;
-  number?: string;
+  municipalInsc?: string | null;
+  streetName?: string | null;
+  number?: string | null;
   propertyType?: string;
-  landArea?: number;
-  builtArea?: number;
+  landArea?: number | null;
+  builtArea?: number | null;
 }) {
   const prisma = await getTenantPrisma();
   const result = await prisma.realEstate.update({

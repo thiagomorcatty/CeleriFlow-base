@@ -2,12 +2,13 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import type { Department, Role } from "@prisma/client";
 
-export function EmployeeFilters({ roles, departments }: { roles: any[], departments: any[] }) {
+export function EmployeeFilters({ roles, departments }: { roles: Role[], departments: Department[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   

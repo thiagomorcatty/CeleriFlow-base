@@ -4,8 +4,9 @@ import { Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { deleteLicenca } from "./actions";
+import type { Leave } from "@prisma/client";
 
-export function LicencaRowActions({ leave }: { leave: any }) {
+export function LicencaRowActions({ leave }: { leave: Leave }) {
   const handleDelete = async () => {
     if (confirm(`Deseja realmente excluir o registro desta licença?`)) {
       const result = await deleteLicenca(leave.id);

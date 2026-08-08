@@ -2,6 +2,7 @@ import { Home, Save, ArrowLeft, MapPin, Maximize, Building } from "lucide-react"
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTenantContextForModule, getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
+import type { Prisma } from "@prisma/client";
 
 export default async function NovoImovelPage() {
   const { prisma } = await getTenantContextForModule("CADASTROS");
@@ -31,7 +32,7 @@ export default async function NovoImovelPage() {
     const landArea = parseFloat(formData.get("landArea") as string) || null;
     const builtArea = parseFloat(formData.get("builtArea") as string) || null;
 
-    const data: any = {
+    const data: Prisma.RealEstateUncheckedCreateInput = {
       municipalInsc: municipalInsc || null,
       propertyType: propertyType || null,
       propertyUse: propertyUse || null,

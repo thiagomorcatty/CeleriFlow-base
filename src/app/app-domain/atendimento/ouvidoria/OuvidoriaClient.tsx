@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { EyeOff, FileText, Search } from "lucide-react";
+import { EyeOff, Search } from "lucide-react";
 
 type Ombudsman = {
   id: string;

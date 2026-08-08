@@ -29,7 +29,7 @@ export default function ModelosClient({ initialModelos }: { initialModelos: Mode
     if (!editForm.title.trim()) return;
     setLoading(id);
     try {
-      await updateModelo(id, { title: editForm.title.trim(), notes: editForm.notes || null as any });
+      await updateModelo(id, { title: editForm.title.trim(), notes: editForm.notes || null });
       setModelos((prev) =>
         prev.map((m) => (m.id === id ? { ...m, title: editForm.title.trim(), notes: editForm.notes || null, updatedAt: new Date() } : m))
       );

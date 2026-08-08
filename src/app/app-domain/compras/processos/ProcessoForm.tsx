@@ -7,26 +7,49 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { savePurchaseProcess } from "./actions";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 
-export function ProcessoForm({ data, catalogItems = [] }: { data?: any, catalogItems?: any[] }) {
+type ProcessItem = {
+  catalogItemId: string;
+  customName: string;
+  quantity: number;
+  estimatedUnitValue: number;
+};
+
+type ProcessData = {
+  id: string;
+  number: string;
+  type: string;
+  modality: string | null;
+  object: string;
+  estimatedValue: number | null;
+  items?: ProcessItem[];
+};
+
+type CatalogItemOption = {
+  id: string;
+  code?: string | null;
+  name: string;
+  estimatedValue?: number | null;
+};
+
+type ProcessoFormProps = {
+  data?: ProcessData;
+  catalogItems?: CatalogItemOption[];
+};
+
+export function ProcessoForm({ data, catalogItems = [] }: ProcessoFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   
-  const [items, setItems] = useState<any[]>(data?.items || []);
-  const [estimatedTotal, setEstimatedTotal] = useState<number>(data?.estimatedValue || 0);
-
-  // Auto-calculate total when items change
-  useEffect(() => {
-    if (items.length > 0) {
-      const total = items.reduce((acc, curr) => acc + (curr.quantity * (curr.estimatedUnitValue || 0)), 0);
-      setEstimatedTotal(total);
-    }
-  }, [items]);
+  const [items, setItems] = useState<ProcessItem[]>(data?.items || []);
+  const estimatedTotal = items.length > 0
+    ? items.reduce((acc, curr) => acc + (curr.quantity * (curr.estimatedUnitValue || 0)), 0)
+    : data?.estimatedValue || 0;
 
   const handleAddItem = () => {
     setItems([...items, { catalogItemId: "", customName: "", quantity: 1, estimatedUnitValue: 0 }]);
@@ -38,7 +61,7 @@ export function ProcessoForm({ data, catalogItems = [] }: { data?: any, catalogI
     setItems(newItems);
   };
 
-  const updateItem = (index: number, field: string, value: any) => {
+  const updateItem = <Field extends keyof ProcessItem>(index: number, field: Field, value: ProcessItem[Field]) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     
@@ -61,10 +84,10 @@ export function ProcessoForm({ data, catalogItems = [] }: { data?: any, catalogI
     const formData = new FormData(e.currentTarget);
     const payload = {
       id: data?.id,
-      number: formData.get("number"),
-      type: formData.get("type"),
-      modality: formData.get("modality"),
-      object: formData.get("object"),
+      number: String(formData.get("number") ?? ""),
+      type: String(formData.get("type") ?? ""),
+      modality: String(formData.get("modality") ?? ""),
+      object: String(formData.get("object") ?? ""),
       estimatedValue: parseFloat(formData.get("estimatedValue") as string) || estimatedTotal,
       items: items
     };
@@ -140,7 +163,7 @@ export function ProcessoForm({ data, catalogItems = [] }: { data?: any, catalogI
 
               {items.length === 0 ? (
                 <div className="text-center py-6 text-slate-500 border rounded-lg bg-slate-50">
-                  Nenhum item adicionado. Clique em "Adicionar Item".
+                  Nenhum item adicionado. Clique em &quot;Adicionar Item&quot;.
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -151,7 +174,7 @@ export function ProcessoForm({ data, catalogItems = [] }: { data?: any, catalogI
                           <Label>Produto ou Serviço *</Label>
                           <Select 
                             value={item.catalogItemId || (item.customName ? "custom" : "")} 
-                            onValueChange={(val) => updateItem(index, 'catalogItemId', val)}
+                            onValueChange={(val) => updateItem(index, 'catalogItemId', val ?? "")}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione do Catálogo ou Serviço Customizado..." />

@@ -6,7 +6,7 @@ import { createActiveDebt, updateActiveDebt, cancelActiveDebt, reactivateActiveD
 
 type ActiveDebt = {
   id: string;
-  cdaNumber: string;
+  cdaNumber: string | null;
   year: number;
   originDebtType: string;
   originalValue: number;

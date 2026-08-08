@@ -6,6 +6,7 @@ import Link from "next/link"
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { ServidorRowActions } from "./ServidorRowActions"
 import { EmployeeFilters } from "./EmployeeFilters"
+import type { Prisma } from "@prisma/client";
 
 export default async function ServidoresPage(
   props: {
@@ -24,7 +25,7 @@ export default async function ServidoresPage(
   const roleId = searchParams?.roleId || "";
   const departmentId = searchParams?.departmentId || "";
 
-  const where: any = {};
+  const where: Prisma.EmployeeWhereInput = {};
   if (q) {
     where.OR = [
       { name: { contains: q, mode: 'insensitive' } },

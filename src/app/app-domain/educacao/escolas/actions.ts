@@ -33,7 +33,7 @@ export async function createSchool(formData: FormData) {
         isActive: true,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Erro ao criar escola:", error);
     throw new Error("Erro ao cadastrar escola. Verifique se o INEP já existe.");
   }

@@ -1,5 +1,5 @@
 import React from "react";
-import { Utensils, AlertCircle, TrendingUp, Calendar as CalendarIcon, DollarSign } from "lucide-react";
+import { Utensils, AlertCircle, Calendar as CalendarIcon, DollarSign } from "lucide-react";
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import Link from "next/link";
 

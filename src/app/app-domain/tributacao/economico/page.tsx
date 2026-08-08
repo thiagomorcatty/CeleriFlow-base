@@ -26,7 +26,7 @@ export default async function CadastroEconomicoPage() {
 
   return (
     <div className="max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-      <EconomicoClient registrations={registrations as any} taxpayers={taxpayers} />
+      <EconomicoClient registrations={registrations} taxpayers={taxpayers} />
     </div>
   );
 }

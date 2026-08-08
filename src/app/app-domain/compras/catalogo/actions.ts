@@ -7,7 +7,18 @@ async function getTenantPrisma() {
   return (await getTenantContextForModuleEdit("COMPRAS")).prisma;
 }
 
-export async function saveCatalogItem(formData: any) {
+type CatalogItemFormData = {
+  id: string | null;
+  code: string;
+  name: string;
+  description: string;
+  category: string;
+  unit: string;
+  estimatedValue: number;
+  isActive: boolean;
+};
+
+export async function saveCatalogItem(formData: CatalogItemFormData) {
   const prisma = await getTenantPrisma();
   try {
     let finalCode = formData.code;

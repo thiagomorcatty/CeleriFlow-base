@@ -1,23 +1,58 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Search, ClipboardList, Lock, Clock, CheckCircle2, XCircle, SearchCode, ShieldCheck, HeartHandshake, UserCheck } from "lucide-react";
+import { FileText, Search, ClipboardList, Lock, Clock, CheckCircle2, XCircle, SearchCode, HeartHandshake } from "lucide-react";
 import { createAttendance, updateAttendance, toggleAttendanceStatus } from "../actions";
 import { searchCadUnicoAction, saveRmaRecordAction } from "./cadunico-actions";
 
-export default function ProntuarioClient({ atendimentosInicial, familias, persons, professionals, units }: any) {
-  const [atendimentos, setAtendimentos] = useState(atendimentosInicial);
+type Family = { id: string; familyCode: string | null; nis: string | null };
+type Person = { id: string; fullName: string };
+type Professional = { id: string; name: string };
+type SocialUnit = { id: string; name: string };
+type Attendance = {
+  id: string;
+  date: Date;
+  familyId: string;
+  personId: string | null;
+  unitId: string;
+  professionalId: string;
+  type: string;
+  description: string;
+  secrecyLevel: string;
+  isActive: boolean;
+  family: Family;
+  person: Person | null;
+  unit: SocialUnit;
+};
+type AttendanceFormData = {
+  familyId: string;
+  personId: string;
+  unitId: string;
+  professionalId: string;
+  type: string;
+  description: string;
+  secrecyLevel: string;
+};
+
+export default function ProntuarioClient({ atendimentosInicial, familias, persons, professionals, units }: {
+  atendimentosInicial: Attendance[];
+  familias: Family[];
+  persons: Person[];
+  professionals: Professional[];
+  units: SocialUnit[];
+}) {
+  const [atendimentos, setAtendimentos] = useState<Attendance[]>(atendimentosInicial);
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAtendimento, setEditingAtendimento] = useState<any>(null);
+  const [editingAtendimento, setEditingAtendimento] = useState<Attendance | null>(null);
 
   // Estados para consulta CadÚnico
   const [searchNis, setSearchNis] = useState("");
-  const [cadUnicoResult, setCadUnicoResult] = useState<any | null>(null);
+  const [cadUnicoResult, setCadUnicoResult] = useState<Awaited<ReturnType<typeof searchCadUnicoAction>>["data"] | null>(null);
   const [cadLoading, setCadLoading] = useState(false);
   const [rmaSuccessMsg, setRmaSuccessMsg] = useState<string | null>(null);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AttendanceFormData>({
     familyId: "",
     personId: "",
     unitId: "",
@@ -62,13 +97,13 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
     }
   }
 
-  const filtered = atendimentos.filter((a: any) => 
+  const filtered = atendimentos.filter((a) =>
     (a.family?.familyCode || "").includes(search) || 
     (a.person?.fullName || "").toLowerCase().includes(search.toLowerCase()) ||
     (a.description || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleOpenModal = (atendimento?: any) => {
+  const handleOpenModal = (atendimento?: Attendance) => {
     if (atendimento) {
       setEditingAtendimento(atendimento);
       setFormData({
@@ -90,13 +125,13 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingAtendimento) {
-      const res = await updateAttendance(editingAtendimento.id, formData as any);
-      if (res.success) {
-        setAtendimentos(atendimentos.map((a: any) => a.id === editingAtendimento.id ? res.data : a));
+      const res = await updateAttendance(editingAtendimento.id, formData);
+      if (res.success && res.data) {
+        setAtendimentos(atendimentos.map((a) => a.id === editingAtendimento.id ? res.data : a));
       }
     } else {
-      const res = await createAttendance(formData as any);
-      if (res.success) {
+      const res = await createAttendance(formData);
+      if (res.success && res.data) {
         setAtendimentos([res.data, ...atendimentos]);
       }
     }
@@ -105,8 +140,8 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     const res = await toggleAttendanceStatus(id, !currentStatus);
-    if (res.success) {
-      setAtendimentos(atendimentos.map((a: any) => a.id === id ? res.data : a));
+    if (res.success && res.data) {
+      setAtendimentos(atendimentos.map((a) => a.id === id ? res.data : a));
     }
   };
 
@@ -245,7 +280,7 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
               {filtered.length > 0 ? (
-                filtered.map((atendimento: any) => (
+                filtered.map((atendimento) => (
                   <tr key={atendimento.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-4">
                       <p className="font-semibold text-slate-800 flex items-center gap-1 text-xs">
@@ -335,7 +370,7 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
                   <label className="text-sm font-medium text-slate-700">Família</label>
                   <select required value={formData.familyId} onChange={e => setFormData({...formData, familyId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                     <option value="">Selecione a Família</option>
-                    {familias.map((f: any) => (
+                    {familias.map((f) => (
                       <option key={f.id} value={f.id}>{f.familyCode} - NIS: {f.nis}</option>
                     ))}
                   </select>
@@ -344,7 +379,7 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
                   <label className="text-sm font-medium text-slate-700">Cidadão (Opcional)</label>
                   <select value={formData.personId} onChange={e => setFormData({...formData, personId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                     <option value="">Geral da Família</option>
-                    {persons.map((p: any) => (
+                    {persons.map((p) => (
                       <option key={p.id} value={p.id}>{p.fullName}</option>
                     ))}
                   </select>
@@ -353,7 +388,7 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
                   <label className="text-sm font-medium text-slate-700">Unidade</label>
                   <select required value={formData.unitId} onChange={e => setFormData({...formData, unitId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                     <option value="">Selecione a Unidade</option>
-                    {units.map((u: any) => (
+                    {units.map((u) => (
                       <option key={u.id} value={u.id}>{u.name}</option>
                     ))}
                   </select>
@@ -362,7 +397,7 @@ export default function ProntuarioClient({ atendimentosInicial, familias, person
                   <label className="text-sm font-medium text-slate-700">Técnico Responsável</label>
                   <select required value={formData.professionalId} onChange={e => setFormData({...formData, professionalId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                     <option value="">Selecione o Técnico</option>
-                    {professionals.map((p: any) => (
+                    {professionals.map((p) => (
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>

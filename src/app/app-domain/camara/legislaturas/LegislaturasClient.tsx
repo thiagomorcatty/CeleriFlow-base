@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { Landmark, Search, Plus, Calendar } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 type Legislatura = {

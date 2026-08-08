@@ -43,9 +43,9 @@ export default function LoginPage() {
       }
 
       router.push("/dashboard");
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
-      const errorMessage = error?.message || "E-mail ou senha incorretos. Tente novamente.";
+      const errorMessage = error instanceof Error ? error.message : "E-mail ou senha incorretos. Tente novamente.";
       setErrorMsg(`Erro: ${errorMessage}`);
     } finally {
       setIsLoading(false);
@@ -60,7 +60,7 @@ export default function LoginPage() {
     try {
       await sendPasswordResetEmail(auth, email);
       setView("reset-success");
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
       setErrorMsg("Ocorreu um erro. Verifique se o e-mail está correto.");
     } finally {

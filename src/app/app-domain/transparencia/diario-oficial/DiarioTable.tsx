@@ -6,7 +6,15 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function DiarioTable({ diaries }: { diaries: any[] }) {
+type Diary = {
+  id: string;
+  editionNumber: number;
+  publishDate: Date | string;
+  status: string;
+  pdfUrl: string;
+};
+
+export default function DiarioTable({ diaries }: { diaries: Diary[] }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 

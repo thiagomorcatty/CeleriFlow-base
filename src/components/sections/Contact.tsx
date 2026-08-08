@@ -53,7 +53,7 @@ export function Contact() {
     },
   });
 
-  async function onSubmit(data: LeadFormValues) {
+  async function onSubmit() {
     setIsSubmitting(true);
     try {
       // Simulação de envio com fallback

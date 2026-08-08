@@ -4,8 +4,9 @@ import { Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { deleteAtoPessoal } from "./actions";
+import type { PersonnelAct } from "@prisma/client";
 
-export function AtoRowActions({ ato }: { ato: any }) {
+export function AtoRowActions({ ato }: { ato: PersonnelAct }) {
   const handleDelete = async () => {
     if (confirm(`Deseja realmente excluir este ato de pessoal?`)) {
       const result = await deleteAtoPessoal(ato.id);

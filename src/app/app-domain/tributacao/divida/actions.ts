@@ -33,7 +33,7 @@ export async function createActiveDebt(data: {
 }
 
 export async function updateActiveDebt(id: string, data: {
-  cdaNumber?: string;
+  cdaNumber?: string | null;
   year?: number;
   originDebtType?: string;
   originalValue?: number;

@@ -29,7 +29,7 @@ export async function saveBidding(formData: FormData) {
   const number = formData.get("number") as string;
   const modality = formData.get("modality") as string;
   
-  let processId = formData.get("processId") as string;
+  const processId = formData.get("processId") as string;
   const status = formData.get("status") as string;
   const publicationDateStr = formData.get("publicationDate") as string;
   const sessionDateStr = formData.get("sessionDate") as string;

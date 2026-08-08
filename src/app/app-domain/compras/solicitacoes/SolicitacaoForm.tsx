@@ -7,26 +7,52 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { savePurchaseRequest } from "./actions";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 
-export function SolicitacaoForm({ data, catalogItems = [], secretarias = [] }: { data?: any, catalogItems?: any[], secretarias?: any[] }) {
+type RequestItem = {
+  catalogItemId: string;
+  customName: string;
+  quantity: number;
+  estimatedUnitValue: number;
+};
+
+type RequestData = {
+  id: string;
+  number: string;
+  secretariatId: string;
+  object: string;
+  justification: string;
+  estimatedValue: number | null;
+  items?: RequestItem[];
+};
+
+type CatalogItemOption = {
+  id: string;
+  code?: string | null;
+  name: string;
+  estimatedValue?: number | null;
+};
+
+type SecretariatOption = { id: string; name: string };
+
+type SolicitacaoFormProps = {
+  data?: RequestData;
+  catalogItems?: CatalogItemOption[];
+  secretarias?: SecretariatOption[];
+};
+
+export function SolicitacaoForm({ data, catalogItems = [], secretarias = [] }: SolicitacaoFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   
-  const [items, setItems] = useState<any[]>(data?.items || []);
-  const [estimatedTotal, setEstimatedTotal] = useState<number>(data?.estimatedValue || 0);
-
-  // Auto-calculate total when items change
-  useEffect(() => {
-    if (items.length > 0) {
-      const total = items.reduce((acc, curr) => acc + (curr.quantity * (curr.estimatedUnitValue || 0)), 0);
-      setEstimatedTotal(total);
-    }
-  }, [items]);
+  const [items, setItems] = useState<RequestItem[]>(data?.items || []);
+  const estimatedTotal = items.length > 0
+    ? items.reduce((acc, curr) => acc + (curr.quantity * (curr.estimatedUnitValue || 0)), 0)
+    : data?.estimatedValue || 0;
 
   const handleAddItem = () => {
     setItems([...items, { catalogItemId: "", customName: "", quantity: 1, estimatedUnitValue: 0 }]);
@@ -38,7 +64,7 @@ export function SolicitacaoForm({ data, catalogItems = [], secretarias = [] }: {
     setItems(newItems);
   };
 
-  const updateItem = (index: number, field: string, value: any) => {
+  const updateItem = <Field extends keyof RequestItem>(index: number, field: Field, value: RequestItem[Field]) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     
@@ -61,9 +87,9 @@ export function SolicitacaoForm({ data, catalogItems = [], secretarias = [] }: {
     const formData = new FormData(e.currentTarget);
     const payload = {
       id: data?.id,
-      number: formData.get("number"),
-      object: formData.get("object"),
-      justification: formData.get("justification"),
+      number: String(formData.get("number") ?? ""),
+      object: String(formData.get("object") ?? ""),
+      justification: String(formData.get("justification") ?? ""),
       estimatedValue: parseFloat(formData.get("estimatedValue") as string) || estimatedTotal,
       items: items
     };
@@ -146,7 +172,7 @@ export function SolicitacaoForm({ data, catalogItems = [], secretarias = [] }: {
 
               {items.length === 0 ? (
                 <div className="text-center py-6 text-slate-500 border rounded-lg bg-slate-50">
-                  Nenhum item adicionado. Clique em "Adicionar Item".
+                  Nenhum item adicionado. Clique em &quot;Adicionar Item&quot;.
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -157,7 +183,7 @@ export function SolicitacaoForm({ data, catalogItems = [], secretarias = [] }: {
                           <Label>Produto ou Serviço *</Label>
                           <Select 
                             value={item.catalogItemId || (item.customName ? "custom" : "")} 
-                            onValueChange={(val) => updateItem(index, 'catalogItemId', val)}
+                            onValueChange={(val) => updateItem(index, 'catalogItemId', val ?? "")}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione do Catálogo ou Serviço Customizado..." />

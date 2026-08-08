@@ -16,7 +16,7 @@ function getGitCommitCount() {
     if (!isNaN(count) && count > 0) {
       return count;
     }
-  } catch (e) {
+  } catch {
     // Git fallback
   }
   return null;

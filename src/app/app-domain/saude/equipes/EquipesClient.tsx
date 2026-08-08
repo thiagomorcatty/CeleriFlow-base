@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Users, Pencil, Trash2, RefreshCw, CheckCircle, XCircle, Plus, Search, AlertCircle } from "lucide-react";
+import { Users, Pencil, Trash2, CheckCircle, XCircle, Plus, Search, AlertCircle } from "lucide-react";
 import { createHealthTeam, updateHealthTeam, toggleHealthTeamStatus, deleteHealthTeam } from "./actions";
 
 type HealthUnit = {
@@ -19,11 +19,18 @@ type HealthTeam = {
   isActive: boolean;
 };
 
+type HealthTeamFormData = {
+  name: string;
+  code: string;
+  microarea: string;
+  unitId: string;
+};
+
 export default function EquipesClient({ teams, units }: { teams: HealthTeam[], units: HealthUnit[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Partial<HealthTeam>>({
+  const [formData, setFormData] = useState<HealthTeamFormData>({
     name: "", code: "", microarea: "", unitId: ""
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -45,7 +52,7 @@ export default function EquipesClient({ teams, units }: { teams: HealthTeam[], u
     setEditingId(team.id);
     setFormData({
       name: team.name,
-      code: team.code,
+      code: team.code ?? "",
       microarea: team.microarea || "",
       unitId: team.unitId
     });

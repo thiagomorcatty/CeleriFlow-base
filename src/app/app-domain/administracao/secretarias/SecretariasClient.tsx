@@ -16,7 +16,6 @@ type Secretariat = {
 export default function SecretariasClient({ secretariats }: { secretariats: Secretariat[] }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", acronym: "", managerName: "" });
-  const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredSecretariats = secretariats.filter(sec => 
@@ -43,7 +42,6 @@ export default function SecretariasClient({ secretariats }: { secretariats: Secr
   const handleDeactivate = async (id: string) => {
     if (window.confirm("Tem certeza que deseja INATIVAR esta secretaria? Ela não será excluída do sistema, apenas desativada.")) {
       await deactivateSecretariat(id);
-      setDeactivatingId(null);
     }
   };
 
@@ -140,7 +138,7 @@ export default function SecretariasClient({ secretariats }: { secretariats: Secr
           {filteredSecretariats.length === 0 && (
             <tr>
               <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
-                Nenhuma secretaria encontrada para "{searchTerm}".
+                Nenhuma secretaria encontrada para &quot;{searchTerm}&quot;.
               </td>
             </tr>
           )}

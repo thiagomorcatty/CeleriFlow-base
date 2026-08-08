@@ -3,12 +3,46 @@
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 
+type PersonUpdateData = {
+  fullName?: string;
+  cpf?: string;
+  email?: string | null;
+  phonePrimary?: string | null;
+  isTaxpayer?: boolean;
+  municipalInsc?: string;
+};
+
+type CompanyUpdateData = {
+  corporateName?: string;
+  cnpj?: string;
+  emailPrimary?: string | null;
+  phone?: string | null;
+  isTaxpayer?: boolean;
+  municipalInsc?: string;
+};
+
+type RealEstateUpdateData = {
+  municipalInsc?: string | null;
+  propertyType?: string | null;
+  streetName?: string | null;
+  number?: string | null;
+};
+
+type SupplierUpdateData = {
+  businessBranch?: string | null;
+};
+
+type DocumentUpdateData = {
+  title?: string;
+  documentType?: string;
+};
+
 async function getTenantPrisma() {
   return (await getTenantContextForModuleEdit("CADASTROS")).prisma;
 }
 
 // Person
-export async function updatePerson(id: string, data: any) {
+export async function updatePerson(id: string, data: PersonUpdateData) {
   const prisma = await getTenantPrisma();
   const { isTaxpayer, municipalInsc, ...personData } = data;
   
@@ -43,7 +77,7 @@ export async function activatePerson(id: string) {
 }
 
 // Company
-export async function updateCompany(id: string, data: any) {
+export async function updateCompany(id: string, data: CompanyUpdateData) {
   const prisma = await getTenantPrisma();
   const { isTaxpayer, municipalInsc, ...companyData } = data;
   
@@ -80,7 +114,7 @@ export async function activateCompany(id: string) {
 // Taxpayer endpoints removed as it's now handled by Person/Company
 
 // RealEstate
-export async function updateRealEstate(id: string, data: any) {
+export async function updateRealEstate(id: string, data: RealEstateUpdateData) {
   const prisma = await getTenantPrisma();
   const result = await prisma.realEstate.update({ where: { id }, data });
   revalidatePath("/cadastros/imoveis");
@@ -100,7 +134,7 @@ export async function activateRealEstate(id: string) {
 }
 
 // Supplier
-export async function updateSupplier(id: string, data: any) {
+export async function updateSupplier(id: string, data: SupplierUpdateData) {
   const prisma = await getTenantPrisma();
   const result = await prisma.supplier.update({ where: { id }, data });
   revalidatePath("/cadastros/fornecedores");
@@ -122,7 +156,7 @@ export async function activateSupplier(id: string) {
 // Address endpoints removed as they don't have a standalone page anymore
 
 // Document
-export async function updateDocument(id: string, data: any) {
+export async function updateDocument(id: string, data: DocumentUpdateData) {
   const prisma = await getTenantPrisma();
   const result = await prisma.document.update({ where: { id }, data });
   revalidatePath("/cadastros/documentos");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Plus, Search, Filter, Pencil, Check, X } from "lucide-react";
+import { FileText, Plus, Search, Pencil, Check, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -150,7 +150,7 @@ export default function CatalogoClient({ items }: { items: CatalogItem[] }) {
             <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
               <FileText className="h-10 w-10 mb-4 opacity-20" />
               <p>Nenhum item encontrado.</p>
-              <p className="text-sm">Tente mudar sua busca ou clique em "Novo Item".</p>
+              <p className="text-sm">Tente mudar sua busca ou clique em &quot;Novo Item&quot;.</p>
             </div>
           ) : (
             <div className="rounded-md border">

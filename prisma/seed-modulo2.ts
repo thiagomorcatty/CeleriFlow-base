@@ -19,7 +19,7 @@ async function main() {
   const p2 = await prisma.person.create({
     data: { fullName: 'Maria Oliveira', cpf: '55566677788', email: 'maria@email.com' }
   });
-  const p3 = await prisma.person.create({
+  await prisma.person.create({
     data: { fullName: 'Carlos Pereira', cpf: '99900011122', email: 'carlos@email.com' }
   });
 

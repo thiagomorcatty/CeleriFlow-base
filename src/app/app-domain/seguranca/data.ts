@@ -1,11 +1,12 @@
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import type { SegurancaGuarda, SegurancaInfracao, SegurancaMobilidadeRegistro, SegurancaOcorrencia } from "@prisma/client";
 import type { SegMobItem } from "./types";
 
 async function getTenantPrisma() {
   return (await getTenantContextForModule("SEGURANCA")).prisma;
 }
 
-export function mapGuarda(item: any): SegMobItem {
+export function mapGuarda(item: SegurancaGuarda): SegMobItem {
   return {
     id: item.id,
     kind: "guarda",
@@ -19,7 +20,7 @@ export function mapGuarda(item: any): SegMobItem {
   };
 }
 
-export function mapOcorrencia(item: any): SegMobItem {
+export function mapOcorrencia(item: SegurancaOcorrencia): SegMobItem {
   return {
     id: item.id,
     kind: "ocorrencia",
@@ -36,7 +37,7 @@ export function mapOcorrencia(item: any): SegMobItem {
   };
 }
 
-export function mapInfracao(item: any): SegMobItem {
+export function mapInfracao(item: SegurancaInfracao): SegMobItem {
   return {
     id: item.id,
     kind: "infracao",
@@ -52,7 +53,7 @@ export function mapInfracao(item: any): SegMobItem {
   };
 }
 
-export function mapRegistro(item: any): SegMobItem {
+export function mapRegistro(item: SegurancaMobilidadeRegistro): SegMobItem {
   return {
     id: item.id,
     kind: "registro",

@@ -1,9 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { buttonVariants } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { 
   Users, 
-  UserPlus, 
   FileText, 
   Clock, 
   Banknote,

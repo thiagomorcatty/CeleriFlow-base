@@ -5,7 +5,7 @@ import { processWaterReadingAndBill } from "@/lib/saneamento/saneamento-engine";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-type ActionResult<T = any> = { error?: string; data?: T };
+type ActionResult<T = unknown> = { error?: string; data?: T };
 
 const readingSchema = z.object({
   codigoMatricula: z.string().min(1, "Informe o código da matrícula."),
@@ -17,7 +17,7 @@ const readingSchema = z.object({
   tipoTarifa: z.enum(["RESIDENCIAL", "COMERCIAL", "INDUSTRIAL"]).default("RESIDENCIAL"),
 });
 
-export async function processMeterReadingAction(input: z.infer<typeof readingSchema>): Promise<ActionResult> {
+export async function processMeterReadingAction(input: z.infer<typeof readingSchema>): Promise<ActionResult<Awaited<ReturnType<typeof processWaterReadingAndBill>>>> {
   const parsed = readingSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
 
@@ -31,12 +31,12 @@ export async function processMeterReadingAction(input: z.infer<typeof readingSch
 
     revalidatePath("/saneamento/leituras");
     return { data: result };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao processar leitura e emitir fatura." };
+  } catch (err) {
+    return { error: err instanceof Error && err.message ? err.message : "Erro ao processar leitura e emitir fatura." };
   }
 }
 
-export async function getWaterReadingsAction(): Promise<ActionResult> {
+export async function getWaterReadingsAction() {
   try {
     const context = await getTenantContextForModuleEdit("SANEAMENTO");
     const readings = await context.prisma.waterMeterReading.findMany({
@@ -44,7 +44,7 @@ export async function getWaterReadingsAction(): Promise<ActionResult> {
       take: 15,
     });
     return { data: readings };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao carregar leituras de hidrômetros." };
+  } catch (err) {
+    return { error: err instanceof Error && err.message ? err.message : "Erro ao carregar leituras de hidrômetros." };
   }
 }

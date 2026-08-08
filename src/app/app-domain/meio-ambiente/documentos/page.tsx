@@ -5,13 +5,14 @@ import Link from "next/link";
 import { NewDocumentSheet } from "../components/NewDocumentSheet";
 import { QuickFilters } from "../components/QuickFilters";
 import { DocumentRowActions } from "../components/DocumentRowActions";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 export default async function DocumentosAmbientaisPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const { prisma } = await getTenantContextForModule("MEIO_AMBIENTE");
   const searchParams = await Promise.resolve(props.searchParams || {});
-  const where: any = {};
+  const where: Prisma.EnvDocumentWhereInput = {};
   if (searchParams.tipo) where.docType = searchParams.tipo;
 
   const documents = await prisma.envDocument.findMany({ where, include: { enterprise: true }, orderBy: { createdAt: "desc" } });

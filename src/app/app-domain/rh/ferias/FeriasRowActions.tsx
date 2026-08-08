@@ -4,8 +4,9 @@ import { Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { deleteFerias } from "./actions";
+import type { Vacation } from "@prisma/client";
 
-export function FeriasRowActions({ vacation }: { vacation: any }) {
+export function FeriasRowActions({ vacation }: { vacation: Vacation }) {
   const handleDelete = async () => {
     if (confirm(`Deseja realmente excluir o registro de férias deste servidor?`)) {
       const result = await deleteFerias(vacation.id);

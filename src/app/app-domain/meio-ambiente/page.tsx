@@ -22,18 +22,12 @@ export default async function MeioAmbienteDashboardPage() {
     totalEnterprises,
     totalLicenses,
     totalComplaints,
-    totalInspections,
-    totalGreenAreas,
-    totalWastes,
-    totalEduPrograms
+    totalGreenAreas
   ] = await Promise.all([
     prisma.envEnterprise.count(),
     prisma.envLicense.count(),
     prisma.envComplaint.count(),
-    prisma.envInspection.count(),
-    prisma.envGreenArea.count(),
-    prisma.envWaste.count(),
-    prisma.envEduProgram.count()
+    prisma.envGreenArea.count()
   ]);
 
   return (

@@ -7,7 +7,6 @@ async function getTenantPrisma() {
   return (await getTenantContextForSystemAdministration()).prisma;
 }
 
-const SYSTEM_ADMINISTRATOR_ROLE = "Administrador";
 const MODULE_CODES = new Set([
   "ADMINISTRACAO", "RH", "CADASTROS", "DOCUMENTOS", "ATENDIMENTO", "COMPRAS", "CONTRATOS", "FINANCEIRO", "PATRIMONIO", "TRIBUTACAO", "PROCESSOS", "SAUDE",
   "EDUCACAO", "SOCIAL", "OBRAS", "MEIO_AMBIENTE", "SEGURANCA", "SANEAMENTO", "CAMARA", "CULTURA", "TRANSPARENCIA", "CONFIGURACOES",

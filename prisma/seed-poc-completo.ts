@@ -82,19 +82,19 @@ async function main() {
     update: { name: "Secretaria de Finanças e Planejamento" },
   });
 
-  const secEducacao = await prisma.secretariat.upsert({
+  await prisma.secretariat.upsert({
     where: { id: "sec-edu-01" },
     create: { id: "sec-edu-01", name: "Secretaria de Educação e Cultura", acronym: "SEDUC" },
     update: { name: "Secretaria de Educação e Cultura" },
   });
 
-  const secSaude = await prisma.secretariat.upsert({
+  await prisma.secretariat.upsert({
     where: { id: "sec-sau-01" },
     create: { id: "sec-sau-01", name: "Secretaria de Saúde", acronym: "SMS" },
     update: { name: "Secretaria de Saúde" },
   });
 
-  const secSocial = await prisma.secretariat.upsert({
+  await prisma.secretariat.upsert({
     where: { id: "sec-soc-01" },
     create: { id: "sec-soc-01", name: "Secretaria de Assistência Social", acronym: "SEMAS" },
     update: { name: "Secretaria de Assistência Social" },
@@ -352,7 +352,7 @@ async function main() {
     update: { name: "Papel A4 Reciclado 75g" },
   });
 
-  const solicitacaoCompra = await prisma.purchaseRequest.upsert({
+  await prisma.purchaseRequest.upsert({
     where: { id: "sol-compra-01" },
     create: {
       id: "sol-compra-01",
@@ -387,7 +387,7 @@ async function main() {
     update: { status: "Homologado" },
   });
 
-  const contratoPoc = await prisma.contract.upsert({
+  await prisma.contract.upsert({
     where: { number: "CONT-2026/001" },
     create: {
       number: "CONT-2026/001",
@@ -404,7 +404,7 @@ async function main() {
     update: { status: "Vigente" },
   });
 
-  const convenioPoc = await prisma.covenant.upsert({
+  await prisma.covenant.upsert({
     where: { number: "CONV-2026/001" },
     create: {
       number: "CONV-2026/001",
@@ -418,7 +418,7 @@ async function main() {
     update: { status: "Ativo" },
   });
 
-  const campanhaPoc = await prisma.publicityCampaign.upsert({
+  await prisma.publicityCampaign.upsert({
     where: { name: "Campanha Lagoa Seca Transparente 2026" },
     create: {
       name: "Campanha Lagoa Seca Transparente 2026",
@@ -432,7 +432,7 @@ async function main() {
     update: { status: "Ativa" },
   });
 
-  const dividaPoc = await prisma.fundedDebt.upsert({
+  await prisma.fundedDebt.upsert({
     where: { lawNumber: "Lei-482/2020" },
     create: {
       creditorName: "Caixa Econômica Federal - FINISA",
@@ -757,7 +757,7 @@ async function main() {
     for (const reportType of reportTypes) {
       try {
         const dataset = await generateInternalReportDataset(prisma, reportType, exercise2026.id, 2026);
-        const csv = reportDatasetCsv(dataset);
+        reportDatasetCsv(dataset);
         const docType = publicFinancialReportDocumentType(exercise2026.id, reportType);
         const docId = `pub-doc-${reportType.toLowerCase()}-2026`;
 

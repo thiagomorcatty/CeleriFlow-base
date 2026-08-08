@@ -25,7 +25,6 @@ const COLOR_MUTED = "475569"; // Slate 600
 const COLOR_BG_HEADER = "F1F5F9"; // Slate 100
 const COLOR_BORDER = "CBD5E1"; // Slate 300
 const COLOR_ACCENT = "0284C7"; // Blue 600
-const COLOR_TAG_BG = "E0F2FE";
 const COLOR_LIGHT_EMERALD = "ECFDF5";
 
 const borderDefault = {
@@ -40,23 +39,6 @@ const cellBorders = {
   left: borderDefault,
   right: borderDefault,
 };
-
-function createHeading1(text) {
-  return new Paragraph({
-    text: text,
-    heading: HeadingLevel.HEADING_1,
-    spacing: { before: 360, after: 180 },
-    children: [
-      new TextRun({
-        text,
-        bold: true,
-        size: 28, // 14pt
-        color: COLOR_PRIMARY,
-        font: "Calibri",
-      }),
-    ],
-  });
-}
 
 function createHeading2(text) {
   return new Paragraph({

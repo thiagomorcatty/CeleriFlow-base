@@ -48,7 +48,7 @@ export default function GEDClient({
       await createFolder(folderName, currentFolderId);
       setFolderName("");
       setShowFolderModal(false);
-    } catch (e) {
+    } catch {
       alert("Erro ao criar pasta");
     } finally {
       setLoading(false);
@@ -79,7 +79,7 @@ export default function GEDClient({
       setUploadFile(null);
       setUploadType("Arquivo");
       setShowUploadModal(false);
-    } catch (e) {
+    } catch {
       alert("Erro ao fazer upload");
     } finally {
       setLoading(false);
@@ -91,7 +91,7 @@ export default function GEDClient({
     setActiveMenu(null);
     try {
       await deleteDocument(id);
-    } catch (e) {
+    } catch {
       alert("Erro ao excluir");
     }
   };
@@ -101,7 +101,7 @@ export default function GEDClient({
     setActiveMenu(null);
     try {
       await deleteFolder(id);
-    } catch (e) {
+    } catch {
       alert("Erro ao excluir pasta");
     }
   };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, Pencil, Trash2, RefreshCw, CheckCircle, XCircle, Plus, Search, AlertCircle } from "lucide-react";
+import { Building2, Pencil, Trash2, CheckCircle, XCircle, Plus, Search, AlertCircle } from "lucide-react";
 import { createHealthUnit, updateHealthUnit, toggleHealthUnitStatus, deleteHealthUnit } from "./actions";
 
 type HealthUnit = {
@@ -11,6 +11,13 @@ type HealthUnit = {
   cnes: string | null;
   phone: string | null;
   isActive: boolean;
+};
+
+type HealthUnitFormData = {
+  name: string;
+  type: string;
+  cnes: string;
+  phone: string;
 };
 
 const UNIT_TYPES = [
@@ -28,7 +35,7 @@ export default function UnidadesClient({ units }: { units: HealthUnit[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Partial<HealthUnit>>({
+  const [formData, setFormData] = useState<HealthUnitFormData>({
     name: "", type: "UBS", cnes: "", phone: ""
   });
   const [isSaving, setIsSaving] = useState(false);

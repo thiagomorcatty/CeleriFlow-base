@@ -5,7 +5,14 @@ import { deletePage } from "./actions";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-export default function PaginasTable({ pages }: { pages: any[] }) {
+type PortalPage = {
+  id: string;
+  title: string;
+  slug: string;
+  status: string;
+};
+
+export default function PaginasTable({ pages }: { pages: PortalPage[] }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 

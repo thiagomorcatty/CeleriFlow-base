@@ -4,15 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { saveLicenca } from "./actions";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
+import type { Employee, Leave } from "@prisma/client";
 
-export function LicencaForm({ data, employees = [] }: { data?: any, employees?: any[] }) {
+type LeaveFormData = Leave & { description?: string | null };
+
+export function LicencaForm({ data, employees = [] }: { data?: LeaveFormData, employees?: Employee[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [employeeId, setEmployeeId] = useState<string>(data?.employeeId || "");

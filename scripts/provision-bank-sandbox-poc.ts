@@ -76,7 +76,7 @@ async function main() {
     throw new Error("O Banco Virtual Robonuvem não retornou movimentações para a validação da POC.");
   }
 
-  const [budgetUnit, year2025, year2026] = await Promise.all([
+  const [budgetUnit, year2025] = await Promise.all([
     prisma.budgetUnit.findFirst({ where: { code: "0101" }, select: { id: true } }),
     ensureFinancialYear(2025),
     ensureFinancialYear(2026),

@@ -3,6 +3,7 @@ import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { DependenteRowActions } from "./DependenteRowActions"
 import { format } from "date-fns"
 import { DependenteFilters } from "./DependenteFilters"
+import type { Prisma } from "@prisma/client";
 
 export default async function DependentesPage(
   props: {
@@ -15,7 +16,7 @@ export default async function DependentesPage(
   const searchParams = await props.searchParams;
   const q = searchParams?.q || "";
 
-  const where: any = {};
+  const where: Prisma.DependentWhereInput = {};
   if (q) {
     where.OR = [
       { name: { contains: q, mode: 'insensitive' } },

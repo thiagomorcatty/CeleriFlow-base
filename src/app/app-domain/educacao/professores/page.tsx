@@ -1,7 +1,6 @@
 import React from "react";
-import { BookOpen, Search, Filter, Plus, Edit2, Trash2, Building, GraduationCap } from "lucide-react";
+import { BookOpen, Search, Filter, Plus, Edit2, Trash2, Building } from "lucide-react";
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 

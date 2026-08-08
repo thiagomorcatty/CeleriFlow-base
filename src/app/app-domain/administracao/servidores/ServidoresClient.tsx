@@ -219,7 +219,7 @@ export default function ServidoresClient({
           {filteredEmployees.length === 0 && (
             <tr>
               <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
-                Nenhum servidor encontrado para "{searchTerm}".
+                Nenhum servidor encontrado para &quot;{searchTerm}&quot;.
               </td>
             </tr>
           )}

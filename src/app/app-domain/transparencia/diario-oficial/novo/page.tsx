@@ -20,8 +20,8 @@ export default function NovoDiarioPage() {
     try {
       await createDiary(formData);
       router.push("/transparencia/diario-oficial");
-    } catch (err: any) {
-      setError(err.message || "Erro ao salvar o diário oficial.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Erro ao salvar o diário oficial.");
     } finally {
       setIsPending(false);
     }

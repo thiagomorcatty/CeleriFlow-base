@@ -157,10 +157,13 @@ async function main() {
   console.log('✅ 3 Alunos criados e matriculados.');
 
   // 5. Diário de Classe
-  const subject = await prisma.schoolSubject.findFirst({ where: { name: 'Português' } }) ||
-    await prisma.schoolSubject.create({ data: { name: 'Português', code: 'PORT' } });
+  let subject = await prisma.schoolSubject.findFirst({ where: { name: 'Português' } });
+  if (!subject) {
+    subject = await prisma.schoolSubject.create({ data: { name: 'Português', code: 'PORT' } });
+  }
 
-  await prisma.classDiary.findFirst({ where: { classId: class1.id } }) ||
+  const classDiary = await prisma.classDiary.findFirst({ where: { classId: class1.id } });
+  if (!classDiary) {
     await prisma.classDiary.create({
       data: {
         date: new Date(),
@@ -171,6 +174,7 @@ async function main() {
         subjectId: subject.id
       }
     });
+  }
 
   // 6. Merenda Escolar
   await prisma.schoolMeal.create({

@@ -20,8 +20,8 @@ export default function NovaNoticiaPage() {
     try {
       await createNews(formData);
       router.push("/transparencia/noticias");
-    } catch (err: any) {
-      setError(err.message || "Erro ao salvar a notícia.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Erro ao salvar a notícia.");
     } finally {
       setIsPending(false);
     }

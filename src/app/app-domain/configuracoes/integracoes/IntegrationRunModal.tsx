@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Copy, Check, RefreshCw, Server, ShieldCheck, FileJson, ArrowRightLeft } from "lucide-react";
+import { X, Copy, Check, RefreshCw, FileJson, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface IntegrationRunModalProps {

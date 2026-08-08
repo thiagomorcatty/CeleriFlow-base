@@ -1,4 +1,4 @@
-import { Users, Building2, FileText, Home, FileBox, ShieldAlert } from "lucide-react";
+import { Users, Building2, Home, FileBox, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 

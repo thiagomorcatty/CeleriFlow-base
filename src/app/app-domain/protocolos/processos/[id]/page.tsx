@@ -7,6 +7,7 @@ import ProcessControls from "./ProcessControls";
 export const dynamic = "force-dynamic";
 
 export default async function ProcessoDetalhesPage({ params }: { params: { id: string } }) {
+  const requestTime = new Date();
   const context = await getProtocolContext();
   const { prisma, user } = context;
   const processo = await prisma.process.findFirst({
@@ -52,7 +53,7 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
   const interessadoNome = processo.person?.fullName || processo.company?.corporateName || "Não Informado";
   const interessadoDoc = processo.person?.cpf || processo.company?.cnpj || "";
   const daysToDeadline = processo.expectedCompletionAt
-    ? Math.ceil((processo.expectedCompletionAt.getTime() - Date.now()) / 86_400_000)
+    ? Math.ceil((processo.expectedCompletionAt.getTime() - requestTime.getTime()) / 86_400_000)
     : null;
 
   return (
@@ -225,7 +226,7 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
                 <p className="text-sm text-slate-500 text-center">Processo ainda não foi tramitado.</p>
               ) : (
                 <div className="relative border-l-2 border-slate-200 ml-3 space-y-6">
-                  {processo.movements.map((mov, idx) => (
+                  {processo.movements.map((mov) => (
                     <div key={mov.id} className="relative pl-6">
                       <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-white border-2 border-slate-300"></div>
                       <p className="text-xs font-semibold text-slate-500">{new Date(mov.movedAt).toLocaleDateString('pt-BR')} {new Date(mov.movedAt).toLocaleTimeString('pt-BR')}</p>
@@ -235,7 +236,7 @@ export default async function ProcessoDetalhesPage({ params }: { params: { id: s
                       <p className="text-xs text-slate-600 mt-0.5">
                         Por: {mov.employee?.name || "Sistema"}
                       </p>
-                      {mov.reason && <p className="text-sm text-slate-500 mt-2 italic">"{mov.reason}"</p>}
+                       {mov.reason && <p className="text-sm text-slate-500 mt-2 italic">&quot;{mov.reason}&quot;</p>}
                     </div>
                   ))}
                 </div>

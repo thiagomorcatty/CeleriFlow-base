@@ -7,12 +7,13 @@ import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { LicencaRowActions } from "./LicencaRowActions"
 import { format } from "date-fns"
 import { LicencasFilters } from "./LicencasFilters"
+import type { Prisma } from "@prisma/client";
 
 export default async function LicencasPage({ searchParams }: { searchParams: Promise<{ q?: string, status?: string }> }) {
   const { prisma } = await getTenantContextForModule("RH");
   const { q, status } = await searchParams;
 
-  const whereClause: any = {};
+  const whereClause: Prisma.LeaveWhereInput = {};
   if (q) {
     whereClause.employee = { name: { contains: q, mode: 'insensitive' } };
   }

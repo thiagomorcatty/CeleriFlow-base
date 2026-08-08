@@ -7,7 +7,7 @@ import { createCertificate, cancelCertificate } from "./actions";
 type Certificate = {
   id: string;
   certificateType: string;
-  issueDate: Date;
+  createdAt: Date;
   validUntil: Date;
   authCode: string;
   status: string;
@@ -132,7 +132,7 @@ export default function CertidoesClient({
                       {cert.certificateType}
                     </td>
                     <td className="px-6 py-4 text-slate-600">
-                      <div><span className="text-slate-400">Emi:</span> {new Date(cert.issueDate).toLocaleDateString('pt-BR')}</div>
+                      <div><span className="text-slate-400">Emi:</span> {new Date(cert.createdAt).toLocaleDateString('pt-BR')}</div>
                       <div><span className="text-slate-400">Val:</span> {new Date(cert.validUntil).toLocaleDateString('pt-BR')}</div>
                     </td>
                     <td className="px-6 py-4">

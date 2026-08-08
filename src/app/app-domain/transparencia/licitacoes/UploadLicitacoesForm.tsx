@@ -18,8 +18,8 @@ export default function UploadLicitacoesForm() {
     try {
       const count = await uploadBiddingsCsv(formData);
       alert(`Upload concluído! ${count} licitações foram inseridas.`);
-    } catch (err: any) {
-      alert(err.message || "Erro no upload.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Erro no upload.");
     } finally {
       setIsPending(false);
       e.target.value = ''; // Reset input

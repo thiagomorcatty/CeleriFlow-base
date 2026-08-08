@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { AccessError, canEditModule, getTenantContextForModule, getTenantContextForModuleEdit, isSystemAdministrator, type AppContext } from "@/lib/platform/tenant-context";
+import { canEditModule, getTenantContextForModule, getTenantContextForModuleEdit, isSystemAdministrator, type AppContext } from "@/lib/platform/tenant-context";
 
 export type AttendanceContext = AppContext & {
   attendanceAccess: {

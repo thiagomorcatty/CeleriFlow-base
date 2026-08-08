@@ -4,14 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { savePonto } from "./actions";
 import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
+import type { AttendanceRecord, Employee } from "@prisma/client";
 
-export function PontoForm({ data, employees = [] }: { data?: any, employees?: any[] }) {
+export function PontoForm({ data, employees = [] }: { data?: AttendanceRecord, employees?: Employee[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [entryTime, setEntryTime] = useState(data?.entryTime ? new Date(data.entryTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : "");

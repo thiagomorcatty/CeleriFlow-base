@@ -47,7 +47,7 @@ export function MaskedInput({ maskType, onChange, defaultValue, ...props }: Mask
         return masked;
       } else {
         // (XX) XXXXX-XXXX
-        let masked = "(" + clean.substring(0, 2) + ") " + clean.substring(2, 7) + "-" + clean.substring(7);
+        const masked = "(" + clean.substring(0, 2) + ") " + clean.substring(2, 7) + "-" + clean.substring(7);
         return masked;
       }
     }

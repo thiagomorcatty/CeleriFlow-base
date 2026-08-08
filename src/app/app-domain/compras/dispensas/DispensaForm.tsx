@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,13 +11,40 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
 
-export function DispensaForm({ data, processos = [], fornecedores = [] }: { data?: any, processos?: any[], fornecedores?: any[] }) {
+type DirectContractingData = {
+  id: string;
+  processId: string;
+  supplierId: string | null;
+  type: string;
+  status: string;
+  justification: string;
+};
+
+type ProcessOption = {
+  id: string;
+  number: string;
+  object: string;
+  estimatedValue: number | null;
+};
+
+type SupplierOption = {
+  id: string;
+  company: { corporateName: string; tradeName: string | null } | null;
+};
+
+type DispensaFormProps = {
+  data?: DirectContractingData;
+  processos?: ProcessOption[];
+  fornecedores?: SupplierOption[];
+};
+
+export function DispensaForm({ data, processos = [], fornecedores = [] }: DispensaFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [selectedProcessId, setSelectedProcessId] = useState<string>(data?.processId || "");
 
   const selectedProcess = processos.find(p => p.id === selectedProcessId);
-  const calculatedTotal = selectedProcess ? selectedProcess.estimatedValue : 0;
+  const calculatedTotal = selectedProcess?.estimatedValue ?? 0;
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);
@@ -98,13 +124,12 @@ export function DispensaForm({ data, processos = [], fornecedores = [] }: { data
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="supplierId">Fornecedor (Opcional)</Label>
-                <Select name="supplierId" defaultValue={data?.supplierId || ""}>
+                <Label htmlFor="supplierId">Fornecedor</Label>
+                <Select name="supplierId" defaultValue={data?.supplierId || ""} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um fornecedor" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum / A Definir</SelectItem>
                     {fornecedores.map(forn => (
                       <SelectItem key={forn.id} value={forn.id}>{forn.company?.corporateName || forn.company?.tradeName}</SelectItem>
                     ))}

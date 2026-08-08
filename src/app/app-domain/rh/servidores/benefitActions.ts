@@ -30,9 +30,9 @@ export async function addBenefitToEmployee(formData: FormData) {
 
     revalidatePath(`/rh/servidores/${employeeId}/editar`);
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Erro ao conceder benefício:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : "Erro ao conceder benefício." };
   }
 }
 
@@ -44,8 +44,8 @@ export async function removeBenefitFromEmployee(benefitId: string, employeeId: s
     });
     revalidatePath(`/rh/servidores/${employeeId}/editar`);
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Erro ao remover benefício:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : "Erro ao remover benefício." };
   }
 }

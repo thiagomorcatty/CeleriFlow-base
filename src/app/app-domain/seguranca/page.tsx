@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, BarChart3, Camera, CarFront, ClipboardCheck, Route, Shield, Users, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowRight, BarChart3, Camera, CarFront, Route, Shield, Users, Wrench } from "lucide-react";
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

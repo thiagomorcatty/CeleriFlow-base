@@ -6,6 +6,7 @@ import Link from "next/link"
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { Input } from "@/components/ui/input"
 import { BeneficioRowActions } from "./BeneficioRowActions"
+import type { Prisma } from "@prisma/client";
 
 export default async function BeneficiosPage(
   props: { searchParams?: Promise<{ q?: string }> }
@@ -14,7 +15,7 @@ export default async function BeneficiosPage(
   const searchParams = await props.searchParams;
   const q = searchParams?.q || "";
 
-  const where: any = {};
+  const where: Prisma.BenefitConfigWhereInput = {};
   if (q) {
     where.name = { contains: q, mode: 'insensitive' };
   }

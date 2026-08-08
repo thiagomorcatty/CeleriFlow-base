@@ -24,7 +24,7 @@ export default async function DividaPage() {
 
   return (
     <div className="max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-      <DividaClient activeDebts={activeDebts as any} taxpayers={taxpayers} />
+      <DividaClient activeDebts={activeDebts} taxpayers={taxpayers} />
     </div>
   );
 }

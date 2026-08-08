@@ -2,10 +2,17 @@
 
 import { Trash2 } from "lucide-react";
 import { deleteNews } from "./actions";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-export default function NoticiasTable({ news }: { news: any[] }) {
+type News = {
+  id: string;
+  title: string;
+  status: string;
+  author: { name: string } | null;
+};
+
+export default function NoticiasTable({ news }: { news: News[] }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 

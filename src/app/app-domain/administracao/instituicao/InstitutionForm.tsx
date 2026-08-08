@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import type { Institution } from "@prisma/client";
+import Image from "next/image";
 import { saveInstitution } from "./actions";
 import { Save, Building2 } from "lucide-react";
 
@@ -9,7 +11,7 @@ const UFS = [
   "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
 ];
 
-export function InstitutionForm({ institution }: { institution: any }) {
+export function InstitutionForm({ institution }: { institution: Institution | null }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   
@@ -68,6 +70,8 @@ export function InstitutionForm({ institution }: { institution: any }) {
     }
     setLoading(false);
   }
+
+  const imageSrc = previewImage ?? institution?.logoUrl;
 
   return (
     <form onSubmit={handleSubmit} encType="multipart/form-data" className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -150,7 +154,7 @@ export function InstitutionForm({ institution }: { institution: any }) {
           {institution?.logoUrl && (
             <div className="mb-4 flex items-center gap-4">
               <div className="w-16 h-16 rounded-lg border border-slate-200 bg-white overflow-hidden flex items-center justify-center shadow-sm">
-                <img src={institution.logoUrl} alt="Logo Atual" className="w-full h-full object-contain" />
+                <Image src={institution.logoUrl} alt="Logo Atual" width={64} height={64} unoptimized className="w-full h-full object-contain" />
               </div>
               <span className="text-xs text-slate-500 font-medium">Logo atual em uso</span>
             </div>
@@ -180,8 +184,8 @@ export function InstitutionForm({ institution }: { institution: any }) {
             <div className="shrink-0 flex flex-col items-center gap-2">
               <span className="text-xs font-semibold text-slate-500">Preview</span>
               <div className="w-20 h-20 rounded-lg border border-slate-300 bg-white shadow-inner flex items-center justify-center overflow-hidden relative">
-                {(previewImage || institution?.logoUrl) ? (
-                  <img src={previewImage || institution?.logoUrl} alt="Preview" className="w-full h-full object-contain p-1" />
+                {imageSrc ? (
+                   <Image src={imageSrc} alt="Preview" width={80} height={80} unoptimized className="w-full h-full object-contain p-1" />
                 ) : (
                   <span className="text-xs text-slate-400 text-center px-2">Sem imagem</span>
                 )}

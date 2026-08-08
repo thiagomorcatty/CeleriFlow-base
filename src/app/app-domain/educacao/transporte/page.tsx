@@ -1,7 +1,6 @@
 import React from "react";
 import { Bus, AlertCircle, Plus, Search, Filter, Edit2, Trash2 } from "lucide-react";
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 

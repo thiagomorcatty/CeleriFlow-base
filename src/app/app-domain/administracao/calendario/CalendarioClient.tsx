@@ -191,7 +191,7 @@ export default function CalendarioClient({ events }: { events: CalendarEvent[] }
             {filteredEvents.length === 0 && (
               <tr>
                 <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
-                  Nenhum evento encontrado para "{searchTerm}".
+                  Nenhum evento encontrado para &quot;{searchTerm}&quot;.
                 </td>
               </tr>
             )}

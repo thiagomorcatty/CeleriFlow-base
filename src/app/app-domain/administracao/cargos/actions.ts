@@ -16,7 +16,7 @@ export async function createRole(formData: FormData) {
     await prisma.role.create({
       data: { name, level, description, canSign }
     });
-  } catch (error) {
+  } catch {
     return { error: "Erro ao criar cargo" };
   }
 

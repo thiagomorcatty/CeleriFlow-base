@@ -24,7 +24,7 @@ export default async function AlvarasPage() {
 
   return (
     <div className="max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-      <AlvarasClient licenses={licenses as any} taxpayers={taxpayers} />
+      <AlvarasClient licenses={licenses} taxpayers={taxpayers} />
     </div>
   );
 }

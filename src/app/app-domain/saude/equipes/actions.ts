@@ -7,7 +7,22 @@ async function getTenantPrisma() {
   return (await getTenantContextForModuleEdit("SAUDE")).prisma;
 }
 
-export async function createHealthTeam(data: any) {
+type HealthTeamInput = {
+  name: string;
+  code: string | null;
+  microarea: string | null;
+  unitId: string;
+};
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function hasErrorCode(error: unknown, code: string) {
+  return typeof error === "object" && error !== null && "code" in error && error.code === code;
+}
+
+export async function createHealthTeam(data: HealthTeamInput) {
   const prisma = await getTenantPrisma();
   try {
     await prisma.healthTeam.create({
@@ -21,13 +36,13 @@ export async function createHealthTeam(data: any) {
     });
     revalidatePath('/app-domain/saude/equipes');
     return { success: true };
-  } catch (error: any) {
-    if (error.code === 'P2002') return { error: "Já existe uma equipe cadastrada com este código." };
-    return { error: error.message || "Erro ao criar equipe" };
+  } catch (error) {
+    if (hasErrorCode(error, "P2002")) return { error: "Já existe uma equipe cadastrada com este código." };
+    return { error: getErrorMessage(error, "Erro ao criar equipe") };
   }
 }
 
-export async function updateHealthTeam(id: string, data: any) {
+export async function updateHealthTeam(id: string, data: HealthTeamInput) {
   const prisma = await getTenantPrisma();
   try {
     await prisma.healthTeam.update({
@@ -41,9 +56,9 @@ export async function updateHealthTeam(id: string, data: any) {
     });
     revalidatePath('/app-domain/saude/equipes');
     return { success: true };
-  } catch (error: any) {
-    if (error.code === 'P2002') return { error: "Já existe uma equipe cadastrada com este código." };
-    return { error: error.message || "Erro ao atualizar equipe" };
+  } catch (error) {
+    if (hasErrorCode(error, "P2002")) return { error: "Já existe uma equipe cadastrada com este código." };
+    return { error: getErrorMessage(error, "Erro ao atualizar equipe") };
   }
 }
 
@@ -56,8 +71,8 @@ export async function toggleHealthTeamStatus(id: string, isActive: boolean) {
     });
     revalidatePath('/app-domain/saude/equipes');
     return { success: true };
-  } catch (error: any) {
-    return { error: error.message || "Erro ao alterar status da equipe" };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao alterar status da equipe") };
   }
 }
 
@@ -69,7 +84,7 @@ export async function deleteHealthTeam(id: string) {
     });
     revalidatePath('/app-domain/saude/equipes');
     return { success: true };
-  } catch (error: any) {
+  } catch {
     return { error: "Não é possível excluir esta equipe pois ela possui vínculos." };
   }
 }

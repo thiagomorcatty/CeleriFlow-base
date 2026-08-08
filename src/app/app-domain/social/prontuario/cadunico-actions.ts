@@ -4,9 +4,9 @@ import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { queryCadUnicoMds, createSuasRmaRecord } from "@/lib/social/social-engine";
 import { revalidatePath } from "next/cache";
 
-type ActionResult<T = any> = { error?: string; data?: T };
+type ActionResult<T = unknown> = { error?: string; data?: T };
 
-export async function searchCadUnicoAction(nisOrCpf: string): Promise<ActionResult> {
+export async function searchCadUnicoAction(nisOrCpf: string): Promise<ActionResult<Awaited<ReturnType<typeof queryCadUnicoMds>>>> {
   if (!nisOrCpf || nisOrCpf.trim().length < 3) {
     return { error: "Informe um NIS ou CPF válido para consulta." };
   }
@@ -15,8 +15,8 @@ export async function searchCadUnicoAction(nisOrCpf: string): Promise<ActionResu
     const context = await getTenantContextForModuleEdit("SOCIAL");
     const result = await queryCadUnicoMds(context.prisma, nisOrCpf.trim());
     return { data: result };
-  } catch (err: any) {
-    return { error: err?.message || "Falha ao consultar CadÚnico (MDS)." };
+  } catch (err) {
+    return { error: err instanceof Error && err.message ? err.message : "Falha ao consultar CadÚnico (MDS)." };
   }
 }
 
@@ -26,7 +26,7 @@ export async function saveRmaRecordAction(data: {
   unidadeAtendimento: string;
   tipoAtendimento: string;
   detalhesRma: string;
-}): Promise<ActionResult> {
+}): Promise<ActionResult<Awaited<ReturnType<typeof createSuasRmaRecord>>>> {
   try {
     const context = await getTenantContextForModuleEdit("SOCIAL");
     const record = await createSuasRmaRecord(context.prisma, {
@@ -36,12 +36,12 @@ export async function saveRmaRecordAction(data: {
 
     revalidatePath("/social/prontuario");
     return { data: record };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao gravar atendimento no Prontuário SUAS/RMA." };
+  } catch (err) {
+    return { error: err instanceof Error && err.message ? err.message : "Erro ao gravar atendimento no Prontuário SUAS/RMA." };
   }
 }
 
-export async function getRmaHistoryAction(): Promise<ActionResult> {
+export async function getRmaHistoryAction() {
   try {
     const context = await getTenantContextForModuleEdit("SOCIAL");
     const history = await context.prisma.suasProntuarioRma.findMany({
@@ -49,7 +49,7 @@ export async function getRmaHistoryAction(): Promise<ActionResult> {
       take: 15,
     });
     return { data: history };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao carregar histórico RMA." };
+  } catch (err) {
+    return { error: err instanceof Error && err.message ? err.message : "Erro ao carregar histórico RMA." };
   }
 }

@@ -1,4 +1,4 @@
-import { CheckCircle2, ShieldCheck, Lock, Award, FileCheck, Landmark } from "lucide-react";
+import { CheckCircle2, ShieldCheck, Award } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export function Trust() {

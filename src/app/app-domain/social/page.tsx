@@ -1,4 +1,4 @@
-import { HeartHandshake, Users, Building2, FileText, Gift } from "lucide-react";
+import { Users, Building2, FileText, Gift } from "lucide-react";
 
 export default function SocialDashboardPage() {
   return (

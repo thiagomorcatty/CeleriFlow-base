@@ -31,8 +31,8 @@ export async function createEconomicRegistration(data: {
 
 export async function updateEconomicRegistration(id: string, data: {
   municipalInsc?: string;
-  primaryCnae?: string;
-  taxRegime?: string;
+  primaryCnae?: string | null;
+  taxRegime?: string | null;
 }) {
   const prisma = await getTenantPrisma();
   const result = await prisma.economicRegistration.update({

@@ -1,19 +1,12 @@
 "use client";
 
-import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { deleteFolha } from "./actions";
+import type { Payroll } from "@prisma/client";
 
-export function FolhaRowActions({ folha }: { folha: any }) {
+export function FolhaRowActions({ folha }: { folha: Payroll }) {
   const handleDelete = async () => {
     if (confirm(`Deseja realmente excluir a folha de pagamento ${folha.competence}?`)) {
       const result = await deleteFolha(folha.id);

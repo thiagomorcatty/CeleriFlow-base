@@ -1,11 +1,16 @@
 "use server";
 
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
-import { runTaxAuditCrossCheck, issueTaxInfractionNotice, TaxAuditCrossCheckInput } from "@/lib/tributacao/inteligencia-tributaria-engine";
+import { runTaxAuditCrossCheck, issueTaxInfractionNotice, type TaxAuditCrossCheckResult } from "@/lib/tributacao/inteligencia-tributaria-engine";
+import type { TaxAuditCrossCheck } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-type ActionResult<T = any> = { error?: string; data?: T };
+type ActionResult<T = unknown> = { error?: string; data?: T };
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
 
 const auditSchema = z.object({
   cnpjCpfContribuinte: z.string().min(1, "Informe o CNPJ/CPF."),
@@ -15,7 +20,7 @@ const auditSchema = z.object({
   valorApuradoBancos: z.number().nonnegative(),
 });
 
-export async function runTaxAuditAction(input: z.infer<typeof auditSchema>): Promise<ActionResult> {
+export async function runTaxAuditAction(input: z.infer<typeof auditSchema>): Promise<ActionResult<TaxAuditCrossCheckResult>> {
   const parsed = auditSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
 
@@ -25,24 +30,24 @@ export async function runTaxAuditAction(input: z.infer<typeof auditSchema>): Pro
 
     revalidatePath("/tributacao/fiscalizacao");
     return { data: result };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao executar cruzamento fiscal." };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao executar cruzamento fiscal.") };
   }
 }
 
-export async function issueInfractionNoticeAction(crossCheckId: string): Promise<ActionResult> {
+export async function issueInfractionNoticeAction(crossCheckId: string): Promise<ActionResult<{ record: TaxAuditCrossCheck; numeroAutoInfracao: string }>> {
   try {
     const context = await getTenantContextForModuleEdit("TRIBUTACAO");
     const result = await issueTaxInfractionNotice(context.prisma, crossCheckId);
 
     revalidatePath("/tributacao/fiscalizacao");
     return { data: result };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao emitir Auto de Infração." };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao emitir Auto de Infração.") };
   }
 }
 
-export async function getTaxAuditRecordsAction(): Promise<ActionResult> {
+export async function getTaxAuditRecordsAction(): Promise<ActionResult<TaxAuditCrossCheck[]>> {
   try {
     const context = await getTenantContextForModuleEdit("TRIBUTACAO");
     const records = await context.prisma.taxAuditCrossCheck.findMany({
@@ -50,7 +55,7 @@ export async function getTaxAuditRecordsAction(): Promise<ActionResult> {
       take: 15,
     });
     return { data: records };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao carregar registros de malha fina." };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao carregar registros de malha fina.") };
   }
 }

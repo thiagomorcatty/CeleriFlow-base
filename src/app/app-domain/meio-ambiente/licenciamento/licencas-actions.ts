@@ -1,24 +1,29 @@
 "use server";
 
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
-import { generateEnvironmentalLicense, EnvironmentalLicenseInput } from "@/lib/meio-ambiente/licenciamento-engine";
+import { generateEnvironmentalLicense, type EnvironmentalLicenseInput, type EnvironmentalLicenseResult } from "@/lib/meio-ambiente/licenciamento-engine";
+import type { EnvironmentalLicense } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-type ActionResult<T = any> = { error?: string; data?: T };
+type ActionResult<T = unknown> = { error?: string; data?: T };
 
-export async function issueEnvironmentalLicenseAction(input: EnvironmentalLicenseInput): Promise<ActionResult> {
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
+export async function issueEnvironmentalLicenseAction(input: EnvironmentalLicenseInput): Promise<ActionResult<EnvironmentalLicenseResult>> {
   try {
     const context = await getTenantContextForModuleEdit("MEIO_AMBIENTE");
     const result = await generateEnvironmentalLicense(context.prisma, input);
 
     revalidatePath("/meio-ambiente/licenciamento");
     return { data: result };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao emitir Licença Ambiental." };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao emitir Licença Ambiental.") };
   }
 }
 
-export async function getIssuedLicensesAction(): Promise<ActionResult> {
+export async function getIssuedLicensesAction(): Promise<ActionResult<EnvironmentalLicense[]>> {
   try {
     const context = await getTenantContextForModuleEdit("MEIO_AMBIENTE");
     const licenses = await context.prisma.environmentalLicense.findMany({
@@ -26,7 +31,7 @@ export async function getIssuedLicensesAction(): Promise<ActionResult> {
       take: 15,
     });
     return { data: licenses };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao listar licenças emitidas." };
+  } catch (error) {
+    return { error: getErrorMessage(error, "Erro ao listar licenças emitidas.") };
   }
 }

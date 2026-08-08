@@ -1,6 +1,8 @@
+import type { Prisma, PrismaClient } from "@prisma/client";
+
 type ExistingCode = { code: string };
 
-export async function nextYearlyCode({ prisma, key, prefix, existingCodes, padding = 4 }: { prisma: any; key: string; prefix: string; existingCodes: ExistingCode[]; padding?: number }) {
+export async function nextYearlyCode({ prisma, key, prefix, existingCodes, padding = 4 }: { prisma: PrismaClient | Prisma.TransactionClient; key: string; prefix: string; existingCodes: ExistingCode[]; padding?: number }) {
   const year = new Date().getFullYear();
   const expression = new RegExp(`^${prefix}-${year}-(\\d+)$`);
   const currentMax = existingCodes.reduce((max, { code }) => Math.max(max, Number(expression.exec(code)?.[1]) || 0), 0);

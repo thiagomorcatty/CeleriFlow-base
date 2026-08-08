@@ -8,6 +8,23 @@ async function getTenantPrisma() {
   return (await getTenantContextForModuleEdit("COMPRAS")).prisma;
 }
 
+type PurchaseProcessItemInput = {
+  catalogItemId: string;
+  customName: string;
+  quantity: number;
+  estimatedUnitValue: number;
+};
+
+type PurchaseProcessInput = {
+  id?: string;
+  number: string;
+  object: string;
+  type: string;
+  modality: string;
+  estimatedValue: number;
+  items: PurchaseProcessItemInput[];
+};
+
 export async function deletePurchaseProcess(id: string) {
   const prisma = await getTenantPrisma();
   try {
@@ -22,7 +39,7 @@ export async function deletePurchaseProcess(id: string) {
   }
 }
 
-export async function savePurchaseProcess(payload: any) {
+export async function savePurchaseProcess(payload: PurchaseProcessInput) {
   const prisma = await getTenantPrisma();
   const { id, number, object, type, modality, estimatedValue, items } = payload;
   
@@ -51,10 +68,11 @@ export async function savePurchaseProcess(payload: any) {
       secretariatId: secretariat.id,
     };
 
-    let processId = id;
+    let processId: string;
 
     if (id) {
       await prisma.purchaseProcess.update({ where: { id }, data });
+      processId = id;
       
       await prisma.purchaseProcessItem.deleteMany({
         where: { purchaseProcessId: id }
@@ -65,7 +83,7 @@ export async function savePurchaseProcess(payload: any) {
     }
 
     if (items && items.length > 0) {
-      const itemsToCreate = items.map((item: any) => ({
+      const itemsToCreate = items.map((item) => ({
         purchaseProcessId: processId,
         materialId: item.catalogItemId === "custom" || !item.catalogItemId ? null : item.catalogItemId,
         customName: item.catalogItemId === "custom" || !item.catalogItemId ? item.customName : null,

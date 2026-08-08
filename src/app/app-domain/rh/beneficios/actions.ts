@@ -42,9 +42,9 @@ export async function saveBeneficio(formData: FormData) {
 
     revalidatePath("/rh/beneficios");
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Erro ao salvar benefício master:", error);
-    return { success: false, error: error.message || "Ocorreu um erro ao salvar." };
+    return { success: false, error: error instanceof Error ? error.message : "Ocorreu um erro ao salvar." };
   }
 }
 
@@ -57,9 +57,9 @@ export async function toggleBeneficioStatus(id: string, isActive: boolean) {
     });
     revalidatePath("/rh/beneficios");
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Erro ao alternar status do benefício:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : "Erro ao alternar status do benefício." };
   }
 }
 
@@ -77,8 +77,8 @@ export async function deleteBeneficio(id: string) {
     });
     revalidatePath("/rh/beneficios");
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Erro ao excluir benefício:", error);
-    return { success: false, error: error.message || "Erro ao excluir benefício." };
+    return { success: false, error: error instanceof Error ? error.message : "Erro ao excluir benefício." };
   }
 }

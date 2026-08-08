@@ -6,11 +6,8 @@ import { usePathname } from "next/navigation";
 import { 
   Users, 
   Building2, 
-  FileText, 
   Truck,
-  MapPin,
   Home,
-  Briefcase,
   FileBox,
   LayoutDashboard,
   ArrowLeft,

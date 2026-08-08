@@ -3,10 +3,9 @@
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import crypto from "crypto";
-import { Prisma } from "@prisma/client";
+import { Prisma, type TrafficInfractionTicket } from "@prisma/client";
 
-type ActionResult<T = any> = { error?: string; data?: T };
+type ActionResult<T = unknown> = { error?: string; data?: T };
 
 const ticketSchema = z.object({
   placaVeiculo: z.string().min(1, "Informe a placa do veículo."),
@@ -17,7 +16,7 @@ const ticketSchema = z.object({
   geolocalizacao: z.string().default("-7.2234, -35.8821"),
 });
 
-export async function issueTrafficTicketAction(input: z.infer<typeof ticketSchema>): Promise<ActionResult> {
+export async function issueTrafficTicketAction(input: z.infer<typeof ticketSchema>): Promise<ActionResult<TrafficInfractionTicket>> {
   const parsed = ticketSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
 
@@ -25,7 +24,6 @@ export async function issueTrafficTicketAction(input: z.infer<typeof ticketSchem
     const context = await getTenantContextForModuleEdit("SEGURANCA");
     const { prisma, user } = context;
 
-    const timestamp = Date.now();
     const numeroAit = `AIT-GM-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
     const qrCodePix = `00020126580014BR.GOV.BCB.PIX0136ait-multas-${numeroAit}5204000053039865405${parsed.data.valorMulta.toFixed(2)}5802BR5925GUARDA MUNICIPAL6009CAMPINA GR62070503***6304E2B1`;
 
@@ -46,12 +44,12 @@ export async function issueTrafficTicketAction(input: z.infer<typeof ticketSchem
 
     revalidatePath("/seguranca/infracoes");
     return { data: ticket };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao emitir Auto de Infração Eletrônico (AIT)." };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Erro ao emitir Auto de Infração Eletrônico (AIT)." };
   }
 }
 
-export async function getTrafficTicketsAction(): Promise<ActionResult> {
+export async function getTrafficTicketsAction(): Promise<ActionResult<TrafficInfractionTicket[]>> {
   try {
     const context = await getTenantContextForModuleEdit("SEGURANCA");
     const tickets = await context.prisma.trafficInfractionTicket.findMany({
@@ -59,7 +57,7 @@ export async function getTrafficTicketsAction(): Promise<ActionResult> {
       take: 20,
     });
     return { data: tickets };
-  } catch (err: any) {
-    return { error: err?.message || "Erro ao carregar autos de infração." };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Erro ao carregar autos de infração." };
   }
 }

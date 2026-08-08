@@ -23,8 +23,10 @@ export default async function EditarProcessoPage({ params }: { params: Promise<{
   const mappedProcesso = {
     ...processo,
     items: processo.items.map((item) => ({
-      ...item,
-      catalogItemId: item.materialId,
+      catalogItemId: item.materialId ?? "",
+      customName: item.customName ?? "",
+      quantity: item.quantity,
+      estimatedUnitValue: item.estimatedUnitValue ?? 0,
     }))
   };
 

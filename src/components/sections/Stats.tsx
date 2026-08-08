@@ -1,4 +1,4 @@
-import { ShieldCheck, Zap, Layers, FileCheck, Cpu, Activity, TrendingUp, Lock } from "lucide-react";
+import { ShieldCheck, Zap, Layers, FileCheck } from "lucide-react";
 
 export function Stats() {
   const stats = [

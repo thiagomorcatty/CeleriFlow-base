@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { deleteDependente } from "./actions";
 import { useRouter } from "next/navigation";
+import type { Dependent } from "@prisma/client";
 
-export function DependenteRowActions({ dependent }: { dependent: any }) {
+export function DependenteRowActions({ dependent }: { dependent: Dependent }) {
   const router = useRouter();
 
   const handleDelete = async () => {

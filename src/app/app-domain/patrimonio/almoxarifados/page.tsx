@@ -3,12 +3,12 @@ import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { 
-  PackageSearch,
   Plus,
   Search
 } from "lucide-react"
 import Link from "next/link"
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
+import type { Prisma } from "@prisma/client";
 
 export default async function AlmoxarifadosPage(
   props: { searchParams?: Promise<{ q?: string }> }
@@ -17,7 +17,7 @@ export default async function AlmoxarifadosPage(
   const searchParams = await props.searchParams;
   const q = searchParams?.q || "";
 
-  const where: any = {};
+  const where: Prisma.WarehouseWhereInput = {};
   if (q) {
     where.name = { contains: q, mode: 'insensitive' };
   }

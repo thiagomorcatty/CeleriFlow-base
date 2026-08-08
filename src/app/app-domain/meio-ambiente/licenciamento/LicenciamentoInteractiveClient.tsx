@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { ShieldCheck, QrCode, FileCheck, CheckCircle2, Lock } from "lucide-react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
+import { ShieldCheck, FileCheck } from "lucide-react";
 import { issueEnvironmentalLicenseAction } from "./licencas-actions";
+import type { EnvironmentalLicenseInput, EnvironmentalLicenseResult } from "@/lib/meio-ambiente/licenciamento-engine";
+
+type LicenseType = EnvironmentalLicenseInput["tipoLicenca"];
+
+function isLicenseType(value: string): value is LicenseType {
+  return value === "LP - Licença Prévia" || value === "LI - Licença de Instalação" || value === "LO - Licença de Operação";
+}
 
 export function LicenciamentoInteractiveClient() {
   const [numProcesso, setNumProcesso] = useState("PROC-AMB-2026/0491");
@@ -10,12 +17,12 @@ export function LicenciamentoInteractiveClient() {
   const [requerente, setRequerente] = useState("INDÚSTRIA E COMÉRCIO MODELO S/A");
   const [cnpjCpf, setCnpjCpf] = useState("12.345.678/0001-90");
   const [atividade, setAtividade] = useState("Fabricação de Produtos Químicos não Perigosos");
-  const [endereco, setEndereco] = useState("Av. Industrial, 500 - Distrito Industrial");
+  const [endereco] = useState("Av. Industrial, 500 - Distrito Industrial");
   const [validadeMeses, setValidadeMeses] = useState(24);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any | null>(null);
+  const [result, setResult] = useState<EnvironmentalLicenseResult | null>(null);
 
-  async function handleIssueLicense(e: React.FormEvent) {
+  async function handleIssueLicense(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
     setResult(null);
@@ -72,7 +79,9 @@ export function LicenciamentoInteractiveClient() {
           <label className="block text-slate-300 font-semibold mb-1">Tipo de Licença</label>
           <select
             value={tipoLicenca}
-            onChange={(e: any) => setTipoLicenca(e.target.value)}
+            onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+              if (isLicenseType(event.target.value)) setTipoLicenca(event.target.value);
+            }}
             className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-semibold"
           >
             <option value="LP - Licença Prévia">LP - Licença Prévia</option>

@@ -5,7 +5,7 @@ import { payGuide, cancelGuide } from "./actions";
 
 type Guide = {
   id: string;
-  barcode: string;
+  barcode: string | null;
   guideNumber?: string | null;
   totalValue: number;
   outstandingValue: number;

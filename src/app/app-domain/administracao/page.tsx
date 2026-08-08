@@ -1,5 +1,6 @@
 import { Building2, Network, Users, ClipboardList, MapPin, Briefcase } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +45,7 @@ export default async function AdministracaoPage() {
       ) : (
         <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-6 flex items-center gap-4">
           {institution.logoUrl ? (
-            <img src={institution.logoUrl} alt="Logo" className="w-16 h-16 rounded-lg object-contain" />
+            <Image src={institution.logoUrl} alt="Logo" width={64} height={64} unoptimized className="w-16 h-16 rounded-lg object-contain" />
           ) : (
             <div className="w-16 h-16 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
               <Building2 className="w-8 h-8 text-slate-400" />

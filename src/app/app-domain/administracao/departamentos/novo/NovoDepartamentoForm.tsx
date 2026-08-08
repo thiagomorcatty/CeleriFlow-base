@@ -4,7 +4,9 @@ import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
 import { createDepartment } from "../actions";
 
-export default function NovoDepartamentoForm({ secretariats }: { secretariats: any[] }) {
+type Secretariat = { id: string; name: string };
+
+export default function NovoDepartamentoForm({ secretariats }: { secretariats: Secretariat[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 

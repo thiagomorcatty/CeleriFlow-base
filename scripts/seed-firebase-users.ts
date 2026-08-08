@@ -109,8 +109,8 @@ async function upsertFirebaseUser(user: (typeof TEST_USERS)[0]) {
       password: user.password,
       emailVerified: true,
     });
-  } catch (err: any) {
-    if (err?.code !== "auth/user-not-found") throw err;
+  } catch (err: unknown) {
+    if (!(typeof err === "object" && err !== null && "code" in err && err.code === "auth/user-not-found")) throw err;
 
     // Usuário não existe — cria do zero
     const created = await adminAuth.createUser({

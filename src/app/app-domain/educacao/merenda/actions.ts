@@ -22,7 +22,7 @@ export async function createSchoolMeal(formData: FormData) {
 
   try {
     // 1. Create the SchoolMeal record
-    const meal = await prisma.schoolMeal.create({
+    await prisma.schoolMeal.create({
       data: {
         schoolId,
         menu,
@@ -45,7 +45,7 @@ export async function createSchoolMeal(formData: FormData) {
       }
 
       // We need a BudgetAppropriation
-      let appropriation = await prisma.budgetAppropriation.findFirst();
+      const appropriation = await prisma.budgetAppropriation.findFirst();
 
       if (secretariat && appropriation) {
         await prisma.expense.create({
@@ -60,7 +60,7 @@ export async function createSchoolMeal(formData: FormData) {
       }
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Erro ao registrar merenda:", error);
     throw new Error("Ocorreu um erro ao registrar a merenda e integrar com financeiro.");
   }

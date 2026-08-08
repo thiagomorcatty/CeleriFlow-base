@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
   ArrowLeft,
-  BarChart3,
   Camera,
   CarFront,
   ClipboardCheck,

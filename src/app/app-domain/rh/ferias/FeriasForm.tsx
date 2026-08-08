@@ -4,14 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { saveFerias } from "./actions";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
+import type { Employee, Vacation } from "@prisma/client";
 
-export function FeriasForm({ data, employees = [] }: { data?: any, employees?: any[] }) {
+export function FeriasForm({ data, employees = [] }: { data?: Vacation, employees?: Employee[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [employeeId, setEmployeeId] = useState<string>(data?.employeeId || "");
@@ -30,7 +31,7 @@ export function FeriasForm({ data, employees = [] }: { data?: any, employees?: a
   }
 
   // Helper to format date for input[type="date"] (YYYY-MM-DD)
-  const formatDateForInput = (dateString?: string | Date) => {
+  const formatDateForInput = (dateString?: string | Date | null) => {
     if (!dateString) return "";
     const date = new Date(dateString);
     return date.toISOString().split("T")[0];

@@ -3,15 +3,13 @@
 import { Badge } from "@/components/ui/badge";
 import { 
   ShieldCheck, 
-  Cpu, 
   FileCheck2, 
   QrCode, 
   Scale, 
   KeyRound, 
   Database, 
   ArrowUpRight,
-  Sparkles,
-  Zap
+  Sparkles
 } from "lucide-react";
 
 export function GovernmentAI() {

@@ -51,8 +51,8 @@ export async function saveEvent(formData: FormData) {
 
     revalidatePath("/rh/folha/eventos");
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Erro ao salvar evento:", error);
-    return { success: false, error: error.message || "Ocorreu um erro ao salvar." };
+    return { success: false, error: error instanceof Error ? error.message : "Ocorreu um erro ao salvar." };
   }
 }

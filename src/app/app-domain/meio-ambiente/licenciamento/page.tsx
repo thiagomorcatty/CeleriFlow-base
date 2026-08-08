@@ -6,13 +6,14 @@ import { NewLicenseSheet } from "../components/NewLicenseSheet";
 import { QuickFilters } from "../components/QuickFilters";
 import { LicenseRowActions } from "../components/LicenseRowActions";
 import { LicenciamentoInteractiveClient } from "./LicenciamentoInteractiveClient";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 export default async function LicenciamentoPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const { prisma } = await getTenantContextForModule("MEIO_AMBIENTE");
   const searchParams = await Promise.resolve(props.searchParams || {});
-  const where: any = {};
+  const where: Prisma.EnvLicenseWhereInput = {};
   if (searchParams.status) where.status = searchParams.status;
 
   const licenses = await prisma.envLicense.findMany({ where, include: { enterprise: true }, orderBy: { createdAt: "desc" } });

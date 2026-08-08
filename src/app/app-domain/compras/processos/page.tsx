@@ -5,8 +5,6 @@ import { buttonVariants } from "@/components/ui/button"
 import { ClipboardList, Plus, Filter, Search } from "lucide-react"
 import Link from "next/link"
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
-import { format } from "date-fns"
-import { ptBR } from "date-fns/locale"
 import { ProcessoRowActions } from "./ProcessoRowActions"
 
 export default async function ProcessosComprasPage() {
@@ -67,7 +65,7 @@ export default async function ProcessosComprasPage() {
             <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
               <ClipboardList className="h-10 w-10 mb-4 opacity-20" />
               <p>Nenhum processo encontrado.</p>
-              <p className="text-sm">Clique em "Novo Processo" para iniciar.</p>
+              <p className="text-sm">Clique em &quot;Novo Processo&quot; para iniciar.</p>
             </div>
           ) : (
             <div className="rounded-md border">

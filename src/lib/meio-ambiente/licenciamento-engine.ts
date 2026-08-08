@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import crypto from "crypto";
 
 export interface EnvironmentalLicenseInput {
@@ -26,7 +26,6 @@ export async function generateEnvironmentalLicense(
   prisma: PrismaClient,
   input: EnvironmentalLicenseInput
 ): Promise<EnvironmentalLicenseResult> {
-  const timestamp = Date.now();
   const year = new Date().getFullYear();
   const random = Math.floor(1000 + Math.random() * 9000);
   const numeroLicenca = `LIC-AMB-${input.tipoLicenca.slice(0, 2)}-${year}-${random}`;

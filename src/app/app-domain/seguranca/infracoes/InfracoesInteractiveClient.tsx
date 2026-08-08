@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Car, QrCode, FileText, Send, CheckCircle2, ShieldAlert } from "lucide-react";
+import { Car, Send } from "lucide-react";
 import { issueTrafficTicketAction } from "./infracoes-actions";
+
+type TrafficTicket = NonNullable<Awaited<ReturnType<typeof issueTrafficTicketAction>>["data"]>;
 
 export function InfracoesInteractiveClient() {
   const [placa, setPlaca] = useState("ABC-1D23");
@@ -10,9 +12,9 @@ export function InfracoesInteractiveClient() {
   const [codigoCtb, setCodigoCtb] = useState("500-20 (Dirigir sem cinto de segurança)");
   const [descricao, setDescricao] = useState("Condutor transitando em via pública urbana sem utilizar o cinto de segurança obrigatório.");
   const [valorMulta, setValorMulta] = useState(195.23);
-  const [geolocalizacao, setGeolocalizacao] = useState("-7.2234, -35.8821 (Av. Floriano Peixoto, 100)");
+  const [geolocalizacao] = useState("-7.2234, -35.8821 (Av. Floriano Peixoto, 100)");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any | null>(null);
+  const [result, setResult] = useState<TrafficTicket | null>(null);
 
   async function handleIssueTicket(e: React.FormEvent) {
     e.preventDefault();

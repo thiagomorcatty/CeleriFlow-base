@@ -7,12 +7,13 @@ import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 import { AtoRowActions } from "./AtoRowActions"
 import { format } from "date-fns"
 import { AtosFilters } from "./AtosFilters"
+import type { Prisma } from "@prisma/client";
 
 export default async function AtosPage({ searchParams }: { searchParams: Promise<{ q?: string, type?: string }> }) {
   const { prisma } = await getTenantContextForModule("RH");
   const { q, type } = await searchParams;
 
-  const whereClause: any = {};
+  const whereClause: Prisma.PersonnelActWhereInput = {};
   if (q) {
     whereClause.employee = { name: { contains: q, mode: 'insensitive' } };
   }

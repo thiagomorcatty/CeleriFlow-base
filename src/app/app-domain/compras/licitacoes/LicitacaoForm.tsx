@@ -12,13 +12,30 @@ import { ArrowLeft, Save } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 
-export function LicitacaoForm({ data, processos = [] }: { data?: any, processos?: any[] }) {
+type BiddingData = {
+  id: string;
+  processId: string;
+  number: string;
+  modality: string;
+  status: string;
+  publicationDate: Date | null;
+  sessionDate: Date | null;
+};
+
+type ProcessOption = {
+  id: string;
+  number: string;
+  object: string;
+  estimatedValue: number | null;
+};
+
+export function LicitacaoForm({ data, processos = [] }: { data?: BiddingData; processos?: ProcessOption[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [selectedProcessId, setSelectedProcessId] = useState<string>(data?.processId || "");
 
   const selectedProcess = processos.find(p => p.id === selectedProcessId);
-  const calculatedTotal = selectedProcess ? selectedProcess.estimatedValue : 0;
+  const calculatedTotal = selectedProcess?.estimatedValue ?? 0;
 
   async function handleSubmit(formData: FormData) {
     setIsSaving(true);

@@ -1,7 +1,4 @@
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
-import { Calendar } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import CalendarioClient from "./CalendarioClient";
 
 export const dynamic = "force-dynamic";

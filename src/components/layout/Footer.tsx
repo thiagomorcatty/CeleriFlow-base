@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { APP_VERSION } from "@/lib/version";
-import { ShieldCheck, Activity, Building2 } from "lucide-react";
 
 export function Footer() {
   return (

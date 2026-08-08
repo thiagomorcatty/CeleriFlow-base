@@ -4,15 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { saveFolha } from "./actions";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
 import { PayrollSimulationCard } from "./PayrollSimulationCard";
+import type { Payroll } from "@prisma/client";
 
-export function FolhaForm({ data }: { data?: any }) {
+export function FolhaForm({ data }: { data?: Payroll }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [type, setType] = useState<string>(data?.type || "Mensal");

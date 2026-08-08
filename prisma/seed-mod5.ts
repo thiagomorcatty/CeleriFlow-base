@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../src/lib/prisma';
 
 async function upsertChannel(name: string, description: string) {
@@ -13,13 +14,13 @@ async function upsertPerson(cpf: string, fullName: string) {
   return prisma.person.create({ data: { cpf, fullName, status: 'Ativo' } });
 }
 
-async function upsertTicket(ticketNumber: string, data: any) {
+async function upsertTicket(ticketNumber: string, data: Omit<Prisma.TicketUncheckedCreateInput, "ticketNumber">) {
   const existing = await prisma.ticket.findUnique({ where: { ticketNumber } });
   if (existing) return existing;
   return prisma.ticket.create({ data: { ticketNumber, ...data } });
 }
 
-async function upsertOmbudsman(protocolNumber: string, data: any) {
+async function upsertOmbudsman(protocolNumber: string, data: Omit<Prisma.OmbudsmanUncheckedCreateInput, "protocolNumber">) {
   const existing = await prisma.ombudsman.findUnique({ where: { protocolNumber } });
   if (existing) return existing;
   return prisma.ombudsman.create({ data: { protocolNumber, ...data } });

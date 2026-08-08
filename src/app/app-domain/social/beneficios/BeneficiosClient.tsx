@@ -1,12 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Gift, Search, Plus, CheckCircle, Package } from "lucide-react";
+import { Gift, Plus, CheckCircle, Package } from "lucide-react";
 import { createSocialBenefit, createSocialProgram } from "../actions";
 
-export default function BeneficiosClient({ beneficiosInicial, programasInicial, secretariats, appropriations }: any) {
-  const [beneficios, setBeneficios] = useState(beneficiosInicial);
-  const [programas, setProgramas] = useState(programasInicial);
+type SocialBenefit = { id: string; name: string; description: string | null; isRecurrent: boolean };
+type SocialProgram = { id: string; name: string; description: string | null; sphere: string };
+type Secretariat = { id: string; name: string };
+type BudgetAppropriation = { id: string; code: string; expenseNature: { name: string } | null };
+type ExpenseData = { description: string; value: number; secretariatId: string; appropriationId: string };
+
+export default function BeneficiosClient({ beneficiosInicial, programasInicial, secretariats, appropriations }: {
+  beneficiosInicial: SocialBenefit[];
+  programasInicial: SocialProgram[];
+  secretariats: Secretariat[];
+  appropriations: BudgetAppropriation[];
+}) {
+  const [beneficios, setBeneficios] = useState<SocialBenefit[]>(beneficiosInicial);
+  const [programas, setProgramas] = useState<SocialProgram[]>(programasInicial);
   
   const [isBenefitModalOpen, setIsBenefitModalOpen] = useState(false);
   const [isProgramModalOpen, setIsProgramModalOpen] = useState(false);
@@ -23,7 +34,7 @@ export default function BeneficiosClient({ beneficiosInicial, programasInicial, 
 
   const handleSaveBenefit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data: any = {
+    const data: { name: string; description: string; isRecurrent: boolean; expense?: ExpenseData } = {
       name: benefitData.name,
       description: benefitData.description,
       isRecurrent: benefitData.isRecurrent,
@@ -31,13 +42,13 @@ export default function BeneficiosClient({ beneficiosInicial, programasInicial, 
     if (benefitData.hasExpense) {
       data.expense = {
         description: benefitData.expenseDesc,
-        value: benefitData.expenseValue,
+        value: Number(benefitData.expenseValue),
         secretariatId: benefitData.secretariatId,
         appropriationId: benefitData.appropriationId
       };
     }
     const res = await createSocialBenefit(data);
-    if (res.success) {
+    if (res.success && res.data) {
       setBeneficios([...beneficios, res.data]);
       setIsBenefitModalOpen(false);
       setBenefitData({ name: "", description: "", isRecurrent: false, hasExpense: false, expenseDesc: "", expenseValue: "", secretariatId: "", appropriationId: "" });
@@ -46,7 +57,7 @@ export default function BeneficiosClient({ beneficiosInicial, programasInicial, 
 
   const handleSaveProgram = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data: any = {
+    const data: { name: string; description: string; sphere: string; expense?: ExpenseData } = {
       name: programData.name,
       description: programData.description,
       sphere: programData.sphere,
@@ -54,13 +65,13 @@ export default function BeneficiosClient({ beneficiosInicial, programasInicial, 
     if (programData.hasExpense) {
       data.expense = {
         description: programData.expenseDesc,
-        value: programData.expenseValue,
+        value: Number(programData.expenseValue),
         secretariatId: programData.secretariatId,
         appropriationId: programData.appropriationId
       };
     }
     const res = await createSocialProgram(data);
-    if (res.success) {
+    if (res.success && res.data) {
       setProgramas([...programas, res.data]);
       setIsProgramModalOpen(false);
       setProgramData({ name: "", sphere: "Municipal", description: "", hasExpense: false, expenseDesc: "", expenseValue: "", secretariatId: "", appropriationId: "" });
@@ -94,7 +105,7 @@ export default function BeneficiosClient({ beneficiosInicial, programasInicial, 
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <ul className="divide-y divide-slate-100">
               {beneficios.length > 0 ? (
-                beneficios.map((beneficio: any) => (
+                beneficios.map((beneficio) => (
                   <li key={beneficio.id} className="p-4 hover:bg-slate-50/50 transition-colors flex justify-between items-center">
                     <div>
                       <p className="font-semibold text-slate-800">{beneficio.name}</p>
@@ -128,7 +139,7 @@ export default function BeneficiosClient({ beneficiosInicial, programasInicial, 
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <ul className="divide-y divide-slate-100">
               {programas.length > 0 ? (
-                programas.map((programa: any) => (
+                programas.map((programa) => (
                   <li key={programa.id} className="p-4 hover:bg-slate-50/50 transition-colors flex justify-between items-center">
                     <div>
                       <p className="font-semibold text-slate-800">{programa.name}</p>
@@ -192,14 +203,14 @@ export default function BeneficiosClient({ beneficiosInicial, programasInicial, 
                       <label className="text-sm font-medium text-slate-700">Secretaria (Ordenadora)</label>
                       <select required value={benefitData.secretariatId} onChange={e => setBenefitData({...benefitData, secretariatId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                         <option value="">Selecione...</option>
-                        {secretariats.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        {secretariats.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1 md:col-span-2">
                       <label className="text-sm font-medium text-slate-700">Dotação Orçamentária</label>
                       <select required value={benefitData.appropriationId} onChange={e => setBenefitData({...benefitData, appropriationId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                         <option value="">Selecione...</option>
-                        {appropriations.map((a: any) => <option key={a.id} value={a.id}>{a.code} - {a.expenseNature?.name}</option>)}
+                        {appropriations.map((a) => <option key={a.id} value={a.id}>{a.code} - {a.expenseNature?.name}</option>)}
                       </select>
                     </div>
                   </div>
@@ -262,14 +273,14 @@ export default function BeneficiosClient({ beneficiosInicial, programasInicial, 
                       <label className="text-sm font-medium text-slate-700">Secretaria (Ordenadora)</label>
                       <select required value={programData.secretariatId} onChange={e => setProgramData({...programData, secretariatId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                         <option value="">Selecione...</option>
-                        {secretariats.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        {secretariats.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1 md:col-span-2">
                       <label className="text-sm font-medium text-slate-700">Dotação Orçamentária</label>
                       <select required value={programData.appropriationId} onChange={e => setProgramData({...programData, appropriationId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                         <option value="">Selecione...</option>
-                        {appropriations.map((a: any) => <option key={a.id} value={a.id}>{a.code} - {a.expenseNature?.name}</option>)}
+                        {appropriations.map((a) => <option key={a.id} value={a.id}>{a.code} - {a.expenseNature?.name}</option>)}
                       </select>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-import { Eye, FileText, Newspaper, FileOutput, Scale, Gavel, FileSignature } from "lucide-react";
+import { FileText, Newspaper, FileOutput, Gavel, FileSignature } from "lucide-react";
 import Link from "next/link";
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 

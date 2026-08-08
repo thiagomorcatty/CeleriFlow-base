@@ -4,8 +4,9 @@ import { Edit, PowerOff, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { toggleServidorStatus } from "./actions";
+import type { Employee } from "@prisma/client";
 
-export function ServidorRowActions({ employee }: { employee: any }) {
+export function ServidorRowActions({ employee }: { employee: Employee }) {
   const handleToggleStatus = async () => {
     if (confirm(`Tem certeza que deseja ${employee.isActive ? 'inativar' : 'ativar'} o servidor ${employee.name}?`)) {
       const result = await toggleServidorStatus(employee.id, !employee.isActive);

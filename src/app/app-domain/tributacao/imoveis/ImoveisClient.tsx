@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Plus, MoreVertical, Home, Pencil, Trash2, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import { Search, Plus, Home, Pencil, Trash2, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { updateRealEstate, deactivateRealEstate, activateRealEstate, createRealEstate } from "./actions";
 
 type RealEstate = {
@@ -18,9 +18,18 @@ type RealEstate = {
   } | null;
 };
 
+type RealEstateUpdate = {
+  municipalInsc?: string | null;
+  streetName?: string | null;
+  number?: string | null;
+  propertyType?: string;
+  landArea?: number | null;
+  builtArea?: number | null;
+};
+
 export default function ImoveisClient({ imoveis }: { imoveis: RealEstate[] }) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<RealEstate>>({});
+  const [editForm, setEditForm] = useState<RealEstateUpdate>({});
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
@@ -47,7 +56,7 @@ export default function ImoveisClient({ imoveis }: { imoveis: RealEstate[] }) {
     if (!editingId) return;
     if (confirm("Deseja salvar as alterações?")) {
       try {
-        await updateRealEstate(editingId, editForm as any);
+        await updateRealEstate(editingId, editForm);
         setEditingId(null);
       } catch (e) {
         console.error(e);

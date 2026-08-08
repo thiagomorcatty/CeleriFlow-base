@@ -13,7 +13,6 @@ import {
   ArrowLeft,
   Menu,
   X,
-  BookOpen,
   Mic,
   Globe
 } from "lucide-react";

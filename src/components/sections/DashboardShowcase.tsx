@@ -5,19 +5,9 @@ import {
   BarChart3, 
   TrendingUp, 
   FileText, 
-  ShieldCheck, 
-  Users, 
-  Clock, 
-  CheckCircle2, 
-  ChevronRight, 
   Building2, 
-  Zap, 
-  ArrowUpRight,
-  Filter,
   QrCode,
-  Activity,
-  Layers,
-  Lock
+  Activity
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 

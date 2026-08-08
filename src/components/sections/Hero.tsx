@@ -6,10 +6,7 @@ import {
   ArrowRight, 
   ShieldCheck, 
   Zap, 
-  Layers, 
   Sparkles, 
-  Building2, 
-  CheckCircle2, 
   Cpu, 
   Activity, 
   FileCheck2, 
@@ -18,7 +15,6 @@ import {
   Lock,
   Play
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 export function Hero() {
   return (
@@ -156,4 +152,3 @@ export function Hero() {
     </section>
   );
 }
-

@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Clock3, Headphones, MessageSquareWarning, Timer } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, Headphones, Timer } from "lucide-react";
 import Link from "next/link";
 import { getAttendanceContext, ombudsmanScope, ticketScope } from "@/lib/attendance/access";
 

@@ -86,7 +86,7 @@ export default function ClientLayout({
         <div className="w-1/3 flex justify-center items-center gap-3">
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0 overflow-hidden">
             {institution?.logoUrl ? (
-              <img src={institution.logoUrl} alt="Brasão" className="w-full h-full object-cover" />
+              <Image src={institution.logoUrl} alt="Brasão" width={40} height={40} unoptimized className="w-full h-full object-cover" />
             ) : (
               <Landmark className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
             )}

@@ -126,8 +126,8 @@ export async function processPayroll(payrollId: string) {
     
     revalidatePath(`/rh/folha/${payrollId}/editar`);
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Erro ao processar folha:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : "Falha ao processar a folha de pagamento." };
   }
 }

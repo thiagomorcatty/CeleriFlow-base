@@ -5,13 +5,14 @@ import Link from "next/link";
 import { NewEnterpriseSheet } from "../components/NewEnterpriseSheet";
 import { QuickFilters } from "../components/QuickFilters";
 import { EnterpriseRowActions } from "../components/EnterpriseRowActions";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 export default async function EmpreendimentosPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const { prisma } = await getTenantContextForModule("MEIO_AMBIENTE");
   const searchParams = await Promise.resolve(props.searchParams || {});
-  const where: any = {};
+  const where: Prisma.EnvEnterpriseWhereInput = {};
   if (searchParams.atividade) where.activityType = { contains: searchParams.atividade, mode: "insensitive" };
   if (searchParams.risco) where.potentialRisk = searchParams.risco;
   if (searchParams.status) where.status = searchParams.status;

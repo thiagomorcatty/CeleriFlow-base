@@ -1,16 +1,14 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import type { ChangeEvent, InputHTMLAttributes } from "react"
 import { Input } from "@/components/ui/input"
 
-interface MoneyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
+interface MoneyInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
   value: number;
   onChange: (value: number) => void;
 }
 
 export function MoneyInput({ value, onChange, ...props }: MoneyInputProps) {
-  const [displayValue, setDisplayValue] = useState("")
-
   // Convert number to formatted string: e.g. 1234.56 -> "1.234,56"
   const formatMoney = (val: number) => {
     if (isNaN(val)) return ""
@@ -20,11 +18,7 @@ export function MoneyInput({ value, onChange, ...props }: MoneyInputProps) {
     }).format(val)
   }
 
-  useEffect(() => {
-    setDisplayValue(formatMoney(value))
-  }, [value])
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     let rawValue = e.target.value
 
     // Remove all non-digits
@@ -32,7 +26,6 @@ export function MoneyInput({ value, onChange, ...props }: MoneyInputProps) {
     
     if (!rawValue) {
       onChange(0)
-      setDisplayValue("0,00")
       return
     }
 
@@ -40,7 +33,6 @@ export function MoneyInput({ value, onChange, ...props }: MoneyInputProps) {
     const numericValue = parseInt(rawValue, 10) / 100
     
     onChange(numericValue)
-    setDisplayValue(formatMoney(numericValue))
   }
 
   return (
@@ -50,7 +42,7 @@ export function MoneyInput({ value, onChange, ...props }: MoneyInputProps) {
         {...props}
         name={undefined}
         type="text"
-      value={displayValue}
+      value={formatMoney(value)}
       onChange={handleChange}
     />
     </>

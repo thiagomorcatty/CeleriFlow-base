@@ -5,13 +5,14 @@ import Link from "next/link";
 import { NewInspectionSheet } from "../components/NewInspectionSheet";
 import { QuickFilters } from "../components/QuickFilters";
 import { InspectionRowActions } from "../components/InspectionRowActions";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 export default async function FiscalizacaoPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const { prisma } = await getTenantContextForModule("MEIO_AMBIENTE");
   const searchParams = await Promise.resolve(props.searchParams || {});
-  const where: any = {};
+  const where: Prisma.EnvInspectionWhereInput = {};
   if (searchParams.status) where.status = searchParams.status;
 
   const inspections = await prisma.envInspection.findMany({ where, include: { enterprise: true }, orderBy: { dateScheduled: "desc" } });

@@ -12,18 +12,21 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import type { BenefitConfig, Company, Person, Supplier } from "@prisma/client";
 
-export function BeneficioForm({ data, suppliers = [] }: { data?: any, suppliers?: any[] }) {
+type SupplierWithIdentity = Supplier & { company: Company | null; person: Person | null };
+
+export function BeneficioForm({ data, suppliers = [] }: { data?: BenefitConfig, suppliers?: SupplierWithIdentity[] }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isActive, setIsActive] = useState(data ? data.isActive : true);
   const [baseValue, setBaseValue] = useState(data?.baseValue || 0);
   const [supplierId, setSupplierId] = useState<string>(data?.supplierId || "none");
 
-  const getSupplierName = (sup: any) => {
+  const getSupplierName = (sup: SupplierWithIdentity | undefined) => {
     if (!sup) return "Sem Nome";
     if (sup.company) return sup.company.corporateName || sup.company.tradeName || "Empresa Sem Nome";
-    if (sup.person) return sup.person.name || "Pessoa Sem Nome";
+    if (sup.person) return sup.person.fullName || "Pessoa Sem Nome";
     return "Sem Nome";
   };
 

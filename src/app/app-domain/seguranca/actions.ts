@@ -43,11 +43,6 @@ function clean(value?: string) {
   return trimmed ? trimmed : null;
 }
 
-function required(value: string | undefined, label: string) {
-  if (!value?.trim()) return `${label} obrigatorio.`;
-  return null;
-}
-
 function parseDate(value?: string) {
   return value ? new Date(value) : new Date();
 }

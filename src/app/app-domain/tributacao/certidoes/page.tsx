@@ -24,7 +24,7 @@ export default async function CertidoesPage() {
 
   return (
     <div className="max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-      <CertidoesClient certificates={certificates as any} taxpayers={taxpayers} />
+      <CertidoesClient certificates={certificates} taxpayers={taxpayers} />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { ClipboardList, Calendar, Clock, AlertTriangle, ShieldAlert } from "lucide-react";
+import { ClipboardList, Clock, ShieldAlert } from "lucide-react";
 import { getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 import { NewAttendanceSheet } from "../components/NewAttendanceSheet";

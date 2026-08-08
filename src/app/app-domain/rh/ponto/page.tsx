@@ -8,12 +8,13 @@ import { PontoRowActions } from "./PontoRowActions"
 import { format } from "date-fns"
 import { PontoFilters } from "./PontoFilters"
 import { UploadCSVButton } from "./UploadCSVButton"
+import type { Prisma } from "@prisma/client";
 
 export default async function PontoPage({ searchParams }: { searchParams: Promise<{ q?: string, month?: string }> }) {
   const { prisma } = await getTenantContextForModule("RH");
   const { q, month } = await searchParams;
 
-  const whereClause: any = {};
+  const whereClause: Prisma.AttendanceRecordWhereInput = {};
   if (q) {
     whereClause.employee = { name: { contains: q, mode: 'insensitive' } };
   }

@@ -9,8 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { addBenefitToEmployee, removeBenefitFromEmployee } from "./benefitActions";
+import type { BenefitConfig, Employee, PayrollBenefit } from "@prisma/client";
 
-export function EmployeeBenefitsCard({ employee, benefitConfigs }: { employee: any, benefitConfigs: any[] }) {
+type EmployeeWithBenefits = Pick<Employee, "id"> & {
+  benefits?: (PayrollBenefit & { benefitConfig: BenefitConfig })[];
+};
+
+export function EmployeeBenefitsCard({ employee, benefitConfigs }: { employee: EmployeeWithBenefits, benefitConfigs: BenefitConfig[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -86,7 +91,7 @@ export function EmployeeBenefitsCard({ employee, benefitConfigs }: { employee: a
                 </tr>
               </thead>
               <tbody>
-                {employee.benefits.map((ben: any) => {
+                {employee.benefits.map((ben) => {
                   const val = ben.customValue !== null ? ben.customValue : ben.benefitConfig.baseValue;
                   return (
                     <tr key={ben.id} className="border-b last:border-0 hover:bg-muted/50">

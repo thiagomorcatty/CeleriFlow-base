@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { toggleBeneficioStatus, deleteBeneficio } from "./actions";
 import { useRouter } from "next/navigation";
+import type { BenefitConfig } from "@prisma/client";
 
-export function BeneficioRowActions({ beneficio }: { beneficio: any }) {
+export function BeneficioRowActions({ beneficio }: { beneficio: BenefitConfig }) {
   const router = useRouter();
 
   const handleToggleStatus = async () => {

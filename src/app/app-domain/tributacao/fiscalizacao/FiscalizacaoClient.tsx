@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Plus, ShieldAlert, Pencil, CheckCircle2, XCircle, BrainCircuit, Sparkles, FileSearch, Zap } from "lucide-react";
+import { useState, type FormEvent } from "react";
+import { Search, Plus, ShieldAlert, Pencil, CheckCircle2, XCircle, BrainCircuit, FileSearch, Zap } from "lucide-react";
 import { createInfraction, updateInfraction, updateInfractionStatus } from "./actions";
 import { runTaxAuditAction, issueInfractionNoticeAction } from "./fiscalizacao-actions";
+import type { TaxAuditCrossCheckResult } from "@/lib/tributacao/inteligencia-tributaria-engine";
+
+type TaxAuditResult = TaxAuditCrossCheckResult & { numeroAutoInfracao?: string };
 
 type Infraction = {
   id: string;
@@ -39,14 +42,12 @@ export default function FiscalizacaoClient({
   const [valorDeclarado, setValorDeclarado] = useState<number>(450000.0);
   const [valorBancos, setValorBancos] = useState<number>(1850000.0);
   const [auditLoading, setAuditLoading] = useState(false);
-  const [auditResult, setAuditResult] = useState<any | null>(null);
-  const [noticeResult, setNoticeResult] = useState<any | null>(null);
+  const [auditResult, setAuditResult] = useState<TaxAuditResult | null>(null);
 
-  async function handleRunAudit(e: React.FormEvent) {
+  async function handleRunAudit(e: FormEvent) {
     e.preventDefault();
     setAuditLoading(true);
     setAuditResult(null);
-    setNoticeResult(null);
 
     const res = await runTaxAuditAction({
       cnpjCpfContribuinte: cnpjAudit,
@@ -73,8 +74,9 @@ export default function FiscalizacaoClient({
     setAuditLoading(false);
 
     if (res.data) {
-      setNoticeResult(res.data);
       setAuditResult({ ...auditResult, statusMalha: "AUTO_INFRACAO_EMITIDO", numeroAutoInfracao: res.data.numeroAutoInfracao });
+    } else {
+      alert(res.error || "Erro ao emitir Auto de Infração.");
     }
   }
   

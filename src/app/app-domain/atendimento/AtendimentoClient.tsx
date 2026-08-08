@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, ChevronDown, CheckCircle2, PlayCircle, Clock } from "lucide-react";
+import { Search, CheckCircle2, PlayCircle } from "lucide-react";
 import { updateTicketStatus } from "./actions";
 
 interface Ticket {
