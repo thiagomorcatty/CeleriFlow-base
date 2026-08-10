@@ -35,19 +35,27 @@ export async function GET(request: NextRequest) {
 
     const dataset = await generateInternalReportDataset(context.prisma, reportType, financialYear.id, financialYear.year, { month });
     const csv = reportDatasetCsv(dataset);
-    const snapshot = await savePublicFinancialReportSnapshot(context.prisma, {
-      reportType,
-      financialYearId: financialYear.id,
-      year: financialYear.year,
-      csv: csv.csv,
-    });
+    let snapshot: Awaited<ReturnType<typeof savePublicFinancialReportSnapshot>> = null;
+    let snapshotError: string | undefined;
+    try {
+      snapshot = await savePublicFinancialReportSnapshot(context.prisma, {
+        reportType,
+        financialYearId: financialYear.id,
+        year: financialYear.year,
+        csv: csv.csv,
+      });
+    } catch (error) {
+      // The internal export remains available when optional public publication is unavailable.
+      snapshotError = error instanceof Error ? error.message : "Falha desconhecida ao publicar snapshot público.";
+      console.error("Erro ao publicar snapshot público de relatório financeiro:", error);
+    }
     await context.prisma.financialAuditLog.create({
       data: {
         action: "ISSUE",
         entityType: "FinancialReport",
         entityId: `${reportType}:${financialYear.id}`,
         financialYearId: financialYear.id,
-        payload: { reportType, format, rowCount: csv.rowCount, publicSnapshot: snapshot },
+        payload: { reportType, format, rowCount: csv.rowCount, publicSnapshot: snapshot, publicSnapshotError: snapshotError },
         authorUsuarioId: context.user.id,
         authorEmployeeId: context.user.employeeId,
       },
