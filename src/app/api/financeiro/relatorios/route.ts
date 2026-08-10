@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { financialReportFilename, generateInternalReportDataset, isFinancialReportType, isReportFormat, isReportMonth, reportDatasetCsv, reportRequiresMonth, savePublicFinancialReportSnapshot } from "@/lib/financeiro/report-delivery";
 import { generateReportPdf } from "@/lib/financeiro/report-export";
+import { ensureFinancialGedFolder, saveFinancialFileToGed } from "@/lib/financeiro/ged";
 import { AccessError, canIssueFinancialReports, getTenantContextForModuleEdit, isSystemAdministrator } from "@/lib/platform/tenant-context";
 import { auditEventTypes, writeAuditEvent } from "@/lib/platform/audit-evidence";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,22 +53,35 @@ export async function GET(request: NextRequest) {
         console.error("Erro ao publicar snapshot público de relatório financeiro:", error);
       }
     }
+    const body = format === "CSV" ? csv.csv : await generateReportPdf(dataset);
+    const contentType = format === "CSV"
+      ? "text/csv; charset=utf-8"
+      : "application/pdf";
+    const filename = financialReportFilename(reportType, financialYear.year, format);
+    const gedDocument = format === "CSV" && snapshot
+      ? { documentId: snapshot.documentId, folderId: await ensureFinancialGedFolder(context.prisma) }
+      : await saveFinancialFileToGed(context.prisma, {
+          title: `${dataset.title} - ${financialYear.year}`,
+          documentType: `FINANCEIRO:RELATORIO:${reportType}`,
+          filename,
+          content: body,
+          contentType,
+        });
+    revalidatePath("/documentos/ged");
+    revalidatePath("/documentos");
+
     await context.prisma.financialAuditLog.create({
       data: {
         action: "ISSUE",
         entityType: "FinancialReport",
         entityId: `${reportType}:${financialYear.id}`,
         financialYearId: financialYear.id,
-        payload: { reportType, format, rowCount: csv.rowCount, publicSnapshot: snapshot, publicSnapshotError: snapshotError },
+        payload: { reportType, format, rowCount: csv.rowCount, gedDocumentId: gedDocument.documentId, publicSnapshot: snapshot, publicSnapshotError: snapshotError },
         authorUsuarioId: context.user.id,
         authorEmployeeId: context.user.employeeId,
       },
     });
 
-    const body = format === "CSV" ? csv.csv : await generateReportPdf(dataset);
-    const contentType = format === "CSV"
-      ? "text/csv; charset=utf-8"
-      : "application/pdf";
     await writeAuditEvent(context.prisma, {
       actorUsuarioId: context.user.id,
       eventType: auditEventTypes.financialReportExport,
@@ -77,7 +92,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(body as unknown as BodyInit, {
       headers: {
         "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${financialReportFilename(reportType, financialYear.year, format)}"`,
+        "Content-Disposition": `attachment; filename="${filename}"`,
         "Cache-Control": "no-store",
       },
     });

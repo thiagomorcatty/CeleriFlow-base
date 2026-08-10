@@ -8,6 +8,7 @@ import crypto from "crypto";
 
 import { bankIntegrationClient } from "@/lib/financeiro/bank-integration-client";
 import { archiveBankStatement } from "@/lib/platform/blob";
+import { saveFinancialFileToGed } from "@/lib/financeiro/ged";
 import { pocVirtualBank } from "@/lib/poc/poc-config";
 
 type ActionResult<T = unknown> = { error?: string; data?: T };
@@ -135,6 +136,14 @@ export async function runAutomatedBankDownloadAction(input: {
       bankData.rawContent,
       bankStatementContentType(bankData.formato),
     );
+    const gedDocument = await saveFinancialFileToGed(prisma, {
+      title: `Extrato bancário ${parsed.data.banco} ${parsed.data.agencia}/${parsed.data.contaNumero}`,
+      documentType: "FINANCEIRO:EXTRATO_BANCARIO",
+      filename: fileNameCC,
+      content: bankData.rawContent,
+      contentType: bankStatementContentType(bankData.formato),
+      fileUrl: archivedFile.url,
+    });
 
     const logsExecucao = [
       `[${new Date().toLocaleTimeString()}] Conectando ao WebService / Simulador Bancário (${parsed.data.banco})...`,
@@ -177,7 +186,7 @@ export async function runAutomatedBankDownloadAction(input: {
           entityType: "AutomatedBankDownload",
           entityId: downloadRecord.id,
           authorUsuarioId: user.id,
-          payload: { banco: parsed.data.banco, agencia: parsed.data.agencia, contaNumero: parsed.data.contaNumero, hashSHA256: bankData.hashSHA256 },
+          payload: { banco: parsed.data.banco, agencia: parsed.data.agencia, contaNumero: parsed.data.contaNumero, hashSHA256: bankData.hashSHA256, gedDocumentId: gedDocument.documentId },
         },
       });
       await tx.automatedBankDownload.update({ where: { id: downloadRecord.id }, data: { auditLogId: audit.id } });
@@ -252,6 +261,8 @@ export async function runAutomatedBankDownloadAction(input: {
 
     revalidatePath("/financeiro/download-extratos");
     revalidatePath("/financeiro/automacoes");
+    revalidatePath("/documentos/ged");
+    revalidatePath("/documentos");
     return { data: serializeDownloadRecord(result.downloadRecord) };
   } catch (err: unknown) {
     if (context) {
