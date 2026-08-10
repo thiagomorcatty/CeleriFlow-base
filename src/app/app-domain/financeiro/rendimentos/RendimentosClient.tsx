@@ -53,6 +53,7 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
   const [transmitting, setTransmitting] = useState(false);
   const [receipt, setReceipt] = useState<YieldTransmissionResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [queryMessage, setQueryMessage] = useState<string | null>(null);
 
   const [history, setHistory] = useState<YieldRecord[]>(initialHistory);
 
@@ -83,11 +84,22 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
   async function handleFetchYields() {
     setLoading(true);
     setErrorMsg(null);
-    const res = await fetchExternalYieldsAction({ banco: pocVirtualBank.name, agencia: pocVirtualBank.agency, contaNumero, periodoInicio, periodoFim });
-    setLoading(false);
-    if (res.error) return setErrorMsg(res.error);
-    setExternalYields(res.data || []);
-    if (!res.data?.length) setErrorMsg("Nenhum rendimento foi encontrado no extrato para o período informado.");
+    setQueryMessage(null);
+    setExternalYields([]);
+
+    try {
+      const res = await fetchExternalYieldsAction({ banco: pocVirtualBank.name, agencia: pocVirtualBank.agency, contaNumero, periodoInicio, periodoFim });
+      if (res.error) return setErrorMsg(res.error);
+
+      const yields = res.data || [];
+      setExternalYields(yields);
+      if (!yields.length) return setErrorMsg("Nenhum rendimento foi encontrado no extrato para o período informado.");
+      setQueryMessage(`${yields.length} rendimento${yields.length === 1 ? "" : "s"} identificado${yields.length === 1 ? "" : "s"}. Selecione um item para apurar.`);
+    } catch {
+      setErrorMsg("Não foi possível consultar os rendimentos no extrato de aplicação.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSelectYield(yieldItem: ExternalYield) {
@@ -195,9 +207,15 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
                 <input type="date" value={periodoFim} onChange={(e) => setPeriodoFim(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2.5 text-sm" />
               </div>
             </div>
-            <button type="button" onClick={handleFetchYields} disabled={loading} className="w-full border border-emerald-600 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-bold py-2.5 px-4 rounded-lg transition-all">
-              Consultar rendimentos no extrato de aplicação
+            <button type="button" onClick={handleFetchYields} disabled={loading} className="w-full border border-emerald-600 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-bold py-2.5 px-4 rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-60">
+              {loading ? "Consultando rendimentos..." : "Consultar rendimentos no extrato de aplicação"}
             </button>
+            {errorMsg && (
+              <div role="alert" className="p-3 bg-rose-50 text-rose-800 border border-rose-200 text-xs rounded-lg">{errorMsg}</div>
+            )}
+            {queryMessage && (
+              <div role="status" className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs rounded-lg">{queryMessage}</div>
+            )}
             {externalYields.length > 0 && (
               <div className="space-y-2 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
                 <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">Rendimentos identificados no extrato</p>
@@ -364,10 +382,6 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
                   </div>
                 </div>
               </div>
-
-              {errorMsg && (
-                <div className="p-3 bg-rose-50 text-rose-800 border border-rose-200 text-xs rounded-lg">{errorMsg}</div>
-              )}
 
               {/* Transmissão Municipal */}
               {!receipt ? (
