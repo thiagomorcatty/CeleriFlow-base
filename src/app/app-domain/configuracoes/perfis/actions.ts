@@ -25,7 +25,7 @@ function normalizePermissions(value: string | undefined) {
   const modulesSource = source.modules && typeof source.modules === "object" && !Array.isArray(source.modules)
     ? source.modules as Record<string, unknown>
     : {};
-  const modules: Record<string, { showDashboardCard: boolean; blocked: boolean; create: boolean; update: boolean; delete: boolean }> = {};
+  const modules: Record<string, { showDashboardCard: boolean; blocked: boolean; create: boolean; update: boolean; delete: boolean; issueReports: boolean }> = {};
   for (const [code, raw] of Object.entries(modulesSource)) {
     if (!MODULE_CODES.has(code) || !raw || typeof raw !== "object" || Array.isArray(raw)) continue;
     const item = raw as Record<string, unknown>;
@@ -36,6 +36,7 @@ function normalizePermissions(value: string | undefined) {
       create: !blocked && item.create === true,
       update: !blocked && item.update === true,
       delete: !blocked && item.delete === true,
+      issueReports: !blocked && code === "FINANCEIRO" && item.issueReports === true,
     };
   }
   return JSON.stringify({

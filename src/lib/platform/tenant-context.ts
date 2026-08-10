@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getIdTokenPrincipal, getSessionPrincipal, SESSION_COOKIE_NAME, type SessionPrincipal } from "@/lib/platform/session";
 import type { PrismaClient } from "@prisma/client";
 
+export { canIssueFinancialReports } from "@/lib/financeiro/report-access";
+
 // Compatibility layer for the existing module pages and Server Actions.
 // Access is resolved from the municipal database, which is the only active
 // application database.
@@ -46,6 +48,7 @@ type ModuleProfilePermission = {
   create: boolean;
   update: boolean;
   delete: boolean;
+  issueReports: boolean;
 };
 
 function parseRolePermissions(value: string | null | undefined): RolePermissions | null {
@@ -74,6 +77,7 @@ function getModuleProfilePermission(rolePermissions: RolePermissions | null, mod
     create: permission.create === true,
     update: permission.update === true,
     delete: permission.delete === true,
+    issueReports: permission.issueReports === true,
   };
 }
 

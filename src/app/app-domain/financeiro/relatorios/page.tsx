@@ -1,5 +1,5 @@
 import { financialReportOptions } from "@/lib/financeiro/report-delivery";
-import { getTenantContextForModule, isSystemAdministrator } from "@/lib/platform/tenant-context";
+import { canIssueFinancialReports, getTenantContextForModule } from "@/lib/platform/tenant-context";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,7 @@ export default async function FinanceiroRelatoriosPage() {
     select: { id: true, year: true, status: true },
     orderBy: { year: "desc" },
   });
-  const canIssue = isSystemAdministrator(context.user);
+  const canIssue = canIssueFinancialReports(context.user);
 
   return (
     <div className="max-w-3xl space-y-6 p-6 md:p-8">

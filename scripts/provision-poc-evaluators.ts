@@ -44,13 +44,39 @@ async function main() {
         id: evaluator.id,
         nome: evaluator.name,
         descricao: "Acesso individual da comissão avaliadora da POC de São João do Ivaí.",
-        permissoes: JSON.stringify({ acesso: "operacional", modulosBloqueados: blockedModules }),
+        permissoes: JSON.stringify({
+          acesso: "operacional",
+          modulosBloqueados: blockedModules,
+          modules: {
+            FINANCEIRO: {
+              showDashboardCard: true,
+              blocked: false,
+              create: true,
+              update: true,
+              delete: true,
+              issueReports: evaluator.email === "gestao1@email.com",
+            },
+          },
+        }),
         ativo: true,
       },
       update: {
         nome: evaluator.name,
         descricao: "Acesso individual da comissão avaliadora da POC de São João do Ivaí.",
-        permissoes: JSON.stringify({ acesso: "operacional", modulosBloqueados: blockedModules }),
+        permissoes: JSON.stringify({
+          acesso: "operacional",
+          modulosBloqueados: blockedModules,
+          modules: {
+            FINANCEIRO: {
+              showDashboardCard: true,
+              blocked: false,
+              create: true,
+              update: true,
+              delete: true,
+              issueReports: evaluator.email === "gestao1@email.com",
+            },
+          },
+        }),
         ativo: true,
       },
     });

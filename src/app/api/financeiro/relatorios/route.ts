@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { financialReportFilename, generateInternalReportDataset, isFinancialReportType, isReportFormat, isReportMonth, reportDatasetCsv, reportRequiresMonth, savePublicFinancialReportSnapshot } from "@/lib/financeiro/report-delivery";
 import { generateReportPdf } from "@/lib/financeiro/report-export";
-import { AccessError, getTenantContextForModuleEdit, isSystemAdministrator } from "@/lib/platform/tenant-context";
+import { AccessError, canIssueFinancialReports, getTenantContextForModuleEdit, isSystemAdministrator } from "@/lib/platform/tenant-context";
 import { auditEventTypes, writeAuditEvent } from "@/lib/platform/audit-evidence";
 
 export const runtime = "nodejs";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const context = await getTenantContextForModuleEdit("FINANCEIRO");
-    if (!isSystemAdministrator(context.user)) {
+    if (!canIssueFinancialReports(context.user)) {
       // Accounting entries and revenue are currently consolidated, so unit-scoped users must not receive this export.
       throw new AccessError("A emissão de relatórios consolidados é restrita ao administrador do sistema.", 403);
     }
@@ -37,17 +37,19 @@ export async function GET(request: NextRequest) {
     const csv = reportDatasetCsv(dataset);
     let snapshot: Awaited<ReturnType<typeof savePublicFinancialReportSnapshot>> = null;
     let snapshotError: string | undefined;
-    try {
-      snapshot = await savePublicFinancialReportSnapshot(context.prisma, {
-        reportType,
-        financialYearId: financialYear.id,
-        year: financialYear.year,
-        csv: csv.csv,
-      });
-    } catch (error) {
-      // The internal export remains available when optional public publication is unavailable.
-      snapshotError = error instanceof Error ? error.message : "Falha desconhecida ao publicar snapshot público.";
-      console.error("Erro ao publicar snapshot público de relatório financeiro:", error);
+    if (isSystemAdministrator(context.user)) {
+      try {
+        snapshot = await savePublicFinancialReportSnapshot(context.prisma, {
+          reportType,
+          financialYearId: financialYear.id,
+          year: financialYear.year,
+          csv: csv.csv,
+        });
+      } catch (error) {
+        // The internal export remains available when optional public publication is unavailable.
+        snapshotError = error instanceof Error ? error.message : "Falha desconhecida ao publicar snapshot público.";
+        console.error("Erro ao publicar snapshot público de relatório financeiro:", error);
+      }
     }
     await context.prisma.financialAuditLog.create({
       data: {
