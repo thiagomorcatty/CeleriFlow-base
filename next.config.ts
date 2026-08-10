@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  outputFileTracingIncludes: {
+    "/api/financeiro/relatorios": ["./node_modules/pdfkit/js/data/**/*"],
+  },
   async headers() {
     return [{
       source: "/:path*",

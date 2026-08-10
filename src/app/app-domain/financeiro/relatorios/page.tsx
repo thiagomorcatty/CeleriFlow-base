@@ -3,6 +3,8 @@ import { canIssueFinancialReports, getTenantContextForModule } from "@/lib/platf
 
 export const dynamic = "force-dynamic";
 
+const pocReportTypes = new Set(["BALANCETE", "CONCILIACAO_TESOURARIA", "BALANCO_FINANCEIRO"]);
+
 export default async function FinanceiroRelatoriosPage() {
   const context = await getTenantContextForModule("FINANCEIRO");
   const years = await context.prisma.financialYear.findMany({
@@ -10,15 +12,16 @@ export default async function FinanceiroRelatoriosPage() {
     orderBy: { year: "desc" },
   });
   const canIssue = canIssueFinancialReports(context.user);
+  const reportOptions = financialReportOptions.filter((report) => pocReportTypes.has(report.type));
 
   return (
     <div className="max-w-3xl space-y-6 p-6 md:p-8">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Relatórios Financeiros</h1>
-        <p className="mt-1 text-sm text-slate-500">Emissão interna em CSV ou PDF a partir dos dados contábeis, orçamentários, de planejamento e de tesouraria registrados.</p>
+        <p className="mt-1 text-sm text-slate-500">Emissão interna em CSV ou PDF para os relatórios básicos da POC.</p>
       </div>
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold text-slate-800">Emitir relatório</h2>
+        <h2 className="font-semibold text-slate-800">Emitir relatório básico</h2>
         {canIssue ? (
           <form action="/api/financeiro/relatorios" method="get" className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="text-sm font-medium text-slate-700">
@@ -32,9 +35,9 @@ export default async function FinanceiroRelatoriosPage() {
               Tipo de relatório
               <select name="reportType" required defaultValue="" className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm">
                 <option value="" disabled>Selecione o relatório</option>
-                {[...new Set(financialReportOptions.map((report) => report.group))].map((group) => (
+                {[...new Set(reportOptions.map((report) => report.group))].map((group) => (
                   <optgroup key={group} label={group}>
-                    {financialReportOptions.filter((report) => report.group === group).map((report) => <option key={report.type} value={report.type}>{report.label}</option>)}
+                    {reportOptions.filter((report) => report.group === group).map((report) => <option key={report.type} value={report.type}>{report.label}</option>)}
                   </optgroup>
                 ))}
               </select>
