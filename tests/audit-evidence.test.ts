@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { auditEventTypes, writeAuditEvent } from "../src/lib/platform/audit-evidence.ts";
 import { prisma } from "../src/lib/prisma.ts";
-import { canEditModule, canShowDashboardCard, canViewModule, isModuleBlockedForUser, isSystemAdministrator } from "../src/lib/platform/tenant-context.ts";
+import { canEditModule, canShowDashboardCard, canUseInactiveModule, canViewModule, isModuleBlockedForUser, isSystemAdministrator } from "../src/lib/platform/tenant-context.ts";
 
 test("persists payload-free audit evidence with only actor, event, and target identifiers", async () => {
   let data: unknown;
@@ -98,6 +98,20 @@ test("applies dashboard visibility, blocking, and operational module permissions
   assert.equal(isModuleBlockedForUser(profile, "COMPRAS"), true);
   assert.equal(canViewModule(profile, "COMPRAS"), false);
   assert.equal(canEditModule(profile, "COMPRAS"), false);
+});
+
+test("allows non-POC profiles to use modules released in their permission matrix", () => {
+  const regularProfile = {
+    role: "Gestor",
+    permissions: JSON.stringify({ acesso: "operacional" }),
+  } as Parameters<typeof canUseInactiveModule>[0];
+  const pocEvaluator = {
+    role: "POC Avaliador Técnico de TI",
+    permissions: JSON.stringify({ acesso: "operacional" }),
+  } as Parameters<typeof canUseInactiveModule>[0];
+
+  assert.equal(canUseInactiveModule(regularProfile), true);
+  assert.equal(canUseInactiveModule(pocEvaluator), false);
 });
 
 test("migration protects audit evidence from mutation and indexes retention queries", async () => {
