@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import crypto from "crypto";
 import { recordConfirmedRevenue, type FinanceActor } from "./index";
+import { queueRpaOperation } from "./rpa-integration";
 
 export type YieldType = "BRUTO" | "LIQUIDO" | "CORRECAO" | "ESTORNO" | "ACUMULADO";
 
@@ -96,7 +97,7 @@ export async function transmitYieldToMunicipalSystem(
   const result = await prisma.$transaction(async (tx) => {
     const account = await tx.bankAccount.findFirst({
       where: { accountNumber: data.contaNumero, isActive: true },
-      select: { id: true, resourceSourceId: true, accountingPlanId: true },
+      select: { id: true, resourceSourceId: true, accountingPlanId: true, bankName: true, agency: true, accountNumber: true, externalId: true },
     });
     if (!account?.resourceSourceId || !account.accountingPlanId) throw new Error("A conta de aplicação deve estar ativa, vinculada a uma fonte de recurso e possuir conta analítica.");
 
@@ -108,7 +109,7 @@ export async function transmitYieldToMunicipalSystem(
     if (!nature) throw new Error("Cadastre uma natureza de receita para rendimentos de aplicação antes da transmissão.");
 
     const statement = data.statementItemId
-      ? await tx.bankStatementItem.findUnique({ where: { id: data.statementItemId }, select: { id: true, treasuryMovementId: true, codigoTransacao: true, contaNumero: true } })
+      ? await tx.bankStatementItem.findUnique({ where: { id: data.statementItemId }, select: { id: true, treasuryMovementId: true, codigoTransacao: true, bankTransactionId: true, reference: true, contaNumero: true } })
       : null;
     if (statement && statement.contaNumero !== data.contaNumero) throw new Error("O rendimento deve ser registrado na mesma conta identificada no extrato.");
     if (statement?.treasuryMovementId) throw new Error("Este rendimento já foi registrado no CeleriFlow.");
@@ -169,6 +170,19 @@ export async function transmitYieldToMunicipalSystem(
         data: { treasuryMovementId: treasuryMovement.id, status: "Processado", reciboMunicipal: reciboId, lancamentoContabilId: accounting.id, categoriaClassificada: "RENDIMENTO" },
       });
     }
+    await queueRpaOperation(tx, {
+      sourceType: "BANK_YIELD",
+      sourceId: yieldRecord.id,
+      sourceEventType: "RENDIMENTO_IDENTIFICADO",
+      type: "RENDIMENTO",
+      transactionDate: data.data,
+      amount: data.valorLiquido,
+      bank: { externalId: account.externalId, agency: account.agency, account: account.accountNumber },
+      bankTransactionId: statement?.bankTransactionId ?? statement?.codigoTransacao ?? yieldRecord.id,
+      documentNumber: statement?.reference ?? statement?.codigoTransacao,
+      history: "Rendimento de aplicação financeira",
+      sourceReference: `Rendimento de aplicação da conta ${account.accountNumber}, referência ${statement?.bankTransactionId ?? statement?.codigoTransacao ?? yieldRecord.id}.`,
+    });
     return { yieldRecord, reciboId, numeroLancamento, hashTransmissao };
   });
 

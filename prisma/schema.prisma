@@ -5747,6 +5747,37 @@ model IntegrationRun {
   @@index([connectionId, createdAt])
 }
 
+// Outbox interno para a Central RPA. O ciclo de entrega e o resultado do
+// lançamento no ERP externo não alteram o estado financeiro de origem.
+model RpaIntegrationOperation {
+  id                String   @id @default(cuid())
+  sourceType        String
+  sourceId          String
+  batchId           String   @unique
+  sourceEventId     String   @unique
+  operationId       String   @unique
+  municipalityId    String
+  sourceEventType   String
+  operationType     String
+  deliveryStatus    String   @default("PENDENTE_ENVIO")
+  rpaStatus         String?
+  payload           Json
+  payloadHash       String
+  attempts          Int      @default(0)
+  lastAttemptAt     DateTime?
+  nextAttemptAt     DateTime @default(now())
+  centralAcceptedAt DateTime?
+  completedAt       DateTime?
+  lastError         String?
+  resultPayload     Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([sourceType, sourceId])
+  @@index([deliveryStatus, nextAttemptAt])
+  @@index([rpaStatus, completedAt])
+}
+
 model ConfiguracaoPerfil {
   id         String  @id @default(cuid())
   nome       String // Administrador Municipal, Gestor, Operador

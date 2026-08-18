@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import crypto from "crypto";
 import { createTreasuryTransferInTransaction, postAccountingEventInTransaction } from "@/lib/financeiro";
+import { queueRpaOperation } from "@/lib/financeiro/rpa-integration";
 
 export type ClassificationType =
   | "APLICACAO"
@@ -238,7 +239,7 @@ export async function sendMovementToMunicipalSystem(
         accountNumber: item.contaNumero,
         isActive: true,
       },
-      select: { id: true, bankName: true, agency: true, accountNumber: true, accountType: true, budgetUnitId: true, resourceSourceId: true, accountingPlanId: true, linkedInvestmentAccountId: true },
+      select: { id: true, bankName: true, agency: true, accountNumber: true, accountType: true, externalId: true, budgetUnitId: true, resourceSourceId: true, accountingPlanId: true, linkedInvestmentAccountId: true },
     });
     if (!sourceAccount) throw new Error("A conta bancária do extrato não está cadastrada ou ativa na tesouraria.");
     const sourceIsChecking = sourceAccount.accountType === "Movimento";
@@ -326,6 +327,19 @@ export async function sendMovementToMunicipalSystem(
         lancamentoContabilId: accounting.id,
         categoriaClassificada: classification.category,
       },
+    });
+    await queueRpaOperation(tx, {
+      sourceType: "BANK_STATEMENT_INVESTMENT_TRANSFER",
+      sourceId: item.id,
+      sourceEventType: isInvestmentApplication(classification.category) ? "APLICACAO_EXECUTADA" : "RESGATE_EXECUTADO",
+      type: isInvestmentApplication(classification.category) ? "APLICACAO" : "RESGATE",
+      transactionDate: item.date,
+      amount: value,
+      bank: { externalId: sourceAccount.externalId, agency: sourceAccount.agency, account: sourceAccount.accountNumber },
+      bankTransactionId: item.bankTransactionId ?? item.codigoTransacao ?? item.id,
+      documentNumber: item.reference ?? item.codigoTransacao,
+      history: item.description,
+      sourceReference: `Extrato ${sourceAccount.bankName}, agência ${sourceAccount.agency}, conta ${sourceAccount.accountNumber}, transação ${item.bankTransactionId ?? item.codigoTransacao ?? item.id}.`,
     });
     return { movement, auditId: audit.id, account: movement.bankAccount, category: classification.category };
   });
