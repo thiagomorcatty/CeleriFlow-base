@@ -3,6 +3,7 @@
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { calculateInvestmentYield, transmitYieldToMunicipalSystem, type YieldCalculationResult, type YieldTransmissionResult, YieldType } from "@/lib/financeiro/yield-engine";
 import { bankIntegrationClient, type InvestmentYieldDTO } from "@/lib/financeiro/bank-integration-client";
+import { dispatchPendingRpaOperations } from "@/lib/financeiro/rpa-integration";
 import { revalidatePath } from "next/cache";
 import { isPocVirtualBank, isPocVirtualBankAccount, pocVirtualBank } from "@/lib/poc/poc-config";
 
@@ -53,6 +54,12 @@ export async function transmitYieldAction(input: {
       usuarioId: context.user.id,
       employeeId: context.user.employeeId,
     });
+    // Mantém o registro financeiro concluído mesmo se a Central RPA estiver temporariamente indisponível.
+    try {
+      await dispatchPendingRpaOperations(context.prisma);
+    } catch (dispatchError) {
+      console.error("Falha ao despachar o rendimento ao RPA:", dispatchError);
+    }
 
     revalidatePath("/financeiro/rendimentos");
     return { data: result };

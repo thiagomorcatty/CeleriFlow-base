@@ -11,6 +11,10 @@ type ElotechMapping = {
   localAccount: string;
   applicationAccount?: string;
   revenueCode?: string;
+  accountName?: string;
+  accountType?: string;
+  source?: string;
+  sourceDescription?: string;
 };
 
 type QueueInput = {
@@ -71,6 +75,10 @@ function parseMappings() {
       localAccount,
       applicationAccount: typeof mapping.applicationAccount === "string" ? mapping.applicationAccount.trim() || undefined : undefined,
       revenueCode: typeof mapping.revenueCode === "string" ? mapping.revenueCode.trim() || undefined : undefined,
+      accountName: typeof mapping.accountName === "string" ? mapping.accountName.trim() || undefined : undefined,
+      accountType: typeof mapping.accountType === "string" ? mapping.accountType.trim() || undefined : undefined,
+      source: typeof mapping.source === "string" ? mapping.source.trim() || undefined : undefined,
+      sourceDescription: typeof mapping.sourceDescription === "string" ? mapping.sourceDescription.trim() || undefined : undefined,
     }];
   });
 
@@ -156,8 +164,83 @@ function nextRetryAt(attempts: number) {
   return new Date(Date.now() + minutes * 60_000);
 }
 
+export async function syncRpaAccountCatalog(db: PrismaClient) {
+  if (!isDispatchEnabled()) return { synced: 0, disabled: true };
+  const { baseUrl, key } = getCentralConfiguration();
+  const municipalityId = process.env.RPA_MUNICIPALITY_ID?.trim();
+  if (!municipalityId) throw new Error("RPA_MUNICIPALITY_ID não está configurada.");
+
+  const mappings = parseMappings();
+  const mappedExternalIds = mappings.map((mapping) => mapping.bankAccountExternalId);
+  const accounts = await db.bankAccount.findMany({
+    where: { isActive: true, externalId: { in: mappedExternalIds } },
+    include: { resourceSource: { select: { code: true, name: true } } },
+  });
+  const accountIds = accounts.map((account) => account.id);
+  const totals = accountIds.length
+    ? await db.bankStatementItem.groupBy({
+        by: ["bankAccountId", "sinal"],
+        where: { bankAccountId: { in: accountIds } },
+        _sum: { valueDecimal: true },
+      })
+    : [];
+  const totalsByAccount = new Map<string, { credits: number; debits: number }>();
+  for (const total of totals) {
+    if (!total.bankAccountId) continue;
+    const values = totalsByAccount.get(total.bankAccountId) ?? { credits: 0, debits: 0 };
+    if (total.sinal === "CREDITO") values.credits += Number(total._sum.valueDecimal ?? 0);
+    if (total.sinal === "DEBITO") values.debits += Number(total._sum.valueDecimal ?? 0);
+    totalsByAccount.set(total.bankAccountId, values);
+  }
+
+  const catalogAccounts = accounts.flatMap((account) => {
+    const mapping = mappings.find((item) => item.bankAccountExternalId === account.externalId);
+    if (!mapping) return [];
+    const totals = totalsByAccount.get(account.id) ?? { credits: 0, debits: 0 };
+    const current = Number(account.currentBalanceDecimal ?? account.currentBalance);
+    return [{
+      bank: { code: mapping.bankCode, agency: account.agency, account: account.accountNumber },
+      elotech: {
+        localAccount: mapping.localAccount,
+        accountName: mapping.accountName ?? account.purpose ?? account.bankName,
+        accountType: mapping.accountType ?? account.accountType,
+        source: mapping.source ?? account.resourceSource?.code ?? "",
+        sourceDescription: mapping.sourceDescription ?? account.resourceSource?.name ?? "",
+      },
+      balances: {
+        source: 0,
+        previous: current - totals.credits + totals.debits,
+        credits: totals.credits,
+        debits: totals.debits,
+        current,
+      },
+    }];
+  });
+  if (!catalogAccounts.length) throw new Error("Nenhuma conta bancária ativa possui mapeamento Elotech para sincronização.");
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Number(process.env.RPA_DISPATCH_TIMEOUT_MS || "15000"));
+  try {
+    const response = await fetch(`${baseUrl}/api/integration/accounts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CeleriFlow-Key": key },
+      body: JSON.stringify({ municipalityId, accounts: catalogAccounts }),
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      const details = (await response.text()).slice(0, 500);
+      throw new Error(`Central RPA recusou o catálogo de contas com HTTP ${response.status}${details ? `: ${details}` : ""}`);
+    }
+    return { synced: catalogAccounts.length, disabled: false };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function dispatchPendingRpaOperations(db: PrismaClient, limit = 25) {
   if (!isDispatchEnabled()) return { processed: 0, accepted: 0, failed: 0, disabled: true };
+  const accountCatalog = await syncRpaAccountCatalog(db);
   const { baseUrl, key } = getCentralConfiguration();
   const now = new Date();
   const candidates = await db.rpaIntegrationOperation.findMany({
@@ -223,7 +306,7 @@ export async function dispatchPendingRpaOperations(db: PrismaClient, limit = 25)
       failed += 1;
     }
   }
-  return { processed: candidates.length, accepted, failed, disabled: false };
+  return { processed: candidates.length, accepted, failed, disabled: false, accountCatalog };
 }
 
 export async function recordRpaOperationResult(db: PrismaClient, result: RpaCallbackResult) {

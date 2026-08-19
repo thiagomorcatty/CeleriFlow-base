@@ -2,6 +2,7 @@
 
 import { getTenantContextForModuleEdit } from "@/lib/platform/tenant-context";
 import { classifyBankMovement, sendMovementToMunicipalSystem, type ClassificationResult, type MunicipalIntegrationReceipt } from "@/lib/financeiro/classification-engine";
+import { dispatchPendingRpaOperations } from "@/lib/financeiro/rpa-integration";
 import { revalidatePath } from "next/cache";
 
 type ActionResult<T = unknown> = { error?: string; data?: T };
@@ -54,6 +55,12 @@ export async function transmitItemAction(input: { statementItemId: string }): Pr
       usuarioId: context.user.id,
       employeeId: context.user.employeeId,
     });
+    // A fila persiste antes do envio; uma indisponibilidade externa não desfaz o lançamento financeiro.
+    try {
+      await dispatchPendingRpaOperations(context.prisma);
+    } catch (dispatchError) {
+      console.error("Falha ao despachar a operação RPA após o registro financeiro:", dispatchError);
+    }
 
     revalidatePath("/financeiro/resgates-aplicacoes");
     return { data: receipt };
