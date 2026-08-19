@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AccessError, getTenantContextForModule, isSystemAdministrator } from "@/lib/platform/tenant-context";
 import { generateBankStatementPdf } from "@/lib/financeiro/bank-statement-pdf";
+import { getFile } from "@/lib/platform/blob";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,28 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     }
 
     if (!account) return NextResponse.json({ error: "Conta bancária vinculada ao extrato não encontrada." }, { status: 404 });
+
+    // Preserve and present the immutable source file when it has been archived.
+    // The formatted PDF below remains only as a fallback for legacy history rows.
+    const archivedFile = await getFile(download.caminhoDestino);
+    if (archivedFile?.stream) {
+      await context.prisma.financialAuditLog.create({
+        data: {
+          action: "CONSULTA_EXTRATO_ORIGINAL",
+          entityType: "AutomatedBankDownload",
+          entityId: download.id,
+          authorUsuarioId: context.user.id,
+        },
+      });
+      return new NextResponse(archivedFile.stream, {
+        headers: {
+          "Content-Type": archivedFile.blob.contentType || "application/octet-stream",
+          "Content-Disposition": `inline; filename="${download.nomeArquivo}"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+
     const [items, allocations] = await Promise.all([
       context.prisma.bankStatementItem.findMany({
         where: { downloadId: download.id },

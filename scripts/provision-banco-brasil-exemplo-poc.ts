@@ -1,7 +1,10 @@
 import crypto from "crypto";
 import dotenv from "dotenv";
 import { Prisma } from "@prisma/client";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { pocBancoBrasilExample } from "../src/lib/poc/poc-config";
+import { uploadGeneratedFinancialFile } from "../src/lib/platform/blob";
 
 dotenv.config();
 dotenv.config({ path: ".env.local", override: true });
@@ -46,6 +49,13 @@ const investmentItems: MockItem[] = [
   { date: "2026-08-13", description: "Rendimento de aplicação financeira", reference: "344", signal: "CREDITO", value: "6654.00", balance: "2528211.29", code: "BB-POC-20260813-RENDIMENTO" },
 ];
 
+async function archiveSourcePdf(filename: string, sourceFilename: string) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
+  const content = await readFile(path.join(process.cwd(), "docs", "São João do Ivai", "exemplos", sourceFilename));
+  const archived = await uploadGeneratedFinancialFile(filename, content, "application/pdf");
+  return { url: archived.url, size: content.byteLength };
+}
+
 async function main() {
   const { prisma } = await import("../src/lib/prisma");
   const [budgetUnit, resourceSource] = await Promise.all([
@@ -85,6 +95,10 @@ async function main() {
 
   const currentHash = hash("BB-POC-EXTRATO-7003-3-2026-08-CORRENTE");
   const investmentHash = hash("BB-POC-EXTRATO-7003-3-2026-08-APLICACAO");
+  const [currentSource, investmentSource] = await Promise.all([
+    archiveSourcePdf("EXTRATO_BB_POC_7003-3_AGOSTO_2026.pdf", "fpm 08.pdf"),
+    archiveSourcePdf("INVESTIMENTOS_BB_POC_7003-3_AGOSTO_2026.pdf", "GFI613082026.pdf"),
+  ]);
   const [currentDownload, investmentDownload] = await prisma.$transaction(async (tx) => {
     await tx.bankStatementItem.deleteMany({ where: { banco: bank.name, agencia: bank.agency, contaNumero: { in: [bank.accountNumber, bank.investmentAccountNumber] } } });
     await tx.automatedBankDownload.deleteMany({ where: { banco: bank.name, agencia: bank.agency, contaNumero: bank.accountNumber } });
@@ -92,7 +106,7 @@ async function main() {
       data: {
         banco: bank.name, agencia: bank.agency, contaNumero: bank.accountNumber, tipoConta: "CORRENTE",
         periodoInicio: bankDate("2026-07-31"), periodoFim: bankDate("2026-08-13"), nomeArquivo: "EXTRATO_BB_POC_7003-3_AGOSTO_2026.pdf",
-        caminhoDestino: "poc://banco-brasil/extrato-corrente-7003-3", formato: "PDF", hashSHA256: currentHash, tamanhoBytes: 0,
+        caminhoDestino: currentSource?.url ?? "poc://banco-brasil/extrato-corrente-7003-3", formato: "PDF", hashSHA256: currentHash, tamanhoBytes: currentSource?.size ?? 0,
         status: "CONCLUIDO", logsExecucao: "Mock POC criado a partir de extrato Banco do Brasil fornecido pela Prefeitura. Dados exclusivamente demonstrativos.",
       },
     });
@@ -100,7 +114,7 @@ async function main() {
       data: {
         banco: bank.name, agencia: bank.agency, contaNumero: bank.accountNumber, tipoConta: "APLICACAO",
         periodoInicio: bankDate("2026-07-31"), periodoFim: bankDate("2026-08-13"), nomeArquivo: "INVESTIMENTOS_BB_POC_7003-3_AGOSTO_2026.pdf",
-        caminhoDestino: "poc://banco-brasil/investimentos-7003-3", formato: "PDF", hashSHA256: investmentHash, tamanhoBytes: 0,
+        caminhoDestino: investmentSource?.url ?? "poc://banco-brasil/investimentos-7003-3", formato: "PDF", hashSHA256: investmentHash, tamanhoBytes: investmentSource?.size ?? 0,
         status: "CONCLUIDO", logsExecucao: "Mock POC criado a partir do demonstrativo de investimentos Banco do Brasil fornecido pela Prefeitura. Dados exclusivamente demonstrativos.",
       },
     });
