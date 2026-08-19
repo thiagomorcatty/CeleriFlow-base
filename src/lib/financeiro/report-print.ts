@@ -113,7 +113,7 @@ function getHeaderHtml(title: string, opts?: DocumentPrintOptions): string {
       </div>
       <div style="text-align:right;">
         <h1 style="margin:0; font-size:18px; font-weight:bold; color:#1e293b; text-transform:uppercase;">${title}</h1>
-        <p style="margin:4px 0 0 0; font-size:10px; color:#888;">Impresso em: ${new Date().toLocaleString("pt-BR")}</p>
+        <p style="margin:4px 0 0 0; font-size:10px; color:#888;">Impresso em: ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</p>
       </div>
     </div>
   `;
@@ -771,6 +771,5 @@ export function generateBankStatementPrintHtml(
     </html>
   `;
 }
-
 
 

@@ -305,7 +305,7 @@ export default function DownloadExtratosClient({ initialHistory = [] }: { initia
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {history.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                    <td className="p-3 font-mono text-slate-500">{new Date(item.createdAt).toLocaleString("pt-BR")}</td>
+                    <td className="p-3 font-mono text-slate-500">{new Date(item.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</td>
                     <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">
                       {item.banco} ({item.contaNumero})
                     </td>

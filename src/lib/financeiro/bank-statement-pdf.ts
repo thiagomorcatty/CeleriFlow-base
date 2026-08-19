@@ -48,7 +48,7 @@ function currency(value: number) {
 }
 
 function date(value: Date) {
-  return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(value);
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(value);
 }
 
 function dateTime(value: Date) {

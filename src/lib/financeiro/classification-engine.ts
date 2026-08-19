@@ -100,12 +100,12 @@ export async function classifyBankMovement(
     return buildResult("ESTORNO", item.valor, "Identificado por padrão de Estorno em histórico");
   }
 
-  if (descricaoUpper.includes("APL") || descricaoUpper.includes("APLIC") || descricaoUpper.includes("APLICACAO")) {
-    return buildResult("APLICACAO", item.valor, "Identificado por padrão de Aplicação Financeira");
-  }
-
   if (descricaoUpper.includes("RESG") || descricaoUpper.includes("RESGATE") || descricaoUpper.includes("RESG APLIC")) {
     return buildResult("RESGATE", item.valor, "Identificado por padrão de Resgate de Aplicação");
+  }
+
+  if (descricaoUpper.includes("APL") || descricaoUpper.includes("APLIC") || descricaoUpper.includes("APLICACAO")) {
+    return buildResult("APLICACAO", item.valor, "Identificado por padrão de Aplicação Financeira");
   }
 
   if (descricaoUpper.includes("TRANSF APLIC") || descricaoUpper.includes("TR APLIC")) {

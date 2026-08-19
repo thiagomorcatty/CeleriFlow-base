@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   },
   outputFileTracingIncludes: {
     "/api/financeiro/relatorios": ["./node_modules/pdfkit/js/data/**/*"],
+    "/api/financeiro/extratos/\\[id\\]": ["./node_modules/pdfkit/js/data/**/*"],
   },
   async headers() {
     return [{

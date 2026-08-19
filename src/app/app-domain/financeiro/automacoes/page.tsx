@@ -5,7 +5,7 @@ import { pocVirtualBank } from "@/lib/poc/poc-config";
 import { pocBancoBrasilExample } from "@/lib/poc/poc-config";
 
 function displayDate(value: Date) {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium" }).format(value);
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "medium", timeZone: "America/Sao_Paulo" }).format(value);
 }
 
 type DownloadSummary = {

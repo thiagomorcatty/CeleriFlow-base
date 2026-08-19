@@ -173,7 +173,7 @@ export default function ResgatesAplicacoesClient({ initialItems = [] }: { initia
                             {item.description || "Movimento de Extrato"}
                           </span>
                           <span className="text-[11px] text-slate-500 font-mono">
-                            Doc: {item.reference || item.codigoTransacao || "S/D"} | {new Date(item.date).toLocaleDateString("pt-BR")}
+                            Doc: {item.reference || item.codigoTransacao || "S/D"} | {new Date(item.date).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
                           </span>
                           <span className="text-[11px] text-slate-500 font-mono block">Conta: {item.contaNumero || "Não identificada"}</span>
                         </div>

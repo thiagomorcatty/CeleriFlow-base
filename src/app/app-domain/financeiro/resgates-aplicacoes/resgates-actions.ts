@@ -20,7 +20,7 @@ export async function getBankStatementItemsAction(): Promise<ActionResult> {
     const items = await context.prisma.bankStatementItem.findMany({
       where: { banco: "001 - Banco Virtual Robonuvem" },
       orderBy: { date: "desc" },
-      take: 20,
+      take: 200,
     });
     return { data: items };
   } catch (err: unknown) {

@@ -221,7 +221,7 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
                 <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">Rendimentos identificados no extrato</p>
                 {externalYields.map((yieldItem) => (
                   <button key={yieldItem.documentoRef || yieldItem.data} type="button" onClick={() => handleSelectYield(yieldItem)} disabled={yieldItem.alreadyProcessed} className="w-full rounded border border-slate-200 dark:border-slate-700 p-2 text-left text-xs hover:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50">
-                    {new Date(yieldItem.data).toLocaleDateString("pt-BR")} - R$ {Number(yieldItem.valorLiquido).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}{yieldItem.alreadyProcessed ? " (processado)" : ""}
+                    {new Date(yieldItem.data).toLocaleDateString("pt-BR", { timeZone: "UTC" })} - R$ {Number(yieldItem.valorLiquido).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}{yieldItem.alreadyProcessed ? " (processado)" : ""}
                   </button>
                 ))}
               </div>
@@ -449,7 +449,7 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
 
                   return (
                     <tr key={h.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                      <td className="p-3 font-mono text-slate-500">{new Date(h.data).toLocaleDateString("pt-BR")}</td>
+                      <td className="p-3 font-mono text-slate-500">{new Date(h.data).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</td>
                       <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{h.contaNumero}</td>
                       <td className="p-3">
                         <span className="bg-slate-100 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded dark:bg-slate-800 dark:text-slate-300">
