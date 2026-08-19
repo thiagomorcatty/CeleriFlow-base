@@ -36,15 +36,16 @@ interface ExternalYield {
 }
 
 export default function RendimentosClient({ initialHistory = [] }: { initialHistory?: YieldRecord[] }) {
-  const [contaNumero, setContaNumero] = useState<string>(pocVirtualBank.accountNumbers[2]);
-  const [valorBruto, setValorBruto] = useState<number>(3420.5);
-  const [irrf, setIrrf] = useState<number>(513.07);
-  const [iof, setIof] = useState<number>(0.0);
-  const [correcaoMonetaria, setCorrecaoMonetaria] = useState<number>(0.0);
-  const [saldoAnteriorAcumulado, setSaldoAnteriorAcumulado] = useState<number>(145800.0);
+  const today = new Date().toISOString().slice(0, 10);
+  const [contaNumero, setContaNumero] = useState<string>("90001-4");
+  const [valorBruto, setValorBruto] = useState<number>(0);
+  const [irrf, setIrrf] = useState<number>(0);
+  const [iof, setIof] = useState<number>(0);
+  const [correcaoMonetaria, setCorrecaoMonetaria] = useState<number>(0);
+  const [saldoAnteriorAcumulado, setSaldoAnteriorAcumulado] = useState<number>(0);
   const [isEstorno, setIsEstorno] = useState<boolean>(false);
-  const [periodoInicio, setPeriodoInicio] = useState("2025-08-01");
-  const [periodoFim, setPeriodoFim] = useState("2025-08-31");
+  const [periodoInicio, setPeriodoInicio] = useState(today);
+  const [periodoFim, setPeriodoFim] = useState(today);
   const [externalYields, setExternalYields] = useState<ExternalYield[]>([]);
   const [selectedYield, setSelectedYield] = useState<ExternalYield | null>(null);
 
@@ -105,18 +106,25 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
   async function handleSelectYield(yieldItem: ExternalYield) {
     if (!yieldItem.statementItemId) return setErrorMsg("Baixe o extrato da aplicação antes de processar este rendimento.");
     if (yieldItem.alreadyProcessed) return setErrorMsg("Este rendimento já foi processado.");
+    const saldoAnterior = Math.max(0, yieldItem.saldoAcumulado - yieldItem.valorLiquido);
+    setErrorMsg(null);
     setSelectedYield(yieldItem);
     setValorBruto(yieldItem.valorBruto);
     setIrrf(yieldItem.irrf);
     setIof(yieldItem.iof);
     setCorrecaoMonetaria(yieldItem.correcaoMonetaria);
-    const res = await calculateYieldAction({ ...yieldItem, saldoAnteriorAcumulado });
+    setSaldoAnteriorAcumulado(saldoAnterior);
+    const res = await calculateYieldAction({ ...yieldItem, saldoAnteriorAcumulado: saldoAnterior });
     if (res.error) setErrorMsg(res.error);
     else if (res.data) setCalculation(res.data);
   }
 
   async function handleTransmit() {
     if (!calculation) return;
+    if (!selectedYield?.statementItemId) {
+      setErrorMsg("Selecione um rendimento vinculado ao extrato baixado antes de registrar.");
+      return;
+    }
     setTransmitting(true);
     setErrorMsg(null);
 
@@ -387,7 +395,7 @@ export default function RendimentosClient({ initialHistory = [] }: { initialHist
               {!receipt ? (
                 <button
                   onClick={handleTransmit}
-                  disabled={transmitting}
+                  disabled={transmitting || !selectedYield?.statementItemId}
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all"
                 >
                   {transmitting ? (

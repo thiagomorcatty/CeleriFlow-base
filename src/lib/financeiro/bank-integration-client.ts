@@ -180,7 +180,8 @@ export class BankIntegrationClient {
             valorLiquido: numberValue(transaction, "net_amount", "valor_liquido", "valorLiquido") || valorBruto - irrf - iof + correcaoMonetaria,
             saldoAcumulado: numberValue(transaction, "balance_after", "saldo_acumulado", "saldoAcumulado"),
             tipo: "BRUTO",
-            documentoRef: stringValue(transaction, "document_number", "external_id", "id"),
+            // The statement import uses the bank transaction identifier as its stable key.
+            documentoRef: stringValue(transaction, "external_id", "bank_transaction_id", "document_number", "id"),
           };
         });
     }

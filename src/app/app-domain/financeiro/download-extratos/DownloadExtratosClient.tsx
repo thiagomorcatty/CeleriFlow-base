@@ -25,11 +25,12 @@ interface DownloadRecord {
 }
 
 export default function DownloadExtratosClient({ initialHistory = [] }: { initialHistory?: DownloadRecord[] }) {
+  const today = new Date().toISOString().slice(0, 10);
   const [banco] = useState(pocVirtualBank.name);
   const [agencia, setAgencia] = useState<string>(pocVirtualBank.agency);
   const [contaNumero, setContaNumero] = useState("20001-1");
-  const [periodoInicio, setPeriodoInicio] = useState("2025-08-01");
-  const [periodoFim, setPeriodoFim] = useState("2025-08-31");
+  const [periodoInicio, setPeriodoInicio] = useState(today);
+  const [periodoFim, setPeriodoFim] = useState(today);
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
