@@ -13,6 +13,8 @@
     "seed:poc": "npx tsx prisma/seed-poc-massivo.ts",
     "seed:poc-base": "npx tsx prisma/seed-poc-completo.ts",
     "seed:poc-bank-sandbox": "npx tsx scripts/provision-bank-sandbox-poc.ts",
+    "seed:poc-banco-brasil-exemplo": "npx tsx scripts/provision-banco-brasil-exemplo-poc.ts",
+    "queue:poc-banco-brasil-rpa": "npx tsx scripts/queue-banco-brasil-rpa-poc.ts",
     "provision:poc-financial-demo": "npx tsx scripts/provision-financial-demo-poc.ts",
     "sync:poc-bank-payments": "npx tsx scripts/sync-poc-bank-payment-orders.ts",
     "sync:poc-virtual-bank": "npx tsx scripts/sync-poc-virtual-bank.ts",

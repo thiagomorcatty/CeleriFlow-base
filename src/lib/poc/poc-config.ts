@@ -18,6 +18,17 @@ export const pocVirtualBank = {
   baseUrl: "https://banco-virtual-robonuvem.vercel.app/api/bank",
 } as const;
 
+// Conta sintética baseada em extratos fornecidos pela Prefeitura, usada apenas
+// para a demonstração visual de integração com o Banco do Brasil.
+export const pocBancoBrasilExample = {
+  name: "001 - Banco do Brasil - POC",
+  agency: "2631-X",
+  accountNumber: "7003-3",
+  investmentAccountNumber: "7003-3-APL",
+  externalId: "BB-POC-7003-3",
+  investmentExternalId: "BB-POC-7003-3-APL",
+} as const;
+
 export function isPocVirtualBank(bankName: string | null | undefined) {
   return bankName === pocVirtualBank.name;
 }
