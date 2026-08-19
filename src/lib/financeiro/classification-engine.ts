@@ -220,8 +220,8 @@ export async function sendMovementToMunicipalSystem(
     if (isInvestmentApplication(classification.category) && signal !== "DEBITO") {
       throw new Error("Uma aplicação financeira deve ser identificada como débito no extrato bancário.");
     }
-    if (isInvestmentRedemption(classification.category) && signal !== "CREDITO") {
-      throw new Error("Um resgate financeiro deve ser identificado como crédito no extrato bancário.");
+    if (isInvestmentRedemption(classification.category) && signal !== "DEBITO") {
+      throw new Error("Um resgate financeiro deve ser identificado como débito no extrato da aplicação.");
     }
     if (item.treasuryMovementId) {
       const existing = await tx.treasuryMovement.findUnique({
