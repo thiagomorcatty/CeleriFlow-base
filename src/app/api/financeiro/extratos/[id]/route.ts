@@ -32,10 +32,10 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
     if (!account) return NextResponse.json({ error: "Conta bancária vinculada ao extrato não encontrada." }, { status: 404 });
 
-    // Preserve and present the immutable source file when it has been archived.
-    // The formatted PDF below remains only as a fallback for legacy history rows.
+    // Preserve official PDFs exactly as received. Imported OFX statements are
+    // rendered below as a readable, structured PDF from their normalized data.
     const archivedFile = await getFile(download.caminhoDestino);
-    if (archivedFile?.stream) {
+    if (download.formato === "PDF" && archivedFile?.stream) {
       await context.prisma.financialAuditLog.create({
         data: {
           action: "CONSULTA_EXTRATO_ORIGINAL",

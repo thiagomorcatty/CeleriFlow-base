@@ -1,4 +1,4 @@
-import PDFDocument from "pdfkit";
+import PDFDocument from "./pdfkit";
 import type { InternalReportDataset, ReportRow } from "./report-delivery";
 
 function rowHeaders(rows: ReportRow[]) {
