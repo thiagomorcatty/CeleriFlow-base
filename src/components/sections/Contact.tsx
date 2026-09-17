@@ -158,7 +158,7 @@ export function Contact() {
                   </Label>
                   <Input 
                     id="city" 
-                    placeholder="Ex: Lagoa Seca - PB" 
+                    placeholder="Ex: Município Modelo - UF" 
                     {...register("city")} 
                     className="bg-slate-950 border-slate-800 focus:border-blue-500 text-slate-100 h-11 text-sm"
                   />

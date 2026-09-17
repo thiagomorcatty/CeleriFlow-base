@@ -82,7 +82,7 @@ export default async function PainelPage() {
     <div className="w-full max-w-[1600px] mx-auto pt-2 pb-4 px-2 md:px-4 flex flex-col">
       <header className="mb-5 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">{pocEvaluator ? "POC São João do Ivaí" : "CeleriFlow"}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">{pocEvaluator ? "POC Demonstração" : "CeleriFlow"}</p>
           <h1 className="mt-1 text-xl font-bold text-slate-900">Home</h1>
           <p className="mt-1 text-sm text-slate-600">Acesse as funcionalidades disponíveis para o seu perfil.</p>
         </div>

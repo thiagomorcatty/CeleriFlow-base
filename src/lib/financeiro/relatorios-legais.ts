@@ -592,7 +592,7 @@ export async function generatePCA(db: Db, filter: ReportFilter) {
     {
       num: 1,
       titulo: "Contexto Operacional e Unidades Gestoras",
-      conteudo: "A Prestação de Contas Anual consolida a execução orçamentária, financeira e patrimonial do Município de Lagoa Seca, abrangendo a Administração Direta e Indireta.",
+      conteudo: "A Prestação de Contas Anual consolida a execução orçamentária, financeira e patrimonial do Município Modelo (Demonstração), abrangendo a Administração Direta e Indireta.",
     },
     {
       num: 2,

@@ -53,7 +53,7 @@ export default async function AutomacoesFinanceirasPage() {
   return (
     <main className="max-w-7xl mx-auto p-6 space-y-6">
       <header className="border-b border-slate-200 pb-5">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">POC São João do Ivaí</p>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">POC Demonstração</p>
         <h1 className="mt-1 text-2xl font-bold text-slate-900">Central de Automações Financeiras</h1>
         <p className="mt-1 text-sm text-slate-600">Histórico operacional, falhas e evidências do banco simulado externo.</p>
       </header>

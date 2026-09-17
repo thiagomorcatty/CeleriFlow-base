@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       });
     }
     return NextResponse.json({
-      entity: "Prefeitura Municipal de Lagoa Seca/PB",
+      entity: "Prefeitura Municipal Modelo (Demonstração)",
       updatedAt: revenues.updatedAt?.toISOString() ?? null,
       total: revenues.total,
       page: revenues.page,

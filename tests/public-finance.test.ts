@@ -371,7 +371,7 @@ test("gera comprovante técnico preliminar de retenção tributária e previdenc
     paymentNumber: "OP-2026/00089",
     settlementNumber: "NL-2026/00089",
     commitmentNumber: "NE-2026/00120",
-    creditorName: "Empresa Construtora Lagoa Seca Ltda",
+    creditorName: "Empresa Construtora Modelo Ltda",
     creditorDocument: "00.123.456/0001-89",
     calculationBase: 50000,
     retentionType: "INSS - Retenção 11%",
@@ -428,6 +428,6 @@ test("exporta dados publicos em formato TXT tabulado higienizado e fornece infor
 
   const faqInfo = getPublicHelpFaqAndContactInfo();
   assert.equal(faqInfo.faq.length, 4);
-  assert.match(faqInfo.portalInfo.title, /Lagoa Seca/);
+  assert.match(faqInfo.portalInfo.title, /Município Modelo/);
   assert.match(faqInfo.contact.ombudsmanName, /Ouvidoria Geral/);
 });

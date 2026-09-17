@@ -86,6 +86,10 @@ export default async function PortalTransparenciaPage({ searchParams }: { search
     getPublicBiddings(prisma),
     prisma.institution.findFirst({ select: { name: true, phone: true, email: true, address: true, city: true, state: true, website: true } }),
   ]);
+  const isDemoOrRealPrefeitura = !institution?.name || /lagoa\s*seca|iva[ií]/i.test(institution.name);
+  const institutionDisplayName = isDemoOrRealPrefeitura
+    ? "Prefeitura Municipal Modelo (Demonstração)"
+    : `${institution.name}${institution.state ? `/${institution.state}` : ""}`;
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
@@ -94,7 +98,7 @@ export default async function PortalTransparenciaPage({ searchParams }: { search
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Dados abertos</p>
             <h1 className="mt-1 text-2xl font-bold">Portal da Transparência</h1>
-            <p className="mt-1 text-sm text-slate-300">Execução orçamentária e financeira da Prefeitura Municipal de Lagoa Seca/PB</p>
+            <p className="mt-1 text-sm text-slate-300">Execução orçamentária e financeira da {institutionDisplayName}</p>
           </div>
           <a className="rounded-md border border-slate-600 px-4 py-2 text-sm font-semibold hover:border-white hover:bg-slate-800" href="#consulta">Ir para consulta</a>
         </div>
@@ -176,7 +180,14 @@ export default async function PortalTransparenciaPage({ searchParams }: { search
           <div className="max-h-[420px] overflow-auto"><table className="min-w-full text-left text-sm"><thead className="sticky top-0 bg-slate-100 text-xs uppercase tracking-wide text-slate-600"><tr><th className="px-4 py-3">Contrato</th><th className="px-4 py-3">Fornecedor</th><th className="px-4 py-3">Objeto / processo</th><th className="px-4 py-3">Vigência</th><th className="px-4 py-3 text-right">Valor atualizado</th></tr></thead><tbody className="divide-y divide-slate-200">{contracts.map((contract) => <tr key={contract.number}><td className="px-4 py-3 font-medium">{contract.number}<span className="block text-xs font-normal text-slate-500">{contract.status}</span></td><td className="px-4 py-3">{contract.supplier.name}<span className="block text-xs text-slate-500">{contract.supplier.documentMasked}</span></td><td className="px-4 py-3"><span className="block max-w-sm truncate" title={contract.object}>{contract.object}</span><span className="block text-xs text-slate-500">{contract.processNumber}{contract.modality ? ` · ${contract.modality}` : ""}</span></td><td className="px-4 py-3">{formatDate(contract.startDate)}<span className="block text-xs text-slate-500">até {formatDate(contract.endDate)}</span></td><td className="px-4 py-3 text-right font-medium">{formatMoney(contract.updatedValue)}</td></tr>)}{!contracts.length && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">Nenhum contrato publicável.</td></tr>}</tbody></table></div>
         </section>
 
-        {institution && (institution.phone || institution.email || institution.address || institution.website) && <section className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"><h2 className="font-bold">Contato institucional</h2><p className="mt-1">{institution.name}</p>{institution.address && <p>{institution.address}{institution.city ? `, ${institution.city}` : ""}{institution.state ? `/${institution.state}` : ""}</p>}{institution.phone && <p>Telefone: {institution.phone}</p>}{institution.email && <p>E-mail: <a className="font-semibold text-sky-800 hover:underline" href={`mailto:${institution.email}`}>{institution.email}</a></p>}{institution.website && <p>Site: <a className="font-semibold text-sky-800 hover:underline" href={institution.website}>{institution.website}</a></p>}</section>}
+        <section className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          <h2 className="font-bold">Contato institucional</h2>
+          <p className="mt-1">{isDemoOrRealPrefeitura ? "Prefeitura Municipal Modelo" : institution?.name}</p>
+          <p>{isDemoOrRealPrefeitura ? "Av. Central, 1000 - Centro, Município Modelo/UF" : `${institution?.address ?? ""}${institution?.city ? `, ${institution.city}` : ""}${institution?.state ? `/${institution.state}` : ""}`}</p>
+          <p>Telefone: {isDemoOrRealPrefeitura ? "(00) 3000-0000" : (institution?.phone || "(00) 3000-0000")}</p>
+          <p>E-mail: <a className="font-semibold text-sky-800 hover:underline" href={`mailto:${isDemoOrRealPrefeitura ? "transparencia@municipiomodelo.gov.br" : (institution?.email || "transparencia@municipiomodelo.gov.br")}`}>{isDemoOrRealPrefeitura ? "transparencia@municipiomodelo.gov.br" : (institution?.email || "transparencia@municipiomodelo.gov.br")}</a></p>
+          {institution?.website && !isDemoOrRealPrefeitura && <p>Site: <a className="font-semibold text-sky-800 hover:underline" href={institution.website}>{institution.website}</a></p>}
+        </section>
 
         <p className="mt-6 text-xs leading-5 text-slate-500">API pública: <code>/api/transparencia/despesas</code>, <code>/api/transparencia/receitas</code>, <code>/api/transparencia/contratos</code>, <code>/api/transparencia/licitacoes</code> e <code>/api/transparencia/relatorios</code>. Exportações e snapshots são CSV; não há PDF ou TXT nesta entrega.</p>
       </div>

@@ -101,9 +101,9 @@ function formatCurrency(val: number): string {
 }
 
 function getHeaderHtml(title: string, opts?: DocumentPrintOptions): string {
-  const inst = opts?.institutionName || "PREFEITURA MUNICIPAL DE LAGOA SECA";
-  const city = opts?.cityName || "Lagoa Seca";
-  const uf = opts?.state || "PB";
+  const inst = opts?.institutionName || "PREFEITURA MUNICIPAL MODELO";
+  const city = opts?.cityName || "Município Modelo";
+  const uf = opts?.state || "UF";
   return `
     <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:2px solid #000; padding-bottom:12px; margin-bottom:20px;">
       <div>
