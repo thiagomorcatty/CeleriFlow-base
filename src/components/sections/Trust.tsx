@@ -1,107 +1,88 @@
-import { CheckCircle2, ShieldCheck, Award } from "lucide-react";
+import { CheckCircle2, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
+const trustItems = [
+  {
+    title: "Ambiente web em nuvem",
+    description: "Acesso pelo navegador em infraestrutura definida para o projeto e o nível de serviço contratado.",
+  },
+  {
+    title: "Perfis e permissões",
+    description: "Perfis de acesso podem ser definidos conforme papéis, unidades e responsabilidades do órgão.",
+  },
+  {
+    title: "Segregação de funções",
+    description: "Fluxos podem separar responsabilidades de solicitação, aprovação, execução, controle e auditoria.",
+  },
+  {
+    title: "Rastreabilidade de operações",
+    description: "Registros e trilhas apoiam o acompanhamento de movimentações realizadas no ambiente.",
+  },
+  {
+    title: "Gestão documental",
+    description: "Documentos, metadados e etapas de processo podem ser organizados de acordo com os fluxos configurados.",
+  },
+  {
+    title: "Backup e continuidade",
+    description: "Recursos de backup, monitoramento e recuperação são definidos pela infraestrutura e pelo serviço contratado.",
+  },
+  {
+    title: "Instância independente",
+    description: "O ambiente pode ser estruturado para preservar a separação operacional entre órgãos e entidades.",
+  },
+  {
+    title: "Implantação em etapas",
+    description: "A ativação é planejada com diagnóstico, parametrização, testes e homologação assistida.",
+  },
+];
+
 export function Trust() {
-  const trustItems = [
-    {
-      title: "Modelo SaaS 100% em Nuvem",
-      desc: "Sem necessidade de infraestrutura local cara ou servidores físicos na prefeitura."
-    },
-    {
-      title: "Validade Jurídica & Assinatura Eletrônica",
-      desc: "Documentos e atos oficiais com hashes imutáveis, integridade e verificação garantida."
-    },
-    {
-      title: "Controle Granular de Permissões (RBAC)",
-      desc: "Definição precisa de quem pode visualizar, despachar ou assinar em cada departamento."
-    },
-    {
-      title: "Rastreabilidade e Logs de Auditoria",
-      desc: "Histórico completo de cada movimentação de processos, empenhos e atendimento."
-    },
-    {
-      title: "Adequação Total à LGPD e LAI",
-      desc: "Proteção a dados sensíveis de cidadãos e servidores com canal sigiloso de Ouvidoria."
-    },
-    {
-      title: "Alta Disponibilidade e Continuidade",
-      desc: "Infraestrutura redundante para garantir que a máquina pública nunca pare de rodar."
-    },
-    {
-      title: "Implantação Faseada e Sem Trava",
-      desc: "Transição suave módulo por módulo, sem interrupções na rotina das secretarias."
-    },
-    {
-      title: "Portal da Transparência Integrado",
-      desc: "Alimentação automática do portal público direto do fluxo financeiro e de processos."
-    }
-  ];
-
   return (
-    <section id="seguranca" className="py-24 bg-primary text-primary-foreground relative overflow-hidden">
-      {/* Background Decorative Pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-secondary/10 via-primary to-primary opacity-60 pointer-events-none" />
+    <section id="seguranca" className="relative overflow-hidden bg-primary py-24 text-primary-foreground">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-secondary/10 via-primary to-primary opacity-60" />
 
-      <div className="container mx-auto px-4 md:px-6 relative z-10">
-        
-        {/* Section Header */}
-        <div className="max-w-3xl mb-16">
-          <Badge variant="outline" className="mb-4 px-4 py-1 border-primary-foreground/30 text-primary-foreground font-medium">
-            Segurança, Legislação & Governança
+      <div className="container relative z-10 mx-auto px-4 md:px-6">
+        <div className="mb-16 max-w-3xl">
+          <Badge variant="outline" className="mb-4 border-primary-foreground/30 px-4 py-1 font-medium text-primary-foreground">
+            Segurança e governança
           </Badge>
-          <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl mb-6">
-            Projetado para as exigências rigorosas da Administração Pública.
+          <h2 className="mb-6 font-heading text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
+            Controles para uma operação pública mais organizada.
           </h2>
-          <p className="text-lg text-primary-foreground/80 leading-relaxed">
-            Na gestão pública, a integridade da informação e a conformidade legal não são opcionais. O CeleriFlow foi arquitetado para blindar o município, assegurando que cada ato administrativo tenha rastreabilidade, validade e amparo institucional.
+          <p className="text-lg leading-relaxed text-primary-foreground/80">
+            O CeleriFlow reúne recursos de controle, rastreabilidade e organização da informação. A configuração técnica e a aderência às obrigações de cada órgão são avaliadas no projeto de implantação.
           </p>
         </div>
 
-        {/* 2-Column Grid: List & Card */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
-          
-          {/* Trust Items Column */}
-          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {trustItems.map((item, i) => (
-              <div key={i} className="flex items-start gap-3.5 p-4 rounded-xl bg-primary-foreground/5 border border-primary-foreground/10 backdrop-blur-sm">
-                <CheckCircle2 className="h-5 w-5 text-secondary shrink-0 mt-0.5" />
+        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:col-span-2">
+            {trustItems.map((item) => (
+              <article key={item.title} className="flex items-start gap-3.5 rounded-xl border border-primary-foreground/10 bg-primary-foreground/5 p-4 backdrop-blur-sm">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-secondary" />
                 <div>
-                  <h4 className="text-base font-bold text-primary-foreground mb-1">
-                    {item.title}
-                  </h4>
-                  <p className="text-xs text-primary-foreground/70 leading-relaxed">
-                    {item.desc}
-                  </p>
+                  <h3 className="mb-1 text-base font-bold text-primary-foreground">{item.title}</h3>
+                  <p className="text-xs leading-relaxed text-primary-foreground/70">{item.description}</p>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
-          
-          {/* Highlight Badge Card Column */}
+
           <div className="relative">
-            <div className="aspect-square bg-primary-foreground/10 rounded-2xl border border-primary-foreground/20 p-8 flex flex-col justify-between backdrop-blur-md shadow-xl text-center">
-              
-              <div className="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-secondary text-primary mx-auto shadow-lg shadow-secondary/30">
+            <div className="flex aspect-square flex-col justify-between rounded-2xl border border-primary-foreground/20 bg-primary-foreground/10 p-8 text-center shadow-xl backdrop-blur-md">
+              <div className="mx-auto inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-secondary text-primary shadow-lg shadow-secondary/30">
                 <ShieldCheck className="h-10 w-10" />
               </div>
-              
               <div className="my-auto">
-                <h3 className="text-2xl font-bold font-heading mb-2 text-primary-foreground">
-                  Tranquilidade para os Gestores
-                </h3>
-                <p className="text-xs text-primary-foreground/80 max-w-xs mx-auto leading-relaxed">
-                  Prefeitos, Secretários e Controladores têm a certeza de que todos os atos estão em conformidade com as diretrizes do Tribunal de Contas e da Legislação vigente.
+                <h3 className="mb-2 font-heading text-2xl font-bold text-primary-foreground">Governança configurável</h3>
+                <p className="mx-auto max-w-xs text-xs leading-relaxed text-primary-foreground/80">
+                  Perfis, etapas, permissões e indicadores podem ser estruturados conforme a organização, os processos e as responsabilidades de cada órgão.
                 </p>
               </div>
-
-              <div className="pt-4 border-t border-primary-foreground/15 text-xs text-primary-foreground/70 flex items-center justify-center gap-2 font-medium">
-                <Award className="h-4 w-4 text-secondary" />
-                <span>Padrão Corporativo de Governança Pública</span>
-              </div>
-
+              <p className="border-t border-primary-foreground/15 pt-4 text-xs font-medium text-primary-foreground/70">
+                Recursos sujeitos ao escopo e à parametrização do ambiente.
+              </p>
             </div>
           </div>
-          
         </div>
       </div>
     </section>

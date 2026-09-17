@@ -1,67 +1,63 @@
-import { ShieldCheck, Zap, Layers, FileCheck } from "lucide-react";
+import { FileCheck, Layers, ShieldCheck, Zap } from "lucide-react";
+
+const stats = [
+  {
+    value: "5",
+    label: "Camadas da solução",
+    description: "Arquitetura que conecta base institucional, processos, gestão corporativa, políticas públicas e governança.",
+    icon: Layers,
+    color: "text-blue-400",
+    borderColor: "hover:border-blue-500/50",
+  },
+  {
+    value: "28",
+    label: "Módulos funcionais",
+    description: "Cobertura apresentada no catálogo técnico, organizada para diferentes áreas da administração pública.",
+    icon: FileCheck,
+    color: "text-emerald-400",
+    borderColor: "hover:border-emerald-500/50",
+  },
+  {
+    value: "Web",
+    label: "Acesso pelo navegador",
+    description: "Uso por equipes autorizadas em ambiente configurado para o órgão público.",
+    icon: Zap,
+    color: "text-teal-400",
+    borderColor: "hover:border-teal-500/50",
+  },
+  {
+    value: "Modular",
+    label: "Ativação por escopo",
+    description: "Módulos e integrações são definidos durante o projeto de implantação e conforme a contratação.",
+    icon: ShieldCheck,
+    color: "text-purple-400",
+    borderColor: "hover:border-purple-500/50",
+  },
+];
 
 export function Stats() {
-  const stats = [
-    {
-      value: "24+",
-      label: "Domínios Mapeados",
-      description: "Finanças, SIAFIC, Pix, PNCP, Saúde e Educação integrados.",
-      icon: Layers,
-      color: "text-blue-400",
-      borderColor: "hover:border-blue-500/50",
-    },
-    {
-      value: "-85%",
-      label: "Tempo de Tramitação",
-      description: "Despachos em horas com assinatura digital ICP-Brasil e Gov.br.",
-      icon: Zap,
-      color: "text-emerald-400",
-      borderColor: "hover:border-emerald-500/50",
-    },
-    {
-      value: "100%",
-      label: "Processo Sem Papel",
-      description: "Eliminação do papel físico com auditoria inalterável.",
-      icon: FileCheck,
-      color: "text-teal-400",
-      borderColor: "hover:border-teal-500/50",
-    },
-    {
-      value: "99.99%",
-      label: "Uptime Serverless",
-      description: "Nuvem Neon PostgreSQL e Firebase Auth de alta disponibilidade.",
-      icon: ShieldCheck,
-      color: "text-purple-400",
-      borderColor: "hover:border-purple-500/50",
-    }
-  ];
-
   return (
-    <section className="border-y border-slate-800 bg-slate-900/90 py-16 text-slate-100 relative overflow-hidden">
-      {/* Ambient Radial Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-blue-600/5 pointer-events-none" />
+    <section className="relative overflow-hidden border-y border-slate-800 bg-slate-900/90 py-16 text-slate-100">
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 bg-blue-600/5" />
 
-      <div className="container mx-auto px-4 md:px-6 relative z-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((item, index) => {
+      <div className="container relative z-10 mx-auto px-4 md:px-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((item) => {
             const Icon = item.icon;
+
             return (
-              <div 
-                key={index}
-                className={`flex flex-col items-center text-center p-6 rounded-2xl bg-slate-950/80 border border-slate-800 backdrop-blur-xl transition-all duration-300 ${item.borderColor} hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10 group`}
+              <div
+                key={item.label}
+                className={`group flex flex-col items-center rounded-2xl border border-slate-800 bg-slate-950/80 p-6 text-center backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10 ${item.borderColor}`}
               >
-                <div className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 group-hover:scale-110 transition-transform ${item.color}`}>
+                <div className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 transition-transform group-hover:scale-110 ${item.color}`}>
                   <Icon className="h-6 w-6" />
                 </div>
-                <span className="font-heading text-4xl font-extrabold text-slate-100 tracking-tight font-mono">
+                <span className="font-heading font-mono text-4xl font-extrabold tracking-tight text-slate-100">
                   {item.value}
                 </span>
-                <span className={`text-sm font-bold mt-1 ${item.color}`}>
-                  {item.label}
-                </span>
-                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                  {item.description}
-                </p>
+                <span className={`mt-1 text-sm font-bold ${item.color}`}>{item.label}</span>
+                <p className="mt-2 text-xs leading-relaxed text-slate-400">{item.description}</p>
               </div>
             );
           })}

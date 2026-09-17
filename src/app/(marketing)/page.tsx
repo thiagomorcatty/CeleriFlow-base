@@ -2,7 +2,8 @@ import { Hero } from "@/components/sections/Hero";
 import { Stats } from "@/components/sections/Stats";
 import { EcosystemMatrix } from "@/components/sections/EcosystemMatrix";
 import { DashboardShowcase } from "@/components/sections/DashboardShowcase";
-import { GovernmentAI } from "@/components/sections/GovernmentAI";
+import { ConnectivityMatrix } from "@/components/sections/ConnectivityMatrix";
+import { ImplementationRoadmap } from "@/components/sections/ImplementationRoadmap";
 import { RoiCalculator } from "@/components/sections/RoiCalculator";
 import { Trust } from "@/components/sections/Trust";
 import { FAQ } from "@/components/sections/FAQ";
@@ -15,7 +16,8 @@ export default function Home() {
       <Stats />
       <EcosystemMatrix />
       <DashboardShowcase />
-      <GovernmentAI />
+      <ConnectivityMatrix />
+      <ImplementationRoadmap />
       <RoiCalculator />
       <Trust />
       <FAQ />

@@ -6,60 +6,56 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 
-export function FAQ() {
-  const faqs = [
-    {
-      question: "O CeleriFlow substitui os sistemas isolados da prefeitura?",
-      answer: "Sim. O CeleriFlow foi arquitetado como um ERP Governamental Completo com mais de 24 domínios nativos. Ele pode substituir de forma integrada os velhos sistemas legados de protocolo, tesouraria, tributos, saúde, educação, obras e RH, ou ser implantado em fases integrando-se gradualmente."
-    },
-    {
-      question: "O CeleriFlow precisa de instalação nos computadores da prefeitura?",
-      answer: "Não. O CeleriFlow é 100% em nuvem (SaaS). O acesso é realizado de forma segura via navegador web por servidores públicos e gestores, sem necessidade de servidores físicos ou instalações locais na prefeitura."
-    },
-    {
-      question: "Como funciona a validade jurídica das assinaturas e despachos?",
-      answer: "Cada documento, processo ou empenho assinado eletronicamente no CeleriFlow recebe uma validação com criptografia de ponta a ponta e log de auditoria imutável, garantindo plena validade jurídica e rastreabilidade institucional."
-    },
-    {
-      question: "É possível contratar apenas alguns módulos para iniciar?",
-      answer: "Com certeza. A implantação do CeleriFlow é modular e faseada. A prefeitura pode iniciar pelo Processo Eletrônico e Ouvidoria e, à medida que a gestão avança, ativar os módulos Financeiro, Tributário, Saúde, Educação e Obras sem trocar de plataforma."
-    },
-    {
-      question: "Como o sistema garante o cumprimento da LGPD e da LAI?",
-      answer: "A plataforma possui controles rigorosos de permissões (RBAC), anonimização de dados na Ouvidoria Sigilosa para proteção de manifestantes e automação na publicação do Portal da Transparência, atendendo 100% às exigências da Lei de Acesso à Informação (LAI) e LGPD."
-    },
-    {
-      question: "Como solicitar uma demonstração guiada para nossa equipe?",
-      answer: "Basta preencher o formulário no final desta página. Nossa equipe de especialistas em Gestão Pública agendará uma apresentação técnica personalizada para demonstrar o CeleriFlow rodando na prática."
-    }
-  ];
+const faqs = [
+  {
+    question: "Quais áreas o CeleriFlow pode apoiar?",
+    answer: "O catálogo técnico apresenta 28 módulos funcionais organizados em cinco camadas, cobrindo base institucional, processos, gestão corporativa, políticas públicas setoriais e governança. A ativação é definida conforme o escopo contratado e a parametrização do projeto.",
+  },
+  {
+    question: "É possível iniciar com alguns módulos?",
+    answer: "Sim. O projeto pode priorizar as áreas mais urgentes e planejar ativações posteriores. O diagnóstico inicial ajuda a definir dependências, dados legados, responsáveis e a sequência mais adequada para o órgão.",
+  },
+  {
+    question: "O acesso exige instalação nos computadores da prefeitura?",
+    answer: "O CeleriFlow é acessado pelo navegador em ambiente web. Os requisitos de acesso, perfis, rede e segurança são definidos de acordo com a implantação do órgão.",
+  },
+  {
+    question: "Como funcionam as integrações com órgãos, bancos e sistemas externos?",
+    answer: "O catálogo descreve possibilidades de integração por APIs, arquivos, webhooks e conectores. Cada conexão depende do escopo, das credenciais, dos layouts, da disponibilidade do serviço externo e, quando aplicável, da homologação da instituição responsável.",
+  },
+  {
+    question: "Como é feita a implantação?",
+    answer: "A jornada inclui levantamento inicial, planejamento, parametrização, migração de dados, testes funcionais, homologação assistida, entrada em produção e evolução pós-go-live. O cronograma é construído conforme a realidade do projeto.",
+  },
+  {
+    question: "Como solicitar uma demonstração técnica?",
+    answer: "Preencha o formulário ao final da página. A solicitação é registrada para que a equipe avalie o cenário informado e retorne com os próximos passos para uma apresentação técnica.",
+  },
+];
 
+export function FAQ() {
   return (
-    <section id="faq" className="py-24 bg-background border-t">
-      <div className="container mx-auto px-4 md:px-6 max-w-4xl">
-        <div className="text-center mb-16">
-          <Badge variant="outline" className="mb-4 px-4 py-1 border-primary/30 text-primary font-medium">
-            Tire Suas Dúvidas
+    <section id="faq" className="border-t bg-background py-24">
+      <div className="container mx-auto max-w-4xl px-4 md:px-6">
+        <div className="mb-16 text-center">
+          <Badge variant="outline" className="mb-4 border-primary/30 px-4 py-1 font-medium text-primary">
+            Tire suas dúvidas
           </Badge>
-          <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl mb-4">
-            Perguntas Frequentes de Gestores Públicos
+          <h2 className="mb-4 font-heading text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
+            Perguntas frequentes de gestores públicos
           </h2>
-          <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto">
-            Respostas diretas sobre implantação, módulos integrados e conformidade legal do CeleriFlow.
+          <p className="mx-auto max-w-2xl text-base text-muted-foreground md:text-lg">
+            Respostas diretas sobre módulos, implantação, acesso e integrações do CeleriFlow.
           </p>
         </div>
-        
+
         <Accordion className="w-full space-y-4">
           {faqs.map((faq, index) => (
-            <AccordionItem 
-              key={index} 
-              value={`item-${index}`}
-              className="border rounded-xl px-6 bg-card/60 backdrop-blur-sm shadow-sm transition-all hover:border-primary/30"
-            >
-              <AccordionTrigger className="text-left font-bold text-base md:text-lg hover:no-underline py-5 text-foreground">
+            <AccordionItem key={faq.question} value={`item-${index}`} className="rounded-xl border bg-card/60 px-6 shadow-sm transition-all hover:border-primary/30">
+              <AccordionTrigger className="py-5 text-left text-base font-bold text-foreground hover:no-underline md:text-lg">
                 {faq.question}
               </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground text-sm md:text-base leading-relaxed pb-6 border-t pt-4">
+              <AccordionContent className="border-t pb-6 pt-4 text-sm leading-relaxed text-muted-foreground md:text-base">
                 {faq.answer}
               </AccordionContent>
             </AccordionItem>

@@ -6,15 +6,15 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const leadSchema = z.object({
-  name: z.string().min(2),
-  role: z.string().optional(),
-  organization: z.string().min(2),
-  city: z.string().min(2),
-  state: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string().optional(),
-  moduleInterest: z.string().optional(),
-  message: z.string().optional(),
+  name: z.string().trim().min(2).max(120),
+  role: z.string().trim().max(120).optional(),
+  organization: z.string().trim().min(2).max(160),
+  city: z.string().trim().min(2).max(120),
+  state: z.string().trim().min(2).max(32),
+  email: z.string().trim().email().max(254),
+  phone: z.string().trim().min(8).max(64),
+  moduleInterest: z.string().trim().max(160).optional(),
+  message: z.string().trim().max(2000).optional(),
   consent: z.boolean().refine((val) => val === true, {
     message: "É necessário aceitar a política de privacidade",
   }),
@@ -34,37 +34,37 @@ export async function POST(req: Request) {
     );
   }
 
+  const body: unknown = await req.json().catch(() => null);
+  const parsedData = leadSchema.safeParse(body);
+
+  if (!parsedData.success) {
+    return NextResponse.json(
+      { error: "Dados da solicitação inválidos. Revise os campos e tente novamente." },
+      { status: 400 }
+    );
+  }
+
   try {
-    const body = await req.json();
-
-    const parsedData = leadSchema.parse(body);
-
-    // Importação dinâmica do Prisma — só carrega quando a rota é chamada em runtime
+    // Importação dinâmica do Prisma: só carrega quando a rota é chamada em runtime.
     const { prisma } = await import("@/lib/prisma");
 
-    const lead = await prisma.lead.create({
+    await prisma.lead.create({
       data: {
-        name: parsedData.name,
-        role: parsedData.role,
-        organization: parsedData.organization,
-        city: parsedData.city,
-        state: parsedData.state,
-        email: parsedData.email,
-        phone: parsedData.phone,
-        moduleInterest: parsedData.moduleInterest,
-        message: parsedData.message,
-        consent: parsedData.consent,
+        name: parsedData.data.name,
+        role: parsedData.data.role,
+        organization: parsedData.data.organization,
+        city: parsedData.data.city,
+        state: parsedData.data.state,
+        email: parsedData.data.email,
+        phone: parsedData.data.phone,
+        moduleInterest: parsedData.data.moduleInterest,
+        message: parsedData.data.message,
+        consent: parsedData.data.consent,
       },
     });
 
-    return NextResponse.json({ success: true, lead }, { status: 201 });
+    return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: (error as z.ZodError).issues },
-        { status: 400 }
-      );
-    }
     console.error("Erro ao salvar lead:", error);
     return NextResponse.json(
       { error: "Erro interno do servidor" },

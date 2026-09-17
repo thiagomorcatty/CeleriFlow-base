@@ -13,12 +13,6 @@ export default function MarketingLayout({
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
     description: "Plataforma integrada em nuvem para administração pública municipal, com processo digital, gestão documental, compras, transparência e indicadores.",
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "BRL",
-      availability: "https://schema.org/InStock",
-    },
   };
 
   return (
